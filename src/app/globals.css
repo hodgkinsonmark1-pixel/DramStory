@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@import "./dramstory-legacy.css";
+
+/* Base site chrome (from mockup) */
+html, body {
+  min-height: 100%;
+  font-family: var(--font-body);
+  background: var(--off-white);
+  color: var(--dark);
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--mist); border-radius: 3px; }
+
+a { color: inherit; }
