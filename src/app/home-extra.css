@@ -1,0 +1,171 @@
+/* HOMEPAGE — new sections (How to Build Your Story, Classic Journeys,
+   Featured). Built from the same tokens as dramstory-legacy.css; the
+   mockup didn't cover these sections' markup, only the approved layout
+   order and content. */
+
+.how-eyebrow {
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 8px;
+}
+.how-title {
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 400;
+  color: var(--dark);
+  margin-bottom: 32px;
+}
+
+.how-section {
+  background: white;
+  padding: 64px 24px;
+}
+.how-steps {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  max-width: 720px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+}
+.how-step {
+  flex: 1;
+  min-width: 160px;
+  max-width: 220px;
+  text-align: center;
+}
+.how-step-number {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--amber-pale);
+  border: 1.5px solid var(--amber);
+  color: var(--copper);
+  font-family: var(--font-display);
+  font-size: 19px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+}
+.how-step-label {
+  font-size: 14px;
+  color: var(--peat);
+  line-height: 1.5;
+}
+
+.journeys-section {
+  background: var(--off-white);
+  padding: 64px 24px;
+}
+.journeys-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+.journey-card {
+  display: block;
+  background: white;
+  border-radius: var(--radius);
+  padding: 22px;
+  border: 1px solid var(--stone);
+  text-decoration: none;
+  transition: all 0.2s var(--ease-out);
+  box-shadow: var(--shadow-card);
+}
+.journey-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+  border-color: var(--green-mid);
+}
+.journey-card-tagline {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 8px;
+}
+.journey-card-name {
+  font-family: var(--font-display);
+  font-size: 21px;
+  color: var(--dark);
+  margin-bottom: 6px;
+}
+.journey-card-stops {
+  font-size: 12px;
+  color: var(--slate);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+.journey-card-price {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dark);
+}
+
+.featured-section {
+  background: white;
+  padding: 64px 24px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+.featured-col-title {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin: 32px 0 14px 0;
+}
+.featured-col-title:first-of-type {
+  margin-top: 0;
+}
+.featured-distilleries-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+.featured-distillery-card {
+  text-decoration: none;
+  color: inherit;
+}
+.featured-distillery-image {
+  height: 100px;
+  border-radius: var(--radius-sm);
+  background-size: cover;
+  background-position: center;
+  background-color: var(--stone);
+  margin-bottom: 8px;
+}
+.featured-distillery-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dark);
+}
+.featured-distillery-style {
+  font-size: 11px;
+  color: var(--slate);
+}
+.featured-coming-soon {
+  background: var(--off-white);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  font-size: 13px;
+  color: var(--slate);
+  line-height: 1.6;
+}
+.featured-coming-soon-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--green-deep);
+  font-weight: 500;
+  text-decoration: none;
+}
+.featured-coming-soon-link:hover {
+  text-decoration: underline;
+}
