@@ -126,7 +126,9 @@ export default function Workspace({
             {lengthLabel ? ` · ${lengthLabel}` : ""}
           </span>
           <Link href="/distilleries">Distilleries</Link>
-          <Link href="/">Start over</Link>
+          <Link href="/" onClick={() => trip.resetTrip()}>
+            Start over
+          </Link>
         </div>
       </div>
 

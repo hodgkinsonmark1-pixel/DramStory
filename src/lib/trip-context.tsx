@@ -1,16 +1,29 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import type { Distillery, ItineraryDay, Tour } from "@/lib/types";
+import type { Distillery, ItineraryDay, Tour, TripIntake } from "@/lib/types";
 
-const STORAGE_KEY = "dramstory-trip-v1";
+const STORAGE_KEY = "dramstory-trip-v2";
+
+interface StoredTrip {
+  days: ItineraryDay[];
+  intake: TripIntake | null;
+}
 
 interface TripContextValue {
   days: ItineraryDay[];
+  /** The completed Q2/Step3/Q4 answers, once the visitor has been through
+   *  the intake flow at least once - lets "Back to your journey" (from a
+   *  distillery page) jump straight to the workspace instead of
+   *  restarting the questions, since this is what was previously missing. */
+  intake: TripIntake | null;
   /** True once the saved trip has been read from localStorage - avoids a
    *  flash of "no days yet" before hydration catches up. */
   ready: boolean;
   initDays: (count: number) => void;
+  completeIntake: (intake: TripIntake) => void;
+  /** Clears the saved trip and intake entirely - used by "Start over". */
+  resetTrip: () => void;
   addDay: () => void;
   removeDay: (index: number) => void;
   addStop: (dayIndex: number, distillery: Distillery) => void;
@@ -29,6 +42,7 @@ const TripContext = createContext<TripContextValue | null>(null);
 
 export function TripProvider({ children }: { children: React.ReactNode }) {
   const [days, setDays] = useState<ItineraryDay[]>([]);
+  const [intake, setIntake] = useState<TripIntake | null>(null);
   const [ready, setReady] = useState(false);
 
   // Reads localStorage after mount rather than in a lazy useState
@@ -40,8 +54,12 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (raw) setDays(JSON.parse(raw));
+      if (raw) {
+        const parsed: StoredTrip = JSON.parse(raw);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setDays(parsed.days ?? []);
+        setIntake(parsed.intake ?? null);
+      }
     } catch {
       // Corrupt or inaccessible storage - just start fresh.
     }
@@ -53,12 +71,12 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!ready) return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(days));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ days, intake }));
     } catch {
       // Storage full or unavailable - the trip still works for this
       // session, it just won't survive a reload.
     }
-  }, [days, ready]);
+  }, [days, intake, ready]);
 
   const initDays = useCallback((count: number) => {
     setDays((prev) => {
@@ -69,6 +87,15 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         stops: [],
       }));
     });
+  }, []);
+
+  const completeIntake = useCallback((newIntake: TripIntake) => {
+    setIntake(newIntake);
+  }, []);
+
+  const resetTrip = useCallback(() => {
+    setDays([]);
+    setIntake(null);
   }, []);
 
   const addDay = useCallback(() => {
@@ -124,7 +151,20 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <TripContext.Provider
-      value={{ days, ready, initDays, addDay, removeDay, addStop, removeStop, setTourForStop, findStopDays }}
+      value={{
+        days,
+        intake,
+        ready,
+        initDays,
+        completeIntake,
+        resetTrip,
+        addDay,
+        removeDay,
+        addStop,
+        removeStop,
+        setTourForStop,
+        findStopDays,
+      }}
     >
       {children}
     </TripContext.Provider>
