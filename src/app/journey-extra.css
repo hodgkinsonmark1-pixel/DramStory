@@ -79,70 +79,9 @@ select.location-inline-input {
   color: var(--green-deep);
 }
 
-/* Map popup cards (item 14) — matches the reference screenshots: a small
-   category badge, title, description, optional suggested-time line, and
-   View / +Add buttons. Leaflet renders popup content as raw HTML (not
-   React), so these are plain classes rather than component styles. */
-.map-popup-card {
-  font-family: var(--font-body);
-  padding: 4px 2px;
-  min-width: 220px;
-}
-.map-popup-badge {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--copper);
-  margin-bottom: 4px;
-}
-.map-popup-title {
-  font-family: var(--font-display);
-  font-size: 19px;
-  font-weight: 500;
-  color: var(--dark);
-  margin-bottom: 2px;
-}
-.map-popup-subtitle {
-  font-size: 12px;
-  color: var(--slate);
-  margin-bottom: 8px;
-}
-.map-popup-desc {
-  font-size: 13px;
-  color: var(--peat);
-  line-height: 1.5;
-  margin-bottom: 8px;
-}
-.map-popup-suggested {
-  font-size: 12px;
-  color: var(--slate);
-  margin-bottom: 10px;
-}
-.map-popup-actions {
-  display: flex;
-  gap: 8px;
-}
-.map-popup-btn {
-  flex: 1;
-  padding: 9px 0;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 500;
-  text-align: center;
-  cursor: pointer;
-  border: none;
-  text-decoration: none;
-  display: inline-block;
-}
-.map-popup-btn-view {
-  background: var(--stone);
-  color: var(--peat);
-}
-.map-popup-btn-add {
-  background: var(--navy);
-  color: white;
-}
+/* Map popups use .popup-inner/.popup-tag/.popup-name/.popup-region/
+   .popup-detail/.popup-actions/.popup-btn* — all already ported from the
+   approved mockup in dramstory-legacy.css, so no styles needed here. */
 
 /* Full-width filter subbar (item 15) — one shared row spanning the entire
    toolbar width below ALL the filter buttons, not nested under just the

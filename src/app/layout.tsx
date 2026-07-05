@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
+import { TripProvider } from "@/lib/trip-context";
 import "./globals.css";
 
 // Brand typography, locked in the brand sheet:
@@ -39,7 +40,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${cormorant.variable} ${inter.variable}`}>
-      <body>{children}</body>
+      <body>
+        <TripProvider>{children}</TripProvider>
+      </body>
     </html>
   );
 }

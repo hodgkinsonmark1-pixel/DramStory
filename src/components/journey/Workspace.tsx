@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { Distillery, InterestCategoryId, ItineraryDay, LocationAnswer, TripLength, TripTiming } from "@/lib/types";
+import type { Distillery, InterestCategoryId, LocationAnswer, TripLength, TripTiming } from "@/lib/types";
 import { INTEREST_CATEGORIES, REGIONS, TRIP_LENGTHS } from "@/lib/journey-options";
+import { estimatedDriveMinutes, formatDuration, parseAvgVisitMinutes } from "@/lib/drive-time";
+import { useTrip } from "@/lib/trip-context";
 import Logo from "@/components/Logo";
 import MapCanvas from "./MapCanvas";
 
@@ -30,22 +32,6 @@ function describeLocation(location: LocationAnswer): string {
   return islayLabel;
 }
 
-function makeDays(count: number): ItineraryDay[] {
-  return Array.from({ length: count }, (_, i) => ({
-    id: `day-${i + 1}`,
-    label: `Day ${i + 1}`,
-    stops: [],
-  }));
-}
-
-/**
- * The workspace — map + itinerary panel, now with real day tabs. Day count
- * is seeded from the trip-length answer; visitors can add more days
- * freely (mainly useful for "just dreaming", where the length was only a
- * rough guess to begin with). Airport arrival/departure banners on the
- * first/last day are derived live from days.length + the location answer
- * rather than stored - see the ItineraryDay comment in lib/types.ts for why.
- */
 export default function Workspace({
   distilleries,
   location,
@@ -53,15 +39,20 @@ export default function Workspace({
   initialInterests,
   timing,
 }: WorkspaceProps) {
+  const trip = useTrip();
   const [activeCategories, setActiveCategories] = useState<Set<InterestCategoryId>>(
     new Set(initialInterests)
   );
   const [expandedCategory, setExpandedCategory] = useState<InterestCategoryId | null>(null);
   const [activeSubcats, setActiveSubcats] = useState<Set<string>>(new Set());
+  const [activeDayIndex, setActiveDayIndex] = useState(0);
+  const [showCostBreakdown, setShowCostBreakdown] = useState(false);
 
   const startingDayCount = TRIP_LENGTHS.find((t) => t.id === tripLength)?.days ?? 1;
-  const [days, setDays] = useState<ItineraryDay[]>(() => makeDays(startingDayCount));
-  const [activeDayIndex, setActiveDayIndex] = useState(0);
+  useEffect(() => {
+    if (trip.ready) trip.initDays(startingDayCount);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trip.ready]);
 
   const title = describeLocation(location);
   const isLive = location.kind !== "region" || location.region === "islay";
@@ -95,36 +86,32 @@ export default function Workspace({
     });
   }
 
-  function addDistillery(slug: string) {
-    const d = distilleries.find((x) => x.slug === slug);
-    if (!d) return;
-    setDays((prev) =>
-      prev.map((day, i) =>
-        i === activeDayIndex && !day.stops.some((s) => s.slug === slug)
-          ? { ...day, stops: [...day.stops, d] }
-          : day
-      )
-    );
-  }
+  const days = trip.days;
+  const activeDay = days[activeDayIndex];
 
-  function removeStop(dayIndex: number, slug: string) {
-    setDays((prev) =>
-      prev.map((day, i) => (i === dayIndex ? { ...day, stops: day.stops.filter((s) => s.slug !== slug) } : day))
-    );
+  // Drive time + visit time totals for the currently viewed day.
+  const driveSegments: number[] = [];
+  if (activeDay) {
+    for (let i = 0; i < activeDay.stops.length - 1; i++) {
+      driveSegments.push(
+        estimatedDriveMinutes(activeDay.stops[i].distillery, activeDay.stops[i + 1].distillery)
+      );
+    }
   }
-
-  function addDay() {
-    setDays((prev) => [...prev, { id: `day-${prev.length + 1}`, label: `Day ${prev.length + 1}`, stops: [] }]);
-  }
-
-  function removeDay(index: number) {
-    if (days.length <= 1) return;
-    setDays((prev) => prev.filter((_, i) => i !== index).map((d, i) => ({ ...d, label: `Day ${i + 1}` })));
-    setActiveDayIndex((prev) => Math.min(prev, days.length - 2));
-  }
+  const totalDriveMinutes = driveSegments.reduce((a, b) => a + b, 0);
+  const totalVisitMinutes = activeDay
+    ? activeDay.stops.reduce((sum, s) => sum + parseAvgVisitMinutes(s.distillery.avgVisit), 0)
+    : 0;
+  const toursBooked = activeDay ? activeDay.stops.filter((s) => s.tour).length : 0;
+  const toursTotal = activeDay
+    ? activeDay.stops.reduce((sum, s) => sum + (s.tour?.price ?? 0), 0)
+    : 0;
 
   const expandedCategoryData = INTEREST_CATEGORIES.find((c) => c.id === expandedCategory);
-  const activeDay = days[activeDayIndex];
+
+  if (!trip.ready || !activeDay) {
+    return <div className="workspace-root" />;
+  }
 
   return (
     <div className="workspace-root">
@@ -172,11 +159,11 @@ export default function Workspace({
             >
               &#8250;
             </button>
-            <button className="day-nav-add" onClick={addDay}>
+            <button className="day-nav-add" onClick={trip.addDay}>
               + Add day
             </button>
             {days.length > 1 && (
-              <button className="day-nav-remove" onClick={() => removeDay(activeDayIndex)}>
+              <button className="day-nav-remove" onClick={() => trip.removeDay(activeDayIndex)}>
                 Remove this day
               </button>
             )}
@@ -199,20 +186,34 @@ export default function Workspace({
                 <p>Nothing added to {activeDay.label} yet — explore the map and add distilleries.</p>
               </div>
             ) : (
-              activeDay.stops.map((d, i) => (
-                <div className="journey-stop" key={d.slug}>
-                  <div className="stop-number">{i + 1}</div>
-                  <div>
-                    <div className="stop-name">{d.name}</div>
-                    <div className="stop-region">{d.region}</div>
+              activeDay.stops.map((stop, i) => (
+                <div key={stop.distillery.slug}>
+                  <div className="journey-stop">
+                    <div className="stop-number">{i + 1}</div>
+                    <div style={{ flex: 1 }}>
+                      <div className="stop-name">{stop.distillery.name}</div>
+                      <div className="stop-region">{stop.distillery.region}</div>
+                      <div className="stop-time">~{stop.distillery.avgVisit} visit</div>
+                      {stop.tour && (
+                        <>
+                          <div className="stop-tour">🎟 {stop.tour.name}</div>
+                          <div className="stop-cost">£{stop.tour.price} per person</div>
+                        </>
+                      )}
+                    </div>
+                    <button
+                      className="stop-remove"
+                      onClick={() => trip.removeStop(activeDayIndex, stop.distillery.slug)}
+                      aria-label={`Remove ${stop.distillery.name}`}
+                    >
+                      &times;
+                    </button>
                   </div>
-                  <button
-                    className="stop-remove"
-                    onClick={() => removeStop(activeDayIndex, d.slug)}
-                    aria-label={`Remove ${d.name}`}
-                  >
-                    &times;
-                  </button>
+                  {i < activeDay.stops.length - 1 && (
+                    <div className="drive-time-between">
+                      🚗 {formatDuration(driveSegments[i])} drive
+                    </div>
+                  )}
                 </div>
               ))
             )}
@@ -227,6 +228,50 @@ export default function Workspace({
               </div>
             )}
           </div>
+
+          {activeDay.stops.length > 0 && (
+            <div className="journey-summary">
+              <div className="summary-row">
+                <span>Driving time</span>
+                <span>{formatDuration(totalDriveMinutes)}</span>
+              </div>
+              <div className="summary-row">
+                <span>Estimated visits</span>
+                <span>{formatDuration(totalVisitMinutes)}</span>
+              </div>
+              <div className="summary-total">
+                <span>Total journey</span>
+                <span>{formatDuration(totalDriveMinutes + totalVisitMinutes)}</span>
+              </div>
+
+              <button className="cost-toggle" onClick={() => setShowCostBreakdown((v) => !v)}>
+                {showCostBreakdown ? "▲" : "▼"} Show estimated tour costs
+                {toursBooked > 0 ? ` (${toursBooked} tour${toursBooked > 1 ? "s" : ""} booked)` : ""}
+              </button>
+
+              {showCostBreakdown && (
+                <div className="cost-breakdown">
+                  {activeDay.stops.map((s) => (
+                    <div key={s.distillery.slug} className="summary-row">
+                      <span>
+                        {s.distillery.name} {s.tour ? `- ${s.tour.name}` : "- No tour selected"}
+                      </span>
+                      <span>{s.tour ? `£${s.tour.price}` : "-"}</span>
+                    </div>
+                  ))}
+                  <div className="summary-row" style={{ fontWeight: 600 }}>
+                    <span>Tours total</span>
+                    <span>£{toursTotal} pp</span>
+                  </div>
+                  <p style={{ fontSize: 11, color: "var(--slate)", marginTop: 8 }}>
+                    Accommodation and transport not included. Add tours from each distillery page.
+                  </p>
+                </div>
+              )}
+
+              <button className="save-journey-btn">📖 Save My Dram Story</button>
+            </div>
+          )}
         </div>
 
         <div className="map-area">
@@ -271,7 +316,10 @@ export default function Workspace({
             <MapCanvas
               distilleries={isLive ? distilleries : []}
               isLive={isLive}
-              onAddDistillery={addDistillery}
+              onAddDistillery={(slug) => {
+                const d = distilleries.find((x) => x.slug === slug);
+                if (d) trip.addStop(activeDayIndex, d);
+              }}
             />
             {!isLive && (
               <div

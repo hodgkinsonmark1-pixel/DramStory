@@ -74,14 +74,14 @@ export default function MapCanvas({ distilleries, isLive, onAddDistillery }: Map
         if (!d.lat || !d.lng) continue;
         const marker = L.marker([d.lat, d.lng], { icon: distilleryIcon }).addTo(map);
         marker.bindPopup(
-          `<div class="map-popup-card">
-            <div class="map-popup-badge">${d.style || "Distillery"}</div>
-            <div class="map-popup-title">${d.name}</div>
-            <div class="map-popup-subtitle">${d.region}${d.founded ? ` &middot; Est. ${d.founded}` : ""}</div>
-            <div class="map-popup-desc">${d.tagline}</div>
-            <div class="map-popup-actions">
-              <a class="map-popup-btn map-popup-btn-view" href="/distilleries/${d.slug}">View &rarr;</a>
-              <button class="map-popup-btn map-popup-btn-add" data-add-distillery="${d.slug}">+ Add</button>
+          `<div class="popup-inner">
+            <div class="popup-tag">${d.style || "Distillery"}</div>
+            <div class="popup-name">${d.name}</div>
+            <div class="popup-region">${d.region}${d.founded ? ` &middot; Est. ${d.founded}` : ""}</div>
+            <div class="popup-detail">${d.tagline}</div>
+            <div class="popup-actions">
+              <a class="popup-btn popup-btn-secondary" href="/distilleries/${d.slug}">View &rarr;</a>
+              <button class="popup-btn popup-btn-primary" data-add-distillery="${d.slug}">+ Add</button>
             </div>
           </div>`,
           { minWidth: 240 }
