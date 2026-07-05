@@ -16,7 +16,7 @@ export interface RegionOption {
 }
 
 export const REGIONS: RegionOption[] = [
-  { id: "islay", label: "Islay", live: true },
+  { id: "islay", label: "Islay & Jura", live: true },
   { id: "speyside", label: "Speyside", live: false },
   { id: "highland", label: "Highland", live: false },
   { id: "campbeltown", label: "Campbeltown", live: false },

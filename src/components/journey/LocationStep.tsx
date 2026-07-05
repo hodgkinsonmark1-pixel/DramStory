@@ -16,33 +16,14 @@ type OptionId = "islay" | "speyside" | "highland" | "campbeltown" | "lowland" | 
 
 /**
  * Q2 - "Where does your story take you?"
- * 7 options: the 5 regions (only Islay has live data - the rest still
- * route into the workspace with an empty overlay, nothing is locked out)
- * plus two special cases that expand in place rather than opening a
- * separate input row below the grid:
- *   - Airport: the card itself becomes a text field
- *   - A specific distillery: the card itself becomes a dropdown
+ * Auto-advances on selection, matching Q1's one-click feel - no separate
+ * Continue button. The two special cases still need a bit of input first
+ * (typing an airport, picking a distillery), so those advance on Enter /
+ * on selecting a dropdown value instead of on the initial card click.
  */
 export default function LocationStep({ distilleries, onNext, onBack }: LocationStepProps) {
   const [selected, setSelected] = useState<OptionId | null>(null);
   const [airportName, setAirportName] = useState("");
-  const [distillerySlug, setDistillerySlug] = useState("");
-
-  const canContinue =
-    selected !== null &&
-    (selected !== "airport" || airportName.trim().length > 0) &&
-    (selected !== "distillery" || distillerySlug.length > 0);
-
-  function handleContinue() {
-    if (!selected) return;
-    if (selected === "airport") {
-      onNext({ kind: "airport", airportName: airportName.trim() });
-    } else if (selected === "distillery") {
-      onNext({ kind: "distillery", distillerySlug });
-    } else {
-      onNext({ kind: "region", region: selected });
-    }
-  }
 
   return (
     <div className="journey-screen">
@@ -68,8 +49,8 @@ export default function LocationStep({ distilleries, onNext, onBack }: LocationS
         {REGIONS.map((r) => (
           <button
             key={r.id}
-            className={"q-card" + (selected === r.id ? " selected" : "")}
-            onClick={() => setSelected(r.id)}
+            className="q-card"
+            onClick={() => onNext({ kind: "region", region: r.id })}
           >
             {r.label}
           </button>
@@ -79,9 +60,14 @@ export default function LocationStep({ distilleries, onNext, onBack }: LocationS
           <input
             className="q-card location-inline-input"
             type="text"
-            placeholder="Type your airport…"
+            placeholder="Type your airport, press Enter…"
             value={airportName}
             onChange={(e) => setAirportName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && airportName.trim().length > 0) {
+                onNext({ kind: "airport", airportName: airportName.trim() });
+              }
+            }}
             autoFocus
           />
         ) : (
@@ -93,8 +79,10 @@ export default function LocationStep({ distilleries, onNext, onBack }: LocationS
         {selected === "distillery" ? (
           <select
             className="q-card location-inline-input"
-            value={distillerySlug}
-            onChange={(e) => setDistillerySlug(e.target.value)}
+            defaultValue=""
+            onChange={(e) => {
+              if (e.target.value) onNext({ kind: "distillery", distillerySlug: e.target.value });
+            }}
             autoFocus
           >
             <option value="">Choose a distillery…</option>
@@ -111,9 +99,6 @@ export default function LocationStep({ distilleries, onNext, onBack }: LocationS
         )}
       </div>
 
-      <button className="journey-next-btn" disabled={!canContinue} onClick={handleContinue}>
-        Continue
-      </button>
       <button className="journey-back" onClick={onBack}>
         Back
       </button>

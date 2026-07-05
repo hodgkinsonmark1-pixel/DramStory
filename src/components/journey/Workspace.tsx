@@ -22,14 +22,15 @@ const PANEL_SUBTITLE_BY_TIMING: Record<TripTiming, string> = {
 };
 
 function describeLocation(location: LocationAnswer): { title: string; context: string | null } {
+  const islayLabel = REGIONS.find((r) => r.id === "islay")?.label ?? "Islay & Jura";
   if (location.kind === "region") {
     const region = REGIONS.find((r) => r.id === location.region);
     return { title: region?.label ?? "Your trip", context: null };
   }
   if (location.kind === "airport") {
-    return { title: "Islay", context: `Flying into ${location.airportName}` };
+    return { title: islayLabel, context: `Flying into ${location.airportName}` };
   }
-  return { title: "Islay", context: `Starting from ${location.distillerySlug.replace(/-/g, " ")}` };
+  return { title: islayLabel, context: `Starting from ${location.distillerySlug.replace(/-/g, " ")}` };
 }
 
 /**
