@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { InterestCategoryId } from "@/lib/types";
 import { INTEREST_CATEGORIES } from "@/lib/journey-options";
 import SiteHeader from "@/components/SiteHeader";
-import BackgroundVideo from "@/components/BackgroundVideo";
+import BackgroundImage from "@/components/BackgroundImage";
 
 interface InterestsStepProps {
   onNext: (interests: InterestCategoryId[]) => void;
@@ -35,7 +35,7 @@ export default function InterestsStep({ onNext, onBack }: InterestsStepProps) {
 
   return (
     <div className="journey-screen">
-      <BackgroundVideo />
+      <BackgroundImage />
       <div className="hero-overlay" />
       <SiteHeader logoSize={40} />
 

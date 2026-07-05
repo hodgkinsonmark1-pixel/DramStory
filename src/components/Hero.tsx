@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import SiteHeader from "./SiteHeader";
-import BackgroundVideo from "./BackgroundVideo";
+import BackgroundImage from "./BackgroundImage";
 
 /**
  * The homepage hero — ported from the mockup's HomePage/hero sequence:
@@ -45,7 +45,7 @@ export default function Hero() {
 
   return (
     <div className="hero">
-      <BackgroundVideo />
+      <BackgroundImage />
       <div className="hero-overlay" />
 
       <SiteHeader transparent logoSize={48} />

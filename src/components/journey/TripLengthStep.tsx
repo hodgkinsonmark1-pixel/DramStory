@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { TripLength } from "@/lib/types";
 import { TRIP_LENGTHS } from "@/lib/journey-options";
 import SiteHeader from "@/components/SiteHeader";
-import BackgroundVideo from "@/components/BackgroundVideo";
+import BackgroundImage from "@/components/BackgroundImage";
 
 interface TripLengthStepProps {
   onNext: (length: TripLength) => void;
@@ -28,7 +28,7 @@ export default function TripLengthStep({ onNext, onBack }: TripLengthStepProps) 
 
   return (
     <div className="journey-screen">
-      <BackgroundVideo />
+      <BackgroundImage />
       <div className="hero-overlay" />
       <SiteHeader logoSize={40} />
 

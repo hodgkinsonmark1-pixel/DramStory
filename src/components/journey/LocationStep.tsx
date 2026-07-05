@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { Distillery, LocationAnswer } from "@/lib/types";
 import { REGIONS } from "@/lib/journey-options";
 import SiteHeader from "@/components/SiteHeader";
-import BackgroundVideo from "@/components/BackgroundVideo";
+import BackgroundImage from "@/components/BackgroundImage";
 
 interface LocationStepProps {
   distilleries: Distillery[];
@@ -27,7 +27,7 @@ export default function LocationStep({ distilleries, onNext, onBack }: LocationS
 
   return (
     <div className="journey-screen">
-      <BackgroundVideo />
+      <BackgroundImage />
       <div className="hero-overlay" />
       <SiteHeader logoSize={40} />
 
