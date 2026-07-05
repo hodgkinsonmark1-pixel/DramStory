@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Distillery, InterestCategoryId, LocationAnswer, TripTiming } from "@/lib/types";
 import { INTEREST_CATEGORIES, REGIONS } from "@/lib/journey-options";
 import Logo from "@/components/Logo";
+import MapCanvas from "./MapCanvas";
 
 interface WorkspaceProps {
   distilleries: Distillery[];
@@ -31,12 +32,12 @@ function describeLocation(location: LocationAnswer): { title: string; context: s
 }
 
 /**
- * The workspace — map + itinerary panel. This is the "base" version: the
- * full filter bar and itinerary shell are real and wired to the Q2/Q3
- * answers, but the interactive map itself is a placeholder for now (it
- * needs the Google Maps JavaScript API, which is blocked behind the same
- * billing verification as Places — see the Google Places thread). Once
- * that clears, #map-canvas below is where the live map mounts.
+ * The workspace — map + itinerary panel. The filter bar and itinerary
+ * shell are wired to the Q2/Q3 answers, and the map itself is a real
+ * interactive Leaflet map (OpenStreetMap tiles, no API key or billing
+ * account needed) with live pins for every distillery in the region. The
+ * itinerary panel doesn't support drag-and-drop yet — that's the next
+ * iteration on this base.
  */
 export default function Workspace({ distilleries, location, initialInterests, timing }: WorkspaceProps) {
   const [activeCategories, setActiveCategories] = useState<Set<InterestCategoryId>>(
@@ -139,32 +140,32 @@ export default function Workspace({ distilleries, location, initialInterests, ti
               );
             })}
             <div className="filter-sep" />
-            <div className="map-hint">Interactive map coming next</div>
+            <div className="map-hint">
+              {isLive ? `${distilleries.length} distilleries on the map` : "No pins here yet"}
+            </div>
           </div>
 
-          <div id="map-canvas" className="workspace-map-placeholder">
-            <div className="workspace-map-placeholder-title">
-              {isLive ? "Your Islay map is on its way" : `No data for ${title} yet`}
-            </div>
-            {isLive ? (
-              <>
-                <p>
-                  The interactive map view is being built next. In the meantime, here are the{" "}
-                  {distilleries.length} distilleries that will appear as pins.
-                </p>
-                <div className="workspace-pin-list">
-                  {distilleries.map((d) => (
-                    <span key={d.slug} className="workspace-pin-chip">
-                      🥃 {d.name}
-                    </span>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <p>
-                {title} is on the roadmap — Islay is the only region with distilleries, tours, and local
-                features loaded so far. Check back soon.
-              </p>
+          <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
+            <MapCanvas distilleries={isLive ? distilleries : []} isLive={isLive} />
+            {!isLive && (
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 16,
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  background: "white",
+                  padding: "10px 20px",
+                  borderRadius: "var(--radius-sm)",
+                  boxShadow: "var(--shadow-card)",
+                  fontSize: 12,
+                  color: "var(--slate)",
+                  zIndex: 500,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {title} is on the roadmap — Islay is the only region loaded so far.
+              </div>
             )}
           </div>
         </div>
