@@ -1,11 +1,19 @@
-import ComingSoon from "@/components/ComingSoon";
+import { getDistilleries } from "@/lib/data";
+import type { TripTiming } from "@/lib/types";
+import JourneyFlow from "@/components/journey/JourneyFlow";
 
-export default function JourneyPage() {
-  return (
-    <ComingSoon
-      eyebrow="Coming in Phase 2"
-      title="The journey planner is being built"
-      note="This is where the interactive map and drag-and-drop itinerary builder will live, once the Airtable base is connected."
-    />
-  );
+function parseTiming(mode: string | string[] | undefined): TripTiming {
+  const value = Array.isArray(mode) ? mode[0] : mode;
+  if (value === "today" || value === "planning" || value === "inspiration") return value;
+  return "inspiration";
+}
+
+export default async function JourneyPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string }>;
+}) {
+  const [{ mode }, distilleries] = await Promise.all([searchParams, getDistilleries()]);
+
+  return <JourneyFlow timing={parseTiming(mode)} distilleries={distilleries} />;
 }

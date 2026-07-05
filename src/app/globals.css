@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @import "./dramstory-legacy.css";
+@import "./journey-extra.css";
 
 /* Base site chrome (from mockup) */
 html, body {

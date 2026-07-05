@@ -1,0 +1,126 @@
+/* JOURNEY PLANNER — additions on top of dramstory-legacy.css.
+   The approved mockup didn't cover the expandable subcategory chips under
+   each map filter button, so these are new — built from the same design
+   tokens (var(--stone), var(--green-deep), etc.) rather than one-off values. */
+
+.location-input-row {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 360px;
+}
+
+.location-text-input,
+.location-select-input {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--stone);
+  background: white;
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--peat);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.location-text-input:focus,
+.location-select-input:focus {
+  border-color: var(--green-mid);
+}
+
+.interest-card-summary {
+  font-size: 11px;
+  color: var(--slate);
+  line-height: 1.5;
+  max-width: 150px;
+}
+
+.filter-btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.subcat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 4px 2px 4px;
+}
+
+.subcat-chip {
+  padding: 4px 12px;
+  border-radius: 100px;
+  border: 1px solid var(--stone);
+  background: var(--off-white);
+  color: var(--peat);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.subcat-chip:hover {
+  border-color: var(--green-mid);
+  color: var(--green-deep);
+}
+.subcat-chip.active {
+  background: var(--green-light);
+  border-color: var(--green-deep);
+  color: var(--green-deep);
+}
+
+.workspace-map-placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--slate);
+}
+.workspace-map-placeholder-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--dark);
+}
+.workspace-map-placeholder p {
+  max-width: 340px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.workspace-pin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  background: white;
+  border: 1px solid var(--stone);
+  font-size: 12px;
+  color: var(--peat);
+  box-shadow: var(--shadow-card);
+}
+.workspace-pin-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  max-width: 480px;
+  margin-top: 8px;
+}
+
+.trip-context-banner {
+  padding: 10px 24px;
+  background: var(--green-light);
+  color: var(--green-deep);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+}

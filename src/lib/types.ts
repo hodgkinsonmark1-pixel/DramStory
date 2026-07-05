@@ -91,3 +91,40 @@ export interface BlogPost {
   publishedAt: string;
   source: DataSource;
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// JOURNEY PLANNER INTAKE — Q1 (When) is answered on the homepage Hero and
+// passed through as ?mode=. Q2 (Where) and Q3 (What matters) are answered
+// on /journey before the workspace (map + itinerary) loads.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Q1 — answered on the homepage Hero, passed through as the `mode` query param. */
+export type TripTiming = "today" | "planning" | "inspiration";
+
+export type RegionId = "islay" | "speyside" | "highland" | "campbeltown" | "lowland";
+
+/** Q2 — "Where does your story take you?" Three distinct shapes depending on
+ *  which of the 7 options the visitor picks. Only "islay" has live Airtable
+ *  data today; every other region still routes to the workspace, just with
+ *  no populated overlay yet. */
+export type LocationAnswer =
+  | { kind: "region"; region: RegionId }
+  | { kind: "airport"; airportName: string }
+  | { kind: "distillery"; distillerySlug: string };
+
+/** Q3 — "What matters most to your trip?" Multi-select; Distilleries is
+ *  always-on (it's the core of the site), the other 5 are toggleable and
+ *  double as the map's top-bar layer filters later in the workspace. */
+export type InterestCategoryId =
+  | "distilleries"
+  | "natural-features"
+  | "local-attractions"
+  | "local-events"
+  | "places-to-eat"
+  | "places-to-stay";
+
+export interface TripIntake {
+  timing: TripTiming;
+  location: LocationAnswer;
+  interests: InterestCategoryId[];
+}
