@@ -1,5 +1,6 @@
 import type { Distillery, LocalEvent, PlaceListing } from "@/lib/types";
 import { airtableFetchAll } from "@/lib/airtable";
+import { searchAccommodation, searchNearbyByCategory } from "@/lib/google-places";
 import {
   deriveNextStops,
   mapLocalFeature,
@@ -107,21 +108,19 @@ export async function getLocalEvents(): Promise<LocalEvent[]> {
 }
 
 export async function getNearbyPlaces(
-  _category: "pub" | "cafe" | "restaurant",
-  _center: { lat: number; lng: number },
-  _radiusMeters = 5000
+  category: "pub" | "cafe" | "restaurant",
+  center: { lat: number; lng: number },
+  radiusMeters = 5000
 ): Promise<PlaceListing[]> {
-  // TODO(Phase 4): Google Places Nearby Search (New), includedTypes filter
-  // per category, field-masked to keep cost down.
-  return [];
+  return searchNearbyByCategory(category, center, radiusMeters);
 }
 
 export async function getAccommodation(
-  _center: { lat: number; lng: number },
-  _radiusMeters = 10000
+  center: { lat: number; lng: number },
+  radiusMeters = 10000
 ): Promise<PlaceListing[]> {
-  // TODO(Phase 5): Booking.com Demand API search, falling back to
-  // Google Places `lodging` type (informational only, no affiliate link)
-  // if Booking.com access isn't approved yet or has an outage.
-  return [];
+  // TODO(Phase 5): try Booking.com Demand API first once the affiliate
+  // application is approved; this Google Places `lodging` search is the
+  // fallback (informational only, no affiliate link/pricePerNight).
+  return searchAccommodation(center, radiusMeters);
 }
