@@ -21,16 +21,13 @@ const PANEL_SUBTITLE_BY_TIMING: Record<TripTiming, string> = {
   inspiration: "No pressure — just explore and see what catches your eye.",
 };
 
-function describeLocation(location: LocationAnswer): { title: string; context: string | null } {
+function describeLocation(location: LocationAnswer): string {
   const islayLabel = REGIONS.find((r) => r.id === "islay")?.label ?? "Islay & Jura";
   if (location.kind === "region") {
     const region = REGIONS.find((r) => r.id === location.region);
-    return { title: region?.label ?? "Your trip", context: null };
+    return region?.label ?? "Your trip";
   }
-  if (location.kind === "airport") {
-    return { title: islayLabel, context: `Flying into ${location.airportName}` };
-  }
-  return { title: islayLabel, context: `Starting from ${location.distillerySlug.replace(/-/g, " ")}` };
+  return islayLabel;
 }
 
 function makeDays(count: number): ItineraryDay[] {
@@ -66,7 +63,7 @@ export default function Workspace({
   const [days, setDays] = useState<ItineraryDay[]>(() => makeDays(startingDayCount));
   const [activeDayIndex, setActiveDayIndex] = useState(0);
 
-  const { title, context } = describeLocation(location);
+  const title = describeLocation(location);
   const isLive = location.kind !== "region" || location.region === "islay";
   const lengthLabel = TRIP_LENGTHS.find((t) => t.id === tripLength)?.label;
   const isFlyingIn = location.kind === "airport";
@@ -146,8 +143,6 @@ export default function Workspace({
         </div>
       </div>
 
-      {context && <div className="trip-context-banner">{context}</div>}
-
       <div className="workspace-main">
         <div className="journey-panel">
           <div className="panel-header">
@@ -156,30 +151,35 @@ export default function Workspace({
             <div className="panel-subtitle">{PANEL_SUBTITLE_BY_TIMING[timing]}</div>
           </div>
 
-          <div className="day-tabs">
-            {days.map((day, i) => (
-              <button
-                key={day.id}
-                className={"day-tab" + (i === activeDayIndex ? " active" : "")}
-                onClick={() => setActiveDayIndex(i)}
-              >
-                {day.label}
-                {days.length > 1 && (
-                  <span
-                    className="day-tab-remove"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeDay(i);
-                    }}
-                  >
-                    &times;
-                  </span>
-                )}
-              </button>
-            ))}
-            <button className="day-tab day-tab-add" onClick={addDay}>
+          <div className="day-nav">
+            <button
+              className="day-nav-arrow"
+              onClick={() => setActiveDayIndex((i) => Math.max(0, i - 1))}
+              disabled={activeDayIndex === 0}
+              aria-label="Previous day"
+            >
+              &#8249;
+            </button>
+            <div className="day-nav-label">
+              {activeDay.label}
+              <span className="day-nav-count"> of {days.length}</span>
+            </div>
+            <button
+              className="day-nav-arrow"
+              onClick={() => setActiveDayIndex((i) => Math.min(days.length - 1, i + 1))}
+              disabled={activeDayIndex === days.length - 1}
+              aria-label="Next day"
+            >
+              &#8250;
+            </button>
+            <button className="day-nav-add" onClick={addDay}>
               + Add day
             </button>
+            {days.length > 1 && (
+              <button className="day-nav-remove" onClick={() => removeDay(activeDayIndex)}>
+                Remove this day
+              </button>
+            )}
           </div>
 
           <div className="journey-stops">
@@ -245,10 +245,6 @@ export default function Workspace({
                   </button>
                 );
               })}
-              <div className="filter-sep" />
-              <div className="map-hint">
-                {isLive ? `${distilleries.length} distilleries on the map` : "No pins here yet"}
-              </div>
             </div>
 
             {expandedCategoryData && expandedCategoryData.subcategories.length > 0 && (
