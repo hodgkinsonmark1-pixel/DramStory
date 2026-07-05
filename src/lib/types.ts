@@ -132,3 +132,23 @@ export interface TripIntake {
   tripLength: TripLength;
   interests: InterestCategoryId[];
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// ITINERARY — day-based model for the workspace panel. Day count is seeded
+// from the trip-length answer (see TRIP_LENGTHS in journey-options.ts) and
+// the visitor can add more days freely (mainly useful for the "just
+// dreaming" flow, where the length was only ever a rough guess).
+//
+// When the location answer is "airport", Day 1 shows an arrival banner and
+// the LAST day shows a departure banner at that airport. These aren't
+// stored stops — they're derived from `days.length` + the location answer
+// wherever they're rendered, so adding/removing a day "automatically
+// updates" the itinerary for free instead of needing to re-sync stored
+// data every time the day count changes.
+// ─────────────────────────────────────────────────────────────────────────
+
+export interface ItineraryDay {
+  id: string;
+  label: string;
+  stops: Distillery[];
+}

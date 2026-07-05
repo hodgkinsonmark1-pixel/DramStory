@@ -160,6 +160,65 @@ select.location-inline-input {
   padding-top: 10px;
 }
 
+/* Day tabs (itinerary panel) - not covered by the mockup, built from the
+   same tokens. */
+.day-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 20px 0 20px;
+}
+.day-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 100px;
+  border: 1.5px solid var(--stone);
+  background: white;
+  color: var(--peat);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.day-tab:hover {
+  border-color: var(--green-mid);
+}
+.day-tab.active {
+  background: var(--green-deep);
+  border-color: var(--green-deep);
+  color: white;
+}
+.day-tab-remove {
+  opacity: 0.6;
+  font-size: 13px;
+  line-height: 1;
+}
+.day-tab-remove:hover {
+  opacity: 1;
+}
+.day-tab-add {
+  background: var(--off-white);
+  border-style: dashed;
+  color: var(--slate);
+}
+.day-tab-add:hover {
+  color: var(--green-deep);
+  border-color: var(--green-mid);
+}
+
+.journey-stop-airport {
+  background: var(--amber-pale);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  border-bottom: none !important;
+  margin-bottom: 6px;
+}
+.journey-stop-airport .stop-number {
+  background: var(--copper);
+}
+
 .filter-btn.expanded {
   box-shadow: 0 0 0 2px var(--amber-light);
 }

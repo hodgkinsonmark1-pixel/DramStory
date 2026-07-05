@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { Distillery, InterestCategoryId, LocationAnswer, TripLength, TripTiming } from "@/lib/types";
+import type { Distillery, InterestCategoryId, ItineraryDay, LocationAnswer, TripLength, TripTiming } from "@/lib/types";
 import { INTEREST_CATEGORIES, REGIONS, TRIP_LENGTHS } from "@/lib/journey-options";
 import Logo from "@/components/Logo";
 import MapCanvas from "./MapCanvas";
@@ -33,14 +33,21 @@ function describeLocation(location: LocationAnswer): { title: string; context: s
   return { title: islayLabel, context: `Starting from ${location.distillerySlug.replace(/-/g, " ")}` };
 }
 
+function makeDays(count: number): ItineraryDay[] {
+  return Array.from({ length: count }, (_, i) => ({
+    id: `day-${i + 1}`,
+    label: `Day ${i + 1}`,
+    stops: [],
+  }));
+}
+
 /**
- * The workspace — map + itinerary panel. The filter bar and itinerary
- * shell are wired to the Q2/Q3/Q4 answers, and the map itself is a real
- * interactive Leaflet map with live pins for every distillery in the
- * region. The itinerary is a flat add/remove list for now (clicking
- * "+ Add" on a map popup works) rather than full day-by-day tabs with
- * drag-and-drop — that needs a real day-state model, which is the next
- * iteration once trip-length/date logic is nailed down.
+ * The workspace — map + itinerary panel, now with real day tabs. Day count
+ * is seeded from the trip-length answer; visitors can add more days
+ * freely (mainly useful for "just dreaming", where the length was only a
+ * rough guess to begin with). Airport arrival/departure banners on the
+ * first/last day are derived live from days.length + the location answer
+ * rather than stored - see the ItineraryDay comment in lib/types.ts for why.
  */
 export default function Workspace({
   distilleries,
@@ -54,11 +61,15 @@ export default function Workspace({
   );
   const [expandedCategory, setExpandedCategory] = useState<InterestCategoryId | null>(null);
   const [activeSubcats, setActiveSubcats] = useState<Set<string>>(new Set());
-  const [itinerary, setItinerary] = useState<Distillery[]>([]);
+
+  const startingDayCount = TRIP_LENGTHS.find((t) => t.id === tripLength)?.days ?? 1;
+  const [days, setDays] = useState<ItineraryDay[]>(() => makeDays(startingDayCount));
+  const [activeDayIndex, setActiveDayIndex] = useState(0);
 
   const { title, context } = describeLocation(location);
   const isLive = location.kind !== "region" || location.region === "islay";
   const lengthLabel = TRIP_LENGTHS.find((t) => t.id === tripLength)?.label;
+  const isFlyingIn = location.kind === "airport";
 
   function toggleCategory(id: InterestCategoryId, alwaysOn?: boolean) {
     if (alwaysOn) {
@@ -90,14 +101,33 @@ export default function Workspace({
   function addDistillery(slug: string) {
     const d = distilleries.find((x) => x.slug === slug);
     if (!d) return;
-    setItinerary((prev) => (prev.some((x) => x.slug === slug) ? prev : [...prev, d]));
+    setDays((prev) =>
+      prev.map((day, i) =>
+        i === activeDayIndex && !day.stops.some((s) => s.slug === slug)
+          ? { ...day, stops: [...day.stops, d] }
+          : day
+      )
+    );
   }
 
-  function removeDistillery(slug: string) {
-    setItinerary((prev) => prev.filter((x) => x.slug !== slug));
+  function removeStop(dayIndex: number, slug: string) {
+    setDays((prev) =>
+      prev.map((day, i) => (i === dayIndex ? { ...day, stops: day.stops.filter((s) => s.slug !== slug) } : day))
+    );
+  }
+
+  function addDay() {
+    setDays((prev) => [...prev, { id: `day-${prev.length + 1}`, label: `Day ${prev.length + 1}`, stops: [] }]);
+  }
+
+  function removeDay(index: number) {
+    if (days.length <= 1) return;
+    setDays((prev) => prev.filter((_, i) => i !== index).map((d, i) => ({ ...d, label: `Day ${i + 1}` })));
+    setActiveDayIndex((prev) => Math.min(prev, days.length - 2));
   }
 
   const expandedCategoryData = INTEREST_CATEGORIES.find((c) => c.id === expandedCategory);
+  const activeDay = days[activeDayIndex];
 
   return (
     <div className="workspace-root">
@@ -125,25 +155,76 @@ export default function Workspace({
             <div className="panel-title">{title}</div>
             <div className="panel-subtitle">{PANEL_SUBTITLE_BY_TIMING[timing]}</div>
           </div>
+
+          <div className="day-tabs">
+            {days.map((day, i) => (
+              <button
+                key={day.id}
+                className={"day-tab" + (i === activeDayIndex ? " active" : "")}
+                onClick={() => setActiveDayIndex(i)}
+              >
+                {day.label}
+                {days.length > 1 && (
+                  <span
+                    className="day-tab-remove"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeDay(i);
+                    }}
+                  >
+                    &times;
+                  </span>
+                )}
+              </button>
+            ))}
+            <button className="day-tab day-tab-add" onClick={addDay}>
+              + Add day
+            </button>
+          </div>
+
           <div className="journey-stops">
-            {itinerary.length === 0 ? (
+            {isFlyingIn && activeDayIndex === 0 && (
+              <div className="journey-stop journey-stop-airport">
+                <div className="stop-number">✈</div>
+                <div>
+                  <div className="stop-name">Arrive at {location.kind === "airport" ? location.airportName : ""}</div>
+                  <div className="stop-region">Trip begins here</div>
+                </div>
+              </div>
+            )}
+
+            {activeDay.stops.length === 0 && !(isFlyingIn && (activeDayIndex === 0 || activeDayIndex === days.length - 1)) ? (
               <div className="journey-empty">
                 <div className="journey-empty-icon">🗺️</div>
-                <p>Nothing added yet — explore the map and add distilleries as you go.</p>
+                <p>Nothing added to {activeDay.label} yet — explore the map and add distilleries.</p>
               </div>
             ) : (
-              itinerary.map((d, i) => (
+              activeDay.stops.map((d, i) => (
                 <div className="journey-stop" key={d.slug}>
                   <div className="stop-number">{i + 1}</div>
                   <div>
                     <div className="stop-name">{d.name}</div>
                     <div className="stop-region">{d.region}</div>
                   </div>
-                  <button className="stop-remove" onClick={() => removeDistillery(d.slug)} aria-label={`Remove ${d.name}`}>
+                  <button
+                    className="stop-remove"
+                    onClick={() => removeStop(activeDayIndex, d.slug)}
+                    aria-label={`Remove ${d.name}`}
+                  >
                     &times;
                   </button>
                 </div>
               ))
+            )}
+
+            {isFlyingIn && activeDayIndex === days.length - 1 && (
+              <div className="journey-stop journey-stop-airport">
+                <div className="stop-number">✈</div>
+                <div>
+                  <div className="stop-name">Depart from {location.kind === "airport" ? location.airportName : ""}</div>
+                  <div className="stop-region">Trip ends here</div>
+                </div>
+              </div>
             )}
           </div>
         </div>
