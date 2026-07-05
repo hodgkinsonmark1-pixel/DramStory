@@ -1,5 +1,13 @@
 import type { Distillery, LocalEvent, PlaceListing } from "@/lib/types";
-import { MOCK_DISTILLERIES } from "./distilleries";
+import { airtableFetchAll } from "@/lib/airtable";
+import {
+  deriveNextStops,
+  mapLocalFeature,
+  mapTour,
+  type AirtableDistilleryFields,
+  type AirtableLocalFeatureFields,
+  type AirtableTourFields,
+} from "./airtable-mappers";
 
 // ─────────────────────────────────────────────────────────────────────────
 // DATA LAYER — every page/component reads through these functions, never
@@ -14,10 +22,78 @@ import { MOCK_DISTILLERIES } from "./distilleries";
 //                                                                    (fallback: Google Places "lodging")
 // ─────────────────────────────────────────────────────────────────────────
 
+let distilleriesCache: Promise<Distillery[]> | null = null;
+
 export async function getDistilleries(): Promise<Distillery[]> {
-  // TODO(Phase 2): swap for an Airtable fetch once the base + PAT are ready.
-  // e.g. return getDistilleriesFromAirtable();
-  return MOCK_DISTILLERIES;
+  if (!distilleriesCache) {
+    distilleriesCache = fetchDistilleriesFromAirtable().catch((err) => {
+      // Reset the cache on failure so the next request retries instead of
+      // permanently serving a rejected promise.
+      distilleriesCache = null;
+      throw err;
+    });
+  }
+  return distilleriesCache;
+}
+
+async function fetchDistilleriesFromAirtable(): Promise<Distillery[]> {
+  const [distilleryRecords, tourRecords, featureRecords] = await Promise.all([
+    airtableFetchAll<AirtableDistilleryFields>("Distilleries"),
+    airtableFetchAll<AirtableTourFields>("Tours"),
+    airtableFetchAll<AirtableLocalFeatureFields>("Local Features"),
+  ]);
+
+  const tourById = new Map(tourRecords.map((r) => [r.id, r.fields]));
+  const featureById = new Map(featureRecords.map((r) => [r.id, r.fields]));
+
+  const distilleries: Distillery[] = distilleryRecords
+    // Airtable has a few blank placeholder rows (no Name/Slug) mixed into
+    // the table — skip anything that isn't a real, populated record.
+    .filter((r) => r.fields.Name && r.fields.Slug)
+    .map((r) => {
+      const f = r.fields;
+      return {
+        id: r.id,
+        slug: f.Slug!,
+        name: f.Name!,
+        region: f.Region ?? "",
+        style: f.Style ?? "",
+        lat: f.Latitude ?? 0,
+        lng: f.Longitude ?? 0,
+        founded: f.Founded ?? 0,
+        tagline: f.Tagline ?? "",
+        description: f.Description ?? "",
+        image: f["Hero Image"]?.[0]?.url ?? "",
+        tours: (f.Tours ?? [])
+          .map((id) => tourById.get(id))
+          .filter((t): t is AirtableTourFields => !!t)
+          .map(mapTour),
+        hours: f.Hours ?? "",
+        priceFrom: f["Price From"] != null ? `£${f["Price From"]}` : "",
+        avgVisit: f["Avg Visit"] ?? "",
+        parking: f.Parking ?? "",
+        accessibility: f.Accessibility ?? "",
+        motorhomeFriendly: f["Motorhome Friendly"] ?? false,
+        giftShop: f["Gift Shop"] ?? false,
+        restaurantName: f["Restaurant Name"] ?? null,
+        facilities: f.Facilities ?? [],
+        nearby: (f["Local Features"] ?? [])
+          .map((id) => featureById.get(id))
+          .filter((n): n is AirtableLocalFeatureFields => !!n)
+          .map(mapLocalFeature),
+        nextStops: [] as string[], // filled in below, once every distillery is mapped
+        bookingUrl: f["Booking URL"],
+        source: "airtable" as const,
+      };
+    });
+
+  // Next Stops has no Airtable field yet, so derive a default from
+  // geographic proximity now that we have the full list to compare against.
+  for (const d of distilleries) {
+    d.nextStops = deriveNextStops(d, distilleries);
+  }
+
+  return distilleries;
 }
 
 export async function getDistilleryBySlug(slug: string): Promise<Distillery | undefined> {
