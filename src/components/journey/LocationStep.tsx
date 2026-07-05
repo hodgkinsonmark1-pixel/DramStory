@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { Distillery, LocationAnswer } from "@/lib/types";
 import { REGIONS } from "@/lib/journey-options";
+import SiteHeader from "@/components/SiteHeader";
+import BackgroundVideo from "@/components/BackgroundVideo";
 
 interface LocationStepProps {
   distilleries: Distillery[];
@@ -13,12 +15,13 @@ interface LocationStepProps {
 type OptionId = "islay" | "speyside" | "highland" | "campbeltown" | "lowland" | "airport" | "distillery";
 
 /**
- * Q2 — "Where does your story take you?"
- * 7 options: the 5 regions (only Islay has live data — the rest still route
- * into the workspace, just with an empty overlay), plus two special cases:
- *   - Airport: free-text, so we can surface a "flying into X" context later
- *   - Distillery: jump straight to a specific distillery, picked from a
- *     dropdown of everything currently in Airtable (Islay's 9 today)
+ * Q2 - "Where does your story take you?"
+ * 7 options: the 5 regions (only Islay has live data - the rest still
+ * route into the workspace with an empty overlay, nothing is locked out)
+ * plus two special cases that expand in place rather than opening a
+ * separate input row below the grid:
+ *   - Airport: the card itself becomes a text field
+ *   - A specific distillery: the card itself becomes a dropdown
  */
 export default function LocationStep({ distilleries, onNext, onBack }: LocationStepProps) {
   const [selected, setSelected] = useState<OptionId | null>(null);
@@ -43,8 +46,12 @@ export default function LocationStep({ distilleries, onNext, onBack }: LocationS
 
   return (
     <div className="journey-screen">
+      <BackgroundVideo />
+      <div className="hero-overlay" />
+      <SiteHeader logoSize={40} />
+
       <div className="journey-header">
-        <div className="journey-eyebrow">Step 2 of 3</div>
+        <div className="journey-eyebrow">Building your journey — step 2 of 4</div>
         <h1 className="journey-title">
           Where does your <em>story</em> take you?
         </h1>
@@ -53,6 +60,7 @@ export default function LocationStep({ distilleries, onNext, onBack }: LocationS
       <div className="progress-dots">
         <div className="dot done" />
         <div className="dot active" />
+        <div className="dot" />
         <div className="dot" />
       </div>
 
@@ -64,42 +72,30 @@ export default function LocationStep({ distilleries, onNext, onBack }: LocationS
             onClick={() => setSelected(r.id)}
           >
             {r.label}
-            {!r.live && <span style={{ color: "var(--slate)", fontSize: 11, marginLeft: 6 }}>Coming soon</span>}
           </button>
         ))}
-        <button
-          className={"q-card" + (selected === "airport" ? " selected" : "")}
-          onClick={() => setSelected("airport")}
-        >
-          Flying in? Tell us your airport
-        </button>
-        <button
-          className={"q-card" + (selected === "distillery" ? " selected" : "")}
-          onClick={() => setSelected("distillery")}
-        >
-          Start from a specific distillery
-        </button>
-      </div>
 
-      {selected === "airport" && (
-        <div className="location-input-row">
+        {selected === "airport" ? (
           <input
-            className="location-text-input"
+            className="q-card location-inline-input"
             type="text"
-            placeholder="e.g. Glasgow, Edinburgh, Islay Airport"
+            placeholder="Type your airport…"
             value={airportName}
             onChange={(e) => setAirportName(e.target.value)}
             autoFocus
           />
-        </div>
-      )}
+        ) : (
+          <button className="q-card" onClick={() => setSelected("airport")}>
+            Flying in? Tell us your airport
+          </button>
+        )}
 
-      {selected === "distillery" && (
-        <div className="location-input-row">
+        {selected === "distillery" ? (
           <select
-            className="location-select-input"
+            className="q-card location-inline-input"
             value={distillerySlug}
             onChange={(e) => setDistillerySlug(e.target.value)}
+            autoFocus
           >
             <option value="">Choose a distillery…</option>
             {distilleries.map((d) => (
@@ -108,8 +104,12 @@ export default function LocationStep({ distilleries, onNext, onBack }: LocationS
               </option>
             ))}
           </select>
-        </div>
-      )}
+        ) : (
+          <button className="q-card" onClick={() => setSelected("distillery")}>
+            A specific distillery
+          </button>
+        )}
+      </div>
 
       <button className="journey-next-btn" disabled={!canContinue} onClick={handleContinue}>
         Continue

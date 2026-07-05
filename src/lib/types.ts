@@ -103,6 +103,9 @@ export type TripTiming = "today" | "planning" | "inspiration";
 
 export type RegionId = "islay" | "speyside" | "highland" | "campbeltown" | "lowland";
 
+/** Step 3 of 4 — "How long will your adventure last?" */
+export type TripLength = "day-trip" | "weekend" | "3-5-days" | "week-plus";
+
 /** Q2 — "Where does your story take you?" Three distinct shapes depending on
  *  which of the 7 options the visitor picks. Only "islay" has live Airtable
  *  data today; every other region still routes to the workspace, just with
@@ -126,5 +129,6 @@ export type InterestCategoryId =
 export interface TripIntake {
   timing: TripTiming;
   location: LocationAnswer;
+  tripLength: TripLength;
   interests: InterestCategoryId[];
 }

@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import Logo from "./Logo";
+import SiteHeader from "./SiteHeader";
+import BackgroundVideo from "./BackgroundVideo";
 
 /**
  * The homepage hero — ported from the mockup's HomePage/hero sequence:
  * tagline fades in, then a question, then three journey-type options.
- * Picking an option is intended to hand off into the journey planner
- * (built in Phase 2/3); for now it routes to /journey with the answer
- * as a query param so the flow is testable end-to-end.
+ * Picking an option hands off into the journey planner (/journey), with
+ * the answer passed through as ?mode=.
  */
 export default function Hero() {
   const router = useRouter();
@@ -21,13 +20,15 @@ export default function Hero() {
   const [selected, setSelected] = useState<string | null>(null);
 
   useEffect(() => {
+    // Trimmed ~1s off the full sequence (options used to appear at 4000ms)
+    // so the question doesn't feel like it takes too long to show up.
     const t1 = setTimeout(() => setTagVis(true), 400);
-    const t2 = setTimeout(() => setChevVis(true), 1800);
+    const t2 = setTimeout(() => setChevVis(true), 1400);
     const t3 = setTimeout(() => {
       setQVis(true);
       setChevVis(false);
-    }, 3200);
-    const t4 = setTimeout(() => setOptVis(true), 4000);
+    }, 2200);
+    const t4 = setTimeout(() => setOptVis(true), 3000);
     return () => [t1, t2, t3, t4].forEach(clearTimeout);
   }, []);
 
@@ -44,35 +45,10 @@ export default function Hero() {
 
   return (
     <div className="hero">
-      <video
-        className="hero-video"
-        autoPlay
-        muted
-        loop
-        playsInline
-        poster="https://images.pexels.com/videos/13610011/alcohol-bar-drink-drinks-13610011.jpeg?auto=compress&cs=tinysrgb&w=1920"
-      >
-        <source
-          src="https://assets.mixkit.co/videos/17370/17370-720.mp4"
-          type="video/mp4"
-        />
-      </video>
+      <BackgroundVideo />
       <div className="hero-overlay" />
 
-      <nav className="hero-nav">
-        <Link className="swt-logo" href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-          <Logo size={36} />
-          <div className="logo-text" style={{ color: "white" }}>
-            DramStory
-            <span style={{ display: "block" }}>Where whisky adventures begin</span>
-          </div>
-        </Link>
-        <div className="hero-nav-links">
-          <Link href="/journal">Journal</Link>
-          <Link href="/about">About</Link>
-          <Link href="/contact">Contact</Link>
-        </div>
-      </nav>
+      <SiteHeader transparent logoSize={48} />
 
       <div className="hero-content">
         <h1 className={"hero-tagline" + (tagVis ? " visible" : "")}>

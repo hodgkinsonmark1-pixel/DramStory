@@ -8,6 +8,7 @@ import "leaflet/dist/leaflet.css";
 interface MapCanvasProps {
   distilleries: Distillery[];
   isLive: boolean;
+  onAddDistillery?: (slug: string) => void;
 }
 
 // Rough center of Scotland, used when a region has no pins yet so the map
@@ -17,17 +18,26 @@ const ISLAY_CENTER: [number, number] = [55.75, -6.2];
 
 /**
  * Renders the actual interactive map using Leaflet + OpenStreetMap tiles.
- * Deliberately NOT Google Maps — that was ruled out earlier over usage-cost
+ * Deliberately NOT Google Maps - that was ruled out earlier over usage-cost
  * risk. Leaflet is free and open-source with no API key or billing account
  * required at all, so this isn't blocked by the Places verification issue.
  *
  * Leaflet touches `window` on import, so it's dynamically imported inside
- * useEffect (client-only) rather than statically at the top of the file —
+ * useEffect (client-only) rather than statically at the top of the file -
  * a static import would break server rendering.
+ *
+ * Popups are plain HTML strings (Leaflet's own API, not React), so the
+ * "+ Add" button is wired up via one delegated click listener on the map
+ * container reading a data-add-distillery attribute, rather than a normal
+ * onClick handler.
  */
-export default function MapCanvas({ distilleries, isLive }: MapCanvasProps) {
+export default function MapCanvas({ distilleries, isLive, onAddDistillery }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Leaflet.Map | null>(null);
+  const onAddRef = useRef(onAddDistillery);
+  useEffect(() => {
+    onAddRef.current = onAddDistillery;
+  }, [onAddDistillery]);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,7 +58,7 @@ export default function MapCanvas({ distilleries, isLive }: MapCanvasProps) {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       }).addTo(map);
 
-      // Simple brand-colored dot marker instead of Leaflet's default pin —
+      // Simple brand-colored dot marker instead of Leaflet's default pin -
       // sidesteps the well-known bundler icon-path issue and matches the
       // site's whisky-glass emoji used elsewhere for distilleries.
       const distilleryIcon = L.divIcon({
@@ -64,7 +74,17 @@ export default function MapCanvas({ distilleries, isLive }: MapCanvasProps) {
         if (!d.lat || !d.lng) continue;
         const marker = L.marker([d.lat, d.lng], { icon: distilleryIcon }).addTo(map);
         marker.bindPopup(
-          `<strong>${d.name}</strong><br/><span style="font-size:12px;color:#5F5E5A">${d.tagline}</span><br/><a href="/distilleries/${d.slug}" style="font-size:12px;color:#1A3A4A;font-weight:600">View distillery &rarr;</a>`
+          `<div class="map-popup-card">
+            <div class="map-popup-badge">${d.style || "Distillery"}</div>
+            <div class="map-popup-title">${d.name}</div>
+            <div class="map-popup-subtitle">${d.region}${d.founded ? ` &middot; Est. ${d.founded}` : ""}</div>
+            <div class="map-popup-desc">${d.tagline}</div>
+            <div class="map-popup-actions">
+              <a class="map-popup-btn map-popup-btn-view" href="/distilleries/${d.slug}">View &rarr;</a>
+              <button class="map-popup-btn map-popup-btn-add" data-add-distillery="${d.slug}">+ Add</button>
+            </div>
+          </div>`,
+          { minWidth: 240 }
         );
         markers.push(marker);
       }
@@ -73,6 +93,16 @@ export default function MapCanvas({ distilleries, isLive }: MapCanvasProps) {
         const group = L.featureGroup(markers);
         map.fitBounds(group.getBounds().pad(0.2));
       }
+
+      // Event delegation for the +Add button inside popup HTML - Leaflet
+      // popups aren't React, so there's no onClick to hook into directly.
+      map.getContainer().addEventListener("click", (e) => {
+        const target = (e.target as HTMLElement).closest("[data-add-distillery]");
+        if (target) {
+          const slug = target.getAttribute("data-add-distillery");
+          if (slug) onAddRef.current?.(slug);
+        }
+      });
     }
 
     init();

@@ -3,32 +3,28 @@
    each map filter button, so these are new — built from the same design
    tokens (var(--stone), var(--green-deep), etc.) rather than one-off values. */
 
-.location-input-row {
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  max-width: 360px;
+.q-cards-row {
+  max-width: 900px;
 }
 
-.location-text-input,
-.location-select-input {
-  width: 100%;
-  padding: 14px 18px;
-  border-radius: var(--radius-sm);
-  border: 1.5px solid var(--stone);
-  background: white;
+.location-inline-input {
   font-family: var(--font-body);
   font-size: 15px;
   color: var(--peat);
+  text-align: center;
   outline: none;
-  transition: border-color 0.2s;
+  cursor: text;
 }
-.location-text-input:focus,
-.location-select-input:focus {
+.location-inline-input:focus {
   border-color: var(--green-mid);
+}
+select.location-inline-input {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%238A8274' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 36px;
 }
 
 .interest-card-summary {
@@ -73,47 +69,92 @@
   color: var(--green-deep);
 }
 
-.workspace-map-placeholder {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  text-align: center;
-  padding: 48px 24px;
-  color: var(--slate);
+/* Map popup cards (item 14) — matches the reference screenshots: a small
+   category badge, title, description, optional suggested-time line, and
+   View / +Add buttons. Leaflet renders popup content as raw HTML (not
+   React), so these are plain classes rather than component styles. */
+.map-popup-card {
+  font-family: var(--font-body);
+  padding: 4px 2px;
+  min-width: 220px;
 }
-.workspace-map-placeholder-title {
+.map-popup-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 4px;
+}
+.map-popup-title {
   font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 400;
+  font-size: 19px;
+  font-weight: 500;
   color: var(--dark);
+  margin-bottom: 2px;
 }
-.workspace-map-placeholder p {
-  max-width: 340px;
-  font-size: 13px;
-  line-height: 1.6;
-}
-.workspace-pin-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 100px;
-  background: white;
-  border: 1px solid var(--stone);
+.map-popup-subtitle {
   font-size: 12px;
-  color: var(--peat);
-  box-shadow: var(--shadow-card);
+  color: var(--slate);
+  margin-bottom: 8px;
 }
-.workspace-pin-list {
+.map-popup-desc {
+  font-size: 13px;
+  color: var(--peat);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+.map-popup-suggested {
+  font-size: 12px;
+  color: var(--slate);
+  margin-bottom: 10px;
+}
+.map-popup-actions {
+  display: flex;
+  gap: 8px;
+}
+.map-popup-btn {
+  flex: 1;
+  padding: 9px 0;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  display: inline-block;
+}
+.map-popup-btn-view {
+  background: var(--stone);
+  color: var(--peat);
+}
+.map-popup-btn-add {
+  background: var(--navy);
+  color: white;
+}
+
+/* Full-width filter subbar (item 15) — one shared row spanning the entire
+   toolbar width below ALL the filter buttons, not nested under just the
+   active one. */
+.map-toolbar-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
-  max-width: 480px;
-  margin-top: 8px;
+  gap: 10px;
+  align-items: center;
+}
+.map-toolbar-subrow {
+  width: 100%;
+  border-top: 1px solid var(--stone);
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+.filter-btn.expanded {
+  box-shadow: 0 0 0 2px var(--amber-light);
+}
+.journey-stop .stop-remove {
+  margin-left: auto;
 }
 
 .trip-context-banner {

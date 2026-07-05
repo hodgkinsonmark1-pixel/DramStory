@@ -1,10 +1,10 @@
-import type { InterestCategoryId, RegionId } from "@/lib/types";
+import type { InterestCategoryId, RegionId, TripLength } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────
-// Single source of truth for the journey planner's Q2/Q3 options, shared
-// between the intake steps (LocationStep, InterestsStep) and the workspace
-// map's filter bar — so a subcategory added here shows up in both places
-// with no duplicate lists to keep in sync.
+// Single source of truth for the journey planner's Q2/Q3/Q4 options, shared
+// between the intake steps (LocationStep, TripLengthStep, InterestsStep)
+// and the workspace map's filter bar — so a subcategory added here shows
+// up in both places with no duplicate lists to keep in sync.
 // ─────────────────────────────────────────────────────────────────────────
 
 export interface RegionOption {
@@ -21,6 +21,21 @@ export const REGIONS: RegionOption[] = [
   { id: "highland", label: "Highland", live: false },
   { id: "campbeltown", label: "Campbeltown", live: false },
   { id: "lowland", label: "Lowland", live: false },
+];
+
+export interface TripLengthOption {
+  id: TripLength;
+  label: string;
+  /** Roughly how many itinerary days this maps to — used once the
+   *  itinerary panel actually pre-creates Day 1, Day 2, etc. */
+  days: number;
+}
+
+export const TRIP_LENGTHS: TripLengthOption[] = [
+  { id: "day-trip", label: "Day trip", days: 1 },
+  { id: "weekend", label: "Weekend", days: 2 },
+  { id: "3-5-days", label: "3–5 days", days: 4 },
+  { id: "week-plus", label: "One week or more", days: 7 },
 ];
 
 export interface InterestCategoryOption {
@@ -53,10 +68,7 @@ export const INTEREST_CATEGORIES: InterestCategoryOption[] = [
     id: "local-attractions",
     label: "Local Attractions",
     icon: "🏛️",
-    // Golf & Spa folded in here rather than given its own top-level card —
-    // it's a Google Places overlay with no affiliate upside, so it doesn't
-    // earn a dedicated category, just a subcategory for UX completeness.
-    subcategories: ["Historic Sites", "Churches", "Leisure Centres", "Monuments", "Golf & Spa"],
+    subcategories: ["Historic Sites", "Churches", "Monuments", "Golf", "Spa", "Gym & Swimming"],
   },
   {
     id: "local-events",
