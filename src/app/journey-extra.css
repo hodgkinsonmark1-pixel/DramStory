@@ -353,4 +353,46 @@ select.location-inline-input {
   color: white;
 }
 
+/* The mockup's .workspace-root is a fixed, non-scrolling full-viewport
+   block (overflow:hidden) - fine when the map+itinerary was the only
+   content, but now that there's real content below the map (Classic
+   Journeys, accommodation), the workspace needs to actually scroll. Keeps
+   .workspace-main filling one full screen on load (same feel as before),
+   just no longer clipping anything appended after it. */
+.workspace-root {
+  height: auto;
+  min-height: calc(100vh - 64px);
+  overflow: visible;
+}
+.workspace-main {
+  height: calc(100vh - 64px);
+  flex-shrink: 0;
+}
+
+/* Below-the-map sections (Classic Journeys cross-promo, accommodation
+   placeholder) - reuse the homepage's .journeys-section/.journey-card
+   look for visual consistency rather than inventing a second style. */
+.below-map-section {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 56px 24px;
+}
+.accommodation-placeholder {
+  background: var(--off-white);
+  border-radius: var(--radius);
+  padding: 32px;
+  text-align: center;
+}
+.accommodation-placeholder-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+.accommodation-placeholder p {
+  color: var(--slate);
+  font-size: 14px;
+  max-width: 480px;
+  margin: 0 auto 8px;
+  line-height: 1.6;
+}
+
 

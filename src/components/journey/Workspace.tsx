@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { Distillery, InterestCategoryId, LocalFeature, LocationAnswer, TripLength, TripTiming } from "@/lib/types";
 import { INTEREST_CATEGORIES, REGIONS, TRIP_LENGTHS } from "@/lib/journey-options";
+import { CLASSIC_JOURNEYS, getJourneyDistilleries, routeStartingPrice } from "@/lib/journeys-data";
 import { estimatedDriveMinutes, formatDuration } from "@/lib/drive-time";
 import { useRouteSegments } from "@/lib/use-route-segments";
 import { useTrip } from "@/lib/trip-context";
@@ -551,6 +552,38 @@ export default function Workspace({
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      <div className="below-map-section">
+        <div className="how-eyebrow">Keep exploring</div>
+        <h2 className="how-title">Classic journeys</h2>
+        <div className="journeys-grid">
+          {CLASSIC_JOURNEYS.map((journey) => {
+            const stops = getJourneyDistilleries(journey, distilleries);
+            const price = routeStartingPrice(journey, distilleries);
+            return (
+              <Link href={`/journeys/${journey.slug}`} className="journey-card" key={journey.slug}>
+                <div className="journey-card-tagline">{journey.tagline}</div>
+                <div className="journey-card-name">{journey.name}</div>
+                <div className="journey-card-stops">{stops.map((d) => d.name).join(", ")}</div>
+                {price !== null && <div className="journey-card-price">From £{price}pp</div>}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="below-map-section">
+        <div className="how-eyebrow">Coming soon</div>
+        <h2 className="how-title">Where to stay</h2>
+        <div className="accommodation-placeholder">
+          <div className="accommodation-placeholder-icon">🏨</div>
+          <p>
+            Accommodation suggestions near your route are on the way — hotels, B&amp;Bs, and self-catering,
+            booked straight through the site.
+          </p>
+          <p style={{ fontSize: 12, opacity: 0.8 }}>Launching once our booking partner is confirmed.</p>
         </div>
       </div>
     </div>
