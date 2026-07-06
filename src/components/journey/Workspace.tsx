@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Distillery, InterestCategoryId, LocationAnswer, TripLength, TripTiming } from "@/lib/types";
 import { INTEREST_CATEGORIES, REGIONS, TRIP_LENGTHS } from "@/lib/journey-options";
 import { estimatedDriveMinutes, formatDuration, parseAvgVisitMinutes } from "@/lib/drive-time";
+import { useRouteSegments } from "@/lib/use-route-segments";
 import { useTrip } from "@/lib/trip-context";
 import Logo from "@/components/Logo";
 import MapCanvas from "./MapCanvas";
@@ -89,12 +90,23 @@ export default function Workspace({
   const days = trip.days;
   const activeDay = days[activeDayIndex];
 
-  // Drive time + visit time totals for the currently viewed day.
+  const stopCoords = activeDay
+    ? activeDay.stops.map((s) => ({ lat: s.distillery.lat, lng: s.distillery.lng }))
+    : [];
+  const { segments: routeSegments } = useRouteSegments(stopCoords);
+
+  // Drive time + visit time totals for the currently viewed day. Prefers
+  // the real road-routed duration for each segment; falls back to the
+  // haversine estimate only while that segment's route is still loading
+  // or if OSRM couldn't route it - so the numbers never show 0m/blank
+  // while waiting, they just start as an estimate and firm up shortly after.
   const driveSegments: number[] = [];
   if (activeDay) {
     for (let i = 0; i < activeDay.stops.length - 1; i++) {
+      const real = routeSegments[i];
       driveSegments.push(
-        estimatedDriveMinutes(activeDay.stops[i].distillery, activeDay.stops[i + 1].distillery)
+        real?.durationMinutes ??
+          estimatedDriveMinutes(activeDay.stops[i].distillery, activeDay.stops[i + 1].distillery)
       );
     }
   }
@@ -318,7 +330,16 @@ export default function Workspace({
             <MapCanvas
               distilleries={isLive ? distilleries : []}
               isLive={isLive}
-              routeStops={activeDay.stops.map((s) => ({ lat: s.distillery.lat, lng: s.distillery.lng }))}
+              routeStops={activeDay.stops.reduce<{ lat: number; lng: number }[]>((points, stop, i) => {
+                if (i === 0) return [{ lat: stop.distillery.lat, lng: stop.distillery.lng }];
+                const real = routeSegments[i - 1];
+                const prevCoord = { lat: activeDay.stops[i - 1].distillery.lat, lng: activeDay.stops[i - 1].distillery.lng };
+                const thisCoord = { lat: stop.distillery.lat, lng: stop.distillery.lng };
+                // Real road geometry when we have it; a plain straight
+                // line for just this segment if OSRM couldn't route it -
+                // degrades gracefully rather than breaking the whole route.
+                return [...points, ...(real ? real.points : [prevCoord, thisCoord])];
+              }, [])}
               onAddDistillery={(slug) => {
                 const d = distilleries.find((x) => x.slug === slug);
                 if (d) trip.addStop(activeDayIndex, d);
