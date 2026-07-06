@@ -402,7 +402,14 @@ export default function Workspace({
               distilleries={isLive ? distilleries : []}
               localFeatures={isLive ? visibleLocalFeatures : []}
               isLive={isLive}
-              routeStops={routeCoords}
+              routeStops={routeCoords.reduce<{ lat: number; lng: number }[]>((points, coord, i) => {
+                if (i === 0) return [coord];
+                const real = routeSegments[i - 1];
+                // Real road geometry when we have it; a plain straight
+                // line for just this segment if OSRM couldn't route it -
+                // degrades gracefully rather than breaking the whole route.
+                return [...points, ...(real ? real.points : [routeCoords[i - 1], coord])];
+              }, [])}
               onAddDistillery={(slug) => {
                 const d = distilleries.find((x) => x.slug === slug);
                 if (d) trip.addStop(activeDayIndex, d);
