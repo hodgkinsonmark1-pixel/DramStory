@@ -20,9 +20,8 @@ export default function Footer() {
 
       <div className="footer-grid">
         <div className="footer-brand">
-          <div className="footer-logo" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Logo size={32} />
-            <div className="footer-logo-text">DramStory</div>
+          <div className="footer-logo" style={{ display: "flex", alignItems: "center" }}>
+            <Logo size={40} light />
           </div>
           <p className="footer-tagline">
             Every great whisky adventure begins long before the first dram. Craft your

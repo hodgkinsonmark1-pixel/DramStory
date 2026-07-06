@@ -11,12 +11,16 @@ type LogoProps = {
 /**
  * The DramStory primary mark (book + compass rose), extracted from the
  * approved brand sheet as a real asset at /public/logo.png rather than an
- * inline base64 string.
+ * inline base64 string. A recolored white variant (/public/logo-white.png,
+ * same artwork with the dark navy ink swapped to white, amber accents
+ * preserved) is used automatically via light={true} for dark backgrounds
+ * like the footer, where the original's near-black ink was nearly
+ * invisible against the same navy tone.
  */
 export default function Logo({ size = 36, withWordmark = false, light = false }: LogoProps) {
   const mark = (
     <Image
-      src="/logo.png"
+      src={light ? "/logo-white.png" : "/logo.png"}
       width={size}
       height={Math.round(size * (200 / 268))}
       alt="DramStory"

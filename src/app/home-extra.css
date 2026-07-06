@@ -125,32 +125,91 @@
 .featured-col-title:first-of-type {
   margin-top: 0;
 }
-.featured-distilleries-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+.discover-section {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 64px 24px;
+}
+.discover-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
   gap: 12px;
 }
-.featured-distillery-card {
+.discover-view-all {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--green-deep);
+  text-decoration: none;
+}
+.discover-view-all:hover {
+  text-decoration: underline;
+}
+.discover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+.discover-card {
+  display: block;
   text-decoration: none;
   color: inherit;
+  background: white;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: all 0.2s var(--ease-out);
 }
-.featured-distillery-image {
-  height: 100px;
-  border-radius: var(--radius-sm);
+.discover-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+}
+.discover-card-image {
+  height: 160px;
   background-size: cover;
   background-position: center;
   background-color: var(--stone);
+}
+.discover-card-body {
+  padding: 18px;
+}
+.discover-card-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--copper);
   margin-bottom: 8px;
 }
-.featured-distillery-name {
-  font-size: 13px;
-  font-weight: 500;
+.discover-card-name {
+  font-family: var(--font-display);
+  font-size: 21px;
   color: var(--dark);
+  margin-bottom: 8px;
 }
-.featured-distillery-style {
+.discover-card-desc {
+  font-size: 13px;
+  color: var(--peat);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.discover-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.discover-card-meta {
   font-size: 11px;
   color: var(--slate);
 }
+.discover-card-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--copper);
+}
+
 .featured-coming-soon {
   background: var(--off-white);
   border-radius: var(--radius);

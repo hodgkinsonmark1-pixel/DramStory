@@ -13,17 +13,19 @@ export default async function JourneyPage({
 }: {
   searchParams: Promise<{ mode?: string; resume?: string }>;
 }) {
-  const [{ mode, resume }, distilleries, localFeatures] = await Promise.all([
-    searchParams,
-    getDistilleries(),
-    getLocalFeatures(),
-  ]);
+  const [{ mode, resume }, distilleries] = await Promise.all([searchParams, getDistilleries()]);
+  // Deliberately NOT awaited - Local Features isn't needed until the final
+  // "workspace" step (Q2/Step3/Q4 don't touch it at all), so blocking the
+  // whole page on this second Airtable fetch was adding real, needless
+  // lag to every single Q1->Q2 navigation. JourneyFlow resolves this via
+  // Suspense + use() only once the visitor actually reaches the workspace.
+  const localFeaturesPromise = getLocalFeatures();
 
   return (
     <JourneyFlow
       timing={parseTiming(mode)}
       distilleries={distilleries}
-      localFeatures={localFeatures}
+      localFeaturesPromise={localFeaturesPromise}
       resume={resume === "1"}
     />
   );

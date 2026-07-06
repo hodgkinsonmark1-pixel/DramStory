@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Distillery, InterestCategoryId, LocalFeature, LocationAnswer, TripLength, TripTiming } from "@/lib/types";
 import { useTrip } from "@/lib/trip-context";
@@ -12,7 +12,11 @@ import Workspace from "./Workspace";
 interface JourneyFlowProps {
   timing: TripTiming;
   distilleries: Distillery[];
-  localFeatures: LocalFeature[];
+  /** Deliberately an unresolved Promise, not a plain array - Local
+   *  Features isn't needed until the final "workspace" step, so the page
+   *  no longer blocks Q2/Step3/Q4 on this fetch resolving. Unwrapped via
+   *  use() only once we reach the workspace, inside a Suspense boundary. */
+  localFeaturesPromise: Promise<LocalFeature[]>;
   /** True only when arriving via "Back to your journey" (see
    *  DistilleryPageClient's ?resume=1 link) - an explicit signal that
    *  resuming the saved trip is wanted. A fresh homepage Q1 click never
@@ -25,13 +29,36 @@ interface JourneyFlowProps {
 
 type Step = "location" | "tripLength" | "interests" | "workspace";
 
+/** Tiny wrapper so use() (which suspends) is isolated to just this
+ *  component - only the workspace step ever waits on Local Features. */
+function WorkspaceWithFeatures(props: {
+  localFeaturesPromise: Promise<LocalFeature[]>;
+  distilleries: Distillery[];
+  location: LocationAnswer;
+  tripLength: TripLength;
+  initialInterests: InterestCategoryId[];
+  timing: TripTiming;
+}) {
+  const localFeatures = use(props.localFeaturesPromise);
+  return (
+    <Workspace
+      distilleries={props.distilleries}
+      localFeatures={localFeatures}
+      location={props.location}
+      tripLength={props.tripLength}
+      initialInterests={props.initialInterests}
+      timing={props.timing}
+    />
+  );
+}
+
 /**
  * Orchestrates the full 4-step intake: Q1 (When, already happened on the
  * homepage Hero) -> Q2 (Where) -> Step 3 (How long) -> Q4 (What matters)
  * -> workspace (map + itinerary). `timing` arrives here as the ?mode=
  * query param from the homepage.
  */
-export default function JourneyFlow({ timing, distilleries, localFeatures, resume }: JourneyFlowProps) {
+export default function JourneyFlow({ timing, distilleries, localFeaturesPromise, resume }: JourneyFlowProps) {
   const router = useRouter();
   const trip = useTrip();
   const [step, setStep] = useState<Step>("location");
@@ -102,13 +129,15 @@ export default function JourneyFlow({ timing, distilleries, localFeatures, resum
   // Prefer the saved intake's timing on a resumed session (trip.intake.timing)
   // over the fresh ?mode= prop, since that's what was actually answered.
   return (
-    <Workspace
-      distilleries={distilleries}
-      localFeatures={localFeatures}
-      location={location!}
-      tripLength={tripLength!}
-      initialInterests={interests}
-      timing={trip.intake?.timing ?? timing}
-    />
+    <Suspense fallback={<div className="workspace-root" />}>
+      <WorkspaceWithFeatures
+        localFeaturesPromise={localFeaturesPromise}
+        distilleries={distilleries}
+        location={location!}
+        tripLength={tripLength!}
+        initialInterests={interests}
+        timing={trip.intake?.timing ?? timing}
+      />
+    </Suspense>
   );
 }
