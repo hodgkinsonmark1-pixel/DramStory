@@ -48,6 +48,14 @@ export interface AirtableLocalFeatureFields {
   Distance?: string;
   Latitude?: number;
   Longitude?: number;
+  Slug?: string;
+  Parking?: string;
+  Accessibility?: string;
+  "Opening Hours"?: string;
+  Highlights?: string;
+  Length?: string;
+  Duration?: string;
+  Difficulty?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -107,12 +115,20 @@ export function mapToLocalFeature(id: string, fields: AirtableLocalFeatureFields
   if (!category || fields.Latitude == null || fields.Longitude == null) return null;
   return {
     id,
+    slug: fields.Slug || id,
     name: fields.Name ?? "",
     category,
     icon: fields.Icon ?? "📍",
     description: fields.Description ?? "",
     lat: fields.Latitude,
     lng: fields.Longitude,
+    parking: fields.Parking ?? "",
+    accessibility: fields.Accessibility ?? "",
+    openingHours: fields["Opening Hours"] ?? "",
+    highlights: (fields.Highlights ?? "").split("\n").filter((line) => line.trim().length > 0),
+    length: fields.Length,
+    duration: fields.Duration,
+    difficulty: fields.Difficulty,
   };
 }
 

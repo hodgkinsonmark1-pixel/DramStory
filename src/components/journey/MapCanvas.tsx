@@ -229,18 +229,17 @@ export default function MapCanvas({
       });
       const marker = L.marker([f.lat, f.lng], { icon });
       const categoryLabel = f.category.replace("-", " ");
-      // "More info" links to Google Maps for the exact spot rather than a
-      // DramStory page - these are real public places Google already has
-      // photos/reviews/directions for, unlike the distilleries where we
-      // want people to stay on-site with our own content.
-      const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${f.lat},${f.lng}`;
+      // "More info" now links to a real DramStory detail page (parking,
+      // accessibility, hours, highlights, length/difficulty for walks and
+      // rides) - deliberately keeping visitors on-site rather than sending
+      // them to Google Maps, per the monetization/retention goal.
       marker.bindPopup(
         `<div class="popup-inner">
           <div class="popup-tag">${categoryLabel}</div>
           <div class="popup-name">${f.name}</div>
           <div class="popup-detail">${f.description}</div>
           <div class="popup-actions">
-            <a class="popup-btn popup-btn-secondary" href="${mapsUrl}" target="_blank" rel="noreferrer">More info &rarr;</a>
+            <a class="popup-btn popup-btn-secondary" href="/explore/${f.slug}">More info &rarr;</a>
             <button class="popup-btn popup-btn-primary" data-add-feature="${f.id}">+ Add to Trip</button>
           </div>
         </div>`,

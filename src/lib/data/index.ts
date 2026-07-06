@@ -119,6 +119,11 @@ async function fetchLocalFeaturesFromAirtable(): Promise<LocalFeature[]> {
     .filter((f): f is LocalFeature => f !== null);
 }
 
+export async function getLocalFeatureBySlug(slug: string): Promise<LocalFeature | undefined> {
+  const features = await getLocalFeatures();
+  return features.find((f) => f.slug === slug);
+}
+
 export async function getDistilleryBySlug(slug: string): Promise<Distillery | undefined> {
   const all = await getDistilleries();
   return all.find((d) => d.slug === slug);

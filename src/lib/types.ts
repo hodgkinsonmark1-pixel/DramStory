@@ -28,12 +28,22 @@ export interface NearbyFeature {
  *  is toggled on. */
 export interface LocalFeature {
   id: string;
+  slug: string;
   name: string;
   category: "beach" | "walk" | "bike-route" | "local-gem";
   icon: string;
   description: string;
   lat: number;
   lng: number;
+  parking: string;
+  accessibility: string;
+  openingHours: string;
+  /** "Best features" - one per line in Airtable, split into an array. */
+  highlights: string[];
+  /** Walks/bike routes only - undefined for beaches and local gems. */
+  length?: string;
+  duration?: string;
+  difficulty?: string;
 }
 
 export interface Distillery {
