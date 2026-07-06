@@ -146,6 +146,29 @@ select.location-inline-input {
   font-size: 12px;
   color: var(--slate);
 }
+.day-dots {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.day-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: none;
+  background: var(--stone);
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s;
+}
+.day-dot:hover {
+  background: var(--mist);
+}
+.day-dot.active {
+  background: var(--green-deep);
+  width: 16px;
+  border-radius: 4px;
+}
 /* Groups "+ Add day" and "Remove" as one unit pushed to the right - a
    previous bug had margin-left:auto on BOTH buttons independently, which
    combined with flex-wrap caused "Remove this day" to wrap onto its own
@@ -208,6 +231,41 @@ select.location-inline-input {
 }
 .journey-stop .stop-remove {
   margin-left: auto;
+}
+
+/* Collapsible summary - .summary-total is now a <button> (was a plain
+   div) so it needs a full style reset before the mockup's existing
+   .summary-total visual rules apply on top. */
+.summary-total-toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  text-align: inherit;
+}
+.summary-expand-chevron {
+  font-size: 10px;
+  color: var(--slate);
+}
+
+@media (max-width: 768px) {
+  /* Tighter stop cards on mobile only - the itinerary panel is capped at
+     38vh there (see dramstory-legacy.css), so every bit of vertical room
+     saved per stop means more of the trip is visible without scrolling. */
+  .journey-stop {
+    padding: 10px 0;
+  }
+  .journey-stops {
+    padding: 10px 16px;
+  }
+  .stop-name {
+    font-size: 13px;
+  }
+  .stop-region,
+  .stop-time {
+    font-size: 10px;
+  }
 }
 
 

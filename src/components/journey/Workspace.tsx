@@ -41,6 +41,7 @@ export default function Workspace({
   const [activeSubcats, setActiveSubcats] = useState<Set<string>>(new Set());
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [showCostBreakdown, setShowCostBreakdown] = useState(false);
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
 
   const startingDayCount = TRIP_LENGTHS.find((t) => t.id === tripLength)?.days ?? 1;
   useEffect(() => {
@@ -152,9 +153,16 @@ export default function Workspace({
             >
               &#8249;
             </button>
-            <div className="day-nav-label">
-              {activeDay.label}
-              <span className="day-nav-count"> of {days.length}</span>
+            <div className="day-nav-label">{activeDay.label}</div>
+            <div className="day-dots">
+              {days.map((d, i) => (
+                <button
+                  key={d.id}
+                  className={"day-dot" + (i === activeDayIndex ? " active" : "")}
+                  onClick={() => setActiveDayIndex(i)}
+                  aria-label={`Go to ${d.label}`}
+                />
+              ))}
             </div>
             <button
               className="day-nav-arrow"
@@ -238,42 +246,50 @@ export default function Workspace({
 
           {activeDay.stops.length > 0 && (
             <div className="journey-summary">
-              <div className="summary-row">
-                <span>Driving time</span>
-                <span>{formatDuration(totalDriveMinutes)}</span>
-              </div>
-              <div className="summary-row">
-                <span>Estimated visits</span>
-                <span>{formatDuration(totalVisitMinutes)}</span>
-              </div>
-              <div className="summary-total">
+              <button className="summary-total summary-total-toggle" onClick={() => setSummaryExpanded((v) => !v)}>
                 <span>Total journey</span>
-                <span>{formatDuration(totalDriveMinutes + totalVisitMinutes)}</span>
-              </div>
-
-              <button className="cost-toggle" onClick={() => setShowCostBreakdown((v) => !v)}>
-                {showCostBreakdown ? "▲" : "▼"} Show estimated tour costs
-                {toursBooked > 0 ? ` (${toursBooked} tour${toursBooked > 1 ? "s" : ""} booked)` : ""}
+                <span>
+                  {formatDuration(totalDriveMinutes + totalVisitMinutes)}
+                  <span className="summary-expand-chevron">{summaryExpanded ? " ▲" : " ▼"}</span>
+                </span>
               </button>
 
-              {showCostBreakdown && (
-                <div className="cost-breakdown">
-                  {activeDay.stops.map((s) => (
-                    <div key={s.distillery.slug} className="summary-row">
-                      <span>
-                        {s.distillery.name} {s.tour ? `- ${s.tour.name}` : "- No tour selected"}
-                      </span>
-                      <span>{s.tour ? `£${s.tour.price}` : "-"}</span>
-                    </div>
-                  ))}
-                  <div className="summary-row" style={{ fontWeight: 600 }}>
-                    <span>Tours total</span>
-                    <span>£{toursTotal} pp</span>
+              {summaryExpanded && (
+                <>
+                  <div className="summary-row">
+                    <span>Driving time</span>
+                    <span>{formatDuration(totalDriveMinutes)}</span>
                   </div>
-                  <p style={{ fontSize: 11, color: "var(--slate)", marginTop: 8 }}>
-                    Accommodation and transport not included. Add tours from each distillery page.
-                  </p>
-                </div>
+                  <div className="summary-row">
+                    <span>Estimated visits</span>
+                    <span>{formatDuration(totalVisitMinutes)}</span>
+                  </div>
+
+                  <button className="cost-toggle" onClick={() => setShowCostBreakdown((v) => !v)}>
+                    {showCostBreakdown ? "▲" : "▼"} Show estimated tour costs
+                    {toursBooked > 0 ? ` (${toursBooked} tour${toursBooked > 1 ? "s" : ""} booked)` : ""}
+                  </button>
+
+                  {showCostBreakdown && (
+                    <div className="cost-breakdown">
+                      {activeDay.stops.map((s) => (
+                        <div key={s.distillery.slug} className="summary-row">
+                          <span>
+                            {s.distillery.name} {s.tour ? `- ${s.tour.name}` : "- No tour selected"}
+                          </span>
+                          <span>{s.tour ? `£${s.tour.price}` : "-"}</span>
+                        </div>
+                      ))}
+                      <div className="summary-row" style={{ fontWeight: 600 }}>
+                        <span>Tours total</span>
+                        <span>£{toursTotal} pp</span>
+                      </div>
+                      <p style={{ fontSize: 11, color: "var(--slate)", marginTop: 8 }}>
+                        Accommodation and transport not included. Add tours from each distillery page.
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
 
               <button className="save-journey-btn">📖 Save My Dram Story</button>
