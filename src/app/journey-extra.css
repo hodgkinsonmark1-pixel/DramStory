@@ -44,19 +44,6 @@ select.location-inline-input {
   max-width: 150px;
 }
 
-.filter-btn-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.subcat-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px 4px 2px 4px;
-}
-
 .subcat-chip {
   padding: 4px 12px;
   border-radius: 100px;
@@ -83,20 +70,22 @@ select.location-inline-input {
    .popup-detail/.popup-actions/.popup-btn* — all already ported from the
    approved mockup in dramstory-legacy.css, so no styles needed here. */
 
-/* Full-width filter subbar (item 15) — one shared row spanning the entire
-   toolbar width below ALL the filter buttons, not nested under just the
-   active one. */
+/* Toolbar drill-down: clicking a category collapses the row to just
+   [Distilleries] + [that category, active] + [Everything] + its
+   subcategory chips, all in one row (no separate row below anymore) -
+   the divider marks where "top-level categories" ends and "this
+   category's options" begins. */
 .map-toolbar-row {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
 }
-.map-toolbar-subrow {
-  width: 100%;
-  border-top: 1px solid var(--stone);
-  margin-top: 10px;
-  padding-top: 10px;
+.toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--stone);
+  flex-shrink: 0;
 }
 
 /* Day navigator (itinerary panel) - arrows to flick between days rather

@@ -84,6 +84,16 @@ export default function Workspace({
     });
   }
 
+  function clearSubcatsForCategory(categoryId: string) {
+    setActiveSubcats((prev) => {
+      const next = new Set(prev);
+      for (const key of next) {
+        if (key.startsWith(`${categoryId}:`)) next.delete(key);
+      }
+      return next;
+    });
+  }
+
   const days = trip.days;
   const activeDay = days[activeDayIndex];
 
@@ -334,24 +344,29 @@ export default function Workspace({
         <div className="map-area">
           <div className="map-toolbar">
             <div className="map-toolbar-row">
-              {INTEREST_CATEGORIES.map((c) => {
-                const on = c.alwaysOn || activeCategories.has(c.id);
-                const expanded = expandedCategory === c.id;
-                return (
-                  <button
-                    key={c.id}
-                    className={"filter-btn" + (on ? " active" : "") + (expanded ? " expanded" : "")}
-                    onClick={() => toggleCategory(c.id, c.alwaysOn)}
-                  >
-                    <span>{c.icon}</span> {c.label}
+              {expandedCategoryData && expandedCategoryData.subcategories.length > 0 ? (
+                <>
+                  <button className="filter-btn active" onClick={() => toggleCategory("distilleries", true)}>
+                    <span>🥃</span> Distilleries
                   </button>
-                );
-              })}
-            </div>
-
-            {expandedCategoryData && expandedCategoryData.subcategories.length > 0 && (
-              <div className="map-toolbar-subrow">
-                <div className="subcat-row">
+                  <button
+                    className="filter-btn active expanded"
+                    onClick={() => toggleCategory(expandedCategoryData.id, expandedCategoryData.alwaysOn)}
+                  >
+                    <span>{expandedCategoryData.icon}</span> {expandedCategoryData.label}
+                  </button>
+                  <span className="toolbar-divider" />
+                  <button
+                    className={
+                      "subcat-chip" +
+                      (Array.from(activeSubcats).every((k) => !k.startsWith(`${expandedCategoryData.id}:`))
+                        ? " active"
+                        : "")
+                    }
+                    onClick={() => clearSubcatsForCategory(expandedCategoryData.id)}
+                  >
+                    Everything
+                  </button>
                   {expandedCategoryData.subcategories.map((sub) => {
                     const key = `${expandedCategoryData.id}:${sub}`;
                     return (
@@ -364,9 +379,22 @@ export default function Workspace({
                       </button>
                     );
                   })}
-                </div>
-              </div>
-            )}
+                </>
+              ) : (
+                INTEREST_CATEGORIES.map((c) => {
+                  const on = c.alwaysOn || activeCategories.has(c.id);
+                  return (
+                    <button
+                      key={c.id}
+                      className={"filter-btn" + (on ? " active" : "")}
+                      onClick={() => toggleCategory(c.id, c.alwaysOn)}
+                    >
+                      <span>{c.icon}</span> {c.label}
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
 
           <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
