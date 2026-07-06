@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Distillery, InterestCategoryId, LocationAnswer, TripLength, TripTiming } from "@/lib/types";
+import type { Distillery, InterestCategoryId, LocalFeature, LocationAnswer, TripLength, TripTiming } from "@/lib/types";
 import { useTrip } from "@/lib/trip-context";
 import LocationStep from "./LocationStep";
 import TripLengthStep from "./TripLengthStep";
@@ -12,6 +12,7 @@ import Workspace from "./Workspace";
 interface JourneyFlowProps {
   timing: TripTiming;
   distilleries: Distillery[];
+  localFeatures: LocalFeature[];
   /** True only when arriving via "Back to your journey" (see
    *  DistilleryPageClient's ?resume=1 link) - an explicit signal that
    *  resuming the saved trip is wanted. A fresh homepage Q1 click never
@@ -30,7 +31,7 @@ type Step = "location" | "tripLength" | "interests" | "workspace";
  * -> workspace (map + itinerary). `timing` arrives here as the ?mode=
  * query param from the homepage.
  */
-export default function JourneyFlow({ timing, distilleries, resume }: JourneyFlowProps) {
+export default function JourneyFlow({ timing, distilleries, localFeatures, resume }: JourneyFlowProps) {
   const router = useRouter();
   const trip = useTrip();
   const [step, setStep] = useState<Step>("location");
@@ -103,6 +104,7 @@ export default function JourneyFlow({ timing, distilleries, resume }: JourneyFlo
   return (
     <Workspace
       distilleries={distilleries}
+      localFeatures={localFeatures}
       location={location!}
       tripLength={tripLength!}
       initialInterests={interests}

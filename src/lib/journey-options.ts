@@ -62,7 +62,7 @@ export const INTEREST_CATEGORIES: InterestCategoryOption[] = [
     id: "natural-features",
     label: "Natural Features",
     icon: "🏞️",
-    subcategories: ["Beaches", "Scenic Views", "Walks", "Bike Rides", "Waterfalls"],
+    subcategories: ["Beaches", "Walks", "Bike Rides", "Local Gems"],
   },
   {
     id: "local-attractions",

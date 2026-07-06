@@ -1,10 +1,11 @@
-import type { Distillery, LocalEvent, PlaceListing } from "@/lib/types";
+import type { Distillery, LocalEvent, LocalFeature, PlaceListing } from "@/lib/types";
 import { airtableFetchAll } from "@/lib/airtable";
 import { searchAccommodation, searchNearbyByCategory } from "@/lib/google-places";
 import {
   deriveNextStops,
   mapLocalFeature,
   mapTour,
+  mapToLocalFeature,
   type AirtableDistilleryFields,
   type AirtableLocalFeatureFields,
   type AirtableTourFields,
@@ -95,6 +96,27 @@ async function fetchDistilleriesFromAirtable(): Promise<Distillery[]> {
   }
 
   return distilleries;
+}
+
+/** Natural Features (Beach/Walk/Bike Route/Local Gem) for the workspace
+ *  map's overlay - separate from each distillery's own "Nearby" list. */
+let localFeaturesCache: Promise<LocalFeature[]> | null = null;
+
+export async function getLocalFeatures(): Promise<LocalFeature[]> {
+  if (!localFeaturesCache) {
+    localFeaturesCache = fetchLocalFeaturesFromAirtable().catch((err) => {
+      localFeaturesCache = null;
+      throw err;
+    });
+  }
+  return localFeaturesCache;
+}
+
+async function fetchLocalFeaturesFromAirtable(): Promise<LocalFeature[]> {
+  const records = await airtableFetchAll<AirtableLocalFeatureFields>("Local Features");
+  return records
+    .map((r) => mapToLocalFeature(r.id, r.fields))
+    .filter((f): f is LocalFeature => f !== null);
 }
 
 export async function getDistilleryBySlug(slug: string): Promise<Distillery | undefined> {

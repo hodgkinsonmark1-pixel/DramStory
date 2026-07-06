@@ -21,6 +21,21 @@ export interface NearbyFeature {
   category: "viewpoint" | "attraction" | "beach" | "accommodation" | "food" | "walk";
 }
 
+/** A Natural Feature plotted directly on the workspace map (Beach, Walk,
+ *  Bike Route, or Local Gem) - distinct from NearbyFeature above, which is
+ *  the per-distillery "Nearby" list on each distillery's own page. This is
+ *  the island-wide set used to populate map pins when that filter category
+ *  is toggled on. */
+export interface LocalFeature {
+  id: string;
+  name: string;
+  category: "beach" | "walk" | "bike-route" | "local-gem";
+  icon: string;
+  description: string;
+  lat: number;
+  lng: number;
+}
+
 export interface Distillery {
   id: string;
   slug: string;

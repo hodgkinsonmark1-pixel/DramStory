@@ -1,5 +1,5 @@
 import type { AirtableAttachment } from "@/lib/airtable";
-import type { Distillery, NearbyFeature, Tour } from "@/lib/types";
+import type { Distillery, LocalFeature, NearbyFeature, Tour } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Raw shapes as returned by the Airtable REST API for each table.
@@ -46,6 +46,8 @@ export interface AirtableLocalFeatureFields {
   Description?: string;
   Distilleries?: string[];
   Distance?: string;
+  Latitude?: number;
+  Longitude?: number;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -84,6 +86,33 @@ export function mapLocalFeature(fields: AirtableLocalFeatureFields): NearbyFeatu
     icon: fields.Icon ?? "📍",
     distance: fields.Distance ?? "",
     category: mapFeatureCategory(fields.Category),
+  };
+}
+
+// Only these 4 Airtable Category values are Natural Features meant for the
+// workspace map's overlay - "Historic Site" etc. belong to Local
+// Attractions, a separate pass not built yet, so they're excluded here.
+const NATURAL_FEATURE_CATEGORY_MAP: Record<string, LocalFeature["category"] | undefined> = {
+  Beach: "beach",
+  Walk: "walk",
+  "Bike Route": "bike-route",
+  "Local Gem": "local-gem",
+};
+
+/** Maps a raw Local Features record into a map-plottable LocalFeature.
+ *  Returns null for non-Natural-Feature categories (e.g. Historic Site)
+ *  or records missing coordinates - both are simply excluded from the map. */
+export function mapToLocalFeature(id: string, fields: AirtableLocalFeatureFields): LocalFeature | null {
+  const category = NATURAL_FEATURE_CATEGORY_MAP[fields.Category ?? ""];
+  if (!category || fields.Latitude == null || fields.Longitude == null) return null;
+  return {
+    id,
+    name: fields.Name ?? "",
+    category,
+    icon: fields.Icon ?? "📍",
+    description: fields.Description ?? "",
+    lat: fields.Latitude,
+    lng: fields.Longitude,
   };
 }
 

@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import type Leaflet from "leaflet";
-import type { Distillery } from "@/lib/types";
+import type { Distillery, LocalFeature } from "@/lib/types";
 import "leaflet/dist/leaflet.css";
 
 interface MapCanvasProps {
   distilleries: Distillery[];
+  localFeatures: LocalFeature[];
   isLive: boolean;
   onAddDistillery?: (slug: string) => void;
   /** Ordered lat/lng points along the current day's real route (from OSRM,
@@ -23,6 +24,16 @@ interface MapCanvasProps {
 const SCOTLAND_CENTER: [number, number] = [56.8, -4.2];
 const ISLAY_CENTER: [number, number] = [55.75, -6.2];
 
+// Distinct color per Natural Feature category, so pins read at a glance
+// without needing to open a popup - kept apart from the navy distillery
+// markers and the copper route line.
+const FEATURE_COLORS: Record<LocalFeature["category"], string> = {
+  beach: "#D4A574",
+  walk: "#2D6A4F",
+  "bike-route": "#3A6EA5",
+  "local-gem": "#8B5FBF",
+};
+
 /**
  * Renders the actual interactive map using Leaflet + OpenStreetMap tiles.
  * Deliberately NOT Google Maps - that was ruled out earlier over usage-cost
@@ -38,11 +49,12 @@ const ISLAY_CENTER: [number, number] = [55.75, -6.2];
  * container reading a data-add-distillery attribute, rather than a normal
  * onClick handler.
  */
-export default function MapCanvas({ distilleries, isLive, onAddDistillery, routeStops = [] }: MapCanvasProps) {
+export default function MapCanvas({ distilleries, localFeatures, isLive, onAddDistillery, routeStops = [] }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Leaflet.Map | null>(null);
   const leafletRef = useRef<typeof Leaflet | null>(null);
   const routeLineRef = useRef<Leaflet.LayerGroup | null>(null);
+  const featureLayerRef = useRef<Leaflet.LayerGroup | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const onAddRef = useRef(onAddDistillery);
   useEffect(() => {
@@ -169,6 +181,46 @@ export default function MapCanvas({ distilleries, isLive, onAddDistillery, route
       routeLineRef.current = L.layerGroup([casing, routeLine]).addTo(map);
     }
   }, [mapReady, routeStops]);
+
+  // Redraws Natural Feature pins whenever the visible list changes (a
+  // filter toggle in the map toolbar, not a one-time mount). Separate from
+  // the distillery markers (which are static after mount) since these
+  // genuinely change as the visitor toggles Beaches/Walks/Bike Rides/Local
+  // Gems on and off.
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !leafletRef.current) return;
+    const L = leafletRef.current;
+    const map = mapRef.current;
+
+    if (featureLayerRef.current) {
+      featureLayerRef.current.remove();
+      featureLayerRef.current = null;
+    }
+
+    if (localFeatures.length === 0) return;
+
+    const markers = localFeatures.map((f) => {
+      const color = FEATURE_COLORS[f.category];
+      const icon = L.divIcon({
+        className: "feature-marker",
+        html: `<div style="background:${color};color:white;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 5px rgba(0,0,0,0.3);font-size:13px">${f.icon}</div>`,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13],
+        popupAnchor: [0, -13],
+      });
+      const marker = L.marker([f.lat, f.lng], { icon });
+      marker.bindPopup(
+        `<div class="popup-inner">
+          <div class="popup-name">${f.name}</div>
+          <div class="popup-detail">${f.description}</div>
+        </div>`,
+        { minWidth: 200 }
+      );
+      return marker;
+    });
+
+    featureLayerRef.current = L.layerGroup(markers).addTo(map);
+  }, [mapReady, localFeatures]);
 
   return <div id="map" ref={containerRef} />;
 }

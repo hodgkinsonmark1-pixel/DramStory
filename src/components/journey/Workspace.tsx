@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { Distillery, InterestCategoryId, LocationAnswer, TripLength, TripTiming } from "@/lib/types";
+import type { Distillery, InterestCategoryId, LocalFeature, LocationAnswer, TripLength, TripTiming } from "@/lib/types";
 import { INTEREST_CATEGORIES, REGIONS, TRIP_LENGTHS } from "@/lib/journey-options";
 import { estimatedDriveMinutes, formatDuration, parseAvgVisitMinutes } from "@/lib/drive-time";
 import { useRouteSegments } from "@/lib/use-route-segments";
@@ -12,6 +12,7 @@ import MapCanvas from "./MapCanvas";
 
 interface WorkspaceProps {
   distilleries: Distillery[];
+  localFeatures: LocalFeature[];
   location: LocationAnswer;
   tripLength: TripLength;
   initialInterests: InterestCategoryId[];
@@ -29,6 +30,7 @@ function describeLocation(location: LocationAnswer): string {
 
 export default function Workspace({
   distilleries,
+  localFeatures,
   location,
   tripLength,
   initialInterests,
@@ -114,6 +116,21 @@ export default function Workspace({
     : 0;
 
   const expandedCategoryData = INTEREST_CATEGORIES.find((c) => c.id === expandedCategory);
+
+  // Natural Features subcategory labels -> LocalFeature.category values.
+  const SUBCAT_TO_FEATURE_CATEGORY: Record<string, LocalFeature["category"]> = {
+    Beaches: "beach",
+    Walks: "walk",
+    "Bike Rides": "bike-route",
+    "Local Gems": "local-gem",
+  };
+  const naturalFeaturesActive = activeCategories.has("natural-features");
+  const activeNaturalSubcats = Array.from(activeSubcats)
+    .filter((key) => key.startsWith("natural-features:"))
+    .map((key) => SUBCAT_TO_FEATURE_CATEGORY[key.split(":")[1]]);
+  const visibleLocalFeatures = naturalFeaturesActive
+    ? localFeatures.filter((f) => activeNaturalSubcats.length === 0 || activeNaturalSubcats.includes(f.category))
+    : [];
 
   if (!trip.ready || !activeDay) {
     return <div className="workspace-root" />;
@@ -340,6 +357,7 @@ export default function Workspace({
           <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
             <MapCanvas
               distilleries={isLive ? distilleries : []}
+              localFeatures={isLive ? visibleLocalFeatures : []}
               isLive={isLive}
               routeStops={activeDay.stops.reduce<{ lat: number; lng: number }[]>((points, stop, i) => {
                 if (i === 0) return [{ lat: stop.distillery.lat, lng: stop.distillery.lng }];

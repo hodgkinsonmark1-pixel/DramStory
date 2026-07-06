@@ -1,4 +1,4 @@
-import { getDistilleries } from "@/lib/data";
+import { getDistilleries, getLocalFeatures } from "@/lib/data";
 import type { TripTiming } from "@/lib/types";
 import JourneyFlow from "@/components/journey/JourneyFlow";
 
@@ -13,7 +13,18 @@ export default async function JourneyPage({
 }: {
   searchParams: Promise<{ mode?: string; resume?: string }>;
 }) {
-  const [{ mode, resume }, distilleries] = await Promise.all([searchParams, getDistilleries()]);
+  const [{ mode, resume }, distilleries, localFeatures] = await Promise.all([
+    searchParams,
+    getDistilleries(),
+    getLocalFeatures(),
+  ]);
 
-  return <JourneyFlow timing={parseTiming(mode)} distilleries={distilleries} resume={resume === "1"} />;
+  return (
+    <JourneyFlow
+      timing={parseTiming(mode)}
+      distilleries={distilleries}
+      localFeatures={localFeatures}
+      resume={resume === "1"}
+    />
+  );
 }
