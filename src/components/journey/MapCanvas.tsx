@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type Leaflet from "leaflet";
 import type { Distillery } from "@/lib/types";
 import "leaflet/dist/leaflet.css";
@@ -9,6 +9,11 @@ interface MapCanvasProps {
   distilleries: Distillery[];
   isLive: boolean;
   onAddDistillery?: (slug: string) => void;
+  /** Ordered lat/lng of the current day's itinerary stops - draws a dashed
+   *  route line connecting them, matching the approved mockup exactly
+   *  (verified: #C4862A, weight 3, dashArray "1,8", opacity 0.85, straight
+   *  lines between stops rather than real road routing). */
+  routeStops?: { lat: number; lng: number }[];
 }
 
 // Rough center of Scotland, used when a region has no pins yet so the map
@@ -31,9 +36,12 @@ const ISLAY_CENTER: [number, number] = [55.75, -6.2];
  * container reading a data-add-distillery attribute, rather than a normal
  * onClick handler.
  */
-export default function MapCanvas({ distilleries, isLive, onAddDistillery }: MapCanvasProps) {
+export default function MapCanvas({ distilleries, isLive, onAddDistillery, routeStops = [] }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Leaflet.Map | null>(null);
+  const leafletRef = useRef<typeof Leaflet | null>(null);
+  const routeLineRef = useRef<Leaflet.Polyline | null>(null);
+  const [mapReady, setMapReady] = useState(false);
   const onAddRef = useRef(onAddDistillery);
   useEffect(() => {
     onAddRef.current = onAddDistillery;
@@ -45,6 +53,7 @@ export default function MapCanvas({ distilleries, isLive, onAddDistillery }: Map
     async function init() {
       const L = (await import("leaflet")).default;
       if (cancelled || !containerRef.current || mapRef.current) return;
+      leafletRef.current = L;
 
       const map = L.map(containerRef.current, {
         center: isLive && distilleries.length > 0 ? ISLAY_CENTER : SCOTLAND_CENTER,
@@ -103,6 +112,8 @@ export default function MapCanvas({ distilleries, isLive, onAddDistillery }: Map
           if (slug) onAddRef.current?.(slug);
         }
       });
+
+      setMapReady(true);
     }
 
     init();
@@ -116,6 +127,27 @@ export default function MapCanvas({ distilleries, isLive, onAddDistillery }: Map
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Redraws the dashed route line whenever the itinerary's stop order
+  // changes. Separate from the mount-once init effect above since this
+  // needs to re-run on every add/remove/reorder, not just once.
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !leafletRef.current) return;
+    const L = leafletRef.current;
+    const map = mapRef.current;
+
+    if (routeLineRef.current) {
+      routeLineRef.current.remove();
+      routeLineRef.current = null;
+    }
+
+    if (routeStops.length >= 2) {
+      routeLineRef.current = L.polyline(
+        routeStops.map((s) => [s.lat, s.lng]),
+        { color: "#C4862A", weight: 3, dashArray: "1,8", opacity: 0.85 }
+      ).addTo(map);
+    }
+  }, [mapReady, routeStops]);
 
   return <div id="map" ref={containerRef} />;
 }

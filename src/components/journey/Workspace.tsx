@@ -318,6 +318,7 @@ export default function Workspace({
             <MapCanvas
               distilleries={isLive ? distilleries : []}
               isLive={isLive}
+              routeStops={activeDay.stops.map((s) => ({ lat: s.distillery.lat, lng: s.distillery.lng }))}
               onAddDistillery={(slug) => {
                 const d = distilleries.find((x) => x.slug === slug);
                 if (d) trip.addStop(activeDayIndex, d);
