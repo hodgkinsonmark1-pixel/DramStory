@@ -9,10 +9,12 @@ interface MapCanvasProps {
   distilleries: Distillery[];
   isLive: boolean;
   onAddDistillery?: (slug: string) => void;
-  /** Ordered lat/lng of the current day's itinerary stops - draws a dashed
-   *  route line connecting them, matching the approved mockup exactly
-   *  (verified: #C4862A, weight 3, dashArray "1,8", opacity 0.85, straight
-   *  lines between stops rather than real road routing). */
+  /** Ordered lat/lng points along the current day's real route (from OSRM,
+   *  or straight-line fallback per segment) - drawn as a route line with a
+   *  white casing for visibility against busy map tiles. Styling was
+   *  originally an exact match to the mockup (#C4862A, weight 3, dashArray
+   *  "1,8") but that was tuned for a short straight demo line; a real,
+   *  winding road route needed a bolder treatment to stay legible. */
   routeStops?: { lat: number; lng: number }[];
 }
 
@@ -40,7 +42,7 @@ export default function MapCanvas({ distilleries, isLive, onAddDistillery, route
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Leaflet.Map | null>(null);
   const leafletRef = useRef<typeof Leaflet | null>(null);
-  const routeLineRef = useRef<Leaflet.Polyline | null>(null);
+  const routeLineRef = useRef<Leaflet.LayerGroup | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const onAddRef = useRef(onAddDistillery);
   useEffect(() => {
@@ -142,10 +144,27 @@ export default function MapCanvas({ distilleries, isLive, onAddDistillery, route
     }
 
     if (routeStops.length >= 2) {
-      routeLineRef.current = L.polyline(
-        routeStops.map((s) => [s.lat, s.lng]),
-        { color: "#C4862A", weight: 3, dashArray: "1,8", opacity: 0.85 }
-      ).addTo(map);
+      const latLngs: [number, number][] = routeStops.map((s) => [s.lat, s.lng]);
+
+      // Casing technique (same idea Google/Citymapper use): a wider, solid
+      // white/pale line drawn first so the route pops against busy map
+      // tiles (roads, water, labels) regardless of what's underneath -
+      // the thin dotted line on its own was hard to spot on a real,
+      // winding road route rather than a short straight demo line.
+      const casing = L.polyline(latLngs, {
+        color: "#FFFFFF",
+        weight: 7,
+        opacity: 0.9,
+      });
+      const routeLine = L.polyline(latLngs, {
+        color: "#C4862A",
+        weight: 4,
+        dashArray: "10,8",
+        opacity: 1,
+        lineCap: "round",
+      });
+
+      routeLineRef.current = L.layerGroup([casing, routeLine]).addTo(map);
     }
   }, [mapReady, routeStops]);
 
