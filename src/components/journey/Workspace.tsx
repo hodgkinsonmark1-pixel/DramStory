@@ -18,12 +18,6 @@ interface WorkspaceProps {
   timing: TripTiming;
 }
 
-const PANEL_SUBTITLE_BY_TIMING: Record<TripTiming, string> = {
-  today: "Add your next stop — we'll show what's open right now.",
-  planning: "Build your itinerary now, save it, and refine it before you go.",
-  inspiration: "No pressure — just explore and see what catches your eye.",
-};
-
 function describeLocation(location: LocationAnswer): string {
   const islayLabel = REGIONS.find((r) => r.id === "islay")?.label ?? "Islay & Jura";
   if (location.kind === "region") {
@@ -38,7 +32,6 @@ export default function Workspace({
   location,
   tripLength,
   initialInterests,
-  timing,
 }: WorkspaceProps) {
   const trip = useTrip();
   const [activeCategories, setActiveCategories] = useState<Set<InterestCategoryId>>(
@@ -148,8 +141,6 @@ export default function Workspace({
         <div className="journey-panel">
           <div className="panel-header">
             <div className="panel-eyebrow">Your itinerary</div>
-            <div className="panel-title">{title}</div>
-            <div className="panel-subtitle">{PANEL_SUBTITLE_BY_TIMING[timing]}</div>
           </div>
 
           <div className="day-nav">
@@ -173,14 +164,16 @@ export default function Workspace({
             >
               &#8250;
             </button>
-            <button className="day-nav-add" onClick={trip.addDay}>
-              + Add day
-            </button>
-            {days.length > 1 && (
-              <button className="day-nav-remove" onClick={() => trip.removeDay(activeDayIndex)}>
-                Remove this day
+            <div className="day-nav-actions">
+              <button className="day-nav-add" onClick={trip.addDay}>
+                + Add day
               </button>
-            )}
+              {days.length > 1 && (
+                <button className="day-nav-remove" onClick={() => trip.removeDay(activeDayIndex)}>
+                  Remove
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="journey-stops">

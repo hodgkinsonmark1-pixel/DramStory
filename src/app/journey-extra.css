@@ -106,23 +106,24 @@ select.location-inline-input {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 20px 0 20px;
+  padding: 10px 20px;
   flex-wrap: wrap;
 }
 .day-nav-arrow {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   border: 1.5px solid var(--stone);
   background: white;
   color: var(--peat);
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.15s;
+  flex-shrink: 0;
 }
 .day-nav-arrow:hover:not(:disabled) {
   border-color: var(--green-mid);
@@ -134,19 +135,30 @@ select.location-inline-input {
 }
 .day-nav-label {
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: 15px;
   color: var(--dark);
-  min-width: 90px;
+  min-width: 70px;
   text-align: center;
+  flex-shrink: 0;
 }
 .day-nav-count {
   font-family: var(--font-body);
   font-size: 12px;
   color: var(--slate);
 }
+/* Groups "+ Add day" and "Remove" as one unit pushed to the right - a
+   previous bug had margin-left:auto on BOTH buttons independently, which
+   combined with flex-wrap caused "Remove this day" to wrap onto its own
+   line on narrower panels. */
+.day-nav-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
 .day-nav-add,
 .day-nav-remove {
-  margin-left: auto;
   background: none;
   border: none;
   font-size: 12px;
@@ -154,19 +166,30 @@ select.location-inline-input {
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 3px;
+  white-space: nowrap;
+  padding: 0;
 }
 .day-nav-add:hover,
 .day-nav-remove:hover {
   color: var(--green-deep);
 }
 .day-nav-remove {
-  margin-left: 8px;
   color: #c0392b;
   opacity: 0.7;
 }
 .day-nav-remove:hover {
   opacity: 1;
   color: #c0392b;
+}
+
+/* Panel header is now just the "YOUR ITINERARY" eyebrow (title/subtitle
+   removed - they duplicated info already shown in the top nav badge, and
+   ate vertical space that mattered on shorter/narrower screens). */
+.panel-header {
+  padding: 16px 20px 12px;
+}
+.panel-eyebrow {
+  margin-bottom: 0;
 }
 
 .journey-stop-airport {
