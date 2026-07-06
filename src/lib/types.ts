@@ -162,9 +162,16 @@ export interface TripIntake {
 // data every time the day count changes.
 // ─────────────────────────────────────────────────────────────────────────
 
-export type ItineraryStop =
+export type ItineraryStop = (
   | { kind: "distillery"; distillery: Distillery; tour?: Tour }
-  | { kind: "feature"; feature: LocalFeature };
+  | { kind: "feature"; feature: LocalFeature }
+) & {
+  /** Visitor-adjusted visit duration (minutes), overriding the default
+   *  estimate (a distillery's avgVisit, or the flat feature estimate) -
+   *  set via the +/- toggle next to the "~X visit" line. Undefined means
+   *  "use the default estimate". */
+  customMinutes?: number;
+};
 
 export interface ItineraryDay {
   id: string;

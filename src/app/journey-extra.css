@@ -146,33 +146,7 @@ select.location-inline-input {
   font-size: 12px;
   color: var(--slate);
 }
-.day-dots {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-left: auto;
-}
-.day-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  border: none;
-  background: var(--stone);
-  cursor: pointer;
-  padding: 0;
-  transition: all 0.15s;
-}
-.day-dot:hover {
-  background: var(--mist);
-}
-.day-dot.active {
-  background: var(--green-deep);
-  width: 16px;
-  border-radius: 4px;
-}
-/* "+ Add day" and "Remove" now sit right next to the day arrows, not
-   pushed to the far right - the day dots (last element) carry the
-   margin-left:auto instead. */
+/* "+ Add day" and "Remove" sit right next to the day arrows. */
 .day-nav-actions {
   display: flex;
   align-items: center;
@@ -287,6 +261,34 @@ select.location-inline-input {
 }
 .save-journey-btn:hover {
   background: var(--amber-pale);
+}
+
+/* +/- adjuster next to each stop's "~X visit" estimate. */
+.stop-time-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.stop-time-btn {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--stone);
+  background: white;
+  color: var(--slate);
+  font-size: 12px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s;
+}
+.stop-time-btn:hover {
+  border-color: var(--green-mid);
+  color: var(--green-deep);
 }
 
 

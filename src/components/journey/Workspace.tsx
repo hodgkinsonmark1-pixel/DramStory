@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { Distillery, InterestCategoryId, LocalFeature, LocationAnswer, TripLength, TripTiming } from "@/lib/types";
 import { INTEREST_CATEGORIES, REGIONS, TRIP_LENGTHS } from "@/lib/journey-options";
-import { estimatedDriveMinutes, formatDuration, parseAvgVisitMinutes } from "@/lib/drive-time";
+import { estimatedDriveMinutes, formatDuration } from "@/lib/drive-time";
 import { useRouteSegments } from "@/lib/use-route-segments";
 import { useTrip } from "@/lib/trip-context";
-import { stopCoords, stopId, stopName } from "@/lib/itinerary-stop";
+import { stopCoords, stopId, stopName, stopVisitMinutes, incrementVisitMinutes } from "@/lib/itinerary-stop";
 import Logo from "@/components/Logo";
 import MapCanvas from "./MapCanvas";
 
@@ -19,11 +19,6 @@ interface WorkspaceProps {
   initialInterests: InterestCategoryId[];
   timing: TripTiming;
 }
-
-// A quick stop at a beach/walk/bike route/local gem doesn't have a defined
-// "visit" length the way a distillery tour does - this is a reasonable
-// flat estimate so trip totals stay meaningful once features are added.
-const FEATURE_VISIT_MINUTES = 25;
 
 function describeLocation(location: LocationAnswer): string {
   const islayLabel = REGIONS.find((r) => r.id === "islay")?.label ?? "Islay & Jura";
@@ -110,12 +105,7 @@ export default function Workspace({
     }
   }
   const totalDriveMinutes = driveSegments.reduce((a, b) => a + b, 0);
-  const totalVisitMinutes = activeDay
-    ? activeDay.stops.reduce(
-        (sum, s) => sum + (s.kind === "distillery" ? parseAvgVisitMinutes(s.distillery.avgVisit) : FEATURE_VISIT_MINUTES),
-        0
-      )
-    : 0;
+  const totalVisitMinutes = activeDay ? activeDay.stops.reduce((sum, s) => sum + stopVisitMinutes(s), 0) : 0;
   const toursBooked = activeDay ? activeDay.stops.filter((s) => s.kind === "distillery" && s.tour).length : 0;
   const toursTotal = activeDay
     ? activeDay.stops.reduce((sum, s) => sum + (s.kind === "distillery" ? s.tour?.price ?? 0 : 0), 0)
@@ -195,18 +185,6 @@ export default function Workspace({
                 </button>
               )}
             </div>
-            {days.length > 1 && (
-              <div className="day-dots">
-                {days.map((d, i) => (
-                  <button
-                    key={d.id}
-                    className={"day-dot" + (i === activeDayIndex ? " active" : "")}
-                    onClick={() => setActiveDayIndex(i)}
-                    aria-label={`Go to ${d.label}`}
-                  />
-                ))}
-              </div>
-            )}
           </div>
 
           <div className="journey-stops">
@@ -235,7 +213,6 @@ export default function Workspace({
                       {stop.kind === "distillery" ? (
                         <>
                           <div className="stop-region">{stop.distillery.region}</div>
-                          <div className="stop-time">~{stop.distillery.avgVisit} visit</div>
                           {stop.tour && (
                             <>
                               <div className="stop-tour">🎟 {stop.tour.name}</div>
@@ -248,6 +225,27 @@ export default function Workspace({
                           {stop.feature.icon} {stop.feature.category.replace("-", " ")}
                         </div>
                       )}
+                      <div className="stop-time-row">
+                        <span className="stop-time">~{formatDuration(stopVisitMinutes(stop))} visit</span>
+                        <button
+                          className="stop-time-btn"
+                          onClick={() =>
+                            trip.setStopMinutes(activeDayIndex, stopId(stop), incrementVisitMinutes(stop, -1))
+                          }
+                          aria-label="Decrease visit time"
+                        >
+                          &minus;
+                        </button>
+                        <button
+                          className="stop-time-btn"
+                          onClick={() =>
+                            trip.setStopMinutes(activeDayIndex, stopId(stop), incrementVisitMinutes(stop, 1))
+                          }
+                          aria-label="Increase visit time"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
                     <button
                       className="stop-remove"
