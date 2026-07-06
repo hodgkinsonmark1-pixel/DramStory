@@ -365,8 +365,13 @@ select.location-inline-input {
   overflow: visible;
 }
 .workspace-main {
-  height: calc(100vh - 64px);
-  flex-shrink: 0;
+  /* flex-basis (set via the flex shorthand), not height, controls sizing
+     on the main axis of a column-direction flex container - the legacy
+     rule's flex:1 (flex-basis:0%) was silently overriding a plain height
+     property, so .workspace-main was only ever as tall as its own content
+     needed, never actually filling the viewport. flex:0 0 <length> pins
+     an explicit fixed size instead of leaving it to auto-grow. */
+  flex: 0 0 calc(100vh - 64px);
 }
 
 /* Below-the-map sections (Classic Journeys cross-promo, accommodation
@@ -393,6 +398,25 @@ select.location-inline-input {
   max-width: 480px;
   margin: 0 auto 8px;
   line-height: 1.6;
+}
+
+/* Q2/Q3/Q4 text colors - .journey-eyebrow/.journey-title/.journey-back
+   were styled assuming a light page background (their original use
+   elsewhere), but these 3 screens sit on the same dark photo background
+   as the homepage Hero, which already correctly uses white/light text.
+   Brought these in line with Hero's treatment instead of leaving them at
+   their low-contrast defaults. */
+.journey-eyebrow {
+  color: var(--amber-light);
+}
+.journey-title {
+  color: white;
+}
+.journey-back {
+  color: rgba(255, 255, 255, 0.75);
+}
+.journey-back:hover {
+  color: white;
 }
 
 

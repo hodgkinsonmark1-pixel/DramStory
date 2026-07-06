@@ -73,7 +73,6 @@ export default function Workspace({
   const [eventStartDate, setEventStartDate] = useState(todayIso);
   const [eventEndDate, setEventEndDate] = useState(todayIso);
   const [eventMonth, setEventMonth] = useState(todayIso.slice(0, 7));
-  const [eventFlexDays, setEventFlexDays] = useState<1 | 3 | 5 | 7 | null>(null);
   const [showCostBreakdown, setShowCostBreakdown] = useState(false);
   const [summaryExpanded, setSummaryExpanded] = useState(false);
 
@@ -417,29 +416,7 @@ export default function Workspace({
                         <span className="event-date-today">📅 Showing events for {formatDisplayDate(todayIso)}</span>
                       )}
 
-                      {timing === "planning" && (
-                        <>
-                          <input
-                            type="date"
-                            className="event-date-input"
-                            value={eventStartDate}
-                            onChange={(e) => setEventStartDate(e.target.value)}
-                          />
-                          <div className="event-flex-group">
-                            {([1, 3, 5, 7] as const).map((days) => (
-                              <button
-                                key={days}
-                                className={"event-flex-btn" + (eventFlexDays === days ? " active" : "")}
-                                onClick={() => setEventFlexDays(eventFlexDays === days ? null : days)}
-                              >
-                                &plusmn;{days}d
-                              </button>
-                            ))}
-                          </div>
-                        </>
-                      )}
-
-                      {timing === "inspiration" && (
+                      {(timing === "planning" || timing === "inspiration") && (
                         <>
                           <div className="event-mode-toggle">
                             <button
