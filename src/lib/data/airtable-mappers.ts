@@ -111,6 +111,12 @@ const NATURAL_FEATURE_CATEGORY_MAP: Record<string, LocalFeature["category"] | un
  *  Returns null for non-Natural-Feature categories (e.g. Historic Site)
  *  or records missing coordinates - both are simply excluded from the map. */
 export function mapToLocalFeature(id: string, fields: AirtableLocalFeatureFields): LocalFeature | null {
+  // Coordinate note: American Monument/Mull of Oa Circular and Mull of Oa
+  // Viewpoint were recalculated from RSPB's published "6 miles SW of Port
+  // Ellen" distance/bearing (previous estimate was too far north-east).
+  // Caol Ila Walk and Rubha Mor Headland were naive midpoints between two
+  // distilleries that happened to land in the Sound of Islay water rather
+  // than on the coast - moved closer to their nearest distillery instead.
   const category = NATURAL_FEATURE_CATEGORY_MAP[fields.Category ?? ""];
   if (!category || fields.Latitude == null || fields.Longitude == null) return null;
   return {
