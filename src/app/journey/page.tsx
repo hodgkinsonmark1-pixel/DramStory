@@ -11,9 +11,9 @@ function parseTiming(mode: string | string[] | undefined): TripTiming {
 export default async function JourneyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string }>;
+  searchParams: Promise<{ mode?: string; resume?: string }>;
 }) {
-  const [{ mode }, distilleries] = await Promise.all([searchParams, getDistilleries()]);
+  const [{ mode, resume }, distilleries] = await Promise.all([searchParams, getDistilleries()]);
 
-  return <JourneyFlow timing={parseTiming(mode)} distilleries={distilleries} />;
+  return <JourneyFlow timing={parseTiming(mode)} distilleries={distilleries} resume={resume === "1"} />;
 }

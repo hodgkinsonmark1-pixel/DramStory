@@ -150,6 +150,7 @@ select.location-inline-input {
   display: flex;
   align-items: center;
   gap: 5px;
+  margin-left: auto;
 }
 .day-dot {
   width: 7px;
@@ -169,12 +170,10 @@ select.location-inline-input {
   width: 16px;
   border-radius: 4px;
 }
-/* Groups "+ Add day" and "Remove" as one unit pushed to the right - a
-   previous bug had margin-left:auto on BOTH buttons independently, which
-   combined with flex-wrap caused "Remove this day" to wrap onto its own
-   line on narrower panels. */
+/* "+ Add day" and "Remove" now sit right next to the day arrows, not
+   pushed to the far right - the day dots (last element) carry the
+   margin-left:auto instead. */
 .day-nav-actions {
-  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -266,6 +265,28 @@ select.location-inline-input {
   .stop-time {
     font-size: 10px;
   }
+}
+
+/* Toned down from the mockup's full-width solid-amber treatment, which
+   read as too prominent relative to the rest of the panel - now a
+   smaller outline pill, right-aligned, still clearly clickable but not
+   competing with the actual itinerary content for attention. */
+.save-journey-btn {
+  width: auto;
+  margin: 12px 0 0 auto;
+  padding: 8px 16px;
+  display: block;
+  background: transparent;
+  color: var(--copper);
+  border: 1.5px solid var(--amber);
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.save-journey-btn:hover {
+  background: var(--amber-pale);
 }
 
 

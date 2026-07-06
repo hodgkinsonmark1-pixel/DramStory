@@ -12,6 +12,14 @@ import Workspace from "./Workspace";
 interface JourneyFlowProps {
   timing: TripTiming;
   distilleries: Distillery[];
+  /** True only when arriving via "Back to your journey" (see
+   *  DistilleryPageClient's ?resume=1 link) - an explicit signal that
+   *  resuming the saved trip is wanted. A fresh homepage Q1 click never
+   *  sets this, even if a trip from a previous session still exists in
+   *  localStorage - that previously caused a real bug: picking a Q1
+   *  option looked like it "skipped" Q2/Step3/Q4 straight to the map,
+   *  because ANY saved intake was silently resumed regardless of intent. */
+  resume: boolean;
 }
 
 type Step = "location" | "tripLength" | "interests" | "workspace";
@@ -21,37 +29,35 @@ type Step = "location" | "tripLength" | "interests" | "workspace";
  * homepage Hero) -> Q2 (Where) -> Step 3 (How long) -> Q4 (What matters)
  * -> workspace (map + itinerary). `timing` arrives here as the ?mode=
  * query param from the homepage.
- *
- * If a completed intake is already saved (e.g. the visitor came back via
- * "Back to your journey" from a distillery page), this skips straight to
- * the workspace instead of restarting the questions - only the itinerary
- * data used to persist across navigation, not which step you were on,
- * which made "back to your journey" dump people back at Q2.
  */
-export default function JourneyFlow({ timing, distilleries }: JourneyFlowProps) {
+export default function JourneyFlow({ timing, distilleries, resume }: JourneyFlowProps) {
   const router = useRouter();
   const trip = useTrip();
   const [step, setStep] = useState<Step>("location");
   const [location, setLocation] = useState<LocationAnswer | null>(null);
   const [tripLength, setTripLength] = useState<TripLength | null>(null);
   const [interests, setInterests] = useState<InterestCategoryId[]>([]);
-  const [resumed, setResumed] = useState(false);
+  const [handledInitialState, setHandledInitialState] = useState(false);
 
-  // Resumes a previously-completed intake once the trip context finishes
-  // reading localStorage (trip.ready flips async, after this component's
-  // first render) - same justified exception as trip-context.tsx's own
-  // localStorage hydration: syncing local step state to data that only
-  // exists after an async, client-only read.
+  // Runs once trip.ready flips true (localStorage hydration completes):
+  // - resume=1 + a saved intake exists -> jump straight to the workspace
+  //   with those saved answers (the "Back to your journey" case)
+  // - otherwise -> clear any stale trip so a fresh Q1 visit always starts
+  //   clean, never silently continuing an old session
   useEffect(() => {
-    if (trip.ready && trip.intake && !resumed) {
+    if (!trip.ready || handledInitialState) return;
+    if (resume && trip.intake) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocation(trip.intake.location);
       setTripLength(trip.intake.tripLength);
       setInterests(trip.intake.interests);
       setStep("workspace");
-      setResumed(true);
+    } else if (!resume && (trip.intake || trip.days.length > 0)) {
+      trip.resetTrip();
     }
-  }, [trip.ready, trip.intake, resumed]);
+    setHandledInitialState(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trip.ready, handledInitialState]);
 
   if (step === "location") {
     return (

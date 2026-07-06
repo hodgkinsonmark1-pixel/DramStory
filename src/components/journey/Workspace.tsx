@@ -154,16 +154,6 @@ export default function Workspace({
               &#8249;
             </button>
             <div className="day-nav-label">{activeDay.label}</div>
-            <div className="day-dots">
-              {days.map((d, i) => (
-                <button
-                  key={d.id}
-                  className={"day-dot" + (i === activeDayIndex ? " active" : "")}
-                  onClick={() => setActiveDayIndex(i)}
-                  aria-label={`Go to ${d.label}`}
-                />
-              ))}
-            </div>
             <button
               className="day-nav-arrow"
               onClick={() => setActiveDayIndex((i) => Math.min(days.length - 1, i + 1))}
@@ -182,6 +172,18 @@ export default function Workspace({
                 </button>
               )}
             </div>
+            {days.length > 1 && (
+              <div className="day-dots">
+                {days.map((d, i) => (
+                  <button
+                    key={d.id}
+                    className={"day-dot" + (i === activeDayIndex ? " active" : "")}
+                    onClick={() => setActiveDayIndex(i)}
+                    aria-label={`Go to ${d.label}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="journey-stops">

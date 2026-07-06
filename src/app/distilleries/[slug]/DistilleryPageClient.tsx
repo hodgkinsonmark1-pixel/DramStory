@@ -40,7 +40,7 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
 
   return (
     <div className="distillery-page page">
-      <Link href={totalStops > 0 ? "/journey" : "/distilleries"} className="dist-back-bar">
+      <Link href={totalStops > 0 ? "/journey?resume=1" : "/distilleries"} className="dist-back-bar">
         <span>&larr; {totalStops > 0 ? "Back to your journey" : "Back to distilleries"}</span>
         {totalStops > 0 && <span className="dist-back-stops">{totalStops} stop{totalStops > 1 ? "s" : ""}</span>}
       </Link>

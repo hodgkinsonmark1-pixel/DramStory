@@ -59,7 +59,7 @@ export default function MapCanvas({ distilleries, isLive, onAddDistillery, route
 
       const map = L.map(containerRef.current, {
         center: isLive && distilleries.length > 0 ? ISLAY_CENTER : SCOTLAND_CENTER,
-        zoom: isLive && distilleries.length > 0 ? 10 : 6,
+        zoom: isLive && distilleries.length > 0 ? 11 : 7,
         scrollWheelZoom: true,
       });
       mapRef.current = map;
@@ -103,6 +103,8 @@ export default function MapCanvas({ distilleries, isLive, onAddDistillery, route
       if (markers.length > 0) {
         const group = L.featureGroup(markers);
         map.fitBounds(group.getBounds().pad(0.2));
+        // One level more zoomed in than the pure fitBounds fit, per request.
+        map.setZoom(map.getZoom() + 1);
       }
 
       // Event delegation for the +Add button inside popup HTML - Leaflet
