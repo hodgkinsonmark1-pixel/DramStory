@@ -29,12 +29,32 @@ function describeLocation(location: LocationAnswer): string {
   return islayLabel;
 }
 
+// Small date helpers for the Local Events drill-down UI - deliberately
+// plain date-string math (no date library) since these only ever handle
+// simple day-count arithmetic on ISO strings.
+function addDays(isoDate: string, days: number): string {
+  const d = new Date(isoDate);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function daysBetween(startIso: string, endIso: string): number {
+  const start = new Date(startIso);
+  const end = new Date(endIso);
+  return Math.round((end.getTime() - start.getTime()) / 86400000);
+}
+
+function formatDisplayDate(isoDate: string): string {
+  return new Date(isoDate).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+}
+
 export default function Workspace({
   distilleries,
   localFeatures,
   location,
   tripLength,
   initialInterests,
+  timing,
 }: WorkspaceProps) {
   const trip = useTrip();
   const [activeCategories, setActiveCategories] = useState<Set<InterestCategoryId>>(
@@ -43,6 +63,16 @@ export default function Workspace({
   const [expandedCategory, setExpandedCategory] = useState<InterestCategoryId | null>(null);
   const [activeSubcats, setActiveSubcats] = useState<Set<string>>(new Set());
   const [activeDayIndex, setActiveDayIndex] = useState(0);
+
+  // Local Events date UI - lives in that category's drill-down submenu.
+  // No real event data exists in Airtable yet, so this doesn't filter
+  // anything for now; it's the UI ready for whenever events are populated.
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const [eventDateMode, setEventDateMode] = useState<"range" | "month">("range");
+  const [eventStartDate, setEventStartDate] = useState(todayIso);
+  const [eventEndDate, setEventEndDate] = useState(todayIso);
+  const [eventMonth, setEventMonth] = useState(todayIso.slice(0, 7));
+  const [eventFlexDays, setEventFlexDays] = useState<1 | 3 | 5 | 7 | null>(null);
   const [showCostBreakdown, setShowCostBreakdown] = useState(false);
   const [summaryExpanded, setSummaryExpanded] = useState(false);
 
@@ -379,6 +409,87 @@ export default function Workspace({
                       </button>
                     );
                   })}
+
+                  {expandedCategoryData.id === "local-events" && (
+                    <div className="event-date-controls">
+                      {timing === "today" && (
+                        <span className="event-date-today">📅 Showing events for {formatDisplayDate(todayIso)}</span>
+                      )}
+
+                      {timing === "planning" && (
+                        <>
+                          <input
+                            type="date"
+                            className="event-date-input"
+                            value={eventStartDate}
+                            onChange={(e) => setEventStartDate(e.target.value)}
+                          />
+                          <div className="event-flex-group">
+                            {([1, 3, 5, 7] as const).map((days) => (
+                              <button
+                                key={days}
+                                className={"event-flex-btn" + (eventFlexDays === days ? " active" : "")}
+                                onClick={() => setEventFlexDays(eventFlexDays === days ? null : days)}
+                              >
+                                &plusmn;{days}d
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      {timing === "inspiration" && (
+                        <>
+                          <div className="event-mode-toggle">
+                            <button
+                              className={"event-mode-btn" + (eventDateMode === "range" ? " active" : "")}
+                              onClick={() => setEventDateMode("range")}
+                            >
+                              Date range
+                            </button>
+                            <button
+                              className={"event-mode-btn" + (eventDateMode === "month" ? " active" : "")}
+                              onClick={() => setEventDateMode("month")}
+                            >
+                              Month
+                            </button>
+                          </div>
+                          {eventDateMode === "range" ? (
+                            <>
+                              <input
+                                type="date"
+                                className="event-date-input"
+                                value={eventStartDate}
+                                onChange={(e) => {
+                                  const newStart = e.target.value;
+                                  setEventStartDate(newStart);
+                                  if (daysBetween(newStart, eventEndDate) > 14 || daysBetween(newStart, eventEndDate) < 0) {
+                                    setEventEndDate(addDays(newStart, 7));
+                                  }
+                                }}
+                              />
+                              <span className="event-date-sep">to</span>
+                              <input
+                                type="date"
+                                className="event-date-input"
+                                value={eventEndDate}
+                                min={eventStartDate}
+                                max={addDays(eventStartDate, 14)}
+                                onChange={(e) => setEventEndDate(e.target.value)}
+                              />
+                            </>
+                          ) : (
+                            <input
+                              type="month"
+                              className="event-date-input"
+                              value={eventMonth}
+                              onChange={(e) => setEventMonth(e.target.value)}
+                            />
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
                 </>
               ) : (
                 INTEREST_CATEGORIES.map((c) => {
