@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import type Leaflet from "leaflet";
 import type { Distillery, LocalFeature } from "@/lib/types";
 import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 
 interface MapCanvasProps {
   distilleries: Distillery[];
@@ -62,7 +64,12 @@ export default function MapCanvas({
   const mapRef = useRef<Leaflet.Map | null>(null);
   const leafletRef = useRef<typeof Leaflet | null>(null);
   const routeLineRef = useRef<Leaflet.LayerGroup | null>(null);
-  const featureLayerRef = useRef<Leaflet.LayerGroup | null>(null);
+  // One shared cluster group for distilleries AND Natural Features -
+  // clustering everything together (not per-category) per request, so a
+  // dense area shows one combined count rather than several overlapping
+  // per-type clusters.
+  const clusterGroupRef = useRef<Leaflet.MarkerClusterGroup | null>(null);
+  const featureMarkersRef = useRef<Leaflet.Marker[]>([]);
   const [mapReady, setMapReady] = useState(false);
   const onAddRef = useRef(onAddDistillery);
   useEffect(() => {
@@ -78,6 +85,7 @@ export default function MapCanvas({
 
     async function init() {
       const L = (await import("leaflet")).default;
+      await import("leaflet.markercluster");
       if (cancelled || !containerRef.current || mapRef.current) return;
       leafletRef.current = L;
 
@@ -93,6 +101,10 @@ export default function MapCanvas({
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       }).addTo(map);
 
+      const clusterGroup = L.markerClusterGroup({ maxClusterRadius: 50 });
+      clusterGroup.addTo(map);
+      clusterGroupRef.current = clusterGroup;
+
       // Simple brand-colored dot marker instead of Leaflet's default pin -
       // sidesteps the well-known bundler icon-path issue and matches the
       // site's whisky-glass emoji used elsewhere for distilleries.
@@ -107,7 +119,7 @@ export default function MapCanvas({
       const markers: Leaflet.Marker[] = [];
       for (const d of distilleries) {
         if (!d.lat || !d.lng) continue;
-        const marker = L.marker([d.lat, d.lng], { icon: distilleryIcon }).addTo(map);
+        const marker = L.marker([d.lat, d.lng], { icon: distilleryIcon });
         marker.bindPopup(
           `<div class="popup-inner">
             <div class="popup-tag">${d.style || "Distillery"}</div>
@@ -121,6 +133,7 @@ export default function MapCanvas({
           </div>`,
           { minWidth: 240 }
         );
+        clusterGroup.addLayer(marker);
         markers.push(marker);
       }
 
@@ -202,19 +215,18 @@ export default function MapCanvas({
   }, [mapReady, routeStops]);
 
   // Redraws Natural Feature pins whenever the visible list changes (a
-  // filter toggle in the map toolbar, not a one-time mount). Separate from
-  // the distillery markers (which are static after mount) since these
-  // genuinely change as the visitor toggles Beaches/Walks/Bike Rides/Local
-  // Gems on and off.
+  // filter toggle in the map toolbar, not a one-time mount). Adds/removes
+  // just the feature markers from the shared cluster group - the
+  // distillery markers already in that same group are left untouched.
   useEffect(() => {
-    if (!mapReady || !mapRef.current || !leafletRef.current) return;
+    if (!mapReady || !mapRef.current || !leafletRef.current || !clusterGroupRef.current) return;
     const L = leafletRef.current;
-    const map = mapRef.current;
+    const clusterGroup = clusterGroupRef.current;
 
-    if (featureLayerRef.current) {
-      featureLayerRef.current.remove();
-      featureLayerRef.current = null;
+    for (const m of featureMarkersRef.current) {
+      clusterGroup.removeLayer(m);
     }
+    featureMarkersRef.current = [];
 
     if (localFeatures.length === 0) return;
 
@@ -245,10 +257,11 @@ export default function MapCanvas({
         </div>`,
         { minWidth: 240 }
       );
+      clusterGroup.addLayer(marker);
       return marker;
     });
 
-    featureLayerRef.current = L.layerGroup(markers).addTo(map);
+    featureMarkersRef.current = markers;
   }, [mapReady, localFeatures]);
 
   return <div id="map" ref={containerRef} />;
