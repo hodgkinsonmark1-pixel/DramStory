@@ -23,7 +23,9 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
   function addTour(tourName: string) {
     trip.initDays(1);
     const tour = d.tours.find((t) => t.name === tourName);
-    const alreadySelected = trip.days[0]?.stops.find((s) => s.distillery.slug === d.slug)?.tour?.name === tourName;
+    const currentStop = trip.days[0]?.stops.find((s) => s.kind === "distillery" && s.distillery.slug === d.slug);
+    const alreadySelected =
+      currentStop?.kind === "distillery" && currentStop.tour?.name === tourName;
     trip.setTourForStop(0, d, alreadySelected ? undefined : tour);
   }
 
@@ -36,7 +38,8 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
     }
   }
 
-  const selectedTourName = trip.days[0]?.stops.find((s) => s.distillery.slug === d.slug)?.tour?.name;
+  const currentStopForTour = trip.days[0]?.stops.find((s) => s.kind === "distillery" && s.distillery.slug === d.slug);
+  const selectedTourName = currentStopForTour?.kind === "distillery" ? currentStopForTour.tour?.name : undefined;
 
   return (
     <div className="distillery-page page">

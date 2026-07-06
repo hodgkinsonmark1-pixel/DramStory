@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import type { Distillery, ItineraryDay, Tour, TripIntake } from "@/lib/types";
+import type { Distillery, ItineraryDay, LocalFeature, Tour, TripIntake } from "@/lib/types";
+import { stopId } from "@/lib/itinerary-stop";
 
 const STORAGE_KEY = "dramstory-trip-v2";
 
@@ -27,7 +28,11 @@ interface TripContextValue {
   addDay: () => void;
   removeDay: (index: number) => void;
   addStop: (dayIndex: number, distillery: Distillery) => void;
-  removeStop: (dayIndex: number, distillerySlug: string) => void;
+  /** Adds a Natural Feature (beach/walk/bike route/local gem) as a stop -
+   *  the map popup's "+ Add to Trip" button for these. */
+  addFeatureStop: (dayIndex: number, feature: LocalFeature) => void;
+  /** Removes any stop (distillery or feature) by its stopId(). */
+  removeStop: (dayIndex: number, id: string) => void;
   /** Sets (or clears, if tour is undefined) the specific tour booked for a
    *  distillery on a given day - this is what "+ Add to Journey" on a
    *  distillery's own tour cards writes to. If the distillery isn't on
@@ -112,18 +117,26 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   const addStop = useCallback((dayIndex: number, distillery: Distillery) => {
     setDays((prev) =>
       prev.map((day, i) =>
-        i === dayIndex && !day.stops.some((s) => s.distillery.slug === distillery.slug)
-          ? { ...day, stops: [...day.stops, { distillery }] }
+        i === dayIndex && !day.stops.some((s) => stopId(s) === distillery.slug)
+          ? { ...day, stops: [...day.stops, { kind: "distillery" as const, distillery }] }
           : day
       )
     );
   }, []);
 
-  const removeStop = useCallback((dayIndex: number, distillerySlug: string) => {
+  const addFeatureStop = useCallback((dayIndex: number, feature: LocalFeature) => {
     setDays((prev) =>
       prev.map((day, i) =>
-        i === dayIndex ? { ...day, stops: day.stops.filter((s) => s.distillery.slug !== distillerySlug) } : day
+        i === dayIndex && !day.stops.some((s) => stopId(s) === feature.id)
+          ? { ...day, stops: [...day.stops, { kind: "feature" as const, feature }] }
+          : day
       )
+    );
+  }, []);
+
+  const removeStop = useCallback((dayIndex: number, id: string) => {
+    setDays((prev) =>
+      prev.map((day, i) => (i === dayIndex ? { ...day, stops: day.stops.filter((s) => stopId(s) !== id) } : day))
     );
   }, []);
 
@@ -131,10 +144,12 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     setDays((prev) =>
       prev.map((day, i) => {
         if (i !== dayIndex) return day;
-        const exists = day.stops.some((s) => s.distillery.slug === distillery.slug);
+        const exists = day.stops.some((s) => s.kind === "distillery" && s.distillery.slug === distillery.slug);
         const stops = exists
-          ? day.stops.map((s) => (s.distillery.slug === distillery.slug ? { ...s, tour } : s))
-          : [...day.stops, { distillery, tour }];
+          ? day.stops.map((s) =>
+              s.kind === "distillery" && s.distillery.slug === distillery.slug ? { ...s, tour } : s
+            )
+          : [...day.stops, { kind: "distillery" as const, distillery, tour }];
         return { ...day, stops };
       })
     );
@@ -143,7 +158,9 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   const findStopDays = useCallback(
     (distillerySlug: string) => {
       return days
-        .map((day, i) => (day.stops.some((s) => s.distillery.slug === distillerySlug) ? i : -1))
+        .map((day, i) =>
+          day.stops.some((s) => s.kind === "distillery" && s.distillery.slug === distillerySlug) ? i : -1
+        )
         .filter((i) => i !== -1);
     },
     [days]
@@ -161,6 +178,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         addDay,
         removeDay,
         addStop,
+        addFeatureStop,
         removeStop,
         setTourForStop,
         findStopDays,

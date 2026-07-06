@@ -162,12 +162,9 @@ export interface TripIntake {
 // data every time the day count changes.
 // ─────────────────────────────────────────────────────────────────────────
 
-export interface ItineraryStop {
-  distillery: Distillery;
-  /** The specific tour picked on the distillery's own page, if any.
-   *  Undefined means "just visiting" with no tour booked yet. */
-  tour?: Tour;
-}
+export type ItineraryStop =
+  | { kind: "distillery"; distillery: Distillery; tour?: Tour }
+  | { kind: "feature"; feature: LocalFeature };
 
 export interface ItineraryDay {
   id: string;

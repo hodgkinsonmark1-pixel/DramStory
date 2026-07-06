@@ -7,6 +7,7 @@ import { INTEREST_CATEGORIES, REGIONS, TRIP_LENGTHS } from "@/lib/journey-option
 import { estimatedDriveMinutes, formatDuration, parseAvgVisitMinutes } from "@/lib/drive-time";
 import { useRouteSegments } from "@/lib/use-route-segments";
 import { useTrip } from "@/lib/trip-context";
+import { stopCoords, stopId, stopName } from "@/lib/itinerary-stop";
 import Logo from "@/components/Logo";
 import MapCanvas from "./MapCanvas";
 
@@ -18,6 +19,11 @@ interface WorkspaceProps {
   initialInterests: InterestCategoryId[];
   timing: TripTiming;
 }
+
+// A quick stop at a beach/walk/bike route/local gem doesn't have a defined
+// "visit" length the way a distillery tour does - this is a reasonable
+// flat estimate so trip totals stay meaningful once features are added.
+const FEATURE_VISIT_MINUTES = 25;
 
 function describeLocation(location: LocationAnswer): string {
   const islayLabel = REGIONS.find((r) => r.id === "islay")?.label ?? "Islay & Jura";
@@ -86,10 +92,8 @@ export default function Workspace({
   const days = trip.days;
   const activeDay = days[activeDayIndex];
 
-  const stopCoords = activeDay
-    ? activeDay.stops.map((s) => ({ lat: s.distillery.lat, lng: s.distillery.lng }))
-    : [];
-  const { segments: routeSegments } = useRouteSegments(stopCoords);
+  const routeCoords = activeDay ? activeDay.stops.map(stopCoords) : [];
+  const { segments: routeSegments } = useRouteSegments(routeCoords);
 
   // Drive time + visit time totals for the currently viewed day. Prefers
   // the real road-routed duration for each segment; falls back to the
@@ -101,18 +105,20 @@ export default function Workspace({
     for (let i = 0; i < activeDay.stops.length - 1; i++) {
       const real = routeSegments[i];
       driveSegments.push(
-        real?.durationMinutes ??
-          estimatedDriveMinutes(activeDay.stops[i].distillery, activeDay.stops[i + 1].distillery)
+        real?.durationMinutes ?? estimatedDriveMinutes(routeCoords[i], routeCoords[i + 1])
       );
     }
   }
   const totalDriveMinutes = driveSegments.reduce((a, b) => a + b, 0);
   const totalVisitMinutes = activeDay
-    ? activeDay.stops.reduce((sum, s) => sum + parseAvgVisitMinutes(s.distillery.avgVisit), 0)
+    ? activeDay.stops.reduce(
+        (sum, s) => sum + (s.kind === "distillery" ? parseAvgVisitMinutes(s.distillery.avgVisit) : FEATURE_VISIT_MINUTES),
+        0
+      )
     : 0;
-  const toursBooked = activeDay ? activeDay.stops.filter((s) => s.tour).length : 0;
+  const toursBooked = activeDay ? activeDay.stops.filter((s) => s.kind === "distillery" && s.tour).length : 0;
   const toursTotal = activeDay
-    ? activeDay.stops.reduce((sum, s) => sum + (s.tour?.price ?? 0), 0)
+    ? activeDay.stops.reduce((sum, s) => sum + (s.kind === "distillery" ? s.tour?.price ?? 0 : 0), 0)
     : 0;
 
   const expandedCategoryData = INTEREST_CATEGORIES.find((c) => c.id === expandedCategory);
@@ -217,28 +223,36 @@ export default function Workspace({
             {activeDay.stops.length === 0 && !(isFlyingIn && (activeDayIndex === 0 || activeDayIndex === days.length - 1)) ? (
               <div className="journey-empty">
                 <div className="journey-empty-icon">🗺️</div>
-                <p>Nothing added to {activeDay.label} yet — explore the map and add distilleries.</p>
+                <p>Nothing added to {activeDay.label} yet — explore the map and add distilleries or places.</p>
               </div>
             ) : (
               activeDay.stops.map((stop, i) => (
-                <div key={stop.distillery.slug}>
+                <div key={stopId(stop)}>
                   <div className="journey-stop">
                     <div className="stop-number">{i + 1}</div>
                     <div style={{ flex: 1 }}>
-                      <div className="stop-name">{stop.distillery.name}</div>
-                      <div className="stop-region">{stop.distillery.region}</div>
-                      <div className="stop-time">~{stop.distillery.avgVisit} visit</div>
-                      {stop.tour && (
+                      <div className="stop-name">{stopName(stop)}</div>
+                      {stop.kind === "distillery" ? (
                         <>
-                          <div className="stop-tour">🎟 {stop.tour.name}</div>
-                          <div className="stop-cost">£{stop.tour.price} per person</div>
+                          <div className="stop-region">{stop.distillery.region}</div>
+                          <div className="stop-time">~{stop.distillery.avgVisit} visit</div>
+                          {stop.tour && (
+                            <>
+                              <div className="stop-tour">🎟 {stop.tour.name}</div>
+                              <div className="stop-cost">£{stop.tour.price} per person</div>
+                            </>
+                          )}
                         </>
+                      ) : (
+                        <div className="stop-region">
+                          {stop.feature.icon} {stop.feature.category.replace("-", " ")}
+                        </div>
                       )}
                     </div>
                     <button
                       className="stop-remove"
-                      onClick={() => trip.removeStop(activeDayIndex, stop.distillery.slug)}
-                      aria-label={`Remove ${stop.distillery.name}`}
+                      onClick={() => trip.removeStop(activeDayIndex, stopId(stop))}
+                      aria-label={`Remove ${stopName(stop)}`}
                     >
                       &times;
                     </button>
@@ -291,14 +305,17 @@ export default function Workspace({
 
                   {showCostBreakdown && (
                     <div className="cost-breakdown">
-                      {activeDay.stops.map((s) => (
-                        <div key={s.distillery.slug} className="summary-row">
-                          <span>
-                            {s.distillery.name} {s.tour ? `- ${s.tour.name}` : "- No tour selected"}
-                          </span>
-                          <span>{s.tour ? `£${s.tour.price}` : "-"}</span>
-                        </div>
-                      ))}
+                      {activeDay.stops
+                        .filter((s) => s.kind === "distillery")
+                        .map((s) => (
+                          <div key={stopId(s)} className="summary-row">
+                            <span>
+                              {s.kind === "distillery" && s.distillery.name}{" "}
+                              {s.kind === "distillery" && s.tour ? `- ${s.tour.name}` : "- No tour selected"}
+                            </span>
+                            <span>{s.kind === "distillery" && s.tour ? `£${s.tour.price}` : "-"}</span>
+                          </div>
+                        ))}
                       <div className="summary-row" style={{ fontWeight: 600 }}>
                         <span>Tours total</span>
                         <span>£{toursTotal} pp</span>
@@ -359,19 +376,14 @@ export default function Workspace({
               distilleries={isLive ? distilleries : []}
               localFeatures={isLive ? visibleLocalFeatures : []}
               isLive={isLive}
-              routeStops={activeDay.stops.reduce<{ lat: number; lng: number }[]>((points, stop, i) => {
-                if (i === 0) return [{ lat: stop.distillery.lat, lng: stop.distillery.lng }];
-                const real = routeSegments[i - 1];
-                const prevCoord = { lat: activeDay.stops[i - 1].distillery.lat, lng: activeDay.stops[i - 1].distillery.lng };
-                const thisCoord = { lat: stop.distillery.lat, lng: stop.distillery.lng };
-                // Real road geometry when we have it; a plain straight
-                // line for just this segment if OSRM couldn't route it -
-                // degrades gracefully rather than breaking the whole route.
-                return [...points, ...(real ? real.points : [prevCoord, thisCoord])];
-              }, [])}
+              routeStops={routeCoords}
               onAddDistillery={(slug) => {
                 const d = distilleries.find((x) => x.slug === slug);
                 if (d) trip.addStop(activeDayIndex, d);
+              }}
+              onAddFeature={(id) => {
+                const f = localFeatures.find((x) => x.id === id);
+                if (f) trip.addFeatureStop(activeDayIndex, f);
               }}
             />
             {!isLive && (

@@ -10,6 +10,7 @@ interface MapCanvasProps {
   localFeatures: LocalFeature[];
   isLive: boolean;
   onAddDistillery?: (slug: string) => void;
+  onAddFeature?: (id: string) => void;
   /** Ordered lat/lng points along the current day's real route (from OSRM,
    *  or straight-line fallback per segment) - drawn as a route line with a
    *  white casing for visibility against busy map tiles. Styling was
@@ -49,7 +50,14 @@ const FEATURE_COLORS: Record<LocalFeature["category"], string> = {
  * container reading a data-add-distillery attribute, rather than a normal
  * onClick handler.
  */
-export default function MapCanvas({ distilleries, localFeatures, isLive, onAddDistillery, routeStops = [] }: MapCanvasProps) {
+export default function MapCanvas({
+  distilleries,
+  localFeatures,
+  isLive,
+  onAddDistillery,
+  onAddFeature,
+  routeStops = [],
+}: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Leaflet.Map | null>(null);
   const leafletRef = useRef<typeof Leaflet | null>(null);
@@ -60,6 +68,10 @@ export default function MapCanvas({ distilleries, localFeatures, isLive, onAddDi
   useEffect(() => {
     onAddRef.current = onAddDistillery;
   }, [onAddDistillery]);
+  const onAddFeatureRef = useRef(onAddFeature);
+  useEffect(() => {
+    onAddFeatureRef.current = onAddFeature;
+  }, [onAddFeature]);
 
   useEffect(() => {
     let cancelled = false;
@@ -122,10 +134,17 @@ export default function MapCanvas({ distilleries, localFeatures, isLive, onAddDi
       // Event delegation for the +Add button inside popup HTML - Leaflet
       // popups aren't React, so there's no onClick to hook into directly.
       map.getContainer().addEventListener("click", (e) => {
-        const target = (e.target as HTMLElement).closest("[data-add-distillery]");
-        if (target) {
-          const slug = target.getAttribute("data-add-distillery");
+        const target = e.target as HTMLElement;
+        const addDistillery = target.closest("[data-add-distillery]");
+        if (addDistillery) {
+          const slug = addDistillery.getAttribute("data-add-distillery");
           if (slug) onAddRef.current?.(slug);
+          return;
+        }
+        const addFeature = target.closest("[data-add-feature]");
+        if (addFeature) {
+          const id = addFeature.getAttribute("data-add-feature");
+          if (id) onAddFeatureRef.current?.(id);
         }
       });
 
@@ -209,12 +228,23 @@ export default function MapCanvas({ distilleries, localFeatures, isLive, onAddDi
         popupAnchor: [0, -13],
       });
       const marker = L.marker([f.lat, f.lng], { icon });
+      const categoryLabel = f.category.replace("-", " ");
+      // "More info" links to Google Maps for the exact spot rather than a
+      // DramStory page - these are real public places Google already has
+      // photos/reviews/directions for, unlike the distilleries where we
+      // want people to stay on-site with our own content.
+      const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${f.lat},${f.lng}`;
       marker.bindPopup(
         `<div class="popup-inner">
+          <div class="popup-tag">${categoryLabel}</div>
           <div class="popup-name">${f.name}</div>
           <div class="popup-detail">${f.description}</div>
+          <div class="popup-actions">
+            <a class="popup-btn popup-btn-secondary" href="${mapsUrl}" target="_blank" rel="noreferrer">More info &rarr;</a>
+            <button class="popup-btn popup-btn-primary" data-add-feature="${f.id}">+ Add to Trip</button>
+          </div>
         </div>`,
-        { minWidth: 200 }
+        { minWidth: 240 }
       );
       return marker;
     });
