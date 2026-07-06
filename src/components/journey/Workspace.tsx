@@ -10,6 +10,7 @@ import { useRouteSegments } from "@/lib/use-route-segments";
 import { useTrip } from "@/lib/trip-context";
 import { stopCoords, stopId, stopName, stopVisitMinutes, incrementVisitMinutes } from "@/lib/itinerary-stop";
 import Logo from "@/components/Logo";
+import Footer from "@/components/Footer";
 import MapCanvas from "./MapCanvas";
 
 interface WorkspaceProps {
@@ -173,6 +174,7 @@ export default function Workspace({
   }
 
   return (
+    <>
     <div className="workspace-root">
       <div className="map-page-header">
         <Link href="/" className="map-page-header-logo">
@@ -564,5 +566,7 @@ export default function Workspace({
         </div>
       </div>
     </div>
+    <Footer />
+    </>
   );
 }
