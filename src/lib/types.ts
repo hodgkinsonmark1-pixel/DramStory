@@ -44,6 +44,13 @@ export interface LocalFeature {
   length?: string;
   duration?: string;
   difficulty?: string;
+  /** Direct link to the venue's own site - food/drink venues only. */
+  websiteUrl?: string;
+  /** Official UK Food Hygiene Information Scheme (FHIS) status, sourced
+   *  from ratings.food.gov.uk (a free government API) - NOT a customer
+   *  review or star rating, purely the statutory hygiene inspection
+   *  result. Food/drink venues only. */
+  hygieneRating?: string;
 }
 
 export interface Distillery {

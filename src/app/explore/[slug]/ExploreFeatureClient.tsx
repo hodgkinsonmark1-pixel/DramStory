@@ -80,6 +80,9 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
             <div className="distillery-hero-sub">
               <span className="hero-badge">{CATEGORY_LABELS[f.category]}</span>
               {f.difficulty && <span className="hero-badge">{f.difficulty}</span>}
+              {f.hygieneRating && f.hygieneRating !== "Not Found" && (
+                <span className="hero-badge">Hygiene: {f.hygieneRating}</span>
+              )}
             </div>
           </div>
           <div className="distillery-hero-actions">
@@ -155,6 +158,16 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
                   <div className="info-label">Accessibility</div>
                   <div className="info-value">{f.accessibility}</div>
                 </div>
+                {f.websiteUrl && (
+                  <div className="info-item">
+                    <div className="info-label">Website</div>
+                    <div className="info-value">
+                      <a href={f.websiteUrl} target="_blank" rel="noreferrer">
+                        Visit site &rarr;
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

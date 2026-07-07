@@ -26,10 +26,15 @@ interface WorkspaceProps {
   timing: TripTiming;
 }
 
-// Matches MapCanvas's own ISLAY_CENTER - used as the search origin for the
-// Golf & Spa results list (Google Places-sourced, rendered as a plain
-// list rather than map pins - see GolfSpaResults.tsx for why).
-const ISLAY_CENTER = { lat: 55.75, lng: -6.2 };
+// Centroid of the loaded distilleries - used as the Golf & Spa search
+// origin. Computed from real data rather than hardcoded, so this keeps
+// working correctly once a second region's distilleries are added,
+// rather than silently searching around Islay for every region.
+function computeCentroid(points: { lat: number; lng: number }[]): { lat: number; lng: number } {
+  if (points.length === 0) return { lat: 55.75, lng: -6.2 }; // Islay fallback, only used if a region has zero distilleries loaded
+  const sum = points.reduce((acc, p) => ({ lat: acc.lat + p.lat, lng: acc.lng + p.lng }), { lat: 0, lng: 0 });
+  return { lat: sum.lat / points.length, lng: sum.lng / points.length };
+}
 
 function describeLocation(location: LocationAnswer): string {
   const islayLabel = REGIONS.find((r) => r.id === "islay")?.label ?? "Islay & Jura";
@@ -620,7 +625,7 @@ export default function Workspace({
                   )}
 
                   {expandedCategoryData.id === "local-attractions" && showGolfSpaResults && (
-                    <GolfSpaResults center={ISLAY_CENTER} />
+                    <GolfSpaResults center={computeCentroid(distilleries)} />
                   )}
                 </>
               ) : (

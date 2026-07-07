@@ -56,6 +56,8 @@ export interface AirtableLocalFeatureFields {
   Length?: string;
   Duration?: string;
   Difficulty?: string;
+  Website?: string;
+  "Food Hygiene Rating"?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -140,6 +142,8 @@ export function mapToLocalFeature(id: string, fields: AirtableLocalFeatureFields
     length: fields.Length,
     duration: fields.Duration,
     difficulty: fields.Difficulty,
+    websiteUrl: fields.Website,
+    hygieneRating: fields["Food Hygiene Rating"],
   };
 }
 
