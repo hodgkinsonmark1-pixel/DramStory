@@ -37,7 +37,7 @@ export default function InterestsStep({ onNext, onBack }: InterestsStepProps) {
     <div className="journey-screen">
       <BackgroundImage />
       <div className="hero-overlay" />
-      <SiteHeader logoSize={40} />
+      <SiteHeader transparent logoSize={48} />
 
       <div className="journey-header">
         <div className="journey-eyebrow">Building your journey — step 4 of 4</div>

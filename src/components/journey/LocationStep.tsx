@@ -29,7 +29,7 @@ export default function LocationStep({ distilleries, onNext, onBack }: LocationS
     <div className="journey-screen">
       <BackgroundImage />
       <div className="hero-overlay" />
-      <SiteHeader logoSize={40} />
+      <SiteHeader transparent logoSize={48} />
 
       <div className="journey-header">
         <div className="journey-eyebrow">Building your journey — step 2 of 4</div>

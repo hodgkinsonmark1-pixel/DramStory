@@ -30,7 +30,7 @@ export default function TripLengthStep({ onNext, onBack }: TripLengthStepProps) 
     <div className="journey-screen">
       <BackgroundImage />
       <div className="hero-overlay" />
-      <SiteHeader logoSize={40} />
+      <SiteHeader transparent logoSize={48} />
 
       <div className="journey-header">
         <div className="journey-eyebrow">Building your journey &mdash; step 3 of 4</div>
