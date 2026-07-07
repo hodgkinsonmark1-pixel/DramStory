@@ -37,7 +37,7 @@ const OVERPASS_MIRRORS = [
 // results against the expected region rather than trusting a filter
 // applied silently server-side (see the post-fetch check below).
 const ISLAY_BBOX = "55.58,-6.65,55.92,-5.98";
-const JURA_BBOX = "55.78,-6.05,56.05,-5.60";
+const JURA_BBOX = "55.78,-6.05,56.05,-5.75";
 
 const QUERY = `
 [out:json][timeout:25];
