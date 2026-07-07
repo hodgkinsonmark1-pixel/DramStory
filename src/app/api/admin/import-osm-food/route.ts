@@ -25,13 +25,18 @@ const OVERPASS_MIRRORS = [
   "https://overpass.openstreetmap.ru/api/interpreter",
 ];
 
-// Generous bounding box covering both Islay and Jura (south, west, north, east).
-const ISLAY_JURA_BBOX = "55.45,-6.65,56.15,-5.55";
-
+// Query OSM's own island boundary areas for Islay and Jura specifically,
+// rather than a bounding box - a rectangle over this stretch of coast
+// unavoidably captures Gigha and mainland Argyll (Kintyre, Knapdale)
+// since they sit geographically between/beside the two islands. Using
+// the real island polygons excludes those correctly.
 const QUERY = `
 [out:json][timeout:25];
+area["name"="Islay"]["boundary"="administrative"]->.islay;
+area["name"="Jura"]["boundary"="administrative"]->.jura;
 (
-  node["amenity"~"^(pub|cafe|restaurant|bar|fast_food)$"](${ISLAY_JURA_BBOX});
+  node["amenity"~"^(pub|cafe|restaurant|bar|fast_food)$"](area.islay);
+  node["amenity"~"^(pub|cafe|restaurant|bar|fast_food)$"](area.jura);
 );
 out body;
 `.trim();
@@ -110,6 +115,10 @@ export async function GET() {
 
   const places = data.elements
     .filter((el) => el.tags?.name && el.tags?.amenity)
+    // Exclude anything an OSM contributor has themselves flagged as
+    // uncertain (e.g. "North Beachmore (closed?)") - better to omit than
+    // to import a possibly-defunct venue as if it were verified.
+    .filter((el) => !/\(closed\??\)|\?\s*$/i.test(el.tags!.name))
     .map((el) => {
       const tags = el.tags!;
       return {
@@ -126,12 +135,16 @@ export async function GET() {
         openingHours: tags.opening_hours, // reference only - deliberately not stored in Airtable long-term
       };
     })
-    // De-dupe on name+rounded-coords in case a venue has multiple overlapping
-    // tags (e.g. a pub that's also tagged as a restaurant node nearby).
+    // De-dupe on name+rounded-coords, case-insensitively - a venue can
+    // appear twice with only a capitalization difference ("The Putechan"
+    // vs "the Putechan"), which a case-sensitive match would miss.
     .filter(
       (place, index, all) =>
         all.findIndex(
-          (p) => p.name === place.name && Math.abs(p.lat - place.lat) < 0.0005 && Math.abs(p.lng - place.lng) < 0.0005
+          (p) =>
+            p.name.toLowerCase() === place.name.toLowerCase() &&
+            Math.abs(p.lat - place.lat) < 0.0005 &&
+            Math.abs(p.lng - place.lng) < 0.0005
         ) === index
     );
 
