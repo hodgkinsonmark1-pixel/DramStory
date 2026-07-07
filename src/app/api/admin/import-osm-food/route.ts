@@ -25,21 +25,42 @@ const OVERPASS_MIRRORS = [
   "https://overpass.openstreetmap.ru/api/interpreter",
 ];
 
-// Query OSM's own island boundary areas for Islay and Jura specifically,
-// rather than a bounding box - a rectangle over this stretch of coast
-// unavoidably captures Gigha and mainland Argyll (Kintyre, Knapdale)
-// since they sit geographically between/beside the two islands. Using
-// the real island polygons excludes those correctly.
+// Two explicit bounding boxes rather than one rectangle or a named-area
+// lookup. A single rectangle can't cleanly separate Islay+Jura from
+// Gigha (which sits at overlapping latitudes) and mainland Argyll
+// (which sits at overlapping longitudes) - two boxes shaped to each
+// island's actual footprint avoids that. This replaces an earlier
+// attempt using area["name"="Islay"] which silently matched nothing
+// (Islay isn't tagged the way that assumed) - Overpass treated the
+// empty area as no restriction at all and returned results worldwide,
+// starting with a restaurant in Switzerland. Lesson: always sanity-check
+// results against the expected region rather than trusting a filter
+// applied silently server-side (see the post-fetch check below).
+const ISLAY_BBOX = "55.58,-6.65,55.92,-5.98";
+const JURA_BBOX = "55.78,-6.05,56.05,-5.60";
+
 const QUERY = `
 [out:json][timeout:25];
-area["name"="Islay"]["boundary"="administrative"]->.islay;
-area["name"="Jura"]["boundary"="administrative"]->.jura;
 (
-  node["amenity"~"^(pub|cafe|restaurant|bar|fast_food)$"](area.islay);
-  node["amenity"~"^(pub|cafe|restaurant|bar|fast_food)$"](area.jura);
+  node["amenity"~"^(pub|cafe|restaurant|bar|fast_food)$"](${ISLAY_BBOX});
+  node["amenity"~"^(pub|cafe|restaurant|bar|fast_food)$"](${JURA_BBOX});
 );
 out body;
 `.trim();
+
+// Sanity bounds slightly more generous than the query boxes above - if
+// anything in the response falls outside this, something has gone wrong
+// upstream (as it did once already) and it should be dropped and
+// reported, not silently included.
+const SANITY_BOUNDS = { minLat: 55.4, maxLat: 56.2, minLng: -6.8, maxLng: -5.4 };
+function isWithinSanityBounds(lat: number, lng: number): boolean {
+  return (
+    lat >= SANITY_BOUNDS.minLat &&
+    lat <= SANITY_BOUNDS.maxLat &&
+    lng >= SANITY_BOUNDS.minLng &&
+    lng <= SANITY_BOUNDS.maxLng
+  );
+}
 
 interface OverpassElement {
   id: number;
@@ -113,8 +134,21 @@ export async function GET() {
     );
   }
 
-  const places = data.elements
-    .filter((el) => el.tags?.name && el.tags?.amenity)
+  const rawElements = data.elements.filter((el) => el.tags?.name && el.tags?.amenity);
+  const outOfBounds = rawElements.filter((el) => !isWithinSanityBounds(el.lat, el.lon));
+  if (outOfBounds.length > 0) {
+    console.error(
+      `Overpass returned ${outOfBounds.length} result(s) outside the expected Islay/Jura region - ` +
+        `something is wrong with the query. Examples: ` +
+        outOfBounds
+          .slice(0, 3)
+          .map((el) => `${el.tags?.name} (${el.lat}, ${el.lon})`)
+          .join(", ")
+    );
+  }
+
+  const places = rawElements
+    .filter((el) => isWithinSanityBounds(el.lat, el.lon))
     // Exclude anything an OSM contributor has themselves flagged as
     // uncertain (e.g. "North Beachmore (closed?)") - better to omit than
     // to import a possibly-defunct venue as if it were verified.
@@ -152,6 +186,7 @@ export async function GET() {
     source: "OpenStreetMap (ODbL) via Overpass API",
     attribution: "© OpenStreetMap contributors",
     count: places.length,
+    droppedOutOfBounds: outOfBounds.length,
     places,
   });
 }
