@@ -1,5 +1,5 @@
 import type { AirtableAttachment } from "@/lib/airtable";
-import type { Distillery, LocalFeature, NearbyFeature, Tour } from "@/lib/types";
+import type { Distillery, LocalEvent, LocalFeature, NearbyFeature, Tour } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Raw shapes as returned by the Airtable REST API for each table.
@@ -165,4 +165,54 @@ export function deriveNextStops(target: Distillery, all: Distillery[]): string[]
     .sort((a, b) => a.dist - b.dist)
     .slice(0, 2)
     .map((d) => d.slug);
+}
+
+export interface AirtableEventFields {
+  Name?: string;
+  Date?: string;
+  "End Date"?: string;
+  Time?: string;
+  Location?: string;
+  Description?: string;
+  Link?: string;
+  Category?: string;
+  Price?: string;
+  "Source URL"?: string;
+  Distilleries?: { id: string; name: string }[];
+}
+
+const EVENT_CATEGORY_MAP: Record<string, LocalEvent["category"]> = {
+  "Distillery Event": "Distillery Event",
+  Festival: "Festival",
+  "Seasonal Release": "Seasonal Release",
+  Other: "Other",
+};
+
+/** Maps a raw Events record, resolving linked distillery record IDs to
+ *  slugs against the already-fetched distilleries list (Airtable link
+ *  fields return {id, name} pairs, not slugs, so this cross-reference is
+ *  needed to link an event to a map pin). */
+export function mapToLocalEvent(
+  id: string,
+  fields: AirtableEventFields,
+  allDistilleries: Distillery[]
+): LocalEvent | null {
+  if (!fields.Name || !fields.Date) return null;
+  const linkedIds = (fields.Distilleries ?? []).map((d) => d.id);
+  const distillerySlugs = allDistilleries.filter((d) => linkedIds.includes(d.id)).map((d) => d.slug);
+  return {
+    id,
+    name: fields.Name,
+    date: fields.Date,
+    endDate: fields["End Date"],
+    time: fields.Time,
+    location: fields.Location ?? "",
+    description: fields.Description ?? "",
+    link: fields.Link,
+    category: EVENT_CATEGORY_MAP[fields.Category ?? ""] ?? "Other",
+    price: fields.Price,
+    sourceUrl: fields["Source URL"],
+    distillerySlugs,
+    source: "airtable",
+  };
 }

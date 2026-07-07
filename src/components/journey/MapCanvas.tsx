@@ -13,6 +13,13 @@ interface MapCanvasProps {
   isLive: boolean;
   onAddDistillery?: (slug: string) => void;
   onAddFeature?: (id: string) => void;
+  /** Distillery slugs to render with a pulsing ring - the map's visual
+   *  indicator for "there's a Local Event on here during the selected
+   *  date range", rather than a shaded zone (considered and rejected -
+   *  most real events have a specific venue, not a vague area, and a
+   *  shaded-zone treatment would be a new visual language inconsistent
+   *  with the rest of the pin-based map). */
+  highlightedDistillerySlugs?: string[];
   /** Ordered lat/lng points along the current day's real route (from OSRM,
    *  or straight-line fallback per segment) - drawn as a route line with a
    *  white casing for visibility against busy map tiles. Styling was
@@ -60,6 +67,7 @@ export default function MapCanvas({
   isLive,
   onAddDistillery,
   onAddFeature,
+  highlightedDistillerySlugs = [],
   routeStops = [],
 }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -72,6 +80,7 @@ export default function MapCanvas({
   // per-type clusters.
   const clusterGroupRef = useRef<Leaflet.MarkerClusterGroup | null>(null);
   const featureMarkersRef = useRef<Leaflet.Marker[]>([]);
+  const highlightMarkersRef = useRef<Leaflet.Marker[]>([]);
   const [mapReady, setMapReady] = useState(false);
   const onAddRef = useRef(onAddDistillery);
   useEffect(() => {
@@ -271,6 +280,39 @@ export default function MapCanvas({
 
     featureMarkersRef.current = markers;
   }, [mapReady, localFeatures]);
+
+  // Pulsing ring behind any distillery hosting a Local Event within the
+  // currently-selected date range - redrawn whenever that set changes
+  // (a date/month picker edit, or toggling Local Events on/off).
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !leafletRef.current) return;
+    const L = leafletRef.current;
+    const map = mapRef.current;
+
+    for (const m of highlightMarkersRef.current) {
+      m.remove();
+    }
+    highlightMarkersRef.current = [];
+
+    if (highlightedDistillerySlugs.length === 0) return;
+
+    const newHighlights = highlightedDistillerySlugs
+      .map((slug) => distilleries.find((d) => d.slug === slug))
+      .filter((d): d is NonNullable<typeof d> => !!d && !!d.lat && !!d.lng)
+      .map((d) => {
+        const icon = L.divIcon({
+          className: "distillery-pulse-icon",
+          html: `<div class="distillery-pulse-ring"></div>`,
+          iconSize: [46, 46],
+          iconAnchor: [23, 23],
+        });
+        // No popup/interactivity on the ring itself - it's a pure visual
+        // indicator sitting behind the real, clickable distillery marker.
+        return L.marker([d.lat, d.lng], { icon, interactive: false, zIndexOffset: -1000 }).addTo(map);
+      });
+
+    highlightMarkersRef.current = newHighlights;
+  }, [mapReady, highlightedDistillerySlugs, distilleries]);
 
   return <div id="map" ref={containerRef} />;
 }

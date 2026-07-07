@@ -2,7 +2,7 @@
 
 import { Suspense, use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Distillery, InterestCategoryId, LocalFeature, LocationAnswer, TripLength, TripTiming } from "@/lib/types";
+import type { Distillery, InterestCategoryId, LocalEvent, LocalFeature, LocationAnswer, TripLength, TripTiming } from "@/lib/types";
 import { useTrip } from "@/lib/trip-context";
 import LocationStep from "./LocationStep";
 import TripLengthStep from "./TripLengthStep";
@@ -17,6 +17,9 @@ interface JourneyFlowProps {
    *  no longer blocks Q2/Step3/Q4 on this fetch resolving. Unwrapped via
    *  use() only once we reach the workspace, inside a Suspense boundary. */
   localFeaturesPromise: Promise<LocalFeature[]>;
+  /** Same deferred-fetch treatment as localFeaturesPromise, for the same
+   *  reason - Local Events isn't needed before the workspace either. */
+  localEventsPromise: Promise<LocalEvent[]>;
   /** True only when arriving via "Back to your journey" (see
    *  DistilleryPageClient's ?resume=1 link) - an explicit signal that
    *  resuming the saved trip is wanted. A fresh homepage Q1 click never
@@ -30,9 +33,10 @@ interface JourneyFlowProps {
 type Step = "location" | "tripLength" | "interests" | "workspace";
 
 /** Tiny wrapper so use() (which suspends) is isolated to just this
- *  component - only the workspace step ever waits on Local Features. */
+ *  component - only the workspace step ever waits on Local Features/Events. */
 function WorkspaceWithFeatures(props: {
   localFeaturesPromise: Promise<LocalFeature[]>;
+  localEventsPromise: Promise<LocalEvent[]>;
   distilleries: Distillery[];
   location: LocationAnswer;
   tripLength: TripLength;
@@ -40,10 +44,12 @@ function WorkspaceWithFeatures(props: {
   timing: TripTiming;
 }) {
   const localFeatures = use(props.localFeaturesPromise);
+  const localEvents = use(props.localEventsPromise);
   return (
     <Workspace
       distilleries={props.distilleries}
       localFeatures={localFeatures}
+      localEvents={localEvents}
       location={props.location}
       tripLength={props.tripLength}
       initialInterests={props.initialInterests}
@@ -58,7 +64,7 @@ function WorkspaceWithFeatures(props: {
  * -> workspace (map + itinerary). `timing` arrives here as the ?mode=
  * query param from the homepage.
  */
-export default function JourneyFlow({ timing, distilleries, localFeaturesPromise, resume }: JourneyFlowProps) {
+export default function JourneyFlow({ timing, distilleries, localFeaturesPromise, localEventsPromise, resume }: JourneyFlowProps) {
   const router = useRouter();
   const trip = useTrip();
   const [step, setStep] = useState<Step>("location");
@@ -132,6 +138,7 @@ export default function JourneyFlow({ timing, distilleries, localFeaturesPromise
     <Suspense fallback={<div className="workspace-root" />}>
       <WorkspaceWithFeatures
         localFeaturesPromise={localFeaturesPromise}
+        localEventsPromise={localEventsPromise}
         distilleries={distilleries}
         location={location!}
         tripLength={tripLength!}

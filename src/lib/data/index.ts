@@ -5,8 +5,10 @@ import {
   deriveNextStops,
   mapLocalFeature,
   mapTour,
+  mapToLocalEvent,
   mapToLocalFeature,
   type AirtableDistilleryFields,
+  type AirtableEventFields,
   type AirtableLocalFeatureFields,
   type AirtableTourFields,
 } from "./airtable-mappers";
@@ -130,8 +132,13 @@ export async function getDistilleryBySlug(slug: string): Promise<Distillery | un
 }
 
 export async function getLocalEvents(): Promise<LocalEvent[]> {
-  // TODO(Phase 2): Airtable "Events" table.
-  return [];
+  const [records, distilleries] = await Promise.all([
+    airtableFetchAll<AirtableEventFields>("Events"),
+    getDistilleries(),
+  ]);
+  return records
+    .map((r) => mapToLocalEvent(r.id, r.fields, distilleries))
+    .filter((e): e is LocalEvent => e !== null);
 }
 
 export async function getNearbyPlaces(

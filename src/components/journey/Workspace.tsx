@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { Distillery, InterestCategoryId, LocalFeature, LocationAnswer, TripLength, TripTiming } from "@/lib/types";
+import type { Distillery, InterestCategoryId, LocalEvent, LocalFeature, LocationAnswer, TripLength, TripTiming } from "@/lib/types";
 import { INTEREST_CATEGORIES, REGIONS, TRIP_LENGTHS } from "@/lib/journey-options";
 import { CLASSIC_JOURNEYS, getJourneyDistilleries, routeStartingPrice } from "@/lib/journeys-data";
 import { estimatedDriveMinutes, formatDuration } from "@/lib/drive-time";
@@ -16,6 +16,7 @@ import MapCanvas from "./MapCanvas";
 interface WorkspaceProps {
   distilleries: Distillery[];
   localFeatures: LocalFeature[];
+  localEvents: LocalEvent[];
   location: LocationAnswer;
   tripLength: TripLength;
   initialInterests: InterestCategoryId[];
@@ -50,9 +51,22 @@ function formatDisplayDate(isoDate: string): string {
   return new Date(isoDate).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 }
 
+/** Last day of the given "YYYY-MM" month, as an ISO date string. */
+function lastDayOfMonth(yearMonth: string): string {
+  const [year, month] = yearMonth.split("-").map(Number);
+  const d = new Date(year, month, 0); // day 0 of next month = last day of this month
+  return d.toISOString().slice(0, 10);
+}
+
+/** True if [aStart, aEnd] and [bStart, bEnd] overlap at all. */
+function rangesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
+  return aStart <= bEnd && bStart <= aEnd;
+}
+
 export default function Workspace({
   distilleries,
   localFeatures,
+  localEvents,
   location,
   tripLength,
   initialInterests,
@@ -207,6 +221,22 @@ export default function Workspace({
         )
       : []),
   ];
+
+  // Local Events: resolve the currently-selected date range (varies by
+  // timing - "today" is fixed to today, "planning"/"inspiration" share
+  // the same range/month picker), find events overlapping it, and
+  // collect which distilleries should get the pulsing map highlight.
+  const selectedRange: [string, string] =
+    timing === "today"
+      ? [todayIso, todayIso]
+      : eventDateMode === "month"
+        ? [`${eventMonth}-01`, lastDayOfMonth(eventMonth)]
+        : [eventStartDate, eventEndDate];
+  const localEventsActive = activeCategories.has("local-events");
+  const activeEvents = localEventsActive
+    ? localEvents.filter((e) => rangesOverlap(e.date, e.endDate ?? e.date, selectedRange[0], selectedRange[1]))
+    : [];
+  const highlightedDistillerySlugs = Array.from(new Set(activeEvents.flatMap((e) => e.distillerySlugs)));
 
   if (!trip.ready || !activeDay) {
     return <div className="workspace-root" />;
@@ -452,62 +482,88 @@ export default function Workspace({
                   })}
 
                   {expandedCategoryData.id === "local-events" && (
-                    <div className="event-date-controls">
-                      {timing === "today" && (
-                        <span className="event-date-today">📅 Showing events for {formatDisplayDate(todayIso)}</span>
-                      )}
+                    <>
+                      <div className="event-date-controls">
+                        {timing === "today" && (
+                          <span className="event-date-today">📅 Showing events for {formatDisplayDate(todayIso)}</span>
+                        )}
 
-                      {(timing === "planning" || timing === "inspiration") && (
-                        <>
-                          <div className="event-mode-toggle">
-                            <button
-                              className={"event-mode-btn" + (eventDateMode === "range" ? " active" : "")}
-                              onClick={() => setEventDateMode("range")}
-                            >
-                              Date range
-                            </button>
-                            <button
-                              className={"event-mode-btn" + (eventDateMode === "month" ? " active" : "")}
-                              onClick={() => setEventDateMode("month")}
-                            >
-                              Month
-                            </button>
-                          </div>
-                          {eventDateMode === "range" ? (
-                            <>
+                        {(timing === "planning" || timing === "inspiration") && (
+                          <>
+                            <div className="event-mode-toggle">
+                              <button
+                                className={"event-mode-btn" + (eventDateMode === "range" ? " active" : "")}
+                                onClick={() => setEventDateMode("range")}
+                              >
+                                Date range
+                              </button>
+                              <button
+                                className={"event-mode-btn" + (eventDateMode === "month" ? " active" : "")}
+                                onClick={() => setEventDateMode("month")}
+                              >
+                                Month
+                              </button>
+                            </div>
+                            {eventDateMode === "range" ? (
+                              <>
+                                <input
+                                  type="date"
+                                  className="event-date-input"
+                                  value={eventStartDate}
+                                  onChange={(e) => {
+                                    const newStart = e.target.value;
+                                    setEventStartDate(newStart);
+                                    if (daysBetween(newStart, eventEndDate) > 14 || daysBetween(newStart, eventEndDate) < 0) {
+                                      setEventEndDate(addDays(newStart, 7));
+                                    }
+                                  }}
+                                />
+                                <span className="event-date-sep">to</span>
+                                <input
+                                  type="date"
+                                  className="event-date-input"
+                                  value={eventEndDate}
+                                  min={eventStartDate}
+                                  max={addDays(eventStartDate, 14)}
+                                  onChange={(e) => setEventEndDate(e.target.value)}
+                                />
+                              </>
+                            ) : (
                               <input
-                                type="date"
+                                type="month"
                                 className="event-date-input"
-                                value={eventStartDate}
-                                onChange={(e) => {
-                                  const newStart = e.target.value;
-                                  setEventStartDate(newStart);
-                                  if (daysBetween(newStart, eventEndDate) > 14 || daysBetween(newStart, eventEndDate) < 0) {
-                                    setEventEndDate(addDays(newStart, 7));
-                                  }
-                                }}
+                                value={eventMonth}
+                                onChange={(e) => setEventMonth(e.target.value)}
                               />
-                              <span className="event-date-sep">to</span>
-                              <input
-                                type="date"
-                                className="event-date-input"
-                                value={eventEndDate}
-                                min={eventStartDate}
-                                max={addDays(eventStartDate, 14)}
-                                onChange={(e) => setEventEndDate(e.target.value)}
-                              />
-                            </>
-                          ) : (
-                            <input
-                              type="month"
-                              className="event-date-input"
-                              value={eventMonth}
-                              onChange={(e) => setEventMonth(e.target.value)}
-                            />
-                          )}
-                        </>
-                      )}
-                    </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+
+                      <div className="event-results-list">
+                        {activeEvents.length === 0 ? (
+                          <span className="event-results-empty">No events found in this date range</span>
+                        ) : (
+                          activeEvents.map((e) => (
+                            <div className="event-result-card" key={e.id}>
+                              <span className="event-result-name">{e.name}</span>
+                              <span className="event-result-meta">
+                                {formatDisplayDate(e.date)}
+                                {e.endDate && e.endDate !== e.date ? ` \u2013 ${formatDisplayDate(e.endDate)}` : ""}
+                                {" \u00b7 "}
+                                {e.location}
+                                {e.price ? ` \u00b7 ${e.price}` : ""}
+                              </span>
+                              {e.link && (
+                                <a href={e.link} target="_blank" rel="noreferrer" className="event-result-link">
+                                  Book &rarr;
+                                </a>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </>
                   )}
                 </>
               ) : (
@@ -531,6 +587,7 @@ export default function Workspace({
             <MapCanvas
               distilleries={isLive ? distilleries : []}
               localFeatures={isLive ? visibleLocalFeatures : []}
+              highlightedDistillerySlugs={isLive ? highlightedDistillerySlugs : []}
               isLive={isLive}
               routeStops={routeCoords.reduce<{ lat: number; lng: number }[]>((points, coord, i) => {
                 if (i === 0) return [coord];

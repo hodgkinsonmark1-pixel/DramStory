@@ -419,4 +419,72 @@ select.location-inline-input {
   color: white;
 }
 
+/* Matched events list, shown below the Local Events date controls -
+   flex-basis:100% forces it onto its own line within the toolbar row's
+   flex-wrap layout, rather than squeezing alongside the date inputs. */
+.event-results-list {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+.event-results-empty {
+  font-size: 12px;
+  color: var(--slate);
+  font-style: italic;
+}
+.event-result-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--off-white);
+  border-radius: var(--radius-sm);
+  flex-wrap: wrap;
+}
+.event-result-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dark);
+}
+.event-result-meta {
+  font-size: 12px;
+  color: var(--slate);
+}
+.event-result-link {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--green-deep);
+  text-decoration: none;
+  margin-left: auto;
+}
+.event-result-link:hover {
+  text-decoration: underline;
+}
+
+/* Pulsing ring for distilleries hosting a Local Event during the
+   selected date range - sits behind the normal distillery marker. */
+.distillery-pulse-ring {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(212, 165, 116, 0.35);
+  animation: distillery-pulse 1.8s ease-out infinite;
+}
+@keyframes distillery-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  70% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
 

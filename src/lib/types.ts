@@ -78,11 +78,22 @@ export interface LocalEvent {
   id: string;
   name: string;
   date: string;
+  /** For multi-day events - undefined means single-day. */
+  endDate?: string;
   time?: string;
   location: string;
   description: string;
   link?: string;
   category: "Distillery Event" | "Festival" | "Seasonal Release" | "Other";
+  price?: string;
+  /** The listing site this was sourced from - shown nowhere on-site yet,
+   *  kept for the same audit-trail transparency as Local Features'
+   *  Location Source field. */
+  sourceUrl?: string;
+  /** Distilleries hosting/associated with this event, if any - drives the
+   *  pulsing map highlight. Empty for island-wide events with no single
+   *  venue (e.g. the Book Festival). */
+  distillerySlugs: string[];
   source: DataSource;
 }
 
