@@ -103,7 +103,7 @@ export interface LocalEvent {
 export interface PlaceListing {
   id: string;
   name: string;
-  category: "pub" | "cafe" | "restaurant" | "accommodation";
+  category: "pub" | "cafe" | "restaurant" | "accommodation" | "golf" | "spa";
   lat: number;
   lng: number;
   rating?: number;
@@ -114,6 +114,10 @@ export interface PlaceListing {
   pricePerNight?: number;
   affiliateUrl?: string;
   websiteUrl?: string;
+  /** Google's own listing link - the required/permitted way to send users
+   *  to view this place, since Places content can't be shown on/near a
+   *  non-Google map (see components rendering PlaceListing as a list). */
+  googleMapsUrl?: string;
   source: DataSource;
 }
 

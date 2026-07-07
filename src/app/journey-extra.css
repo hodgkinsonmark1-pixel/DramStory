@@ -678,4 +678,14 @@ select.location-inline-input {
   line-height: 1.55;
 }
 
+/* Required Google attribution when Places API content is shown without a
+   map (Golf & Spa results list) - kept small/muted but always legible,
+   per Google's attribution guidelines. */
+.places-attribution {
+  font-size: 11px;
+  color: var(--slate);
+  margin-top: 4px;
+  flex-basis: 100%;
+}
+
 

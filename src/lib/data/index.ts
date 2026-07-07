@@ -142,7 +142,7 @@ export async function getLocalEvents(): Promise<LocalEvent[]> {
 }
 
 export async function getNearbyPlaces(
-  category: "pub" | "cafe" | "restaurant",
+  category: "pub" | "cafe" | "restaurant" | "golf" | "spa",
   center: { lat: number; lng: number },
   radiusMeters = 5000
 ): Promise<PlaceListing[]> {

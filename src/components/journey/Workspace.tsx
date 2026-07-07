@@ -14,6 +14,7 @@ import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MapCanvas from "./MapCanvas";
 import TripEssentials from "./TripEssentials";
+import GolfSpaResults from "./GolfSpaResults";
 
 interface WorkspaceProps {
   distilleries: Distillery[];
@@ -24,6 +25,11 @@ interface WorkspaceProps {
   initialInterests: InterestCategoryId[];
   timing: TripTiming;
 }
+
+// Matches MapCanvas's own ISLAY_CENTER - used as the search origin for the
+// Golf & Spa results list (Google Places-sourced, rendered as a plain
+// list rather than map pins - see GolfSpaResults.tsx for why).
+const ISLAY_CENTER = { lat: 55.75, lng: -6.2 };
 
 function describeLocation(location: LocationAnswer): string {
   const islayLabel = REGIONS.find((r) => r.id === "islay")?.label ?? "Islay & Jura";
@@ -201,12 +207,22 @@ export default function Workspace({
     .map((key) => ATTRACTION_SUBCAT_TO_FEATURE_CATEGORY[key.split(":")[1]])
     .filter((c): c is LocalFeature["category"] => c !== undefined);
   // Golf & Spa selected on its own (no other attraction subcat active)
-  // should show zero pins, not fall back to "show everything" - only
-  // meaningful when Google Places data exists to populate it.
+  // should show zero Local Feature pins, not fall back to "show
+  // everything" - Golf & Spa itself now renders as a separate results
+  // list (GolfSpaResults), never as pins, so this only concerns the
+  // Airtable-backed Historic Sites/Local Gems pins on the map.
   const golfSpaOnlySelected =
     activeSubcats.has("local-attractions:Golf & Spa") &&
     !activeSubcats.has("local-attractions:Historic Sites") &&
     !activeSubcats.has("local-attractions:Local Gems");
+  // Show the Golf & Spa results list whenever Local Attractions is
+  // expanded and either "Everything" (no subcat chip active) or the
+  // Golf & Spa chip specifically is selected.
+  const attractionSubcatActive = Array.from(activeSubcats).some((key) =>
+    key.startsWith("local-attractions:")
+  );
+  const showGolfSpaResults =
+    activeSubcats.has("local-attractions:Golf & Spa") || !attractionSubcatActive;
 
   const visibleLocalFeatures = [
     ...(naturalFeaturesActive
@@ -578,6 +594,10 @@ export default function Workspace({
                         )}
                       </div>
                     </>
+                  )}
+
+                  {expandedCategoryData.id === "local-attractions" && showGolfSpaResults && (
+                    <GolfSpaResults center={ISLAY_CENTER} />
                   )}
                 </>
               ) : (

@@ -28,6 +28,7 @@ const FIELD_MASK = [
   "places.priceLevel",
   "places.photos",
   "places.websiteUri",
+  "places.googleMapsUri",
 ].join(",");
 
 interface GooglePlace {
@@ -39,6 +40,7 @@ interface GooglePlace {
   priceLevel?: string; // e.g. "PRICE_LEVEL_MODERATE"
   photos?: { name: string }[];
   websiteUri?: string;
+  googleMapsUri?: string;
 }
 
 interface SearchNearbyResponse {
@@ -56,12 +58,16 @@ const PRICE_LEVEL_MAP: Record<string, number> = {
 };
 
 // Google's Table A place types don't include "pub" as its own type —
-// pubs are generally categorized as "bar" in Google's data.
+// pubs are generally categorized as "bar" in Google's data. golf_course
+// and spa are verified Table A types (Sports / Health and Wellness
+// respectively) as of the current Places API (New) docs.
 const CATEGORY_TO_GOOGLE_TYPES = {
   pub: ["bar"],
   cafe: ["cafe"],
   restaurant: ["restaurant"],
   accommodation: ["lodging"],
+  golf: ["golf_course"],
+  spa: ["spa"],
 } as const;
 
 async function searchNearby(
@@ -121,12 +127,18 @@ function mapPlace(place: GooglePlace, category: PlaceListing["category"]): Place
       ? `/api/places-photo?name=${encodeURIComponent(place.photos[0].name)}`
       : undefined,
     websiteUrl: place.websiteUri,
+    // Google's own listing link (requested via places.googleMapsUri in
+    // the field mask) - used as the "View on Google Maps" link wherever
+    // these results render as a plain list, per Google's Places API
+    // policy: Places content must not be shown on/near a non-Google map,
+    // but linking out to Google's own source link is explicitly fine.
+    googleMapsUrl: place.googleMapsUri,
     source: "google",
   };
 }
 
 export async function searchNearbyByCategory(
-  category: "pub" | "cafe" | "restaurant",
+  category: "pub" | "cafe" | "restaurant" | "golf" | "spa",
   center: { lat: number; lng: number },
   radiusMeters: number
 ): Promise<PlaceListing[]> {
