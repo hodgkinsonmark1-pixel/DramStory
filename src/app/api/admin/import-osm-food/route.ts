@@ -70,8 +70,15 @@ async function fetchFromMirror(url: string): Promise<OverpassResponse> {
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: QUERY,
+      headers: {
+        // Overpass instances expect the query as a form-encoded "data"
+        // field, not a raw text/plain body - some mirrors (confirmed:
+        // overpass-api.de) return 406 Not Acceptable otherwise. A real
+        // User-Agent is also expected per Overpass's usage policy.
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "DramStory/1.0 (dramstory.com; one-off OSM data import)",
+      },
+      body: `data=${encodeURIComponent(QUERY)}`,
       signal: controller.signal,
     });
     if (!res.ok) throw new Error(`Overpass mirror ${url} returned ${res.status}`);
