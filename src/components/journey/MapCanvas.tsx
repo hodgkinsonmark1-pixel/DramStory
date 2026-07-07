@@ -44,6 +44,9 @@ const FEATURE_COLORS: Record<LocalFeature["category"], string> = {
   "local-gem": "#8B5FBF",
   "historic-site": "#8B6F47",
   "attraction-gem": "#B8557A",
+  pub: "#A64A4A",
+  cafe: "#B87D4B",
+  restaurant: "#4A6A8A",
 };
 
 /**

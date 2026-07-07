@@ -97,9 +97,10 @@ export function mapLocalFeature(fields: AirtableLocalFeatureFields): NearbyFeatu
   };
 }
 
-// Only these 4 Airtable Category values are Natural Features meant for the
-// workspace map's overlay - "Historic Site" etc. belong to Local
-// Attractions, a separate pass not built yet, so they're excluded here.
+// Airtable Category values mapped to map-plottable LocalFeature categories.
+// Pub/Cafe/Restaurant are OSM-sourced (ODbL, freely reusable - unlike
+// Google/TripAdvisor/Yelp, see chat history) real venues, same real-pin
+// treatment as everything else here.
 const LOCAL_FEATURE_CATEGORY_MAP: Record<string, LocalFeature["category"] | undefined> = {
   Beach: "beach",
   Walk: "walk",
@@ -107,6 +108,9 @@ const LOCAL_FEATURE_CATEGORY_MAP: Record<string, LocalFeature["category"] | unde
   "Local Gem": "local-gem",
   "Historic Site": "historic-site",
   "Attraction Gem": "attraction-gem",
+  Pub: "pub",
+  Cafe: "cafe",
+  Restaurant: "restaurant",
 };
 
 /** Maps a raw Local Features record into a map-plottable LocalFeature.

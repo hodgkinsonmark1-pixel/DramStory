@@ -224,6 +224,22 @@ export default function Workspace({
   const showGolfSpaResults =
     activeSubcats.has("local-attractions:Golf & Spa") || !attractionSubcatActive;
 
+  // Places to Eat subcategory labels -> LocalFeature.category values.
+  // "Fine Dining" has no distinct Airtable category (no reliable
+  // OSM-tagged equivalent) and deliberately maps to nothing, same
+  // pattern as Golf & Spa under Local Attractions.
+  const EAT_SUBCAT_TO_FEATURE_CATEGORY: Record<string, LocalFeature["category"] | undefined> = {
+    Bars: "pub",
+    Cafes: "cafe",
+    Restaurants: "restaurant",
+    "Fine Dining": undefined,
+  };
+  const placesToEatActive = activeCategories.has("places-to-eat");
+  const activeEatSubcats = Array.from(activeSubcats)
+    .filter((key) => key.startsWith("places-to-eat:"))
+    .map((key) => EAT_SUBCAT_TO_FEATURE_CATEGORY[key.split(":")[1]])
+    .filter((c): c is LocalFeature["category"] => c !== undefined);
+
   const visibleLocalFeatures = [
     ...(naturalFeaturesActive
       ? localFeatures.filter(
@@ -237,6 +253,13 @@ export default function Workspace({
           (f) =>
             (f.category === "historic-site" || f.category === "attraction-gem") &&
             (activeAttractionSubcats.length === 0 || activeAttractionSubcats.includes(f.category))
+        )
+      : []),
+    ...(placesToEatActive
+      ? localFeatures.filter(
+          (f) =>
+            (f.category === "pub" || f.category === "cafe" || f.category === "restaurant") &&
+            (activeEatSubcats.length === 0 || activeEatSubcats.includes(f.category))
         )
       : []),
   ];
