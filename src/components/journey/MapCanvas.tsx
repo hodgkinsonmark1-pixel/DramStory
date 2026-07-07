@@ -135,7 +135,13 @@ export default function MapCanvas({
           </div>`,
           { minWidth: 240 }
         );
-        clusterGroup.addLayer(marker);
+        // Distillery markers are deliberately NOT added to the cluster
+        // group - they're the primary thing visitors interact with to
+        // build a route, so always showing them individually (never
+        // hidden behind a cluster badge requiring a zoom-in first) matters
+        // more here than avoiding visual density. Natural Features/Local
+        // Attractions pins still cluster (see the other marker loop below).
+        marker.addTo(map);
         markers.push(marker);
       }
 
