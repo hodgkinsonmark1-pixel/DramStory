@@ -35,6 +35,8 @@ const FEATURE_COLORS: Record<LocalFeature["category"], string> = {
   walk: "#2D6A4F",
   "bike-route": "#3A6EA5",
   "local-gem": "#8B5FBF",
+  "historic-site": "#8B6F47",
+  "attraction-gem": "#B8557A",
 };
 
 /**

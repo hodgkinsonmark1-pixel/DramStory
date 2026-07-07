@@ -13,6 +13,8 @@ const CATEGORY_LABELS: Record<LocalFeature["category"], string> = {
   walk: "Walk",
   "bike-route": "Bike Route",
   "local-gem": "Local Gem",
+  "historic-site": "Historic Site",
+  "attraction-gem": "Local Gem",
 };
 
 const CATEGORY_COLORS: Record<LocalFeature["category"], string> = {
@@ -20,6 +22,8 @@ const CATEGORY_COLORS: Record<LocalFeature["category"], string> = {
   walk: "#2D6A4F",
   "bike-route": "#3A6EA5",
   "local-gem": "#8B5FBF",
+  "historic-site": "#8B6F47",
+  "attraction-gem": "#B8557A",
 };
 
 export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClientProps) {

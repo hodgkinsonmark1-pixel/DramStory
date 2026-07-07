@@ -100,23 +100,25 @@ export function mapLocalFeature(fields: AirtableLocalFeatureFields): NearbyFeatu
 // Only these 4 Airtable Category values are Natural Features meant for the
 // workspace map's overlay - "Historic Site" etc. belong to Local
 // Attractions, a separate pass not built yet, so they're excluded here.
-const NATURAL_FEATURE_CATEGORY_MAP: Record<string, LocalFeature["category"] | undefined> = {
+const LOCAL_FEATURE_CATEGORY_MAP: Record<string, LocalFeature["category"] | undefined> = {
   Beach: "beach",
   Walk: "walk",
   "Bike Route": "bike-route",
   "Local Gem": "local-gem",
+  "Historic Site": "historic-site",
+  "Attraction Gem": "attraction-gem",
 };
 
 /** Maps a raw Local Features record into a map-plottable LocalFeature.
- *  Returns null for non-Natural-Feature categories (e.g. Historic Site)
- *  or records missing coordinates - both are simply excluded from the map. */
+ *  Returns null for unrecognized categories or records missing
+ *  coordinates - both are simply excluded from the map. */
 export function mapToLocalFeature(id: string, fields: AirtableLocalFeatureFields): LocalFeature | null {
   // Coordinate provenance: every Natural Feature record now has a
   // "Location Source" field in Airtable recording exactly how its
   // coordinates were verified (postcode, OS Grid Reference + source, or
   // an honest note that it's a reasoned estimate) - see that field for
   // the audit trail rather than guessing at accuracy from this code.
-  const category = NATURAL_FEATURE_CATEGORY_MAP[fields.Category ?? ""];
+  const category = LOCAL_FEATURE_CATEGORY_MAP[fields.Category ?? ""];
   if (!category || fields.Latitude == null || fields.Longitude == null) return null;
   return {
     id,

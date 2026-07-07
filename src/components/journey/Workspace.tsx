@@ -165,9 +165,48 @@ export default function Workspace({
   const activeNaturalSubcats = Array.from(activeSubcats)
     .filter((key) => key.startsWith("natural-features:"))
     .map((key) => SUBCAT_TO_FEATURE_CATEGORY[key.split(":")[1]]);
-  const visibleLocalFeatures = naturalFeaturesActive
-    ? localFeatures.filter((f) => activeNaturalSubcats.length === 0 || activeNaturalSubcats.includes(f.category))
-    : [];
+
+  // Local Attractions subcategory labels -> LocalFeature.category values.
+  // "Local Gems" here means a different bucket (attraction-gem) than
+  // Natural Features' "Local Gems" (local-gem) - the chip keys are
+  // prefixed with the category id, so there's no collision, just two
+  // separate label->category maps. "Golf & Spa" has no Airtable category
+  // at all (Google Places-sourced, not populated until Google unblocks),
+  // so it deliberately maps to nothing and always shows zero results.
+  const ATTRACTION_SUBCAT_TO_FEATURE_CATEGORY: Record<string, LocalFeature["category"] | undefined> = {
+    "Historic Sites": "historic-site",
+    "Local Gems": "attraction-gem",
+    "Golf & Spa": undefined,
+  };
+  const localAttractionsActive = activeCategories.has("local-attractions");
+  const activeAttractionSubcats = Array.from(activeSubcats)
+    .filter((key) => key.startsWith("local-attractions:"))
+    .map((key) => ATTRACTION_SUBCAT_TO_FEATURE_CATEGORY[key.split(":")[1]])
+    .filter((c): c is LocalFeature["category"] => c !== undefined);
+  // Golf & Spa selected on its own (no other attraction subcat active)
+  // should show zero pins, not fall back to "show everything" - only
+  // meaningful when Google Places data exists to populate it.
+  const golfSpaOnlySelected =
+    activeSubcats.has("local-attractions:Golf & Spa") &&
+    !activeSubcats.has("local-attractions:Historic Sites") &&
+    !activeSubcats.has("local-attractions:Local Gems");
+
+  const visibleLocalFeatures = [
+    ...(naturalFeaturesActive
+      ? localFeatures.filter(
+          (f) =>
+            (f.category === "beach" || f.category === "walk" || f.category === "bike-route" || f.category === "local-gem") &&
+            (activeNaturalSubcats.length === 0 || activeNaturalSubcats.includes(f.category))
+        )
+      : []),
+    ...(localAttractionsActive && !golfSpaOnlySelected
+      ? localFeatures.filter(
+          (f) =>
+            (f.category === "historic-site" || f.category === "attraction-gem") &&
+            (activeAttractionSubcats.length === 0 || activeAttractionSubcats.includes(f.category))
+        )
+      : []),
+  ];
 
   if (!trip.ready || !activeDay) {
     return <div className="workspace-root" />;
