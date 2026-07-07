@@ -178,7 +178,7 @@ export interface AirtableEventFields {
   Category?: string;
   Price?: string;
   "Source URL"?: string;
-  Distilleries?: { id: string; name: string }[];
+  Distilleries?: string[];
 }
 
 const EVENT_CATEGORY_MAP: Record<string, LocalEvent["category"]> = {
@@ -198,7 +198,7 @@ export function mapToLocalEvent(
   allDistilleries: Distillery[]
 ): LocalEvent | null {
   if (!fields.Name || !fields.Date) return null;
-  const linkedIds = (fields.Distilleries ?? []).map((d) => d.id);
+  const linkedIds = fields.Distilleries ?? [];
   const distillerySlugs = allDistilleries.filter((d) => linkedIds.includes(d.id)).map((d) => d.slug);
   return {
     id,
