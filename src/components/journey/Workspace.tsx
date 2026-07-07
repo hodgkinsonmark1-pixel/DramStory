@@ -15,6 +15,7 @@ import Footer from "@/components/Footer";
 import MapCanvas from "./MapCanvas";
 import TripEssentials from "./TripEssentials";
 import GolfSpaResults from "./GolfSpaResults";
+import OnboardingOverlay from "./OnboardingOverlay";
 
 interface WorkspaceProps {
   distilleries: Distillery[];
@@ -155,6 +156,10 @@ export default function Workspace({
 
   const days = trip.days;
   const activeDay = days[activeDayIndex];
+  // Distinguishes "the whole trip is empty" (first-time visitor, show the
+  // welcoming onboarding message) from "this specific day is empty but
+  // other days have stops" (show the more specific per-day message).
+  const totalStops = days.reduce((sum, day) => sum + day.stops.length, 0);
 
   const routeCoords = activeDay ? activeDay.stops.map(stopCoords) : [];
   const { segments: routeSegments } = useRouteSegments(routeCoords);
@@ -302,6 +307,7 @@ export default function Workspace({
 
   return (
     <>
+    <OnboardingOverlay />
     <div className="workspace-root">
       <div className="map-page-header">
         <Link href="/" className="map-page-header-logo">
@@ -370,7 +376,11 @@ export default function Workspace({
             {activeDay.stops.length === 0 && !(isFlyingIn && (activeDayIndex === 0 || activeDayIndex === days.length - 1)) ? (
               <div className="journey-empty">
                 <div className="journey-empty-icon">🗺️</div>
-                <p>Nothing added to {activeDay.label} yet — explore the map and add distilleries or places.</p>
+                <p>
+                  {totalStops === 0
+                    ? "Your journey is empty — click a distillery on the map to start building your trip."
+                    : `Nothing added to ${activeDay.label} yet — explore the map and add distilleries or places.`}
+                </p>
               </div>
             ) : (
               activeDay.stops.map((stop, i) => (

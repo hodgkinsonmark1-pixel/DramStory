@@ -688,4 +688,209 @@ select.location-inline-input {
   flex-basis: 100%;
 }
 
+/* Distilleries index page - filter/sort bar + grid */
+.dist-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding: 20px;
+  background: white;
+  border: 1px solid var(--stone);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+}
+.dist-filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.dist-sort-group {
+  margin-left: auto;
+}
+.dist-filter-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin-right: 4px;
+}
+.dist-sort-select {
+  padding: 6px 12px;
+  border-radius: 100px;
+  border: 1.5px solid var(--stone);
+  background: white;
+  color: var(--peat);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.dist-result-count {
+  font-size: 13px;
+  color: var(--slate);
+  margin-bottom: 16px;
+}
+.dist-empty-state {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--slate);
+  font-size: 14px;
+  background: white;
+  border: 1px solid var(--stone);
+  border-radius: var(--radius);
+}
+.dist-clear-link {
+  background: none;
+  border: none;
+  color: var(--green-deep);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 14px;
+}
+.dist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+.dist-card {
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  background: white;
+  display: flex;
+  flex-direction: column;
+}
+.dist-card-image {
+  position: relative;
+  width: 100%;
+  height: 180px;
+}
+.dist-card-body {
+  padding: 20px;
+}
+.dist-card-meta {
+  font-size: 12px;
+  color: var(--copper);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.dist-card-name {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+.dist-card-tagline {
+  font-size: 14px;
+  color: var(--slate);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+.dist-card-price {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green-deep);
+}
+
+/* Onboarding overlay - a small floating card, NOT a modal. No backdrop,
+   nothing blocks interaction with the page underneath. Bottom-right so it
+   doesn't cover the map or the itinerary sidebar. */
+.onboarding-card {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 500;
+  width: 300px;
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+  padding: 20px;
+  border: 1px solid var(--stone);
+}
+.onboarding-dismiss {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--slate);
+  cursor: pointer;
+  padding: 4px;
+}
+.onboarding-dismiss:hover {
+  color: var(--dark);
+}
+.onboarding-icon {
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+.onboarding-text {
+  font-size: 14px;
+  color: var(--dark);
+  line-height: 1.5;
+  margin-bottom: 16px;
+  padding-right: 12px;
+}
+.onboarding-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.onboarding-dots {
+  display: flex;
+  gap: 6px;
+}
+.onboarding-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--stone);
+}
+.onboarding-dot.active {
+  background: var(--green-deep);
+}
+.onboarding-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.onboarding-skip {
+  background: none;
+  border: none;
+  color: var(--slate);
+  font-size: 13px;
+  cursor: pointer;
+}
+.onboarding-skip:hover {
+  color: var(--dark);
+}
+.onboarding-next {
+  background: var(--green-deep);
+  color: white;
+  border: none;
+  border-radius: 100px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.onboarding-next:hover {
+  background: var(--green-mid);
+}
+
+@media (max-width: 640px) {
+  .onboarding-card {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    width: auto;
+  }
+}
+
 
