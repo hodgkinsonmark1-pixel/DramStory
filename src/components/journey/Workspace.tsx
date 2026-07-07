@@ -13,6 +13,7 @@ import { stopCoords, stopId, stopName, stopVisitMinutes, incrementVisitMinutes }
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MapCanvas from "./MapCanvas";
+import TripEssentials from "./TripEssentials";
 
 interface WorkspaceProps {
   distilleries: Distillery[];
@@ -710,6 +711,8 @@ export default function Workspace({
           })}
         </div>
       </div>
+
+      <TripEssentials />
 
       <div className="below-map-section">
         <div className="how-eyebrow">Coming soon</div>
