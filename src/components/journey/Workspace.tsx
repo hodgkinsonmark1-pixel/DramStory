@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Distillery, InterestCategoryId, LocalEvent, LocalFeature, LocationAnswer, TripLength, TripTiming } from "@/lib/types";
 import { INTEREST_CATEGORIES, REGIONS, TRIP_LENGTHS } from "@/lib/journey-options";
 import { CLASSIC_JOURNEYS, getJourneyDistilleries, routeStartingPrice } from "@/lib/journeys-data";
+import { getMonthClimate, MONTH_NAMES } from "@/lib/islay-climate";
 import { estimatedDriveMinutes, formatDuration } from "@/lib/drive-time";
 import { useRouteSegments } from "@/lib/use-route-segments";
 import { useTrip } from "@/lib/trip-context";
@@ -90,6 +91,7 @@ export default function Workspace({
   const [eventMonth, setEventMonth] = useState(todayIso.slice(0, 7));
   const [showCostBreakdown, setShowCostBreakdown] = useState(false);
   const [summaryExpanded, setSummaryExpanded] = useState(false);
+  const [weatherMinimized, setWeatherMinimized] = useState(false);
 
   const startingDayCount = TRIP_LENGTHS.find((t) => t.id === tripLength)?.days ?? 1;
   useEffect(() => {
@@ -237,6 +239,17 @@ export default function Workspace({
     ? localEvents.filter((e) => rangesOverlap(e.date, e.endDate ?? e.date, selectedRange[0], selectedRange[1]))
     : [];
   const highlightedDistillerySlugs = Array.from(new Set(activeEvents.flatMap((e) => e.distillerySlugs)));
+
+  // Weather/daylight banner - uses the same selectedRange as Local
+  // Events, but deliberately independent of whether that filter is
+  // toggled on, since this is a separate "when are you visiting" insight
+  // that should show regardless.
+  const weatherMonthNumber = Number(selectedRange[0].slice(5, 7));
+  const weatherMonthClimate = getMonthClimate(weatherMonthNumber);
+  const weatherMonthName = MONTH_NAMES[weatherMonthNumber - 1];
+  const eventsDuringVisit = localEvents.filter((e) =>
+    rangesOverlap(e.date, e.endDate ?? e.date, selectedRange[0], selectedRange[1])
+  );
 
   if (!trip.ready || !activeDay) {
     return <div className="workspace-root" />;
@@ -626,9 +639,58 @@ export default function Workspace({
                 {title} is on the roadmap — Islay is the only region loaded so far.
               </div>
             )}
+            {isLive && !weatherMinimized && (
+              <div className="weather-popup">
+                <button
+                  className="weather-popup-close"
+                  onClick={() => setWeatherMinimized(true)}
+                  aria-label="Minimize"
+                >
+                  &times;
+                </button>
+                <div className="weather-popup-title">
+                  🌤️ Visiting in {weatherMonthName}
+                </div>
+                <p className="weather-popup-text">
+                  ~{weatherMonthClimate.daylightHours} of daylight, average high {weatherMonthClimate.avgHighC}°C —{" "}
+                  {weatherMonthClimate.summary}.
+                </p>
+                {eventsDuringVisit.length > 0 && (
+                  <p className="weather-popup-events">
+                    📅 Worth knowing: {eventsDuringVisit.map((e) => e.name).join(", ")}{" "}
+                    {eventsDuringVisit.length > 1 ? "are" : "is"} on during your visit.
+                  </p>
+                )}
+                <button className="weather-popup-dismiss" onClick={() => setWeatherMinimized(true)}>
+                  Got it
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {isLive && weatherMinimized && (
+        <div className="below-map-section weather-banner-section">
+          <div className="weather-banner">
+            <span className="weather-banner-icon">🌤️</span>
+            <span className="weather-banner-text">
+              Visiting in {weatherMonthName}: ~{weatherMonthClimate.daylightHours} of daylight, average high{" "}
+              {weatherMonthClimate.avgHighC}°C — {weatherMonthClimate.summary}.
+              {eventsDuringVisit.length > 0 && (
+                <>
+                  {" "}
+                  📅 Worth knowing: {eventsDuringVisit.map((e) => e.name).join(", ")}{" "}
+                  {eventsDuringVisit.length > 1 ? "are" : "is"} on during your visit.
+                </>
+              )}
+            </span>
+            <button className="weather-banner-expand" onClick={() => setWeatherMinimized(false)}>
+              More &darr;
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="below-map-section">
         <div className="how-eyebrow">Keep exploring</div>

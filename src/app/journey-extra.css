@@ -487,4 +487,105 @@ select.location-inline-input {
   }
 }
 
+/* Weather/daylight popup - shown on first reaching the workspace,
+   minimizes to a compact banner below the map when dismissed. */
+.weather-popup {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  padding: 18px 22px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  z-index: 600;
+  max-width: 420px;
+  width: calc(100% - 32px);
+}
+.weather-popup-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--slate);
+  cursor: pointer;
+  line-height: 1;
+}
+.weather-popup-close:hover {
+  color: var(--dark);
+}
+.weather-popup-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  color: var(--dark);
+  margin-bottom: 8px;
+  padding-right: 20px;
+}
+.weather-popup-text {
+  font-size: 13px;
+  color: var(--peat);
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+.weather-popup-events {
+  font-size: 13px;
+  color: var(--copper);
+  font-weight: 500;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+.weather-popup-dismiss {
+  padding: 8px 18px;
+  border-radius: 100px;
+  border: none;
+  background: var(--green-deep);
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.weather-popup-dismiss:hover {
+  background: var(--peat);
+}
+
+/* Minimized banner version, below the map. */
+.weather-banner-section {
+  padding: 24px 24px 0;
+}
+.weather-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--off-white);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.weather-banner-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.weather-banner-text {
+  font-size: 13px;
+  color: var(--peat);
+  line-height: 1.5;
+  flex: 1;
+}
+.weather-banner-expand {
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--green-deep);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.weather-banner-expand:hover {
+  text-decoration: underline;
+}
+
 
