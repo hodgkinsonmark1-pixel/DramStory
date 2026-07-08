@@ -10,40 +10,65 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 // blocks a real click on the map, a pin, the sidebar, or the nav
 // underneath.
 //
-// Steps 1-2 target the real Bowmore distillery marker specifically (via
-// its data-distillery-slug attribute, set in MapCanvas.tsx) with a small
-// circular spotlight, rather than the whole map region - a tighter,
-// clearer "look exactly here" cue. Step 2 also opens Bowmore's real
-// popup programmatically (via a custom event MapCanvas listens for) so
-// "Add it to your Journey" shows the actual popup, not just a promise
-// of one. Steps 3-4 keep the wider rectangular cutout over the sidebar
-// and nav link, since those are whole-panel targets, not a single pin.
+// Two things are tracked separately per step, since they aren't always
+// the same element:
+// - the CUTOUT: what gets un-darkened (a pin, a popup, a whole panel)
+// - the DOT: where the pulsing marker sits (defaults to the cutout's own
+//   center, but for steps 6-7 the cutout is the whole toolbar row while
+//   the dot points at one specific button within it)
 // ─────────────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = "dramstory_onboarding_seen_v3";
+const STORAGE_KEY = "dramstory_onboarding_seen_v4";
 const BOWMORE_SELECTOR = '[data-distillery-slug="bowmore"]';
 const PIN_SPOTLIGHT_DIAMETER = 110;
+const RECT_PADDING = 8;
+
+interface CutoutTarget {
+  selector?: string;
+  id?: string;
+  shape: "circle" | "rect";
+  /** Step 2 only: once Bowmore's popup is open, expand the cutout to
+   *  cover both the pin and the popup together (as one combined rect),
+   *  not just the tiny pin - otherwise the popup itself sits outside the
+   *  spotlight and reads as darkened-out. */
+  includePopupFor?: string;
+}
+
+interface DotTarget {
+  selector?: string;
+  id?: string;
+}
 
 interface Step {
   icon: string;
   text: string;
-  targetId?: string;
-  targetSelector?: string;
-  shape: "circle" | "rect";
+  cutout: CutoutTarget;
+  dot?: DotTarget; // omit to center the dot on the cutout itself
   openPopupSlug?: string;
 }
 
 const STEPS: Step[] = [
-  { icon: "🥃", text: "Tap a distillery to see details", targetSelector: BOWMORE_SELECTOR, shape: "circle" },
+  { icon: "🥃", text: "Tap a distillery to see details", cutout: { selector: BOWMORE_SELECTOR, shape: "circle" } },
   {
     icon: "➕",
     text: "Add it to your Journey",
-    targetSelector: BOWMORE_SELECTOR,
-    shape: "circle",
+    cutout: { selector: BOWMORE_SELECTOR, shape: "circle", includePopupFor: "bowmore" },
     openPopupSlug: "bowmore",
   },
-  { icon: "🗺️", text: "See your route, timings, and running cost on the left", targetId: "onboard-sidebar", shape: "rect" },
-  { icon: "⚖️", text: "Compare distilleries anytime from the menu", targetId: "onboard-nav-distilleries", shape: "rect" },
+  { icon: "🗺️", text: "See your route, timings, and running cost on the left", cutout: { id: "onboard-sidebar", shape: "rect" } },
+  { icon: "⚖️", text: "Compare distilleries anytime from the menu", cutout: { id: "onboard-nav-distilleries", shape: "rect" } },
+  {
+    icon: "🌿",
+    text: "Click to see further things to explore",
+    cutout: { id: "onboard-toolbar-row", shape: "rect" },
+    dot: { selector: '[data-category-id="natural-features"]' },
+  },
+  {
+    icon: "🥃",
+    text: "Click Distilleries to return to main map",
+    cutout: { id: "onboard-toolbar-row", shape: "rect" },
+    dot: { selector: '[data-category-id="distilleries"]' },
+  },
 ];
 
 function subscribe(): () => void {
@@ -63,19 +88,30 @@ interface Rect {
   height: number;
 }
 
-const RECT_PADDING = 8;
-
-function findTargetElement(step: Step): Element | null {
-  if (step.targetSelector) return document.querySelector(step.targetSelector);
-  if (step.targetId) return document.getElementById(step.targetId);
+function findElement(target: { selector?: string; id?: string }): Element | null {
+  if (target.selector) return document.querySelector(target.selector);
+  if (target.id) return document.getElementById(target.id);
   return null;
+}
+
+function toRect(r: DOMRect, padding = 0): Rect {
+  return { top: r.top - padding, left: r.left - padding, width: r.width + padding * 2, height: r.height + padding * 2 };
+}
+
+function unionRect(a: Rect, b: Rect): Rect {
+  const left = Math.min(a.left, b.left);
+  const top = Math.min(a.top, b.top);
+  const right = Math.max(a.left + a.width, b.left + b.width);
+  const bottom = Math.max(a.top + a.height, b.top + b.height);
+  return { left, top, width: right - left, height: bottom - top };
 }
 
 export default function OnboardingOverlay() {
   const [step, setStep] = useState(0);
   const [dismissed, setDismissed] = useState(false);
-  const [rect, setRect] = useState<Rect | null>(null);
-  const [usingFallback, setUsingFallback] = useState(false);
+  const [cutoutRect, setCutoutRect] = useState<Rect | null>(null);
+  const [cutoutIsCircle, setCutoutIsCircle] = useState(false);
+  const [dotRect, setDotRect] = useState<Rect | null>(null);
   const alreadySeen = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const active = !alreadySeen && !dismissed;
   const currentStep = STEPS[step];
@@ -83,69 +119,73 @@ export default function OnboardingOverlay() {
   useEffect(() => {
     if (!active) return;
 
-    function updateRect() {
-      const el = findTargetElement(currentStep);
-      if (!el) {
-        // Bowmore's marker may not exist yet (map still mounting) or, for
-        // a future non-Islay region, may never exist at all - fall back
-        // to spotlighting the whole map rather than showing a fully dark
-        // screen with nothing highlighted.
-        const fallback = currentStep.shape === "circle" ? document.getElementById("onboard-map") : null;
-        if (fallback) {
-          const r = fallback.getBoundingClientRect();
-          setUsingFallback(true);
-          setRect({
-            top: r.top - RECT_PADDING,
-            left: r.left - RECT_PADDING,
-            width: r.width + RECT_PADDING * 2,
-            height: r.height + RECT_PADDING * 2,
-          });
+    function update() {
+      const el = findElement(currentStep.cutout);
+
+      let resolvedCutout: Rect | null = null;
+      let isCircle = false;
+
+      if (el) {
+        const r = el.getBoundingClientRect();
+        if (currentStep.cutout.shape === "circle") {
+          const cx = r.left + r.width / 2;
+          const cy = r.top + r.height / 2;
+          resolvedCutout = {
+            top: cy - PIN_SPOTLIGHT_DIAMETER / 2,
+            left: cx - PIN_SPOTLIGHT_DIAMETER / 2,
+            width: PIN_SPOTLIGHT_DIAMETER,
+            height: PIN_SPOTLIGHT_DIAMETER,
+          };
+          isCircle = true;
+
+          // Step 2: once the popup is actually open, expand the cutout to
+          // cover both pin and popup as one combined rounded-rect region.
+          if (currentStep.cutout.includePopupFor) {
+            const popupEl = document.querySelector(".leaflet-popup");
+            if (popupEl) {
+              resolvedCutout = unionRect(resolvedCutout, toRect(popupEl.getBoundingClientRect(), RECT_PADDING));
+              isCircle = false;
+            }
+          }
         } else {
-          setRect(null);
+          resolvedCutout = toRect(r, RECT_PADDING);
         }
-        return;
+      } else if (currentStep.cutout.shape === "circle") {
+        // Target not found yet (map still mounting) or doesn't exist for
+        // this region - fall back to the whole map rather than a fully
+        // dark screen with nothing highlighted.
+        const fallback = document.getElementById("onboard-map");
+        if (fallback) resolvedCutout = toRect(fallback.getBoundingClientRect(), RECT_PADDING);
       }
-      setUsingFallback(false);
-      const r = el.getBoundingClientRect();
-      if (currentStep.shape === "circle") {
-        // Fixed-size spotlight centered on the target's actual center -
-        // a real marker's own box is tiny (~32px), too small to read as
-        // a deliberate "look here" spotlight at a comfortable size.
-        const cx = r.left + r.width / 2;
-        const cy = r.top + r.height / 2;
-        setRect({
-          top: cy - PIN_SPOTLIGHT_DIAMETER / 2,
-          left: cx - PIN_SPOTLIGHT_DIAMETER / 2,
-          width: PIN_SPOTLIGHT_DIAMETER,
-          height: PIN_SPOTLIGHT_DIAMETER,
-        });
+
+      setCutoutRect(resolvedCutout);
+      setCutoutIsCircle(isCircle);
+
+      // Dot position: an explicit dot target if given, else the cutout's
+      // own center.
+      if (currentStep.dot) {
+        const dotEl = findElement(currentStep.dot);
+        setDotRect(dotEl ? toRect(dotEl.getBoundingClientRect()) : resolvedCutout);
       } else {
-        setRect({
-          top: r.top - RECT_PADDING,
-          left: r.left - RECT_PADDING,
-          width: r.width + RECT_PADDING * 2,
-          height: r.height + RECT_PADDING * 2,
-        });
+        setDotRect(resolvedCutout);
       }
     }
 
-    updateRect();
-    window.addEventListener("resize", updateRect);
-    window.addEventListener("scroll", updateRect, true);
-    // Bowmore's marker only exists once the map has actually mounted its
-    // markers, which can happen a beat after this component does - retry
-    // briefly rather than giving up on the first empty query.
-    const retry = setInterval(updateRect, 300);
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    // Targets can mount a beat after this component does (map markers,
+    // popup opening) - retry briefly rather than giving up on one query.
+    const retry = setInterval(update, 300);
     return () => {
-      window.removeEventListener("resize", updateRect);
-      window.removeEventListener("scroll", updateRect, true);
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
       clearInterval(retry);
     };
   }, [active, step, currentStep]);
 
   // Opens/closes Bowmore's real popup to match the step that talks about
-  // adding it to the journey - and makes sure it's closed again on any
-  // step that isn't explicitly asking for it open.
+  // adding it to the journey.
   useEffect(() => {
     if (!active) return;
     if (currentStep.openPopupSlug) {
@@ -173,22 +213,19 @@ export default function OnboardingOverlay() {
 
   return (
     <>
-      {/* Darkened layer with a cutout over the current target - purely
-          visual, pointer-events: none, so it never blocks a real click. */}
       <div className="onboarding-dark-layer" aria-hidden="true">
-        {rect && (
+        {cutoutRect && (
           <div
-            className={"onboarding-cutout" + (currentStep.shape === "circle" && !usingFallback ? " onboarding-cutout-circle" : "")}
-            style={{ top: rect.top, left: rect.left, width: rect.width, height: rect.height }}
+            className={"onboarding-cutout" + (cutoutIsCircle ? " onboarding-cutout-circle" : "")}
+            style={{ top: cutoutRect.top, left: cutoutRect.left, width: cutoutRect.width, height: cutoutRect.height }}
           />
         )}
       </div>
 
-      {/* Pulsing marker centered on the target, pointing at where to look/click. */}
-      {rect && (
+      {dotRect && (
         <div
           className="onboarding-marker"
-          style={{ top: rect.top + rect.height / 2, left: rect.left + rect.width / 2 }}
+          style={{ top: dotRect.top + dotRect.height / 2, left: dotRect.left + dotRect.width / 2 }}
           aria-hidden="true"
         >
           <span className="onboarding-marker-ping" />

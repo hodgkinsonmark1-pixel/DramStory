@@ -520,7 +520,7 @@ export default function Workspace({
 
         <div className="map-area">
           <div className="map-toolbar">
-            <div className="map-toolbar-row">
+            <div className="map-toolbar-row" id="onboard-toolbar-row">
               {expandedCategoryData && expandedCategoryData.subcategories.length > 0 ? (
                 <>
                   <button className="filter-btn active" onClick={() => toggleCategory("distilleries", true)}>
@@ -659,6 +659,7 @@ export default function Workspace({
                   return (
                     <button
                       key={c.id}
+                      data-category-id={c.id}
                       className={"filter-btn" + (on ? " active" : "")}
                       onClick={() => toggleCategory(c.id, c.alwaysOn)}
                     >
