@@ -1,14 +1,16 @@
-import type { Distillery, LocalEvent, LocalFeature, PlaceListing } from "@/lib/types";
+import type { Distillery, JournalPost, LocalEvent, LocalFeature, PlaceListing } from "@/lib/types";
 import { airtableFetchAll } from "@/lib/airtable";
 import { searchAccommodation, searchNearbyByCategory } from "@/lib/google-places";
 import {
   deriveNextStops,
   mapLocalFeature,
   mapTour,
+  mapToJournalPost,
   mapToLocalEvent,
   mapToLocalFeature,
   type AirtableDistilleryFields,
   type AirtableEventFields,
+  type AirtableJournalFields,
   type AirtableLocalFeatureFields,
   type AirtableTourFields,
 } from "./airtable-mappers";
@@ -124,6 +126,33 @@ async function fetchLocalFeaturesFromAirtable(): Promise<LocalFeature[]> {
 export async function getLocalFeatureBySlug(slug: string): Promise<LocalFeature | undefined> {
   const features = await getLocalFeatures();
   return features.find((f) => f.slug === slug);
+}
+
+/** Journal blog posts - filters out drafts (Published unchecked) so
+ *  in-progress writing never accidentally goes live. */
+let journalPostsCache: Promise<JournalPost[]> | null = null;
+
+export async function getJournalPosts(): Promise<JournalPost[]> {
+  if (!journalPostsCache) {
+    journalPostsCache = fetchJournalPostsFromAirtable().catch((err) => {
+      journalPostsCache = null;
+      throw err;
+    });
+  }
+  return journalPostsCache;
+}
+
+async function fetchJournalPostsFromAirtable(): Promise<JournalPost[]> {
+  const records = await airtableFetchAll<AirtableJournalFields>("Journal");
+  return records
+    .filter((r) => r.fields.Published === true)
+    .map((r) => mapToJournalPost(r.fields, r.id))
+    .sort((a, b) => (a.publishedDate < b.publishedDate ? 1 : -1)); // newest first
+}
+
+export async function getJournalPostBySlug(slug: string): Promise<JournalPost | undefined> {
+  const posts = await getJournalPosts();
+  return posts.find((p) => p.slug === slug);
 }
 
 export async function getDistilleryBySlug(slug: string): Promise<Distillery | undefined> {

@@ -53,6 +53,22 @@ export interface LocalFeature {
   hygieneRating?: string;
 }
 
+export interface JournalPost {
+  id: string;
+  slug: string;
+  title: string;
+  metaDescription: string;
+  heroImage: string;
+  /** Raw attachment URLs in upload order - the Markdown body references
+   *  these via (inline:1), (inline:2) etc. placeholders, swapped for the
+   *  real URL at render time. */
+  inlineImages: string[];
+  /** Markdown - rendered to HTML by the journal detail page. */
+  body: string;
+  publishedDate: string;
+  category?: string;
+}
+
 export interface Distillery {
   id: string;
   slug: string;

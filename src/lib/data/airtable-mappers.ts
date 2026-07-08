@@ -1,5 +1,5 @@
 import type { AirtableAttachment } from "@/lib/airtable";
-import type { Distillery, LocalEvent, LocalFeature, NearbyFeature, Tour } from "@/lib/types";
+import type { Distillery, JournalPost, LocalEvent, LocalFeature, NearbyFeature, Tour } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Raw shapes as returned by the Airtable REST API for each table.
@@ -37,6 +37,32 @@ export interface AirtableTourFields {
   Duration?: string;
   Price?: number;
   Description?: string;
+}
+
+export interface AirtableJournalFields {
+  Title?: string;
+  Slug?: string;
+  "Meta Description"?: string;
+  "Hero Image"?: AirtableAttachment[];
+  "Inline Images"?: AirtableAttachment[];
+  Body?: string;
+  Published?: boolean;
+  "Published Date"?: string;
+  Category?: string;
+}
+
+export function mapToJournalPost(fields: AirtableJournalFields, id: string): JournalPost {
+  return {
+    id,
+    slug: fields.Slug ?? "",
+    title: fields.Title ?? "",
+    metaDescription: fields["Meta Description"] ?? "",
+    heroImage: fields["Hero Image"]?.[0]?.url ?? "",
+    inlineImages: (fields["Inline Images"] ?? []).map((a) => a.url),
+    body: fields.Body ?? "",
+    publishedDate: fields["Published Date"] ?? "",
+    category: fields.Category,
+  };
 }
 
 export interface AirtableLocalFeatureFields {
