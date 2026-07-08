@@ -222,11 +222,9 @@ export default function MapCanvas({
       }
       distilleryMarkersBySlugRef.current = slugToMarker;
 
-      if (markers.length > 0) {
+      if (markers.length > 0 && !savedView) {
         const group = L.featureGroup(markers);
         map.fitBounds(group.getBounds().pad(0.2));
-        // One level more zoomed in than the pure fitBounds fit, per request.
-        map.setZoom(map.getZoom() + 1);
       }
 
       // Event delegation for the +Add button inside popup HTML - Leaflet
