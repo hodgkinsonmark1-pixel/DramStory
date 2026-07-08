@@ -346,33 +346,31 @@ export default function MapCanvas({
     // underneath it. Nudge just the on-screen position of any such
     // feature a short, fixed distance away - real enough to stay visible
     // at typical village-level zoom, small enough not to misrepresent
-    // where it actually is. Multiple colliding features fan out in
-    // different directions (based on their position in the list) rather
-    // than all stacking on the same offset point.
+    // where it actually is.
+    //
+    // Every colliding feature is pushed the SAME direction (northeast),
+    // not fanned out around the distillery - fanning them symmetrically
+    // was tried first and made things worse: Leaflet's cluster icon
+    // renders at roughly the centroid of its member markers, so a ring of
+    // points evenly spread around the distillery clusters right back on
+    // top of it. Pushing them all one direction instead means a cluster
+    // of colliding pins moves together, away from the distillery.
     const COLLISION_THRESHOLD_DEG = 0.0025; // ~280m at this latitude
     const OFFSET_DISTANCE_DEG = 0.0022; // ~250m
-    function offsetIfCollidingWithDistillery(
-      lat: number,
-      lng: number,
-      seed: number
-    ): { lat: number; lng: number } {
+    function offsetIfCollidingWithDistillery(lat: number, lng: number): { lat: number; lng: number } {
       for (const d of distilleries) {
         if (!d.lat || !d.lng) continue;
         const dLat = lat - d.lat;
         const dLng = (lng - d.lng) * 0.56; // rough longitude compression at ~56°N
         if (Math.sqrt(dLat * dLat + dLng * dLng) < COLLISION_THRESHOLD_DEG) {
-          const angle = (seed % 8) * (Math.PI / 4);
-          return {
-            lat: lat + OFFSET_DISTANCE_DEG * Math.sin(angle),
-            lng: lng + OFFSET_DISTANCE_DEG * Math.cos(angle),
-          };
+          return { lat: lat + OFFSET_DISTANCE_DEG, lng: lng + OFFSET_DISTANCE_DEG };
         }
       }
       return { lat, lng };
     }
 
-    const markers = localFeatures.map((f, i) => {
-      const pos = offsetIfCollidingWithDistillery(f.lat, f.lng, i);
+    const markers = localFeatures.map((f) => {
+      const pos = offsetIfCollidingWithDistillery(f.lat, f.lng);
       const color = FEATURE_COLORS[f.category];
       const icon = L.divIcon({
         className: "feature-marker",
