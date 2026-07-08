@@ -689,6 +689,8 @@ export default function Workspace({
               highlightedDistillerySlugs={isLive ? highlightedDistillerySlugs : []}
               isLive={isLive}
               accommodation={isLive ? accommodation : undefined}
+              initialView={trip.mapView ?? undefined}
+              onViewChange={trip.setMapView}
               routeStops={routeCoords.reduce<{ lat: number; lng: number }[]>((points, coord, i) => {
                 if (i === 0) return [coord];
                 const real = routeSegments[i - 1];

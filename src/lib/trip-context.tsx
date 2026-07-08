@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import type { Distillery, ItineraryDay, LocalFeature, Tour, TripAccommodation, TripIntake } from "@/lib/types";
+import type { Distillery, ItineraryDay, LocalFeature, Tour, TripAccommodation, TripIntake, TripMapView } from "@/lib/types";
 import { stopId } from "@/lib/itinerary-stop";
 
 const STORAGE_KEY = "dramstory-trip-v2";
@@ -10,6 +10,7 @@ interface StoredTrip {
   days: ItineraryDay[];
   intake: TripIntake | null;
   currentDayIndex: number;
+  mapView: TripMapView | null;
 }
 
 interface TripContextValue {
@@ -22,6 +23,13 @@ interface TripContextValue {
    *  Day 1. Persisted alongside days/intake for the same reason. */
   currentDayIndex: number;
   setCurrentDayIndex: (index: number) => void;
+  /** Where the map is panned/zoomed to - persisted for the same reason as
+   *  currentDayIndex: leaving to view a distillery and coming back should
+   *  return to the same view, not reset to the default island-wide
+   *  center every time. Null until the map has been interacted with at
+   *  least once. */
+  mapView: TripMapView | null;
+  setMapView: (view: TripMapView) => void;
   /** The completed Q2/Step3/Q4 answers, once the visitor has been through
    *  the intake flow at least once - lets "Back to your journey" (from a
    *  distillery page) jump straight to the workspace instead of
@@ -67,6 +75,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   const [days, setDays] = useState<ItineraryDay[]>([]);
   const [intake, setIntake] = useState<TripIntake | null>(null);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
+  const [mapView, setMapView] = useState<TripMapView | null>(null);
   const [ready, setReady] = useState(false);
 
   // Reads localStorage after mount rather than in a lazy useState
@@ -84,6 +93,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         setDays(parsed.days ?? []);
         setIntake(parsed.intake ?? null);
         setCurrentDayIndex(parsed.currentDayIndex ?? 0);
+        setMapView(parsed.mapView ?? null);
       }
     } catch {
       // Corrupt or inaccessible storage - just start fresh.
@@ -96,12 +106,12 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!ready) return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ days, intake, currentDayIndex }));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ days, intake, currentDayIndex, mapView }));
     } catch {
       // Storage full or unavailable - the trip still works for this
       // session, it just won't survive a reload.
     }
-  }, [days, intake, currentDayIndex, ready]);
+  }, [days, intake, currentDayIndex, mapView, ready]);
 
   const initDays = useCallback((count: number) => {
     setDays((prev) => {
@@ -122,6 +132,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     setDays([]);
     setIntake(null);
     setCurrentDayIndex(0);
+    setMapView(null);
   }, []);
 
   const addDay = useCallback(() => {
@@ -223,6 +234,8 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         days,
         currentDayIndex,
         setCurrentDayIndex,
+        mapView,
+        setMapView,
         intake,
         ready,
         initDays,

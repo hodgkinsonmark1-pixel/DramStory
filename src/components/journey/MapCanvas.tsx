@@ -31,6 +31,14 @@ interface MapCanvasProps {
    *  distinct pin from the distillery markers, matching the "home" style
    *  already used for ferry-port pins elsewhere on the site. */
   accommodation?: { name: string; lat: number; lng: number };
+  /** Last known pan/zoom position (from TripContext.mapView) - used as the
+   *  starting view instead of always the default island-wide center, so
+   *  leaving to view a distillery and coming back doesn't reset it. */
+  initialView?: { lat: number; lng: number; zoom: number };
+  /** Called (debounced to Leaflet's own moveend/zoomend events, so already
+   *  naturally throttled) whenever the visitor pans or zooms, so the
+   *  caller can persist the new view. */
+  onViewChange?: (view: { lat: number; lng: number; zoom: number }) => void;
 }
 
 // Rough center of Scotland, used when a region has no pins yet so the map
@@ -80,10 +88,20 @@ export default function MapCanvas({
   highlightedDistillerySlugs = [],
   routeStops = [],
   accommodation,
+  initialView,
+  onViewChange,
 }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Leaflet.Map | null>(null);
   const leafletRef = useRef<typeof Leaflet | null>(null);
+  // Read once at mount time via a ref, not a dependency - initialView is
+  // only ever meant to seed the map's starting position, not fight with
+  // the visitor's own panning on every re-render.
+  const initialViewRef = useRef(initialView);
+  const onViewChangeRef = useRef(onViewChange);
+  useEffect(() => {
+    onViewChangeRef.current = onViewChange;
+  }, [onViewChange]);
   const routeLineRef = useRef<Leaflet.LayerGroup | null>(null);
   const accommodationMarkerRef = useRef<Leaflet.Marker | null>(null);
   // One shared cluster group for distilleries AND Natural Features -
@@ -116,12 +134,18 @@ export default function MapCanvas({
       if (cancelled || !containerRef.current || mapRef.current) return;
       leafletRef.current = L;
 
+      const savedView = initialViewRef.current;
       const map = L.map(containerRef.current, {
-        center: isLive && distilleries.length > 0 ? ISLAY_CENTER : SCOTLAND_CENTER,
-        zoom: isLive && distilleries.length > 0 ? 11 : 7,
+        center: savedView ? [savedView.lat, savedView.lng] : isLive && distilleries.length > 0 ? ISLAY_CENTER : SCOTLAND_CENTER,
+        zoom: savedView ? savedView.zoom : isLive && distilleries.length > 0 ? 11 : 7,
         scrollWheelZoom: true,
       });
       mapRef.current = map;
+
+      map.on("moveend zoomend", () => {
+        const center = map.getCenter();
+        onViewChangeRef.current?.({ lat: center.lat, lng: center.lng, zoom: map.getZoom() });
+      });
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
@@ -316,28 +340,39 @@ export default function MapCanvas({
     if (localFeatures.length === 0) return;
 
     // Distillery markers are always added individually, on top of
-    // everything else (never clustered) - a feature pin plotted at
-    // essentially the same coordinate (e.g. a Local Feature whose
-    // "Location Source" deliberately reuses a distillery's own verified
-    // point, like Machir Bay anchored to Kilchoman's car park) ends up
-    // fully hidden underneath it. Nudge just the on-screen position of
-    // any such feature a short, fixed distance away - real enough to stay
-    // visible, small enough not to misrepresent where it actually is.
-    const COLLISION_THRESHOLD_DEG = 0.0006; // ~65m at this latitude
-    function offsetIfCollidingWithDistillery(lat: number, lng: number): { lat: number; lng: number } {
+    // everything else (never clustered) - a feature pin plotted at or
+    // very near the same coordinate (e.g. several cafes/pubs clustered
+    // in the same small village as a distillery) ends up fully hidden
+    // underneath it. Nudge just the on-screen position of any such
+    // feature a short, fixed distance away - real enough to stay visible
+    // at typical village-level zoom, small enough not to misrepresent
+    // where it actually is. Multiple colliding features fan out in
+    // different directions (based on their position in the list) rather
+    // than all stacking on the same offset point.
+    const COLLISION_THRESHOLD_DEG = 0.0025; // ~280m at this latitude
+    const OFFSET_DISTANCE_DEG = 0.0022; // ~250m
+    function offsetIfCollidingWithDistillery(
+      lat: number,
+      lng: number,
+      seed: number
+    ): { lat: number; lng: number } {
       for (const d of distilleries) {
         if (!d.lat || !d.lng) continue;
         const dLat = lat - d.lat;
         const dLng = (lng - d.lng) * 0.56; // rough longitude compression at ~56°N
         if (Math.sqrt(dLat * dLat + dLng * dLng) < COLLISION_THRESHOLD_DEG) {
-          return { lat: lat + 0.0008, lng: lng + 0.0008 };
+          const angle = (seed % 8) * (Math.PI / 4);
+          return {
+            lat: lat + OFFSET_DISTANCE_DEG * Math.sin(angle),
+            lng: lng + OFFSET_DISTANCE_DEG * Math.cos(angle),
+          };
         }
       }
       return { lat, lng };
     }
 
-    const markers = localFeatures.map((f) => {
-      const pos = offsetIfCollidingWithDistillery(f.lat, f.lng);
+    const markers = localFeatures.map((f, i) => {
+      const pos = offsetIfCollidingWithDistillery(f.lat, f.lng, i);
       const color = FEATURE_COLORS[f.category];
       const icon = L.divIcon({
         className: "feature-marker",

@@ -233,6 +233,15 @@ export interface TripAccommodation {
   lng: number;
 }
 
+/** Where the map is currently panned/zoomed to - persisted so leaving to
+ *  view a distillery and coming back doesn't reset the view to the
+ *  default island-wide center every time. */
+export interface TripMapView {
+  lat: number;
+  lng: number;
+  zoom: number;
+}
+
 export interface ItineraryDay {
   id: string;
   label: string;
