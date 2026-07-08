@@ -325,7 +325,12 @@ export default function Workspace({
             {title}
             {lengthLabel ? ` · ${lengthLabel}` : ""}
           </span>
-          <Link href="/distilleries" id="onboard-nav-distilleries">
+          <Link
+            href="/distilleries"
+            id="onboard-nav-distilleries"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             Distilleries
           </Link>
           <Link href="/" onClick={() => trip.resetTrip()}>
