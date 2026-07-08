@@ -14,7 +14,6 @@ import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MapCanvas from "./MapCanvas";
 import TripEssentials from "./TripEssentials";
-import GolfSpaResults from "./GolfSpaResults";
 import OnboardingOverlay from "./OnboardingOverlay";
 
 interface WorkspaceProps {
@@ -25,16 +24,6 @@ interface WorkspaceProps {
   tripLength: TripLength;
   initialInterests: InterestCategoryId[];
   timing: TripTiming;
-}
-
-// Centroid of the loaded distilleries - used as the Golf & Spa search
-// origin. Computed from real data rather than hardcoded, so this keeps
-// working correctly once a second region's distilleries are added,
-// rather than silently searching around Islay for every region.
-function computeCentroid(points: { lat: number; lng: number }[]): { lat: number; lng: number } {
-  if (points.length === 0) return { lat: 55.75, lng: -6.2 }; // Islay fallback, only used if a region has zero distilleries loaded
-  const sum = points.reduce((acc, p) => ({ lat: acc.lat + p.lat, lng: acc.lng + p.lng }), { lat: 0, lng: 0 });
-  return { lat: sum.lat / points.length, lng: sum.lng / points.length };
 }
 
 function describeLocation(location: LocationAnswer): string {
@@ -209,41 +198,23 @@ export default function Workspace({
   // "Local Gems" here means a different bucket (attraction-gem) than
   // Natural Features' "Local Gems" (local-gem) - the chip keys are
   // prefixed with the category id, so there's no collision, just two
-  // separate label->category maps. "Golf & Spa" has no Airtable category
-  // at all (Google Places-sourced, not populated until Google unblocks),
-  // so it deliberately maps to nothing and always shows zero results.
-  const ATTRACTION_SUBCAT_TO_FEATURE_CATEGORY: Record<string, LocalFeature["category"] | undefined> = {
-    "Historic Sites": "historic-site",
-    "Local Gems": "attraction-gem",
-    "Golf & Spa": undefined,
+  // separate label->category maps. "Golf & Spa" maps to TWO Local
+  // Feature categories at once (golf + spa), now real Airtable pins
+  // (verified Machrie Golf, Islay Sauna, Bothan Jura Wild Sauna) rather
+  // than the earlier Google Places-sourced list view.
+  const ATTRACTION_SUBCAT_TO_FEATURE_CATEGORIES: Record<string, LocalFeature["category"][]> = {
+    "Historic Sites": ["historic-site"],
+    "Local Gems": ["attraction-gem"],
+    "Golf & Spa": ["golf", "spa"],
   };
   const localAttractionsActive = activeCategories.has("local-attractions");
   const activeAttractionSubcats = Array.from(activeSubcats)
     .filter((key) => key.startsWith("local-attractions:"))
-    .map((key) => ATTRACTION_SUBCAT_TO_FEATURE_CATEGORY[key.split(":")[1]])
-    .filter((c): c is LocalFeature["category"] => c !== undefined);
-  // Golf & Spa selected on its own (no other attraction subcat active)
-  // should show zero Local Feature pins, not fall back to "show
-  // everything" - Golf & Spa itself now renders as a separate results
-  // list (GolfSpaResults), never as pins, so this only concerns the
-  // Airtable-backed Historic Sites/Local Gems pins on the map.
-  const golfSpaOnlySelected =
-    activeSubcats.has("local-attractions:Golf & Spa") &&
-    !activeSubcats.has("local-attractions:Historic Sites") &&
-    !activeSubcats.has("local-attractions:Local Gems");
-  // Show the Golf & Spa results list whenever Local Attractions is
-  // expanded and either "Everything" (no subcat chip active) or the
-  // Golf & Spa chip specifically is selected.
-  const attractionSubcatActive = Array.from(activeSubcats).some((key) =>
-    key.startsWith("local-attractions:")
-  );
-  const showGolfSpaResults =
-    activeSubcats.has("local-attractions:Golf & Spa") || !attractionSubcatActive;
+    .flatMap((key) => ATTRACTION_SUBCAT_TO_FEATURE_CATEGORIES[key.split(":")[1]] ?? []);
 
   // Places to Eat subcategory labels -> LocalFeature.category values.
   // "Fine Dining" has no distinct Airtable category (no reliable
-  // OSM-tagged equivalent) and deliberately maps to nothing, same
-  // pattern as Golf & Spa under Local Attractions.
+  // OSM-tagged equivalent) and deliberately maps to nothing.
   const EAT_SUBCAT_TO_FEATURE_CATEGORY: Record<string, LocalFeature["category"] | undefined> = {
     Bars: "pub",
     Cafes: "cafe",
@@ -264,10 +235,10 @@ export default function Workspace({
             (activeNaturalSubcats.length === 0 || activeNaturalSubcats.includes(f.category))
         )
       : []),
-    ...(localAttractionsActive && !golfSpaOnlySelected
+    ...(localAttractionsActive
       ? localFeatures.filter(
           (f) =>
-            (f.category === "historic-site" || f.category === "attraction-gem") &&
+            (f.category === "historic-site" || f.category === "attraction-gem" || f.category === "golf" || f.category === "spa") &&
             (activeAttractionSubcats.length === 0 || activeAttractionSubcats.includes(f.category))
         )
       : []),
@@ -652,10 +623,6 @@ export default function Workspace({
                         )}
                       </div>
                     </>
-                  )}
-
-                  {expandedCategoryData.id === "local-attractions" && showGolfSpaResults && (
-                    <GolfSpaResults center={computeCentroid(distilleries)} />
                   )}
                 </>
               ) : (
