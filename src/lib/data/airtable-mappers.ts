@@ -44,7 +44,9 @@ export interface AirtableJournalFields {
   Slug?: string;
   "Meta Description"?: string;
   "Hero Image"?: AirtableAttachment[];
-  "Inline Images"?: AirtableAttachment[];
+  "Inline Image 1"?: AirtableAttachment[];
+  "Inline Image 2"?: AirtableAttachment[];
+  "Inline Image 3"?: AirtableAttachment[];
   Body?: string;
   Published?: boolean;
   "Published Date"?: string;
@@ -58,7 +60,11 @@ export function mapToJournalPost(fields: AirtableJournalFields, id: string): Jou
     title: fields.Title ?? "",
     metaDescription: fields["Meta Description"] ?? "",
     heroImage: fields["Hero Image"]?.[0]?.url ?? "",
-    inlineImages: (fields["Inline Images"] ?? []).map((a) => a.url),
+    inlineImages: [
+      fields["Inline Image 1"]?.[0]?.url ?? "",
+      fields["Inline Image 2"]?.[0]?.url ?? "",
+      fields["Inline Image 3"]?.[0]?.url ?? "",
+    ],
     body: fields.Body ?? "",
     publishedDate: fields["Published Date"] ?? "",
     category: fields.Category,
