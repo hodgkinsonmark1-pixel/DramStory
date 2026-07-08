@@ -370,7 +370,7 @@ export default function MapCanvas({
     // the way an individual marker was.
     const COLLISION_THRESHOLD_PX = 40;
     const OFFSET_DISTANCE_PX = 36;
-    const MAX_OFFSET_DEG = 0.001; // ~110m
+    const MAX_OFFSET_DEG = 0.0016; // ~175m
     const metersPerPixel = (156543.03392 * Math.cos((ISLAY_CENTER[0] * Math.PI) / 180)) / Math.pow(2, currentZoom);
     const collisionThresholdDeg = (COLLISION_THRESHOLD_PX * metersPerPixel) / 111320;
     const offsetDistanceDeg = Math.min((OFFSET_DISTANCE_PX * metersPerPixel) / 111320, MAX_OFFSET_DEG);
