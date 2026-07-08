@@ -17,28 +17,40 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
   const inJourney = stopDays.length > 0;
   const totalStops = trip.days.reduce((sum, day) => sum + day.stops.length, 0);
 
-  // Tours are added to Day 1 by default when visiting a distillery's own
-  // page directly (outside an active /journey session there's no "current
-  // day" to target) - initDays no-ops if a trip already exists.
+  // Tours apply to whichever day(s) this distillery is actually already on
+  // (stopDays, computed above) - previously hardcoded to day 0, which broke
+  // as soon as a distillery lived on any day other than the first (e.g.
+  // added via a multi-day Classic Journey, or just placed on a later day
+  // in the free-form planner). If it isn't in the journey at all yet,
+  // falls back to day 0, matching setTourForStop's own "adds it if it's
+  // not already on that day" behavior.
   function addTour(tourName: string) {
     trip.initDays(1);
     const tour = d.tours.find((t) => t.name === tourName);
-    const currentStop = trip.days[0]?.stops.find((s) => s.kind === "distillery" && s.distillery.slug === d.slug);
-    const alreadySelected =
-      currentStop?.kind === "distillery" && currentStop.tour?.name === tourName;
-    trip.setTourForStop(0, d, alreadySelected ? undefined : tour);
+    const targetDays = stopDays.length > 0 ? stopDays : [0];
+    const currentStop = trip.days[targetDays[0]]?.stops.find(
+      (s) => s.kind === "distillery" && s.distillery.slug === d.slug
+    );
+    const alreadySelected = currentStop?.kind === "distillery" && currentStop.tour?.name === tourName;
+    for (const dayIndex of targetDays) {
+      trip.setTourForStop(dayIndex, d, alreadySelected ? undefined : tour);
+    }
   }
 
   function toggleAddDistillery() {
     trip.initDays(1);
     if (inJourney) {
-      trip.removeStop(0, d.slug);
+      for (const dayIndex of stopDays) {
+        trip.removeStop(dayIndex, d.slug);
+      }
     } else {
       trip.addStop(0, d);
     }
   }
 
-  const currentStopForTour = trip.days[0]?.stops.find((s) => s.kind === "distillery" && s.distillery.slug === d.slug);
+  const currentStopForTour = stopDays.length > 0
+    ? trip.days[stopDays[0]]?.stops.find((s) => s.kind === "distillery" && s.distillery.slug === d.slug)
+    : undefined;
   const selectedTourName = currentStopForTour?.kind === "distillery" ? currentStopForTour.tour?.name : undefined;
 
   return (
