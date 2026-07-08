@@ -116,6 +116,10 @@ export default function MapCanvas({
   // than requiring an actual click during the passive walkthrough.
   const distilleryMarkersBySlugRef = useRef<Record<string, Leaflet.Marker>>({});
   const [mapReady, setMapReady] = useState(false);
+  // Tracked so the pin-collision offset (below) can target a fixed PIXEL
+  // distance rather than a fixed geographic one - a fixed-degree offset
+  // is barely visible zoomed out and unnecessarily large zoomed in.
+  const [currentZoom, setCurrentZoom] = useState(initialViewRef.current?.zoom ?? 11);
   const onAddRef = useRef(onAddDistillery);
   useEffect(() => {
     onAddRef.current = onAddDistillery;
@@ -145,6 +149,7 @@ export default function MapCanvas({
       map.on("moveend zoomend", () => {
         const center = map.getCenter();
         onViewChangeRef.current?.({ lat: center.lat, lng: center.lng, zoom: map.getZoom() });
+        setCurrentZoom(map.getZoom());
       });
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -340,30 +345,31 @@ export default function MapCanvas({
     if (localFeatures.length === 0) return;
 
     // Distillery markers are always added individually, on top of
-    // everything else (never clustered) - a feature pin plotted at or
-    // very near the same coordinate (e.g. several cafes/pubs clustered
-    // in the same small village as a distillery) ends up fully hidden
-    // underneath it. Nudge just the on-screen position of any such
-    // feature a short, fixed distance away - real enough to stay visible
-    // at typical village-level zoom, small enough not to misrepresent
-    // where it actually is.
+    // everything else (never clustered) - a feature pin (or a whole
+    // cluster badge representing several of them) plotted at or very near
+    // the same coordinate ends up fully hidden underneath it.
     //
-    // Every colliding feature is pushed the SAME direction (northeast),
-    // not fanned out around the distillery - fanning them symmetrically
-    // was tried first and made things worse: Leaflet's cluster icon
-    // renders at roughly the centroid of its member markers, so a ring of
-    // points evenly spread around the distillery clusters right back on
-    // top of it. Pushing them all one direction instead means a cluster
-    // of colliding pins moves together, away from the distillery.
-    const COLLISION_THRESHOLD_DEG = 0.0025; // ~280m at this latitude
-    const OFFSET_DISTANCE_DEG = 0.0022; // ~250m
+    // The offset needs to be a fixed PIXEL distance, not a fixed
+    // geographic one - a fixed-degree offset (tried first) was barely
+    // visible zoomed out across the island and unnecessarily large
+    // zoomed into a single village, because the same number of degrees
+    // covers wildly different pixel distances depending on zoom.
+    // Standard Web Mercator meters-per-pixel formula, used to convert a
+    // target pixel distance into the right number of degrees for the
+    // current zoom level (currentZoom, kept in sync via the map's
+    // moveend/zoomend listener above).
+    const COLLISION_THRESHOLD_PX = 40;
+    const OFFSET_DISTANCE_PX = 36;
+    const metersPerPixel = (156543.03392 * Math.cos((ISLAY_CENTER[0] * Math.PI) / 180)) / Math.pow(2, currentZoom);
+    const collisionThresholdDeg = (COLLISION_THRESHOLD_PX * metersPerPixel) / 111320;
+    const offsetDistanceDeg = (OFFSET_DISTANCE_PX * metersPerPixel) / 111320;
     function offsetIfCollidingWithDistillery(lat: number, lng: number): { lat: number; lng: number } {
       for (const d of distilleries) {
         if (!d.lat || !d.lng) continue;
         const dLat = lat - d.lat;
         const dLng = (lng - d.lng) * 0.56; // rough longitude compression at ~56°N
-        if (Math.sqrt(dLat * dLat + dLng * dLng) < COLLISION_THRESHOLD_DEG) {
-          return { lat: lat + OFFSET_DISTANCE_DEG, lng: lng + OFFSET_DISTANCE_DEG };
+        if (Math.sqrt(dLat * dLat + dLng * dLng) < collisionThresholdDeg) {
+          return { lat: lat + offsetDistanceDeg, lng: lng + offsetDistanceDeg };
         }
       }
       return { lat, lng };
@@ -402,7 +408,7 @@ export default function MapCanvas({
     });
 
     featureMarkersRef.current = markers;
-  }, [mapReady, localFeatures, distilleries]);
+  }, [mapReady, localFeatures, distilleries, currentZoom]);
 
   // Pulsing ring behind any distillery hosting a Local Event within the
   // currently-selected date range - redrawn whenever that set changes
