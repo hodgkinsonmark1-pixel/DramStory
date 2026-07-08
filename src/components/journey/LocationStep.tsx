@@ -56,6 +56,15 @@ function DistilleryPicker({
 export default function LocationStep({ distilleriesPromise, onNext, onBack }: LocationStepProps) {
   const [selected, setSelected] = useState<OptionId | null>(null);
   const [airportName, setAirportName] = useState("");
+  const [notice, setNotice] = useState<string | null>(null);
+
+  function handleRegionClick(region: (typeof REGIONS)[number]) {
+    if (!region.live) {
+      setNotice(`${region.label} isn't ready yet — Islay & Jura is fully built and ready to explore.`);
+      return;
+    }
+    onNext({ kind: "region", region: region.id });
+  }
 
   return (
     <div className="journey-screen">
@@ -81,12 +90,21 @@ export default function LocationStep({ distilleriesPromise, onNext, onBack }: Lo
         {REGIONS.map((r) => (
           <button
             key={r.id}
-            className="q-card"
-            onClick={() => onNext({ kind: "region", region: r.id })}
+            className={"q-card" + (!r.live ? " q-card-not-live" : "")}
+            onClick={() => handleRegionClick(r)}
           >
             {r.label}
           </button>
         ))}
+
+        {notice && (
+          <div className="location-notice">
+            {notice}
+            <button className="location-notice-dismiss" onClick={() => setNotice(null)} aria-label="Dismiss">
+              &times;
+            </button>
+          </div>
+        )}
 
         {selected === "airport" ? (
           <input

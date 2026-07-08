@@ -959,3 +959,37 @@ select.location-inline-input {
 }
 
 
+
+/* Q2 - regions without live data yet (see REGIONS[].live) are still
+   shown (so the roadmap is visible) but read as slightly muted, and
+   clicking one shows a dismissible notice instead of silently proceeding
+   into an empty workspace. */
+.q-card-not-live {
+  opacity: 0.6;
+}
+.location-notice {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1.5px solid var(--copper);
+  color: var(--dark);
+  font-size: 14px;
+  margin-top: 4px;
+}
+.location-notice-dismiss {
+  background: none;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--slate);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.location-notice-dismiss:hover {
+  color: var(--dark);
+}
