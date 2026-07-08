@@ -45,29 +45,48 @@ interface Step {
   cutout: CutoutTarget;
   dot?: DotTarget; // omit to center the dot on the cutout itself
   openPopupSlug?: string;
+  /** If the person actually performs the real action being demonstrated
+   *  (clicks the real pin, the real "+Add" button, the real toolbar
+   *  button) rather than clicking the tour's own "Next", the tour
+   *  advances too - following through shouldn't leave someone stuck
+   *  looking at a stale spotlight for an action they already took. */
+  advanceOn?: DotTarget;
 }
 
 const STEPS: Step[] = [
-  { icon: "🥃", text: "Tap a distillery to see details", cutout: { selector: BOWMORE_SELECTOR, shape: "circle" } },
+  {
+    icon: "🥃",
+    text: "Tap a distillery to see details",
+    cutout: { selector: BOWMORE_SELECTOR, shape: "circle" },
+    advanceOn: { selector: BOWMORE_SELECTOR },
+  },
   {
     icon: "➕",
     text: "Add it to your Journey",
     cutout: { selector: BOWMORE_SELECTOR, shape: "circle", includePopupFor: "bowmore" },
     openPopupSlug: "bowmore",
+    advanceOn: { selector: '[data-add-distillery="bowmore"]' },
   },
   { icon: "🗺️", text: "See your route, timings, and running cost on the left", cutout: { id: "onboard-sidebar", shape: "rect" } },
-  { icon: "⚖️", text: "Compare distilleries anytime from the menu", cutout: { id: "onboard-nav-distilleries", shape: "rect" } },
+  {
+    icon: "⚖️",
+    text: "Compare distilleries anytime from the menu",
+    cutout: { id: "onboard-nav-distilleries", shape: "rect" },
+    advanceOn: { id: "onboard-nav-distilleries" },
+  },
   {
     icon: "🌿",
     text: "Click to see further things to explore",
     cutout: { id: "onboard-toolbar-row", shape: "rect" },
     dot: { selector: '[data-category-id="natural-features"]' },
+    advanceOn: { selector: '[data-category-id="natural-features"]' },
   },
   {
     icon: "🥃",
     text: "Click Distilleries to return to main map",
     cutout: { id: "onboard-toolbar-row", shape: "rect" },
     dot: { selector: '[data-category-id="distilleries"]' },
+    advanceOn: { selector: '[data-category-id="distilleries"]' },
   },
 ];
 
@@ -201,6 +220,31 @@ export default function OnboardingOverlay() {
       }
     };
   }, [active, currentStep]);
+
+  // Following through on the real action (clicking the actual pin, the
+  // real "+Add" button, the real toolbar button) advances the tour too,
+  // not just clicking the tour's own "Next" - delegated at the document
+  // level so it still works even if the target element mounts after this
+  // effect runs (a popup's "+Add" button, for instance).
+  useEffect(() => {
+    if (!active || !currentStep.advanceOn) return;
+    const { selector, id } = currentStep.advanceOn;
+    const matchSelector = selector ?? (id ? `#${id}` : null);
+    if (!matchSelector) return;
+
+    function handleClick(e: MouseEvent) {
+      if ((e.target as HTMLElement).closest(matchSelector!)) {
+        if (step === STEPS.length - 1) {
+          setDismissed(true);
+          window.localStorage.setItem(STORAGE_KEY, "1");
+        } else {
+          setStep((s) => s + 1);
+        }
+      }
+    }
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, [active, step, currentStep]);
 
   if (!active) return null;
 
