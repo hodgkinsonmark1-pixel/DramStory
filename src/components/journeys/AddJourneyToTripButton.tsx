@@ -40,6 +40,13 @@ export default function AddJourneyToTripButton({
         const d = distilleries.find((x) => x.slug === slug);
         if (d) trip.addStop(dayIndex, d);
       }
+      if (day.overnight) {
+        trip.setAccommodation(dayIndex, {
+          name: day.overnight.village,
+          lat: day.overnight.lat,
+          lng: day.overnight.lng,
+        });
+      }
     });
     trip.completeIntake({
       timing: "planning",

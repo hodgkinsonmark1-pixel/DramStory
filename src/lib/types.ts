@@ -221,8 +221,21 @@ export type ItineraryStop = (
   customMinutes?: number;
 };
 
+/** Where a day's trip starts/ends - a real, verifiable place (a village,
+ *  or wherever the visitor tells us they're staying), NOT a specific
+ *  booked property. There's no accommodation affiliate/booking integration
+ *  yet, so this deliberately stops short of claiming any bookable
+ *  inventory - it exists purely so each day's route and drive-time totals
+ *  have a real start/end point instead of just floating between stops. */
+export interface TripAccommodation {
+  name: string;
+  lat: number;
+  lng: number;
+}
+
 export interface ItineraryDay {
   id: string;
   label: string;
   stops: ItineraryStop[];
+  accommodation?: TripAccommodation;
 }

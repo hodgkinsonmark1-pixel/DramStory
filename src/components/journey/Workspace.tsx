@@ -13,6 +13,7 @@ import { stopCoords, stopId, stopName, stopVisitMinutes, incrementVisitMinutes }
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MapCanvas from "./MapCanvas";
+import AccommodationControl from "./AccommodationControl";
 import TripEssentials from "./TripEssentials";
 import OnboardingOverlay from "./OnboardingOverlay";
 
@@ -156,7 +157,14 @@ export default function Workspace({
   // other days have stops" (show the more specific per-day message).
   const totalStops = days.reduce((sum, day) => sum + day.stops.length, 0);
 
-  const routeCoords = activeDay ? activeDay.stops.map(stopCoords) : [];
+  const accommodation = activeDay?.accommodation;
+  const stopCoordsForDay = activeDay ? activeDay.stops.map(stopCoords) : [];
+  // When a base is set, the day's route becomes a loop: base -> stops -> base,
+  // so drive-time/cost totals reflect the actual journey, not just
+  // stop-to-stop hops with the trip to/from home left out.
+  const routeCoords = accommodation
+    ? [{ lat: accommodation.lat, lng: accommodation.lng }, ...stopCoordsForDay, { lat: accommodation.lat, lng: accommodation.lng }]
+    : stopCoordsForDay;
   const { segments: routeSegments } = useRouteSegments(routeCoords);
 
   // Drive time + visit time totals for the currently viewed day. Prefers
@@ -166,7 +174,7 @@ export default function Workspace({
   // while waiting, they just start as an estimate and firm up shortly after.
   const driveSegments: number[] = [];
   if (activeDay) {
-    for (let i = 0; i < activeDay.stops.length - 1; i++) {
+    for (let i = 0; i < routeCoords.length - 1; i++) {
       const real = routeSegments[i];
       driveSegments.push(
         real?.durationMinutes ?? estimatedDriveMinutes(routeCoords[i], routeCoords[i + 1])
@@ -346,6 +354,8 @@ export default function Workspace({
               )}
             </div>
           </div>
+
+          <AccommodationControl dayIndex={activeDayIndex} accommodation={accommodation} />
 
           <div className="journey-stops">
             {isFlyingIn && activeDayIndex === 0 && (
@@ -650,6 +660,7 @@ export default function Workspace({
               localFeatures={isLive ? visibleLocalFeatures : []}
               highlightedDistillerySlugs={isLive ? highlightedDistillerySlugs : []}
               isLive={isLive}
+              accommodation={isLive ? accommodation : undefined}
               routeStops={routeCoords.reduce<{ lat: number; lng: number }[]>((points, coord, i) => {
                 if (i === 0) return [coord];
                 const real = routeSegments[i - 1];

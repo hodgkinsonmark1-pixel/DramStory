@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import type { Distillery, ItineraryDay, LocalFeature, Tour, TripIntake } from "@/lib/types";
+import type { Distillery, ItineraryDay, LocalFeature, Tour, TripAccommodation, TripIntake } from "@/lib/types";
 import { stopId } from "@/lib/itinerary-stop";
 
 const STORAGE_KEY = "dramstory-trip-v2";
@@ -44,6 +44,9 @@ interface TripContextValue {
   /** Finds every day a distillery currently appears on - used by the
    *  distillery page to show "already in your journey" state. */
   findStopDays: (distillerySlug: string) => number[];
+  /** Sets (or clears, if undefined) where a day starts/ends - see
+   *  TripAccommodation for why this is a place, not a booking. */
+  setAccommodation: (dayIndex: number, accommodation: TripAccommodation | undefined) => void;
 }
 
 const TripContext = createContext<TripContextValue | null>(null);
@@ -179,6 +182,10 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     [days]
   );
 
+  const setAccommodation = useCallback((dayIndex: number, accommodation: TripAccommodation | undefined) => {
+    setDays((prev) => prev.map((day, i) => (i === dayIndex ? { ...day, accommodation } : day)));
+  }, []);
+
   return (
     <TripContext.Provider
       value={{
@@ -196,6 +203,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         setStopMinutes,
         setTourForStop,
         findStopDays,
+        setAccommodation,
       }}
     >
       {children}

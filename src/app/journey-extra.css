@@ -168,6 +168,43 @@ select.location-inline-input {
   color: #c0392b;
 }
 
+.accommodation-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 13px;
+  color: var(--peat);
+  border-bottom: 1px solid var(--stone);
+  flex-wrap: wrap;
+}
+.accommodation-input {
+  flex: 1;
+  min-width: 140px;
+  padding: 6px 10px;
+  border: 1px solid var(--stone);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+.accommodation-btn {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: var(--copper);
+  cursor: pointer;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+.accommodation-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.accommodation-error {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: #c0392b;
+}
+
 /* Panel header is now just the "YOUR ITINERARY" eyebrow (title/subtitle
    removed - they duplicated info already shown in the top nav badge, and
    ate vertical space that mattered on shorter/narrower screens). */

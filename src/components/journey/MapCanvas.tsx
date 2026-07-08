@@ -27,6 +27,10 @@ interface MapCanvasProps {
    *  "1,8") but that was tuned for a short straight demo line; a real,
    *  winding road route needed a bolder treatment to stay legible. */
   routeStops?: { lat: number; lng: number }[];
+  /** Where the current day starts/ends, if the visitor has set one - a
+   *  distinct pin from the distillery markers, matching the "home" style
+   *  already used for ferry-port pins elsewhere on the site. */
+  accommodation?: { name: string; lat: number; lng: number };
 }
 
 // Rough center of Scotland, used when a region has no pins yet so the map
@@ -75,11 +79,13 @@ export default function MapCanvas({
   onAddFeature,
   highlightedDistillerySlugs = [],
   routeStops = [],
+  accommodation,
 }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Leaflet.Map | null>(null);
   const leafletRef = useRef<typeof Leaflet | null>(null);
   const routeLineRef = useRef<Leaflet.LayerGroup | null>(null);
+  const accommodationMarkerRef = useRef<Leaflet.Marker | null>(null);
   // One shared cluster group for distilleries AND Natural Features -
   // clustering everything together (not per-category) per request, so a
   // dense area shows one combined count rather than several overlapping
@@ -263,6 +269,35 @@ export default function MapCanvas({
       routeLineRef.current = L.layerGroup([casing, routeLine]).addTo(map);
     }
   }, [mapReady, routeStops]);
+
+  // Draws/updates/clears the accommodation ("home base") pin - deliberately
+  // a distinct marker style from distillery pins (a plain circle, not the
+  // whisky-glass teardrop), since this represents where you're staying,
+  // not something to visit or add a tour for.
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !leafletRef.current) return;
+    const L = leafletRef.current;
+    const map = mapRef.current;
+
+    if (accommodationMarkerRef.current) {
+      accommodationMarkerRef.current.remove();
+      accommodationMarkerRef.current = null;
+    }
+
+    if (accommodation) {
+      const marker = L.marker([accommodation.lat, accommodation.lng], {
+        icon: L.divIcon({
+          className: "",
+          html: `<div style="background:#5C7A99;color:white;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);font-size:15px">🏠</div>`,
+          iconSize: [30, 30],
+          iconAnchor: [15, 15],
+        }),
+      })
+        .bindPopup(`<div class="popup-inner"><div class="popup-tag">Staying here</div><div class="popup-name">${accommodation.name}</div></div>`)
+        .addTo(map);
+      accommodationMarkerRef.current = marker;
+    }
+  }, [mapReady, accommodation]);
 
   // Redraws Natural Feature pins whenever the visible list changes (a
   // filter toggle in the map toolbar, not a one-time mount). Adds/removes
