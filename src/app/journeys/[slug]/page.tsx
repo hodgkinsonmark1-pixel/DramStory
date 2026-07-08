@@ -59,6 +59,16 @@ export async function generateStaticParams() {
   return CLASSIC_JOURNEYS.map((j) => ({ slug: j.slug }));
 }
 
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const journey = CLASSIC_JOURNEYS.find((j) => j.slug === slug);
+  if (!journey) return {};
+  return {
+    title: `${journey.name} | DramStory`,
+    description: journey.description,
+  };
+}
+
 export default async function JourneyDetailPage({
   params,
 }: {
