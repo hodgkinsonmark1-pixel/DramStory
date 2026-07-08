@@ -315,7 +315,29 @@ export default function MapCanvas({
 
     if (localFeatures.length === 0) return;
 
+    // Distillery markers are always added individually, on top of
+    // everything else (never clustered) - a feature pin plotted at
+    // essentially the same coordinate (e.g. a Local Feature whose
+    // "Location Source" deliberately reuses a distillery's own verified
+    // point, like Machir Bay anchored to Kilchoman's car park) ends up
+    // fully hidden underneath it. Nudge just the on-screen position of
+    // any such feature a short, fixed distance away - real enough to stay
+    // visible, small enough not to misrepresent where it actually is.
+    const COLLISION_THRESHOLD_DEG = 0.0006; // ~65m at this latitude
+    function offsetIfCollidingWithDistillery(lat: number, lng: number): { lat: number; lng: number } {
+      for (const d of distilleries) {
+        if (!d.lat || !d.lng) continue;
+        const dLat = lat - d.lat;
+        const dLng = (lng - d.lng) * 0.56; // rough longitude compression at ~56°N
+        if (Math.sqrt(dLat * dLat + dLng * dLng) < COLLISION_THRESHOLD_DEG) {
+          return { lat: lat + 0.0008, lng: lng + 0.0008 };
+        }
+      }
+      return { lat, lng };
+    }
+
     const markers = localFeatures.map((f) => {
+      const pos = offsetIfCollidingWithDistillery(f.lat, f.lng);
       const color = FEATURE_COLORS[f.category];
       const icon = L.divIcon({
         className: "feature-marker",
@@ -324,7 +346,7 @@ export default function MapCanvas({
         iconAnchor: [13, 13],
         popupAnchor: [0, -13],
       });
-      const marker = L.marker([f.lat, f.lng], { icon });
+      const marker = L.marker([pos.lat, pos.lng], { icon });
       const categoryLabel = f.category.replace("-", " ");
       // "More info" now links to a real DramStory detail page (parking,
       // accessibility, hours, highlights, length/difficulty for walks and
@@ -347,7 +369,7 @@ export default function MapCanvas({
     });
 
     featureMarkersRef.current = markers;
-  }, [mapReady, localFeatures]);
+  }, [mapReady, localFeatures, distilleries]);
 
   // Pulsing ring behind any distillery hosting a Local Event within the
   // currently-selected date range - redrawn whenever that set changes
