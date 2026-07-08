@@ -115,7 +115,21 @@ export default function MapCanvas({
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       }).addTo(map);
 
-      const clusterGroup = L.markerClusterGroup({ maxClusterRadius: 50 });
+      const clusterGroup = L.markerClusterGroup({
+        maxClusterRadius: 50,
+        // Previously defaulted to true, which zoomed the map further in on
+        // every cluster click - the actual complaint was that this made
+        // it feel like clusters couldn't be "opened" in place. false makes
+        // a click spiderfy (fan out the individual pins) right where it
+        // is, at the current zoom, instead of moving the view at all.
+        zoomToBoundsOnClick: false,
+        // Once zoomed in this close, stop clustering altogether - every
+        // real pin renders individually and is always directly visible
+        // and clickable. This is what actually solves "I want to see
+        // multiple clusters open on the same screen": at this zoom
+        // there's nothing left to cluster, so there's nothing to open.
+        disableClusteringAtZoom: 15,
+      });
       clusterGroup.addTo(map);
       clusterGroupRef.current = clusterGroup;
 

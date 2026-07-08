@@ -20,16 +20,17 @@ export default function Hero() {
   const [selected, setSelected] = useState<string | null>(null);
 
   useEffect(() => {
-    // Trimmed ~1s off the full sequence (options used to appear at 4000ms)
-    // so the question doesn't feel like it takes too long to show up.
+    // Headline timing left as-is. Question and options now both appear
+    // at 0.8s (down from 2.2s/3s) - the full multi-second reveal felt
+    // slow before someone could even start answering Q1.
     const t1 = setTimeout(() => setTagVis(true), 400);
-    const t2 = setTimeout(() => setChevVis(true), 1400);
+    const t2 = setTimeout(() => setChevVis(true), 400);
     const t3 = setTimeout(() => {
       setQVis(true);
+      setOptVis(true);
       setChevVis(false);
-    }, 2200);
-    const t4 = setTimeout(() => setOptVis(true), 3000);
-    return () => [t1, t2, t3, t4].forEach(clearTimeout);
+    }, 800);
+    return () => [t1, t2, t3].forEach(clearTimeout);
   }, []);
 
   const options = [
@@ -40,7 +41,9 @@ export default function Hero() {
 
   function handleSelect(opt: (typeof options)[number]) {
     setSelected(opt.label);
-    setTimeout(() => router.push(`/journey?mode=${opt.mode}`), 420);
+    // Just long enough to register the "selected" visual state before
+    // navigating - not a deliberate pause, per the Q1->Q2 speed fix.
+    setTimeout(() => router.push(`/journey?mode=${opt.mode}`), 150);
   }
 
   return (

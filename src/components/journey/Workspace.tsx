@@ -105,6 +105,12 @@ export default function Workspace({
   const [showCostBreakdown, setShowCostBreakdown] = useState(false);
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [weatherMinimized, setWeatherMinimized] = useState(false);
+  // Weather box should only appear once the person has actually chosen a
+  // date - eventStartDate/eventMonth default to today so the weather data
+  // is technically always "available", but showing it before any date has
+  // been set makes it look like an unrequested distraction on first
+  // opening the map, not a response to something the person asked for.
+  const [datesConfirmed, setDatesConfirmed] = useState(false);
 
   const startingDayCount = TRIP_LENGTHS.find((t) => t.id === tripLength)?.days ?? 1;
   useEffect(() => {
@@ -319,7 +325,9 @@ export default function Workspace({
             {title}
             {lengthLabel ? ` · ${lengthLabel}` : ""}
           </span>
-          <Link href="/distilleries">Distilleries</Link>
+          <Link href="/distilleries" id="onboard-nav-distilleries">
+            Distilleries
+          </Link>
           <Link href="/" onClick={() => trip.resetTrip()}>
             Start over
           </Link>
@@ -327,7 +335,7 @@ export default function Workspace({
       </div>
 
       <div className="workspace-main">
-        <div className="journey-panel">
+        <div className="journey-panel" id="onboard-sidebar">
           <div className="panel-header">
             <div className="panel-eyebrow">Your itinerary</div>
           </div>
@@ -581,6 +589,7 @@ export default function Workspace({
                                   onChange={(e) => {
                                     const newStart = e.target.value;
                                     setEventStartDate(newStart);
+                                    setDatesConfirmed(true);
                                     if (daysBetween(newStart, eventEndDate) > 14 || daysBetween(newStart, eventEndDate) < 0) {
                                       setEventEndDate(addDays(newStart, 7));
                                     }
@@ -593,7 +602,10 @@ export default function Workspace({
                                   value={eventEndDate}
                                   min={eventStartDate}
                                   max={addDays(eventStartDate, 14)}
-                                  onChange={(e) => setEventEndDate(e.target.value)}
+                                  onChange={(e) => {
+                                    setEventEndDate(e.target.value);
+                                    setDatesConfirmed(true);
+                                  }}
                                 />
                               </>
                             ) : (
@@ -601,7 +613,10 @@ export default function Workspace({
                                 type="month"
                                 className="event-date-input"
                                 value={eventMonth}
-                                onChange={(e) => setEventMonth(e.target.value)}
+                                onChange={(e) => {
+                                  setEventMonth(e.target.value);
+                                  setDatesConfirmed(true);
+                                }}
                               />
                             )}
                           </>
@@ -655,7 +670,7 @@ export default function Workspace({
             </div>
           </div>
 
-          <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
+          <div style={{ position: "relative", flex: 1, minHeight: 0 }} id="onboard-map">
             <MapCanvas
               distilleries={isLive ? distilleries : []}
               localFeatures={isLive ? visibleLocalFeatures : []}
@@ -698,7 +713,7 @@ export default function Workspace({
                 {title} is on the roadmap — Islay is the only region loaded so far.
               </div>
             )}
-            {isLive && !weatherMinimized && (
+            {isLive && datesConfirmed && !weatherMinimized && (
               <div className="weather-popup">
                 <button
                   className="weather-popup-close"
@@ -729,7 +744,7 @@ export default function Workspace({
         </div>
       </div>
 
-      {isLive && weatherMinimized && (
+      {isLive && datesConfirmed && weatherMinimized && (
         <div className="below-map-section weather-banner-section">
           <div className="weather-banner">
             <span className="weather-banner-icon">🌤️</span>

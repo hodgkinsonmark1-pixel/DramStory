@@ -35,9 +35,6 @@ export default function TripLengthStep({ onNext, onBack }: TripLengthStepProps) 
       <div className="journey-header">
         <div className="journey-eyebrow">Building your journey &mdash; step 3 of 4</div>
         <h1 className="journey-title">How long will your adventure last?</h1>
-        <p style={{ marginTop: 12, color: "rgba(255,255,255,0.85)", fontSize: 15 }}>
-          We&rsquo;ll suggest the right number of distilleries
-        </p>
       </div>
 
       <div className="progress-dots">

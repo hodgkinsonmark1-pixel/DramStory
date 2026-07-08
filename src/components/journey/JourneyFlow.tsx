@@ -11,7 +11,10 @@ import Workspace from "./Workspace";
 
 interface JourneyFlowProps {
   timing: TripTiming;
-  distilleries: Distillery[];
+  /** Deferred, same reasoning as localFeaturesPromise/localEventsPromise -
+   *  Q2's primary region cards don't need this; only the secondary "a
+   *  specific distillery" dropdown does, and the workspace step. */
+  distilleriesPromise: Promise<Distillery[]>;
   /** Deliberately an unresolved Promise, not a plain array - Local
    *  Features isn't needed until the final "workspace" step, so the page
    *  no longer blocks Q2/Step3/Q4 on this fetch resolving. Unwrapped via
@@ -35,19 +38,20 @@ type Step = "location" | "tripLength" | "interests" | "workspace";
 /** Tiny wrapper so use() (which suspends) is isolated to just this
  *  component - only the workspace step ever waits on Local Features/Events. */
 function WorkspaceWithFeatures(props: {
+  distilleriesPromise: Promise<Distillery[]>;
   localFeaturesPromise: Promise<LocalFeature[]>;
   localEventsPromise: Promise<LocalEvent[]>;
-  distilleries: Distillery[];
   location: LocationAnswer;
   tripLength: TripLength;
   initialInterests: InterestCategoryId[];
   timing: TripTiming;
 }) {
+  const distilleries = use(props.distilleriesPromise);
   const localFeatures = use(props.localFeaturesPromise);
   const localEvents = use(props.localEventsPromise);
   return (
     <Workspace
-      distilleries={props.distilleries}
+      distilleries={distilleries}
       localFeatures={localFeatures}
       localEvents={localEvents}
       location={props.location}
@@ -64,7 +68,7 @@ function WorkspaceWithFeatures(props: {
  * -> workspace (map + itinerary). `timing` arrives here as the ?mode=
  * query param from the homepage.
  */
-export default function JourneyFlow({ timing, distilleries, localFeaturesPromise, localEventsPromise, resume }: JourneyFlowProps) {
+export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, resume }: JourneyFlowProps) {
   const router = useRouter();
   const trip = useTrip();
   const [step, setStep] = useState<Step>("location");
@@ -96,7 +100,7 @@ export default function JourneyFlow({ timing, distilleries, localFeaturesPromise
   if (step === "location") {
     return (
       <LocationStep
-        distilleries={distilleries}
+        distilleriesPromise={distilleriesPromise}
         onBack={() => router.push("/")}
         onNext={(answer) => {
           setLocation(answer);
@@ -137,9 +141,9 @@ export default function JourneyFlow({ timing, distilleries, localFeaturesPromise
   return (
     <Suspense fallback={<div className="workspace-root" />}>
       <WorkspaceWithFeatures
+        distilleriesPromise={distilleriesPromise}
         localFeaturesPromise={localFeaturesPromise}
         localEventsPromise={localEventsPromise}
-        distilleries={distilleries}
         location={location!}
         tripLength={tripLength!}
         initialInterests={interests}

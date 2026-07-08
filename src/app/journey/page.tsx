@@ -13,7 +13,13 @@ export default async function JourneyPage({
 }: {
   searchParams: Promise<{ mode?: string; resume?: string }>;
 }) {
-  const [{ mode, resume }, distilleries] = await Promise.all([searchParams, getDistilleries()]);
+  const { mode, resume } = await searchParams;
+  // Deliberately NOT awaited, same reasoning as Local Features/Events
+  // below: Q2's primary region cards don't touch distillery data at all -
+  // only the secondary "a specific distillery" dropdown does. Blocking
+  // the whole page (including Q2's first paint) on this Airtable
+  // round-trip was adding real, needless lag to every Q1->Q2 navigation.
+  const distilleriesPromise = getDistilleries();
   // Deliberately NOT awaited - neither Local Features nor Local Events is
   // needed until the final "workspace" step (Q2/Step3/Q4 don't touch
   // either), so blocking the whole page on these fetches was adding real,
@@ -26,7 +32,7 @@ export default async function JourneyPage({
   return (
     <JourneyFlow
       timing={parseTiming(mode)}
-      distilleries={distilleries}
+      distilleriesPromise={distilleriesPromise}
       localFeaturesPromise={localFeaturesPromise}
       localEventsPromise={localEventsPromise}
       resume={resume === "1"}

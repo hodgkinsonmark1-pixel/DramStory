@@ -796,9 +796,63 @@ select.location-inline-input {
   color: var(--green-deep);
 }
 
-/* Onboarding overlay - a small floating card, NOT a modal. No backdrop,
-   nothing blocks interaction with the page underneath. Bottom-right so it
-   doesn't cover the map or the itinerary sidebar. */
+/* Onboarding spotlight walkthrough - darkened layer + cutout + marker are
+   all pointer-events: none, so nothing here can ever block a real click
+   on the page underneath. Only the caption card's own buttons interact. */
+.onboarding-dark-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 490;
+  pointer-events: none;
+}
+.onboarding-cutout {
+  position: fixed;
+  border-radius: 14px;
+  box-shadow: 0 0 0 9999px rgba(20, 20, 20, 0.62);
+  transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
+  pointer-events: none;
+}
+.onboarding-marker {
+  position: fixed;
+  z-index: 491;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  transition: top 0.25s ease, left 0.25s ease;
+}
+.onboarding-marker-dot {
+  position: absolute;
+  top: -7px;
+  left: -7px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--amber, #d97706);
+  box-shadow: 0 0 0 2px white;
+}
+.onboarding-marker-ping {
+  position: absolute;
+  top: -18px;
+  left: -18px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--amber, #d97706);
+  opacity: 0.5;
+  animation: onboarding-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes onboarding-ping {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.55;
+  }
+  75%,
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
 .onboarding-card {
   position: fixed;
   bottom: 24px;

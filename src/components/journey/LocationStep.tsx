@@ -1,18 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, use, useState } from "react";
 import type { Distillery, LocationAnswer } from "@/lib/types";
 import { REGIONS } from "@/lib/journey-options";
 import SiteHeader from "@/components/SiteHeader";
 import BackgroundImage from "@/components/BackgroundImage";
 
 interface LocationStepProps {
-  distilleries: Distillery[];
+  /** Deferred - Q2's primary region cards don't need distillery data at
+   *  all, so this is only resolved (via Suspense, below) once someone
+   *  actually picks "a specific distillery". */
+  distilleriesPromise: Promise<Distillery[]>;
   onNext: (answer: LocationAnswer) => void;
   onBack: () => void;
 }
 
 type OptionId = "islay" | "speyside" | "highland" | "campbeltown" | "lowland" | "airport" | "distillery";
+
+/** Resolves the distilleries promise - isolated to its own component so
+ *  Suspense only affects this dropdown, never Q2's initial paint. */
+function DistilleryPicker({
+  distilleriesPromise,
+  onNext,
+}: {
+  distilleriesPromise: Promise<Distillery[]>;
+  onNext: (answer: LocationAnswer) => void;
+}) {
+  const distilleries = use(distilleriesPromise);
+  return (
+    <select
+      className="q-card location-inline-input"
+      defaultValue=""
+      onChange={(e) => {
+        if (e.target.value) onNext({ kind: "distillery", distillerySlug: e.target.value });
+      }}
+      autoFocus
+    >
+      <option value="">Choose a distillery…</option>
+      {distilleries.map((d) => (
+        <option key={d.slug} value={d.slug}>
+          {d.name} · {d.region}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 /**
  * Q2 - "Where does your story take you?"
@@ -21,7 +53,7 @@ type OptionId = "islay" | "speyside" | "highland" | "campbeltown" | "lowland" | 
  * (typing an airport, picking a distillery), so those advance on Enter /
  * on selecting a dropdown value instead of on the initial card click.
  */
-export default function LocationStep({ distilleries, onNext, onBack }: LocationStepProps) {
+export default function LocationStep({ distilleriesPromise, onNext, onBack }: LocationStepProps) {
   const [selected, setSelected] = useState<OptionId | null>(null);
   const [airportName, setAirportName] = useState("");
 
@@ -77,21 +109,9 @@ export default function LocationStep({ distilleries, onNext, onBack }: LocationS
         )}
 
         {selected === "distillery" ? (
-          <select
-            className="q-card location-inline-input"
-            defaultValue=""
-            onChange={(e) => {
-              if (e.target.value) onNext({ kind: "distillery", distillerySlug: e.target.value });
-            }}
-            autoFocus
-          >
-            <option value="">Choose a distillery…</option>
-            {distilleries.map((d) => (
-              <option key={d.slug} value={d.slug}>
-                {d.name} · {d.region}
-              </option>
-            ))}
-          </select>
+          <Suspense fallback={<div className="q-card location-inline-input">Loading distilleries…</div>}>
+            <DistilleryPicker distilleriesPromise={distilleriesPromise} onNext={onNext} />
+          </Suspense>
         ) : (
           <button className="q-card" onClick={() => setSelected("distillery")}>
             A specific distillery
