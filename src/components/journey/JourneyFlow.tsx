@@ -80,6 +80,11 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
   // Runs once trip.ready flips true (localStorage hydration completes):
   // - resume=1 + a saved intake exists -> jump straight to the workspace
   //   with those saved answers (the "Back to your journey" case)
+  // - resume=1 + no intake but real stops exist -> a trip started
+  //   directly from a distillery page's "+ Add to Journey" button, which
+  //   never goes through Q1-Q4 and so never sets intake. Jump to the
+  //   workspace anyway with sensible defaults, rather than stranding the
+  //   visitor back at Q1 despite having a real trip with real stops.
   // - otherwise -> clear any stale trip so a fresh Q1 visit always starts
   //   clean, never silently continuing an old session
   useEffect(() => {
@@ -89,6 +94,12 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
       setLocation(trip.intake.location);
       setTripLength(trip.intake.tripLength);
       setInterests(trip.intake.interests);
+      setStep("workspace");
+    } else if (resume && !trip.intake && trip.days.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLocation({ kind: "region", region: "islay" });
+      setTripLength("week-plus");
+      setInterests(["distilleries"]);
       setStep("workspace");
     } else if (!resume && (trip.intake || trip.days.length > 0)) {
       trip.resetTrip();

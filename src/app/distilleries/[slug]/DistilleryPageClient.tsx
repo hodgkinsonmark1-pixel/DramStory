@@ -17,6 +17,14 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
   const inJourney = stopDays.length > 0;
   const totalStops = trip.days.reduce((sum, day) => sum + day.stops.length, 0);
   const safeCurrentDayIndex = Math.min(trip.currentDayIndex, Math.max(0, trip.days.length - 1));
+  // A real journey session exists if either signal says so: the intake
+  // flow (Q1-Q4) was completed, OR real stops exist even without ever
+  // going through that flow (starting straight from a distillery page's
+  // "+ Add to Journey" button, which doesn't set intake). Previously
+  // gated on totalStops > 0 alone, which sent visitors to the flat
+  // distilleries list instead of back to their actual map/workspace the
+  // moment their current day happened to be empty.
+  const hasActiveJourney = trip.ready && (trip.intake !== null || totalStops > 0);
 
   // Tours apply to whichever day(s) this distillery is actually already on
   // (stopDays, computed above). If it isn't in the journey at all yet, it
@@ -54,9 +62,9 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
 
   return (
     <div className="distillery-page page">
-      <Link href={totalStops > 0 ? "/journey?resume=1" : "/distilleries"} className="dist-back-bar">
-        <span>&larr; {totalStops > 0 ? "Back to your journey" : "Back to distilleries"}</span>
-        {totalStops > 0 && <span className="dist-back-stops">{totalStops} stop{totalStops > 1 ? "s" : ""}</span>}
+      <Link href={hasActiveJourney ? "/journey?resume=1" : "/distilleries"} className="dist-back-bar">
+        <span>&larr; {hasActiveJourney ? "Back to your journey" : "Back to distilleries"}</span>
+        {hasActiveJourney && totalStops > 0 && <span className="dist-back-stops">{totalStops} stop{totalStops > 1 ? "s" : ""}</span>}
       </Link>
 
       <div className="distillery-hero">
