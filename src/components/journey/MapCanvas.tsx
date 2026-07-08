@@ -356,18 +356,35 @@ export default function MapCanvas({
     // target pixel distance into the right number of degrees for the
     // current zoom level (currentZoom, kept in sync via the map's
     // moveend/zoomend listener above).
+    //
+    // Capped at a maximum real-world distance: zoomed out across the
+    // whole island, a cluster badge already represents many pins spread
+    // over a wide area, and its on-screen position is the centroid of
+    // ALL of them (Leaflet's own clustering, not something this offset
+    // controls) - letting the pixel-based offset keep growing at low
+    // zoom just compounded with that natural drift and pushed things
+    // further from the distillery than intended. A ~110m cap means this
+    // mostly only does real work at village-level zoom, which is where
+    // it's actually needed - at whole-island zoom a large cluster badge
+    // isn't at real risk of being fully hidden behind a single thin pin
+    // the way an individual marker was.
     const COLLISION_THRESHOLD_PX = 40;
     const OFFSET_DISTANCE_PX = 36;
+    const MAX_OFFSET_DEG = 0.001; // ~110m
     const metersPerPixel = (156543.03392 * Math.cos((ISLAY_CENTER[0] * Math.PI) / 180)) / Math.pow(2, currentZoom);
     const collisionThresholdDeg = (COLLISION_THRESHOLD_PX * metersPerPixel) / 111320;
-    const offsetDistanceDeg = (OFFSET_DISTANCE_PX * metersPerPixel) / 111320;
+    const offsetDistanceDeg = Math.min((OFFSET_DISTANCE_PX * metersPerPixel) / 111320, MAX_OFFSET_DEG);
+    // Longitude degrees are shorter in real distance than latitude degrees
+    // away from the equator - applying the same degree value to both
+    // (tried first) over-corrected longitude by roughly 1/cos(56°) ≈ 1.8x.
+    const offsetDistanceLngDeg = offsetDistanceDeg / 0.56;
     function offsetIfCollidingWithDistillery(lat: number, lng: number): { lat: number; lng: number } {
       for (const d of distilleries) {
         if (!d.lat || !d.lng) continue;
         const dLat = lat - d.lat;
         const dLng = (lng - d.lng) * 0.56; // rough longitude compression at ~56°N
         if (Math.sqrt(dLat * dLat + dLng * dLng) < collisionThresholdDeg) {
-          return { lat: lat + offsetDistanceDeg, lng: lng + offsetDistanceDeg };
+          return { lat: lat + offsetDistanceDeg, lng: lng + offsetDistanceLngDeg };
         }
       }
       return { lat, lng };
