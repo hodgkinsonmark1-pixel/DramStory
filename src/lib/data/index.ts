@@ -89,6 +89,11 @@ async function fetchDistilleriesFromAirtable(): Promise<Distillery[]> {
           .map(mapLocalFeature),
         nextStops: [] as string[], // filled in below, once every distillery is mapped
         bookingUrl: f["Booking URL"],
+        statusNotice: f["Status Notice"] || undefined,
+        gallery: (f.Gallery ?? []).map((a) => a.url),
+        funFacts: f["Fun Facts"] || undefined,
+        history: f.History || undefined,
+        whiskyProfile: f["Whisky Profile"] || undefined,
         source: "airtable" as const,
       };
     });

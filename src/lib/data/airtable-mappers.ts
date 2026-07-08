@@ -29,6 +29,11 @@ export interface AirtableDistilleryFields {
   "Booking URL"?: string;
   Tours?: string[]; // linked record IDs -> Tours table
   "Local Features"?: string[]; // linked record IDs -> Local Features table
+  "Status Notice"?: string;
+  Gallery?: AirtableAttachment[];
+  "Fun Facts"?: string;
+  History?: string;
+  "Whisky Profile"?: string;
 }
 
 export interface AirtableTourFields {

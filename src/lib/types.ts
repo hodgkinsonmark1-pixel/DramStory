@@ -94,6 +94,19 @@ export interface Distillery {
   nearby: NearbyFeature[];
   nextStops: string[];
   bookingUrl?: string;
+  /** Operational callout - production pause, closure, seasonal notice.
+   *  Undefined/empty when there's nothing to flag. */
+  statusNotice?: string;
+  /** Photo gallery beyond the single Hero Image. */
+  gallery?: string[];
+  /** Short scannable "did you know" bullets - markdown list, colour/
+   *  atmosphere rigour rather than hard-fact rigour. */
+  funFacts?: string;
+  /** "Below the line" deep-read content - founding story, ownership,
+   *  notable moments. */
+  history?: string;
+  /** House style, core expressions, tasting notes. */
+  whiskyProfile?: string;
   source: DataSource;
 }
 

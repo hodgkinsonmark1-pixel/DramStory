@@ -93,6 +93,13 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
         </div>
       </div>
 
+      {d.statusNotice && (
+        <div className="dist-status-notice">
+          <span className="dist-status-icon">!</span>
+          <p>{d.statusNotice}</p>
+        </div>
+      )}
+
       <div className="distillery-body">
         <div className="dist-grid">
           <div>
@@ -101,8 +108,40 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
               <p className="dist-p" style={{ fontStyle: "italic", marginBottom: 12 }}>
                 {d.tagline}
               </p>
-              <p className="dist-p">{d.description}</p>
+              {d.description.split("\n\n").map((para, i) => (
+                <p className="dist-p" key={i} style={{ marginBottom: 12 }}>
+                  {para}
+                </p>
+              ))}
             </div>
+
+            {d.funFacts && (
+              <div className="dist-section">
+                <div className="dist-section-title">Fun facts</div>
+                <ul className="fun-facts-list">
+                  {d.funFacts
+                    .split("\n")
+                    .map((line) => line.replace(/^-\s*/, "").trim())
+                    .filter(Boolean)
+                    .map((fact, i) => (
+                      <li key={i}>{fact}</li>
+                    ))}
+                </ul>
+              </div>
+            )}
+
+            {d.gallery && d.gallery.length > 0 && (
+              <div className="dist-section">
+                <div className="dist-section-title">Gallery</div>
+                <div className="dist-gallery-grid">
+                  {d.gallery.map((url, i) => (
+                    <div className="dist-gallery-img" key={i}>
+                      <Image src={url} alt={`${d.name} photo ${i + 1}`} fill unoptimized style={{ objectFit: "cover" }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="dist-section" id="tours">
               <div className="dist-section-title">Tours</div>
@@ -142,6 +181,27 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {(d.history || d.whiskyProfile) && (
+              <div className="dist-below-line">
+                {d.whiskyProfile && (
+                  <div className="dist-section">
+                    <div className="dist-section-title">Whisky profile</div>
+                    <p className="dist-p">{d.whiskyProfile}</p>
+                  </div>
+                )}
+                {d.history && (
+                  <div className="dist-section">
+                    <div className="dist-section-title">History</div>
+                    {d.history.split("\n\n").map((para, i) => (
+                      <p className="dist-p" key={i} style={{ marginBottom: 12 }}>
+                        {para}
+                      </p>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
