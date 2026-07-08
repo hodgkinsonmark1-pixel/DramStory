@@ -84,6 +84,10 @@ export default function MapCanvas({
   const clusterGroupRef = useRef<Leaflet.MarkerClusterGroup | null>(null);
   const featureMarkersRef = useRef<Leaflet.Marker[]>([]);
   const highlightMarkersRef = useRef<Leaflet.Marker[]>([]);
+  // Keyed by distillery slug - lets the onboarding walkthrough open a
+  // specific real marker's popup (e.g. Bowmore) programmatically, rather
+  // than requiring an actual click during the passive walkthrough.
+  const distilleryMarkersBySlugRef = useRef<Record<string, Leaflet.Marker>>({});
   const [mapReady, setMapReady] = useState(false);
   const onAddRef = useRef(onAddDistillery);
   useEffect(() => {
@@ -136,18 +140,25 @@ export default function MapCanvas({
       // Simple brand-colored dot marker instead of Leaflet's default pin -
       // sidesteps the well-known bundler icon-path issue and matches the
       // site's whisky-glass emoji used elsewhere for distilleries.
-      const distilleryIcon = L.divIcon({
-        className: "distillery-marker",
-        html: `<div style="background:var(--navy,#1A3A4A);color:white;width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"><span style="transform:rotate(45deg);font-size:14px">🥃</span></div>`,
-        iconSize: [32, 32],
-        iconAnchor: [16, 32],
-        popupAnchor: [0, -32],
-      });
+      // Built per-distillery (not one shared icon) so each marker's DOM
+      // element carries its own data-distillery-slug - this is how the
+      // onboarding walkthrough finds a specific real marker (e.g. Bowmore)
+      // to spotlight, rather than just the whole map region.
+      function buildDistilleryIcon(slug: string) {
+        return L.divIcon({
+          className: "distillery-marker",
+          html: `<div data-distillery-slug="${slug}" style="background:var(--navy,#1A3A4A);color:white;width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"><span style="transform:rotate(45deg);font-size:14px">🥃</span></div>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          popupAnchor: [0, -32],
+        });
+      }
 
       const markers: Leaflet.Marker[] = [];
+      const slugToMarker: Record<string, Leaflet.Marker> = {};
       for (const d of distilleries) {
         if (!d.lat || !d.lng) continue;
-        const marker = L.marker([d.lat, d.lng], { icon: distilleryIcon });
+        const marker = L.marker([d.lat, d.lng], { icon: buildDistilleryIcon(d.slug) });
         marker.bindPopup(
           `<div class="popup-inner">
             <div class="popup-tag">${d.style || "Distillery"}</div>
@@ -169,7 +180,9 @@ export default function MapCanvas({
         // Attractions pins still cluster (see the other marker loop below).
         marker.addTo(map);
         markers.push(marker);
+        slugToMarker[d.slug] = marker;
       }
+      distilleryMarkersBySlugRef.current = slugToMarker;
 
       if (markers.length > 0) {
         const group = L.featureGroup(markers);
@@ -330,6 +343,26 @@ export default function MapCanvas({
 
     highlightMarkersRef.current = newHighlights;
   }, [mapReady, highlightedDistillerySlugs, distilleries]);
+
+  // Lets the onboarding walkthrough open (and later close) a specific real
+  // distillery's popup programmatically, e.g. to show what "Add it to
+  // your Journey" actually looks like without requiring a real click.
+  useEffect(() => {
+    function handleOpen(e: Event) {
+      const slug = (e as CustomEvent<{ slug: string }>).detail?.slug;
+      distilleryMarkersBySlugRef.current[slug]?.openPopup();
+    }
+    function handleClose(e: Event) {
+      const slug = (e as CustomEvent<{ slug: string }>).detail?.slug;
+      distilleryMarkersBySlugRef.current[slug]?.closePopup();
+    }
+    window.addEventListener("onboarding:open-distillery-popup", handleOpen);
+    window.addEventListener("onboarding:close-distillery-popup", handleClose);
+    return () => {
+      window.removeEventListener("onboarding:open-distillery-popup", handleOpen);
+      window.removeEventListener("onboarding:close-distillery-popup", handleClose);
+    };
+  }, []);
 
   return <div id="map" ref={containerRef} />;
 }

@@ -812,6 +812,9 @@ select.location-inline-input {
   transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
   pointer-events: none;
 }
+.onboarding-cutout-circle {
+  border-radius: 50%;
+}
 .onboarding-marker {
   position: fixed;
   z-index: 491;
@@ -882,6 +885,14 @@ select.location-inline-input {
 }
 .onboarding-icon {
   font-size: 28px;
+  margin-bottom: 10px;
+}
+.onboarding-heading {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--copper);
   margin-bottom: 10px;
 }
 .onboarding-text {
