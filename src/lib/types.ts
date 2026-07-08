@@ -30,7 +30,7 @@ export interface LocalFeature {
   id: string;
   slug: string;
   name: string;
-  category: "beach" | "walk" | "bike-route" | "local-gem" | "historic-site" | "attraction-gem" | "pub" | "cafe" | "restaurant" | "golf" | "spa";
+  category: "beach" | "walk" | "bike-route" | "local-gem" | "historic-site" | "attraction-gem" | "pub" | "cafe" | "restaurant" | "golf" | "spa" | "transport";
   icon: string;
   description: string;
   lat: number;

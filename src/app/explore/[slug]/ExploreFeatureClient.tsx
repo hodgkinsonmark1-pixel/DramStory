@@ -20,6 +20,7 @@ const CATEGORY_LABELS: Record<LocalFeature["category"], string> = {
   restaurant: "Restaurant",
   golf: "Golf",
   spa: "Spa",
+  transport: "Transport",
 };
 
 const CATEGORY_COLORS: Record<LocalFeature["category"], string> = {
@@ -34,6 +35,7 @@ const CATEGORY_COLORS: Record<LocalFeature["category"], string> = {
   restaurant: "#4A6A8A",
   golf: "#4A7A4A",
   spa: "#C77DA6",
+  transport: "#5C7A99",
 };
 
 export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClientProps) {

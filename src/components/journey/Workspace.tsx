@@ -206,6 +206,7 @@ export default function Workspace({
     "Historic Sites": ["historic-site"],
     "Local Gems": ["attraction-gem"],
     "Golf & Spa": ["golf", "spa"],
+    Transport: ["transport"],
   };
   const localAttractionsActive = activeCategories.has("local-attractions");
   const activeAttractionSubcats = Array.from(activeSubcats)
@@ -238,7 +239,7 @@ export default function Workspace({
     ...(localAttractionsActive
       ? localFeatures.filter(
           (f) =>
-            (f.category === "historic-site" || f.category === "attraction-gem" || f.category === "golf" || f.category === "spa") &&
+            (f.category === "historic-site" || f.category === "attraction-gem" || f.category === "golf" || f.category === "spa" || f.category === "transport") &&
             (activeAttractionSubcats.length === 0 || activeAttractionSubcats.includes(f.category))
         )
       : []),

@@ -141,6 +141,7 @@ const LOCAL_FEATURE_CATEGORY_MAP: Record<string, LocalFeature["category"] | unde
   Restaurant: "restaurant",
   Golf: "golf",
   Spa: "spa",
+  "Ferry Port": "transport",
 };
 
 /** Maps a raw Local Features record into a map-plottable LocalFeature.

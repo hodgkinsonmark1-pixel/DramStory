@@ -68,7 +68,7 @@ export const INTEREST_CATEGORIES: InterestCategoryOption[] = [
     id: "local-attractions",
     label: "Local Attractions",
     icon: "🏛️",
-    subcategories: ["Historic Sites", "Golf & Spa", "Local Gems"],
+    subcategories: ["Historic Sites", "Golf & Spa", "Local Gems", "Transport"],
   },
   {
     id: "local-events",

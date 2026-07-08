@@ -49,6 +49,7 @@ const FEATURE_COLORS: Record<LocalFeature["category"], string> = {
   restaurant: "#4A6A8A",
   golf: "#4A7A4A",
   spa: "#C77DA6",
+  transport: "#5C7A99",
 };
 
 /**
