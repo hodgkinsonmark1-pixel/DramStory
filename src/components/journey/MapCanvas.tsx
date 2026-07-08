@@ -156,7 +156,7 @@ export default function MapCanvas({
       function buildDistilleryIcon(slug: string) {
         return L.divIcon({
           className: "distillery-marker",
-          html: `<div data-distillery-slug="${slug}" style="background:var(--navy,#1A3A4A);color:white;width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"><span style="transform:rotate(45deg);font-size:14px">🥃</span></div>`,
+          html: `<div data-distillery-slug="${slug}" style="background:var(--navy,#1A3A4A);color:white;width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;border:2px solid white"><span style="transform:rotate(45deg);font-size:14px">🥃</span></div>`,
           iconSize: [32, 32],
           iconAnchor: [16, 32],
           popupAnchor: [0, -32],
