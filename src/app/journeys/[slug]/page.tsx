@@ -6,6 +6,8 @@ import type { JourneyStop } from "@/lib/journeys-data";
 import type { Distillery } from "@/lib/types";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
+import JourneyDayMap from "@/components/journeys/JourneyDayMap";
+import AddJourneyToTripButton from "@/components/journeys/AddJourneyToTripButton";
 
 function JourneyStopsRow({
   label,
@@ -149,6 +151,20 @@ export default async function JourneyDetailPage({
                     </div>
                   )}
 
+                  {day.overnight &&
+                    (() => {
+                      const dayDistilleries = [...day.morning, ...day.afternoon]
+                        .filter((s) => s.kind === "distillery")
+                        .map((s) => distilleries.find((d) => d.slug === s.distillerySlug))
+                        .filter((d): d is Distillery => !!d);
+                      if (dayDistilleries.length === 0) return null;
+                      return (
+                        <div style={{ marginTop: 12 }}>
+                          <JourneyDayMap base={{ ...day.overnight }} stops={dayDistilleries} />
+                        </div>
+                      );
+                    })()}
+
                   <div style={{ fontSize: 13, color: "var(--slate)", marginTop: 10, fontWeight: 500 }}>
                     {day.overnight ? `Overnight: ${day.overnight.village}` : "Departure day"}
                   </div>
@@ -213,21 +229,25 @@ export default async function JourneyDetailPage({
           })}
         </div>
 
-        <Link
-          href="/"
-          style={{
-            display: "inline-block",
-            padding: "14px 28px",
-            background: "var(--navy)",
-            color: "white",
-            borderRadius: "var(--radius-sm)",
-            textDecoration: "none",
-            fontSize: 14,
-            fontWeight: 500,
-          }}
-        >
-          Start planning this route &rarr;
-        </Link>
+        {journey.days && journey.days.length > 0 ? (
+          <AddJourneyToTripButton journey={journey} distilleries={distilleries} />
+        ) : (
+          <Link
+            href="/"
+            style={{
+              display: "inline-block",
+              padding: "14px 28px",
+              background: "var(--navy)",
+              color: "white",
+              borderRadius: "var(--radius-sm)",
+              textDecoration: "none",
+              fontSize: 14,
+              fontWeight: 500,
+            }}
+          >
+            Start planning this route &rarr;
+          </Link>
+        )}
       </div>
 
       <Footer />
