@@ -61,9 +61,10 @@ select.location-inline-input {
   color: var(--green-deep);
 }
 .subcat-chip.active {
-  background: var(--green-light);
+  background: var(--green-deep);
   border-color: var(--green-deep);
-  color: var(--green-deep);
+  color: white;
+  font-weight: 600;
 }
 
 /* Map popups use .popup-inner/.popup-tag/.popup-name/.popup-region/
