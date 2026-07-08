@@ -9,10 +9,19 @@ const STORAGE_KEY = "dramstory-trip-v2";
 interface StoredTrip {
   days: ItineraryDay[];
   intake: TripIntake | null;
+  currentDayIndex: number;
 }
 
 interface TripContextValue {
   days: ItineraryDay[];
+  /** Which day is currently being viewed/edited - shared across the whole
+   *  app (not just local Workspace state) so that adding a distillery or
+   *  tour from that distillery's own page lands on the day the visitor was
+   *  actually looking at, and so navigating away to a distillery page and
+   *  back to /journey returns to the same day rather than resetting to
+   *  Day 1. Persisted alongside days/intake for the same reason. */
+  currentDayIndex: number;
+  setCurrentDayIndex: (index: number) => void;
   /** The completed Q2/Step3/Q4 answers, once the visitor has been through
    *  the intake flow at least once - lets "Back to your journey" (from a
    *  distillery page) jump straight to the workspace instead of
@@ -33,6 +42,9 @@ interface TripContextValue {
   addFeatureStop: (dayIndex: number, feature: LocalFeature) => void;
   /** Removes any stop (distillery or feature) by its stopId(). */
   removeStop: (dayIndex: number, id: string) => void;
+  /** Swaps a stop with its neighbor - lets a visitor reorder a day without
+   *  deleting and re-adding (which would also lose any picked tour). */
+  moveStop: (dayIndex: number, stopIndex: number, direction: -1 | 1) => void;
   /** Sets a visitor-adjusted visit duration for a stop (the +/- toggle
    *  next to "~X visit"). */
   setStopMinutes: (dayIndex: number, id: string, minutes: number) => void;
@@ -54,6 +66,7 @@ const TripContext = createContext<TripContextValue | null>(null);
 export function TripProvider({ children }: { children: React.ReactNode }) {
   const [days, setDays] = useState<ItineraryDay[]>([]);
   const [intake, setIntake] = useState<TripIntake | null>(null);
+  const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [ready, setReady] = useState(false);
 
   // Reads localStorage after mount rather than in a lazy useState
@@ -70,6 +83,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setDays(parsed.days ?? []);
         setIntake(parsed.intake ?? null);
+        setCurrentDayIndex(parsed.currentDayIndex ?? 0);
       }
     } catch {
       // Corrupt or inaccessible storage - just start fresh.
@@ -82,12 +96,12 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!ready) return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ days, intake }));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ days, intake, currentDayIndex }));
     } catch {
       // Storage full or unavailable - the trip still works for this
       // session, it just won't survive a reload.
     }
-  }, [days, intake, ready]);
+  }, [days, intake, currentDayIndex, ready]);
 
   const initDays = useCallback((count: number) => {
     setDays((prev) => {
@@ -107,6 +121,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   const resetTrip = useCallback(() => {
     setDays([]);
     setIntake(null);
+    setCurrentDayIndex(0);
   }, []);
 
   const addDay = useCallback(() => {
@@ -143,6 +158,22 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   const removeStop = useCallback((dayIndex: number, id: string) => {
     setDays((prev) =>
       prev.map((day, i) => (i === dayIndex ? { ...day, stops: day.stops.filter((s) => stopId(s) !== id) } : day))
+    );
+  }, []);
+
+  /** Swaps a stop with its neighbor in either direction - lets a visitor
+   *  fix the order of a day without deleting and re-adding stops (which
+   *  also loses any tour already picked for that stop). */
+  const moveStop = useCallback((dayIndex: number, stopIndex: number, direction: -1 | 1) => {
+    setDays((prev) =>
+      prev.map((day, i) => {
+        if (i !== dayIndex) return day;
+        const target = stopIndex + direction;
+        if (target < 0 || target >= day.stops.length) return day;
+        const stops = [...day.stops];
+        [stops[stopIndex], stops[target]] = [stops[target], stops[stopIndex]];
+        return { ...day, stops };
+      })
     );
   }, []);
 
@@ -190,6 +221,8 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     <TripContext.Provider
       value={{
         days,
+        currentDayIndex,
+        setCurrentDayIndex,
         intake,
         ready,
         initDays,
@@ -200,6 +233,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         addStop,
         addFeatureStop,
         removeStop,
+        moveStop,
         setStopMinutes,
         setTourForStop,
         findStopDays,

@@ -16,18 +16,17 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
   const stopDays = trip.ready ? trip.findStopDays(d.slug) : [];
   const inJourney = stopDays.length > 0;
   const totalStops = trip.days.reduce((sum, day) => sum + day.stops.length, 0);
+  const safeCurrentDayIndex = Math.min(trip.currentDayIndex, Math.max(0, trip.days.length - 1));
 
   // Tours apply to whichever day(s) this distillery is actually already on
-  // (stopDays, computed above) - previously hardcoded to day 0, which broke
-  // as soon as a distillery lived on any day other than the first (e.g.
-  // added via a multi-day Classic Journey, or just placed on a later day
-  // in the free-form planner). If it isn't in the journey at all yet,
-  // falls back to day 0, matching setTourForStop's own "adds it if it's
-  // not already on that day" behavior.
+  // (stopDays, computed above). If it isn't in the journey at all yet, it
+  // lands on the shared current day - whatever day the visitor was last
+  // viewing in the workspace (persisted state) - rather than always
+  // defaulting to Day 1 regardless of where they actually were.
   function addTour(tourName: string) {
     trip.initDays(1);
     const tour = d.tours.find((t) => t.name === tourName);
-    const targetDays = stopDays.length > 0 ? stopDays : [0];
+    const targetDays = stopDays.length > 0 ? stopDays : [safeCurrentDayIndex];
     const currentStop = trip.days[targetDays[0]]?.stops.find(
       (s) => s.kind === "distillery" && s.distillery.slug === d.slug
     );
@@ -44,7 +43,7 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
         trip.removeStop(dayIndex, d.slug);
       }
     } else {
-      trip.addStop(0, d);
+      trip.addStop(safeCurrentDayIndex, d);
     }
   }
 

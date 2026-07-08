@@ -82,7 +82,15 @@ export default function Workspace({
   );
   const [expandedCategory, setExpandedCategory] = useState<InterestCategoryId | null>(null);
   const [activeSubcats, setActiveSubcats] = useState<Set<string>>(new Set());
-  const [activeDayIndex, setActiveDayIndex] = useState(0);
+  // activeDayIndex is derived from the shared, persisted trip.currentDayIndex
+  // (not local state) so it survives navigating away to a distillery page
+  // and back, and so adding a tour from that distillery's own page lands
+  // on the day actually being viewed. Clamped defensively in case a day
+  // was removed since it was last set.
+  const activeDayIndex = Math.min(trip.currentDayIndex, Math.max(0, trip.days.length - 1));
+  function setActiveDayIndex(next: number) {
+    trip.setCurrentDayIndex(next);
+  }
 
   // Local Events date UI - lives in that category's drill-down submenu.
   // No real event data exists in Airtable yet, so this doesn't filter
@@ -328,7 +336,7 @@ export default function Workspace({
           <div className="day-nav">
             <button
               className="day-nav-arrow"
-              onClick={() => setActiveDayIndex((i) => Math.max(0, i - 1))}
+              onClick={() => setActiveDayIndex(Math.max(0, activeDayIndex - 1))}
               disabled={activeDayIndex === 0}
               aria-label="Previous day"
             >
@@ -337,7 +345,7 @@ export default function Workspace({
             <div className="day-nav-label">{activeDay.label}</div>
             <button
               className="day-nav-arrow"
-              onClick={() => setActiveDayIndex((i) => Math.min(days.length - 1, i + 1))}
+              onClick={() => setActiveDayIndex(Math.min(days.length - 1, activeDayIndex + 1))}
               disabled={activeDayIndex === days.length - 1}
               aria-label="Next day"
             >
@@ -354,8 +362,6 @@ export default function Workspace({
               )}
             </div>
           </div>
-
-          <AccommodationControl dayIndex={activeDayIndex} accommodation={accommodation} />
 
           <div className="journey-stops">
             {isFlyingIn && activeDayIndex === 0 && (
@@ -420,6 +426,24 @@ export default function Workspace({
                           +
                         </button>
                       </div>
+                    </div>
+                    <div className="stop-move-col">
+                      <button
+                        className="stop-move-btn"
+                        onClick={() => trip.moveStop(activeDayIndex, i, -1)}
+                        disabled={i === 0}
+                        aria-label={`Move ${stopName(stop)} earlier`}
+                      >
+                        &#8963;
+                      </button>
+                      <button
+                        className="stop-move-btn"
+                        onClick={() => trip.moveStop(activeDayIndex, i, 1)}
+                        disabled={i === activeDay.stops.length - 1}
+                        aria-label={`Move ${stopName(stop)} later`}
+                      >
+                        &#8964;
+                      </button>
                     </div>
                     <button
                       className="stop-remove"
@@ -543,6 +567,10 @@ export default function Workspace({
                       </button>
                     );
                   })}
+
+                  {expandedCategoryData.id === "places-to-stay" && (
+                    <AccommodationControl dayIndex={activeDayIndex} accommodation={accommodation} />
+                  )}
 
                   {expandedCategoryData.id === "local-events" && (
                     <>
