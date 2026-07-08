@@ -103,6 +103,13 @@
   margin-bottom: 14px;
   line-height: 1.5;
 }
+.journey-card-not-live {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  opacity: 0.6;
+}
 .journey-card-price {
   font-size: 13px;
   font-weight: 500;

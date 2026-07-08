@@ -2,8 +2,58 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDistilleries } from "@/lib/data";
 import { CLASSIC_JOURNEYS, cheapestTourPrice, getJourneyDistilleries, routeStartingPrice } from "@/lib/journeys-data";
+import type { JourneyStop } from "@/lib/journeys-data";
+import type { Distillery } from "@/lib/types";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
+
+function JourneyStopsRow({
+  label,
+  stops,
+  distilleries,
+}: {
+  label: string;
+  stops: JourneyStop[];
+  distilleries: Distillery[];
+}) {
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--copper)", marginBottom: 4 }}>
+        {label}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {stops.map((stop, i) => {
+          if (stop.kind === "distillery") {
+            const d = distilleries.find((x) => x.slug === stop.distillerySlug);
+            return (
+              <div key={i} style={{ fontSize: 14, color: "var(--peat)" }}>
+                {d ? (
+                  <Link href={`/distilleries/${d.slug}`} style={{ color: "var(--dark)", fontWeight: 500 }}>
+                    {d.name}
+                  </Link>
+                ) : (
+                  stop.distillerySlug
+                )}
+                {stop.needsBooking && (
+                  <span style={{ fontSize: 11, color: "var(--copper)", marginLeft: 8 }}>Book ahead</span>
+                )}
+              </div>
+            );
+          }
+          return (
+            <div key={i} style={{ fontSize: 14, color: "var(--peat)" }}>
+              {stop.label}
+              {stop.needsBooking && (
+                <span style={{ fontSize: 11, color: "var(--copper)", marginLeft: 8 }}>Book ahead</span>
+              )}
+              {stop.note && <div style={{ fontSize: 12, color: "var(--slate)", marginTop: 2 }}>{stop.note}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export async function generateStaticParams() {
   return CLASSIC_JOURNEYS.map((j) => ({ slug: j.slug }));
@@ -44,6 +94,60 @@ export default async function JourneyDetailPage({
       </div>
 
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "48px 24px" }}>
+        {journey.days && journey.days.length > 0 && (
+          <>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 500, marginBottom: 8 }}>
+              Day by day
+            </h2>
+            <p style={{ fontSize: 14, color: "var(--slate)", marginBottom: 24 }}>
+              Based in Port Ellen throughout &mdash; accommodation booking isn&apos;t live yet, so treat this as
+              where to base your search for now, not a specific place we&apos;re recommending.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 40 }}>
+              {journey.days.map((day) => (
+                <div
+                  key={day.dayNumber}
+                  style={{
+                    padding: "20px 22px",
+                    background: "var(--cream)",
+                    borderRadius: "var(--radius)",
+                    border: "1px solid var(--stone)",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: 16,
+                      fontWeight: 600,
+                      color: "var(--dark)",
+                      marginBottom: 10,
+                    }}
+                  >
+                    Day {day.dayNumber}
+                  </div>
+
+                  {day.morning.length > 0 && (
+                    <JourneyStopsRow label="Morning" stops={day.morning} distilleries={distilleries} />
+                  )}
+                  {day.afternoon.length > 0 && (
+                    <JourneyStopsRow label="Afternoon" stops={day.afternoon} distilleries={distilleries} />
+                  )}
+
+                  {day.transportNote && (
+                    <div style={{ fontSize: 12, color: "var(--slate)", fontStyle: "italic", marginTop: 8 }}>
+                      {day.transportNote}
+                    </div>
+                  )}
+
+                  <div style={{ fontSize: 13, color: "var(--slate)", marginTop: 10, fontWeight: 500 }}>
+                    {day.overnight ? `Overnight: ${day.overnight.village}` : "Departure day"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
         <h2 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 500, marginBottom: 24 }}>
           On this route
         </h2>
