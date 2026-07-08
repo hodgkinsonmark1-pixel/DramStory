@@ -359,3 +359,63 @@
 .journal-post-back:hover {
   text-decoration: underline;
 }
+
+/* FeaturedContent's two real columns (Distilleries / Events & Experiences) */
+.featured-compact-grid {
+  margin-bottom: 12px;
+}
+.featured-view-all {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--green-deep);
+  text-decoration: none;
+  margin-bottom: 8px;
+}
+.featured-view-all:hover {
+  text-decoration: underline;
+}
+.featured-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.featured-event-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background: var(--off-white);
+  border-radius: var(--radius);
+}
+.featured-event-date {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--copper);
+  font-weight: 500;
+  white-space: nowrap;
+  min-width: 90px;
+}
+.featured-event-body {
+  flex: 1;
+}
+.featured-event-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dark);
+  margin-bottom: 2px;
+}
+.featured-event-meta {
+  font-size: 12px;
+  color: var(--slate);
+}
+.featured-event-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green-deep);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.featured-event-link:hover {
+  text-decoration: underline;
+}
