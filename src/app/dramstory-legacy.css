@@ -289,9 +289,6 @@ html,body{min-height:100%;font-family:var(--font-body);background:var(--off-whit
 .popup-btn-primary:hover{background:var(--peat)}
 .popup-btn-secondary{background:var(--stone);color:var(--peat)}
 .popup-btn-secondary:hover{background:var(--mist)}
-.distillery-marker{width:36px;height:36px;border-radius:50%;background:var(--green-deep);border:2.5px solid white;box-shadow:0 2px 8px rgba(61,107,71,0.4);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;transition:transform 0.2s}
-.distillery-marker:hover{transform:scale(1.1)}
-.distillery-marker.in-journey{background:var(--amber);border-color:white;box-shadow:0 2px 8px rgba(196,134,42,0.5)}
 .attr-marker{width:28px;height:28px;border-radius:50%;border:2px solid white;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;box-shadow:0 2px 6px rgba(28,26,24,0.2)}
 
 /* BLOG */
