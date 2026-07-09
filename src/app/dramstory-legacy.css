@@ -264,6 +264,8 @@ html,body{min-height:100%;font-family:var(--font-body);background:var(--off-whit
 .fun-facts-list{list-style:none;display:flex;flex-direction:column;gap:12px}
 .fun-facts-list li{position:relative;padding-left:22px;font-size:14px;color:var(--peat);line-height:1.7}
 .fun-facts-list li::before{content:"";position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%;background:var(--copper)}
+.dist-inline-link{color:var(--copper);text-decoration:underline;text-underline-offset:2px}
+.dist-inline-link:hover{color:var(--green-deep)}
 .dist-gallery-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
 .dist-gallery-img{position:relative;aspect-ratio:4/3;border-radius:var(--radius-sm);overflow:hidden;background:var(--stone)}
 .dist-below-line{margin-top:8px;padding-top:24px;border-top:1px solid var(--stone)}

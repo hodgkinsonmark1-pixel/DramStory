@@ -5,6 +5,24 @@ import Link from "next/link";
 import { useTrip } from "@/lib/trip-context";
 import type { Distillery } from "@/lib/types";
 
+/** Renders plain text containing [label](/path) markdown-style links as
+ *  real internal <Link>s - keeps Airtable content authorable as simple
+ *  text while still supporting the cross-linking the brand voice guide
+ *  calls for (Journal posts, other distilleries, Explore pages). */
+function renderWithLinks(text: string) {
+  const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g);
+  return parts.map((part, i) => {
+    const match = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+    if (!match) return part;
+    const [, label, href] = match;
+    return (
+      <Link href={href} key={i} className="dist-inline-link">
+        {label}
+      </Link>
+    );
+  });
+}
+
 interface DistilleryPageClientProps {
   distillery: Distillery;
   nextStops: Distillery[];
@@ -131,7 +149,7 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
                     .map((line) => line.replace(/^-\s*/, "").trim())
                     .filter(Boolean)
                     .map((fact, i) => (
-                      <li key={i}>{fact}</li>
+                      <li key={i}>{renderWithLinks(fact)}</li>
                     ))}
                 </ul>
               </div>
