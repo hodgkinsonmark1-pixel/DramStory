@@ -252,6 +252,16 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
                   <div className="info-value">{d.parking}</div>
                 </div>
               </div>
+              {d.websiteUrl && (
+                <a
+                  href={d.websiteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="dist-website-link"
+                >
+                  Visit {d.name}&apos;s official website ↗
+                </a>
+              )}
             </div>
 
             {d.facilities.length > 0 && (

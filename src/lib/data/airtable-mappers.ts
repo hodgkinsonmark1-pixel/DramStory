@@ -31,6 +31,7 @@ export interface AirtableDistilleryFields {
   "Local Features"?: string[]; // linked record IDs -> Local Features table
   "Status Notice"?: string;
   "Why Visit"?: string;
+  "Website URL"?: string;
   Gallery?: AirtableAttachment[];
   "Fun Facts"?: string;
   History?: string;

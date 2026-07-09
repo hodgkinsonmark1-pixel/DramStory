@@ -94,6 +94,9 @@ export interface Distillery {
   nearby: NearbyFeature[];
   nextStops: string[];
   bookingUrl?: string;
+  /** The distillery's own official website - the one deliberate exception
+   *  to the internal-links-only rule, shown at the bottom of Visit Info. */
+  websiteUrl?: string;
   /** Operational callout - production pause, closure, seasonal notice.
    *  Undefined/empty when there's nothing to flag. */
   statusNotice?: string;

@@ -91,6 +91,7 @@ async function fetchDistilleriesFromAirtable(): Promise<Distillery[]> {
         bookingUrl: f["Booking URL"],
         statusNotice: f["Status Notice"] || undefined,
         whyVisit: f["Why Visit"] || undefined,
+        websiteUrl: f["Website URL"] || undefined,
         gallery: (f.Gallery ?? []).map((a) => a.url),
         funFacts: f["Fun Facts"] || undefined,
         history: f.History || undefined,
