@@ -97,6 +97,19 @@ export interface AirtableLocalFeatureFields {
   Difficulty?: string;
   Website?: string;
   "Food Hygiene Rating"?: string;
+  "Why Visit"?: string;
+  History?: string;
+  "Safety & Tide Notes"?: string;
+  "Tide Times URL"?: string;
+  "Great For"?: string[];
+  "Best Time to Visit"?: string;
+  "Nearest Facilities"?: string;
+  "What to Bring"?: string;
+  "Mobile Signal Note"?: string;
+  "Pairs Well With"?: string;
+  "Wildlife & Seasonal Highlights"?: string;
+  "Hero Image"?: AirtableAttachment[];
+  Gallery?: AirtableAttachment[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -186,6 +199,19 @@ export function mapToLocalFeature(id: string, fields: AirtableLocalFeatureFields
     difficulty: fields.Difficulty,
     websiteUrl: fields.Website,
     hygieneRating: fields["Food Hygiene Rating"],
+    whyVisit: fields["Why Visit"],
+    history: fields.History,
+    safetyNotes: fields["Safety & Tide Notes"],
+    tideTimesUrl: fields["Tide Times URL"],
+    greatFor: fields["Great For"],
+    bestTimeToVisit: fields["Best Time to Visit"],
+    nearestFacilities: fields["Nearest Facilities"],
+    whatToBring: fields["What to Bring"],
+    mobileSignalNote: fields["Mobile Signal Note"],
+    pairsWellWith: fields["Pairs Well With"],
+    wildlifeHighlights: fields["Wildlife & Seasonal Highlights"],
+    heroImageUrl: fields["Hero Image"]?.[0]?.url,
+    gallery: (fields.Gallery ?? []).map((a) => a.url),
   };
 }
 

@@ -51,6 +51,31 @@ export interface LocalFeature {
    *  review or star rating, purely the statutory hygiene inspection
    *  result. Food/drink venues only. */
   hygieneRating?: string;
+  // ─── Natural Features content model (Beach/Walk/Bike Route/Local Gem) ───
+  /** Punchy 1-2 sentence hook shown as a callout under the hero. */
+  whyVisit?: string;
+  /** Past-tense narrative - founding/notable events. Below the line. */
+  history?: string;
+  /** Shown as its own amber callout box, same treatment as the
+   *  Distillery Status Notice - genuine hazards, tide risk, etc. */
+  safetyNotes?: string;
+  /** Direct link to live tide times - shown inside the safety callout. */
+  tideTimesUrl?: string;
+  /** Activity tags, e.g. Walking, Photography, Swimming - must stay
+   *  consistent with safetyNotes (never Swimming where that warns
+   *  against it). */
+  greatFor?: string[];
+  bestTimeToVisit?: string;
+  nearestFacilities?: string;
+  whatToBring?: string;
+  mobileSignalNote?: string;
+  /** Written-sentence version of the distillery cross-link. */
+  pairsWellWith?: string;
+  wildlifeHighlights?: string;
+  /** Single main banner image - distinct from the gallery strip below it. */
+  heroImageUrl?: string;
+  /** Full-size photo URLs for the gallery lightbox. */
+  gallery?: string[];
 }
 
 export interface JournalPost {
