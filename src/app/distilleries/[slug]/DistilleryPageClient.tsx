@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTrip } from "@/lib/trip-context";
@@ -30,6 +31,7 @@ interface DistilleryPageClientProps {
 
 export default function DistilleryPageClient({ distillery: d, nextStops }: DistilleryPageClientProps) {
   const trip = useTrip();
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const stopDays = trip.ready ? trip.findStopDays(d.slug) : [];
   const inJourney = stopDays.length > 0;
@@ -160,9 +162,15 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
                 <div className="dist-section-title">Gallery</div>
                 <div className="dist-gallery-grid">
                   {d.gallery.map((url, i) => (
-                    <div className="dist-gallery-img" key={i}>
+                    <button
+                      type="button"
+                      className="dist-gallery-img"
+                      key={i}
+                      onClick={() => setLightboxIndex(i)}
+                      aria-label={`View larger photo ${i + 1} of ${d.name}`}
+                    >
                       <Image src={url} alt={`${d.name} photo ${i + 1}`} fill unoptimized style={{ objectFit: "cover" }} />
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -294,6 +302,60 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
           </div>
         </div>
       </div>
+
+      {lightboxIndex !== null && d.gallery && (
+        <div
+          className="dist-lightbox-overlay"
+          onClick={() => setLightboxIndex(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${d.name} photo gallery`}
+        >
+          <button
+            type="button"
+            className="dist-lightbox-close"
+            onClick={() => setLightboxIndex(null)}
+            aria-label="Close photo"
+          >
+            &times;
+          </button>
+          {d.gallery.length > 1 && (
+            <button
+              type="button"
+              className="dist-lightbox-nav dist-lightbox-prev"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((i) => (i === null ? null : (i - 1 + d.gallery!.length) % d.gallery!.length));
+              }}
+              aria-label="Previous photo"
+            >
+              &larr;
+            </button>
+          )}
+          <div className="dist-lightbox-img-wrap" onClick={(e) => e.stopPropagation()}>
+            <Image
+              src={d.gallery[lightboxIndex]}
+              alt={`${d.name} photo ${lightboxIndex + 1}`}
+              fill
+              unoptimized
+              style={{ objectFit: "contain" }}
+            />
+          </div>
+          {d.gallery.length > 1 && (
+            <button
+              type="button"
+              className="dist-lightbox-nav dist-lightbox-next"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((i) => (i === null ? null : (i + 1) % d.gallery!.length));
+              }}
+              aria-label="Next photo"
+            >
+              &rarr;
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
