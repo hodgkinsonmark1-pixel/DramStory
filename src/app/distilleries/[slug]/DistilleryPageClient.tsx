@@ -135,7 +135,7 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
               </p>
               {d.description.split("\n\n").map((para, i) => (
                 <p className="dist-p" key={i} style={{ marginBottom: 12 }}>
-                  {para}
+                  {renderWithLinks(para)}
                 </p>
               ))}
             </div>
@@ -214,7 +214,7 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
                 {d.whiskyProfile && (
                   <div className="dist-section">
                     <div className="dist-section-title">Whisky profile</div>
-                    <p className="dist-p">{d.whiskyProfile}</p>
+                    <p className="dist-p">{renderWithLinks(d.whiskyProfile)}</p>
                   </div>
                 )}
                 {d.history && (
@@ -222,7 +222,7 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
                     <div className="dist-section-title">History</div>
                     {d.history.split("\n\n").map((para, i) => (
                       <p className="dist-p" key={i} style={{ marginBottom: 12 }}>
-                        {para}
+                        {renderWithLinks(para)}
                       </p>
                     ))}
                   </div>
