@@ -352,6 +352,24 @@ export default function Workspace({
               &#8250;
             </button>
             <div className="day-nav-actions">
+              {days.length > 1 && (
+                <>
+                  <button
+                    className="day-nav-reorder"
+                    onClick={() => trip.moveDay(activeDayIndex, -1)}
+                    disabled={activeDayIndex === 0}
+                  >
+                    Move earlier
+                  </button>
+                  <button
+                    className="day-nav-reorder"
+                    onClick={() => trip.moveDay(activeDayIndex, 1)}
+                    disabled={activeDayIndex === days.length - 1}
+                  >
+                    Move later
+                  </button>
+                </>
+              )}
               <button className="day-nav-add" onClick={trip.addDay}>
                 + Add day
               </button>

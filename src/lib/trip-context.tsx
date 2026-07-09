@@ -44,6 +44,13 @@ interface TripContextValue {
   resetTrip: () => void;
   addDay: () => void;
   removeDay: (index: number) => void;
+  /** Moves a day earlier/later in the trip without touching what's inside
+   *  it - re-labels every day by its new position afterwards (labels are
+   *  positional, e.g. "Day 2", not a fixed identity) and moves
+   *  currentDayIndex along with the day being reordered so the visitor's
+   *  view follows it rather than jumping to whatever now sits at the old
+   *  index. */
+  moveDay: (index: number, direction: -1 | 1) => void;
   addStop: (dayIndex: number, distillery: Distillery) => void;
   /** Adds a Natural Feature (beach/walk/bike route/local gem) as a stop -
    *  the map popup's "+ Add to Trip" button for these. */
@@ -146,6 +153,24 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  /** Swaps a day with its neighbor - only the day order changes, every
+   *  day keeps its own stops, accommodation, etc. Labels are re-derived
+   *  from position afterwards, same as removeDay already does. */
+  const moveDay = useCallback((index: number, direction: -1 | 1) => {
+    setDays((prev) => {
+      const target = index + direction;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next.map((d, i) => ({ ...d, label: `Day ${i + 1}` }));
+    });
+    setCurrentDayIndex((prevIndex) => {
+      if (prevIndex === index) return index + direction;
+      if (prevIndex === index + direction) return index;
+      return prevIndex;
+    });
+  }, []);
+
   const addStop = useCallback((dayIndex: number, distillery: Distillery) => {
     setDays((prev) =>
       prev.map((day, i) =>
@@ -243,6 +268,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         resetTrip,
         addDay,
         removeDay,
+        moveDay,
         addStop,
         addFeatureStop,
         removeStop,

@@ -144,7 +144,8 @@ select.location-inline-input {
   flex-shrink: 0;
 }
 .day-nav-add,
-.day-nav-remove {
+.day-nav-remove,
+.day-nav-reorder {
   background: none;
   border: none;
   font-size: 12px;
@@ -156,8 +157,14 @@ select.location-inline-input {
   padding: 0;
 }
 .day-nav-add:hover,
-.day-nav-remove:hover {
+.day-nav-remove:hover,
+.day-nav-reorder:hover:not(:disabled) {
   color: var(--green-deep);
+}
+.day-nav-reorder:disabled {
+  opacity: 0.35;
+  cursor: default;
+  text-decoration: none;
 }
 .day-nav-remove {
   color: #c0392b;
