@@ -108,7 +108,7 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
       )}
 
       <div className="distillery-body">
-        <div className="dist-grid">
+        <div className="dist-detail-grid">
           <div>
             <div className="dist-section">
               <div className="dist-section-title">About {d.name}</div>

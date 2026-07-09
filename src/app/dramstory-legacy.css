@@ -229,7 +229,7 @@ html,body{min-height:100%;font-family:var(--font-body);background:var(--off-whit
 .hero-action-secondary:hover{background:rgba(255,255,255,0.25)}
 .hero-action-secondary.in-journey{background:var(--green-deep);border-color:var(--green-deep)}
 .distillery-body{max-width:1200px;margin:0 auto;padding:48px 48px 80px}
-.dist-grid{display:grid;grid-template-columns:1fr 320px;gap:48px;align-items:start}
+.dist-detail-grid{display:grid;grid-template-columns:1fr 320px;gap:48px;align-items:start}
 .dist-section{margin-bottom:40px}
 .dist-section-title{font-family:var(--font-display);font-size:24px;font-weight:500;color:var(--dark);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--stone)}
 .dist-p{font-size:14px;color:var(--peat);line-height:1.75}
@@ -445,7 +445,7 @@ html,body{min-height:100%;font-family:var(--font-body);background:var(--off-whit
   .workspace-root{height:calc(100vh - 64px);overflow-y:auto}
 
   /* Distillery / attraction pages */
-  .dist-grid{grid-template-columns:1fr}
+  .dist-detail-grid{grid-template-columns:1fr}
   .distillery-hero-content{flex-direction:column;align-items:flex-start;gap:16px;padding:24px}
   .distillery-body{padding:24px}
   .hero-nav{padding:20px 24px}
