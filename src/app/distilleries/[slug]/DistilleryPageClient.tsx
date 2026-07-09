@@ -93,6 +93,13 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
         </div>
       </div>
 
+      {d.whyVisit && (
+        <div className="dist-why-visit">
+          <span className="dist-why-visit-label">Why you should definitely visit</span>
+          <p>{d.whyVisit}</p>
+        </div>
+      )}
+
       {d.statusNotice && (
         <div className="dist-status-notice">
           <span className="dist-status-icon">!</span>

@@ -97,6 +97,9 @@ export interface Distillery {
   /** Operational callout - production pause, closure, seasonal notice.
    *  Undefined/empty when there's nothing to flag. */
   statusNotice?: string;
+  /** Short, punchy hook - the single best reason to visit. Shown as a
+   *  standout callout right under the hero. */
+  whyVisit?: string;
   /** Photo gallery beyond the single Hero Image. */
   gallery?: string[];
   /** Short scannable "did you know" bullets - markdown list, colour/

@@ -90,6 +90,7 @@ async function fetchDistilleriesFromAirtable(): Promise<Distillery[]> {
         nextStops: [] as string[], // filled in below, once every distillery is mapped
         bookingUrl: f["Booking URL"],
         statusNotice: f["Status Notice"] || undefined,
+        whyVisit: f["Why Visit"] || undefined,
         gallery: (f.Gallery ?? []).map((a) => a.url),
         funFacts: f["Fun Facts"] || undefined,
         history: f.History || undefined,
