@@ -83,8 +83,8 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
 
   return (
     <div className="distillery-page page">
-      <Link href={totalStops > 0 ? "/journey?resume=1" : "/distilleries"} className="dist-back-bar">
-        <span>&larr; {totalStops > 0 ? "Back to your journey" : "Back to distilleries"}</span>
+      <Link href={totalStops > 0 ? "/journey?resume=1" : "/journey"} className="dist-back-bar">
+        <span>&larr; {totalStops > 0 ? "Back to your journey" : "Back to the map"}</span>
         {totalStops > 0 && <span className="dist-back-stops">{totalStops} stop{totalStops > 1 ? "s" : ""}</span>}
       </Link>
 
@@ -146,23 +146,6 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
         </div>
       )}
 
-      {f.safetyNotes && (
-        <div className="dist-status-notice">
-          <span className="dist-status-icon">!</span>
-          <p>
-            {f.safetyNotes}
-            {f.tideTimesUrl && (
-              <>
-                {" "}
-                <a href={f.tideTimesUrl} target="_blank" rel="noopener noreferrer" className="dist-inline-link">
-                  Check live tide times &rarr;
-                </a>
-              </>
-            )}
-          </p>
-        </div>
-      )}
-
       <div className="distillery-body">
         <div className="dist-detail-grid">
           <div>
@@ -199,6 +182,27 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
               </div>
             )}
 
+            {(f.history || f.wildlifeHighlights) && (
+              <div className="dist-below-line">
+                {f.history && (
+                  <div className="dist-section">
+                    <div className="dist-section-title">History</div>
+                    {f.history.split("\n\n").map((para, i) => (
+                      <p className="dist-p" key={i} style={{ marginBottom: 12 }}>
+                        {renderWithLinks(para)}
+                      </p>
+                    ))}
+                  </div>
+                )}
+                {f.wildlifeHighlights && (
+                  <div className="dist-section">
+                    <div className="dist-section-title">Wildlife &amp; Seasonal Highlights</div>
+                    <p className="dist-p">{renderWithLinks(f.wildlifeHighlights)}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {f.gallery && f.gallery.length > 0 && (
               <div className="dist-section">
                 <div className="dist-section-title">Gallery</div>
@@ -218,24 +222,20 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
               </div>
             )}
 
-            {(f.history || f.wildlifeHighlights) && (
-              <div className="dist-below-line">
-                {f.history && (
-                  <div className="dist-section">
-                    <div className="dist-section-title">History</div>
-                    {f.history.split("\n\n").map((para, i) => (
-                      <p className="dist-p" key={i} style={{ marginBottom: 12 }}>
-                        {renderWithLinks(para)}
-                      </p>
-                    ))}
-                  </div>
-                )}
-                {f.wildlifeHighlights && (
-                  <div className="dist-section">
-                    <div className="dist-section-title">Wildlife &amp; Seasonal Highlights</div>
-                    <p className="dist-p">{renderWithLinks(f.wildlifeHighlights)}</p>
-                  </div>
-                )}
+            {f.safetyNotes && (
+              <div className="dist-status-notice" style={{ margin: "20px 0 0", maxWidth: "none", padding: "16px 20px" }}>
+                <span className="dist-status-icon">!</span>
+                <p>
+                  {f.safetyNotes}
+                  {f.tideTimesUrl && (
+                    <>
+                      {" "}
+                      <a href={f.tideTimesUrl} target="_blank" rel="noopener noreferrer" className="dist-inline-link">
+                        Check live tide times &rarr;
+                      </a>
+                    </>
+                  )}
+                </p>
               </div>
             )}
           </div>
