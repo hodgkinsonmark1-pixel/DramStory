@@ -1068,6 +1068,9 @@ select.location-inline-input {
    causes column-height mismatch and undersells the emotional content
    these pages exist to carry. */
 .nf-page {
+  width: 100%;
+}
+.nf-body {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 48px 80px;
@@ -1075,7 +1078,7 @@ select.location-inline-input {
 .nf-hero {
   position: relative;
   height: 420px;
-  margin: 0 -48px;
+  width: 100%;
   display: flex;
   align-items: flex-end;
 }
@@ -1087,6 +1090,8 @@ select.location-inline-input {
 .nf-hero-content {
   position: relative;
   width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 40px 48px;
   display: flex;
   justify-content: space-between;

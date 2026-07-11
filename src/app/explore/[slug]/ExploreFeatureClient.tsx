@@ -186,7 +186,7 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
           </div>
         </div>
 
-        <div style={{ paddingTop: 24 }}>
+        <div style={{ paddingTop: 24 }} className="nf-body">
           {f.whyVisit && (
             <div className="nf-pull-quote">
               <p>&ldquo;{f.whyVisit}&rdquo;</p>
