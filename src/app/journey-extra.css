@@ -216,6 +216,18 @@ select.location-inline-input {
 .panel-header {
   padding: 16px 20px 12px;
 }
+.panel-header-with-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.day-nav-arrows {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .panel-eyebrow {
   margin-bottom: 0;
 }

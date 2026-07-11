@@ -329,28 +329,30 @@ export default function Workspace({
 
       <div className="workspace-main">
         <div className="journey-panel" id="onboard-sidebar">
-          <div className="panel-header">
+          <div className="panel-header panel-header-with-nav">
             <div className="panel-eyebrow">Your itinerary</div>
+            <div className="day-nav-arrows">
+              <button
+                className="day-nav-arrow"
+                onClick={() => setActiveDayIndex(Math.max(0, activeDayIndex - 1))}
+                disabled={activeDayIndex === 0}
+                aria-label="Previous day"
+              >
+                &#8249;
+              </button>
+              <div className="day-nav-label">{activeDay.label}</div>
+              <button
+                className="day-nav-arrow"
+                onClick={() => setActiveDayIndex(Math.min(days.length - 1, activeDayIndex + 1))}
+                disabled={activeDayIndex === days.length - 1}
+                aria-label="Next day"
+              >
+                &#8250;
+              </button>
+            </div>
           </div>
 
           <div className="day-nav">
-            <button
-              className="day-nav-arrow"
-              onClick={() => setActiveDayIndex(Math.max(0, activeDayIndex - 1))}
-              disabled={activeDayIndex === 0}
-              aria-label="Previous day"
-            >
-              &#8249;
-            </button>
-            <div className="day-nav-label">{activeDay.label}</div>
-            <button
-              className="day-nav-arrow"
-              onClick={() => setActiveDayIndex(Math.min(days.length - 1, activeDayIndex + 1))}
-              disabled={activeDayIndex === days.length - 1}
-              aria-label="Next day"
-            >
-              &#8250;
-            </button>
             <div className="day-nav-actions">
               {days.length > 1 && (
                 <>
