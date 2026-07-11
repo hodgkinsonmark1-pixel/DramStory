@@ -27,6 +27,16 @@ During the initial content build (July 2026), two real problems surfaced from re
 
 Official sources are still preferred, but reputable third-party sources (Scotch Whisky Association / Whiskipedia, Wikipedia, established whisky press) remain acceptable here, since this content is less time-sensitive than live tour bookings and benefits from cross-referencing multiple independent sources. The distinction is specifically about **live, bookable, price-bearing operational data** (Tours), where staleness has a direct, visitor-facing consequence.
 
+## Natural Features hub page (planned, not yet built)
+
+**Decision (11 July 2026):** once the individual Natural Feature pages are finished, build a `/explore`-style index page - same pattern as `/distilleries` (browsable grid, links into the planner via "+ Add to Journey" on each card, not a dead-end directory).
+
+**Scope boundary - what gets a hub page vs. map-only:**
+- **Gets the hub page:** Natural Features (Beach, Walk, Bike Route, Local Gem) and Historic Sites / Attraction Gems. These are destination content in their own right - the kind of thing someone might search for or browse independently of building a trip.
+- **Map-only, no hub page:** Pub, Cafe, Restaurant, Golf, Spa, Transport. These are supporting-cast/logistics content (where's lunch, where's the loo, how do I get here) rather than reasons to visit. A public directory of cafes and golf courses would push the site toward "generic listings site" territory, which cuts directly against the planner-not-directory positioning above.
+
+**Sequencing:** don't build/launch this until there's a critical mass of finished Natural Feature pages - a hub page mostly linking to unfinished stub records undercuts the quality bar rather than showcasing it. Currently finished: Machir Bay, Saligo Bay. Remaining beaches (The Big Strand, Port Ellen Beach, Ardnave Point, Claggain Bay, Kilnaughton Bay, Traigh Bhan Beach) plus Walks/Bike Rides/Local Gems still to go.
+
 ## Natural Features content model (Beach / Walk / Bike Route / Local Gem)
 
 **Rule: every field below is a required part of the standard, not an optional extra.** Machir Bay and Saligo Bay were both built incrementally, with fields like Best Time to Visit, Wildlife & Seasonal Highlights, Mobile Signal Note, and a third "Good to Know" bullet added as afterthoughts rather than part of the original build. That inconsistency is exactly what this section exists to prevent going forward - every new Natural Feature record should ship complete against this list the first time, not need a follow-up pass to catch up to the standard.
