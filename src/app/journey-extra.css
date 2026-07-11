@@ -1156,8 +1156,13 @@ select.location-inline-input {
 }
 .nf-quick-fact {
   background: white;
-  padding: 14px 12px;
+  padding: 18px 12px 16px;
   text-align: center;
+}
+.nf-quick-fact-icon {
+  font-size: 20px;
+  line-height: 1;
+  margin-bottom: 8px;
 }
 .nf-quick-fact-label {
   font-size: 10px;

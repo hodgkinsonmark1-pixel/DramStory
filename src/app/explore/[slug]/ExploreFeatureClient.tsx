@@ -138,7 +138,7 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
   // no independent column to run longer/shorter than the other.
   // ─────────────────────────────────────────────────────────────────
   if (NATURAL_FEATURE_CATEGORIES.includes(f.category)) {
-    const hasFooterInfo = f.nearestFacilities || f.whatToBring || f.mobileSignalNote || f.pairsWellWith || f.websiteUrl;
+    const hasFooterInfo = f.whatToBring || f.mobileSignalNote || f.pairsWellWith || f.websiteUrl;
 
     return (
       <div className="nf-page page">
@@ -195,25 +195,49 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
 
           <div className="nf-quick-facts">
             <div className="nf-quick-fact">
+              <div className="nf-quick-fact-icon" aria-hidden="true">
+                🅿️
+              </div>
               <div className="nf-quick-fact-label">Parking</div>
-              <div className="nf-quick-fact-value">{f.parking}</div>
+              <div className="nf-quick-fact-value">{f.parking.split(",")[0].split(";")[0]}</div>
             </div>
             <div className="nf-quick-fact">
-              <div className="nf-quick-fact-label">Accessibility</div>
-              <div className="nf-quick-fact-value">{f.accessibility}</div>
+              <div className="nf-quick-fact-icon" aria-hidden="true">
+                ♿
+              </div>
+              <div className="nf-quick-fact-label">Access</div>
+              <div className="nf-quick-fact-value">{f.accessibility.split(".")[0].split(";")[0]}</div>
             </div>
+            {f.nearestFacilities && (
+              <div className="nf-quick-fact">
+                <div className="nf-quick-fact-icon" aria-hidden="true">
+                  🚻
+                </div>
+                <div className="nf-quick-fact-label">Toilets</div>
+                <div className="nf-quick-fact-value">{f.nearestFacilities.split(",")[0].split(";")[0]}</div>
+              </div>
+            )}
             <div className="nf-quick-fact">
+              <div className="nf-quick-fact-icon" aria-hidden="true">
+                🕐
+              </div>
               <div className="nf-quick-fact-label">Hours</div>
               <div className="nf-quick-fact-value">{f.openingHours}</div>
             </div>
             {f.bestTimeToVisit && (
               <div className="nf-quick-fact">
+                <div className="nf-quick-fact-icon" aria-hidden="true">
+                  ☀️
+                </div>
                 <div className="nf-quick-fact-label">Best time</div>
                 <div className="nf-quick-fact-value">{f.bestTimeToVisit.split(".")[0]}.</div>
               </div>
             )}
             {(f.length || f.duration || f.difficulty) && (
               <div className="nf-quick-fact">
+                <div className="nf-quick-fact-icon" aria-hidden="true">
+                  🥾
+                </div>
                 <div className="nf-quick-fact-label">Route</div>
                 <div className="nf-quick-fact-value">{[f.length, f.duration, f.difficulty].filter(Boolean).join(" · ")}</div>
               </div>
@@ -296,12 +320,6 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
             <div className="nf-footer">
               <div className="nf-footer-label">Plan Your Visit</div>
               <div className="nf-footer-grid">
-                {f.nearestFacilities && (
-                  <div>
-                    <div className="nf-footer-item-label">Nearest facilities</div>
-                    <div className="nf-footer-item-value">{f.nearestFacilities}</div>
-                  </div>
-                )}
                 {f.whatToBring && (
                   <div>
                     <div className="nf-footer-item-label">What to bring</div>
