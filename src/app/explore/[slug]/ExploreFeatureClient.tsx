@@ -6,6 +6,63 @@ import Link from "next/link";
 import { useTrip } from "@/lib/trip-context";
 import type { LocalFeature } from "@/lib/types";
 
+// Simple line-style icons for the Quick Facts strip - pick up the brand
+// copper colour via currentColor/CSS `color`, unlike emoji which render
+// in their own fixed native colours regardless of styling.
+const ICON_PROPS = { width: 22, height: 22, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+function IconParking() {
+  return (
+    <svg {...ICON_PROPS}>
+      <rect x="4" y="4" width="16" height="16" rx="4" />
+      <path d="M10 16V8h3a2.5 2.5 0 0 1 0 5h-3" />
+    </svg>
+  );
+}
+function IconAccess() {
+  return (
+    <svg {...ICON_PROPS}>
+      <circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none" />
+      <path d="M11 7v5l-3 6M11 12h5l3 6" />
+      <circle cx="9" cy="18" r="3" />
+    </svg>
+  );
+}
+function IconToilet() {
+  return (
+    <svg {...ICON_PROPS}>
+      <circle cx="8" cy="5" r="1.8" />
+      <path d="M8 8v5M5.5 11h5M6.5 13l-1.5 6M9.5 13l1.5 6" />
+      <circle cx="17" cy="5" r="1.8" />
+      <path d="M17 8v10M15 12h4" />
+    </svg>
+  );
+}
+function IconClock() {
+  return (
+    <svg {...ICON_PROPS}>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 8v4l3 2" />
+    </svg>
+  );
+}
+function IconSun() {
+  return (
+    <svg {...ICON_PROPS}>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" />
+    </svg>
+  );
+}
+function IconRoute() {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M4 19c3-6 6 2 9-4s4-6 7-2" />
+      <circle cx="4" cy="19" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="20" cy="13" r="1.3" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 interface ExploreFeatureClientProps {
   feature: LocalFeature;
 }
@@ -195,39 +252,39 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
 
           <div className="nf-quick-facts">
             <div className="nf-quick-fact">
-              <div className="nf-quick-fact-icon" aria-hidden="true">
-                🅿️
+              <div className="nf-quick-fact-icon">
+                <IconParking />
               </div>
               <div className="nf-quick-fact-label">Parking</div>
               <div className="nf-quick-fact-value">{f.parking.split(",")[0].split(";")[0]}</div>
             </div>
             <div className="nf-quick-fact">
-              <div className="nf-quick-fact-icon" aria-hidden="true">
-                ♿
+              <div className="nf-quick-fact-icon">
+                <IconAccess />
               </div>
               <div className="nf-quick-fact-label">Access</div>
               <div className="nf-quick-fact-value">{f.accessibility.split(".")[0].split(";")[0]}</div>
             </div>
             {f.nearestFacilities && (
               <div className="nf-quick-fact">
-                <div className="nf-quick-fact-icon" aria-hidden="true">
-                  🚻
+                <div className="nf-quick-fact-icon">
+                  <IconToilet />
                 </div>
                 <div className="nf-quick-fact-label">Toilets</div>
                 <div className="nf-quick-fact-value">{f.nearestFacilities.split(",")[0].split(";")[0]}</div>
               </div>
             )}
             <div className="nf-quick-fact">
-              <div className="nf-quick-fact-icon" aria-hidden="true">
-                🕐
+              <div className="nf-quick-fact-icon">
+                <IconClock />
               </div>
               <div className="nf-quick-fact-label">Hours</div>
               <div className="nf-quick-fact-value">{f.openingHours}</div>
             </div>
             {f.bestTimeToVisit && (
               <div className="nf-quick-fact">
-                <div className="nf-quick-fact-icon" aria-hidden="true">
-                  ☀️
+                <div className="nf-quick-fact-icon">
+                  <IconSun />
                 </div>
                 <div className="nf-quick-fact-label">Best time</div>
                 <div className="nf-quick-fact-value">{f.bestTimeToVisit.split(".")[0]}.</div>
@@ -235,8 +292,8 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
             )}
             {(f.length || f.duration || f.difficulty) && (
               <div className="nf-quick-fact">
-                <div className="nf-quick-fact-icon" aria-hidden="true">
-                  🥾
+                <div className="nf-quick-fact-icon">
+                  <IconRoute />
                 </div>
                 <div className="nf-quick-fact-label">Route</div>
                 <div className="nf-quick-fact-value">{[f.length, f.duration, f.difficulty].filter(Boolean).join(" · ")}</div>
