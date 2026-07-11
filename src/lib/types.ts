@@ -74,6 +74,11 @@ export interface LocalFeature {
   wildlifeHighlights?: string;
   /** Single main banner image - distinct from the gallery strip below it. */
   heroImageUrl?: string;
+  /** Vertical crop anchor for the hero, 0-100 (0=top, 100=bottom).
+   *  Defaults to 30 (biased toward the top third) when unset - most
+   *  landscape photos have the interesting part (sky, headland) above
+   *  center, but not all, hence the per-record override. */
+  heroFocalY?: number;
   /** Full-size photo URLs for the gallery lightbox. */
   gallery?: string[];
 }

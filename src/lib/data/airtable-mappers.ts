@@ -109,6 +109,7 @@ export interface AirtableLocalFeatureFields {
   "Pairs Well With"?: string;
   "Wildlife & Seasonal Highlights"?: string;
   "Hero Image"?: AirtableAttachment[];
+  "Hero Focal Y"?: number;
   Gallery?: AirtableAttachment[];
 }
 
@@ -211,6 +212,7 @@ export function mapToLocalFeature(id: string, fields: AirtableLocalFeatureFields
     pairsWellWith: fields["Pairs Well With"],
     wildlifeHighlights: fields["Wildlife & Seasonal Highlights"],
     heroImageUrl: fields["Hero Image"]?.[0]?.url,
+    heroFocalY: fields["Hero Focal Y"],
     gallery: (fields.Gallery ?? []).map((a) => a.url),
   };
 }

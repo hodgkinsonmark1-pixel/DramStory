@@ -201,12 +201,18 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
       <div className="nf-page page">
         <div className="nf-hero">
           {f.heroImageUrl ? (
-            // objectPosition biased toward the top third - the hero banner
-            // is much wider than most source photos, so a plain center
-            // crop tends to keep foreground/ground and cut off sky, which
-            // is usually the more interesting part of a landscape shot
-            // (sunset, headland, etc).
-            <Image src={f.heroImageUrl} alt={f.name} fill unoptimized style={{ objectFit: "cover", objectPosition: "center 30%" }} />
+            // objectPosition defaults to the top third - most landscape
+            // photos have the interesting part (sky, headland) above
+            // center - but is overridable per record via Hero Focal Y
+            // for photos where that doesn't suit (e.g. wide flat beaches
+            // where the sand itself is the point).
+            <Image
+              src={f.heroImageUrl}
+              alt={f.name}
+              fill
+              unoptimized
+              style={{ objectFit: "cover", objectPosition: `center ${f.heroFocalY ?? 30}%` }}
+            />
           ) : (
             <div
               style={{
