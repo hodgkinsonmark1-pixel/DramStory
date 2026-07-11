@@ -201,7 +201,12 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
       <div className="nf-page page">
         <div className="nf-hero">
           {f.heroImageUrl ? (
-            <Image src={f.heroImageUrl} alt={f.name} fill unoptimized style={{ objectFit: "cover" }} />
+            // objectPosition biased toward the top third - the hero banner
+            // is much wider than most source photos, so a plain center
+            // crop tends to keep foreground/ground and cut off sky, which
+            // is usually the more interesting part of a landscape shot
+            // (sunset, headland, etc).
+            <Image src={f.heroImageUrl} alt={f.name} fill unoptimized style={{ objectFit: "cover", objectPosition: "center 30%" }} />
           ) : (
             <div
               style={{
