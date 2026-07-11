@@ -69,7 +69,10 @@ async function fetchDistilleriesFromAirtable(): Promise<Distillery[]> {
         founded: f.Founded ?? 0,
         tagline: f.Tagline ?? "",
         description: f.Description ?? "",
-        image: f["Hero Image"]?.[0]?.url ?? "",
+        // Routed through /api/attachment - Airtable's own attachment URLs
+        // expire after a few hours, which breaks images baked into
+        // ISR-cached pages. See that route's comment for the explanation.
+        image: f["Hero Image"]?.[0] ? `/api/attachment?t=tblSPRTIf1sFK3UDL&r=${r.id}&f=fldbYJ8xNSPCLwG0h&i=0` : "",
         tours: (f.Tours ?? [])
           .map((id) => tourById.get(id))
           .filter((t): t is AirtableTourFields => !!t)
@@ -92,7 +95,9 @@ async function fetchDistilleriesFromAirtable(): Promise<Distillery[]> {
         statusNotice: f["Status Notice"] || undefined,
         whyVisit: f["Why Visit"] || undefined,
         websiteUrl: f["Website URL"] || undefined,
-        gallery: (f.Gallery ?? []).map((a) => a.url),
+        gallery: (f.Gallery ?? []).map(
+          (_, i) => `/api/attachment?t=tblSPRTIf1sFK3UDL&r=${r.id}&f=fldXfwuMOV8A76nIt&i=${i}`
+        ),
         funFacts: f["Fun Facts"] || undefined,
         history: f.History || undefined,
         whiskyProfile: f["Whisky Profile"] || undefined,

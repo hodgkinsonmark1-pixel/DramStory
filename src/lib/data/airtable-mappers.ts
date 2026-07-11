@@ -61,16 +61,20 @@ export interface AirtableJournalFields {
 }
 
 export function mapToJournalPost(fields: AirtableJournalFields, id: string): JournalPost {
+  // Routed through /api/attachment - Airtable's own attachment URLs expire
+  // after a few hours, which breaks images baked into ISR-cached pages.
+  const JOURNAL_TABLE = "tblBT8O3PxzJUz3xE";
+  const proxyUrl = (fieldId: string, has: boolean) => (has ? `/api/attachment?t=${JOURNAL_TABLE}&r=${id}&f=${fieldId}&i=0` : "");
   return {
     id,
     slug: fields.Slug ?? "",
     title: fields.Title ?? "",
     metaDescription: fields["Meta Description"] ?? "",
-    heroImage: fields["Hero Image"]?.[0]?.url ?? "",
+    heroImage: proxyUrl("flddsgmX5auZhH97h", !!fields["Hero Image"]?.[0]),
     inlineImages: [
-      fields["Inline Image 1"]?.[0]?.url ?? "",
-      fields["Inline Image 2"]?.[0]?.url ?? "",
-      fields["Inline Image 3"]?.[0]?.url ?? "",
+      proxyUrl("fldffIhemv5rYiku7", !!fields["Inline Image 1"]?.[0]),
+      proxyUrl("fldZp4MIScsatF94Q", !!fields["Inline Image 2"]?.[0]),
+      proxyUrl("fld7KPlECb1fCfTuF", !!fields["Inline Image 3"]?.[0]),
     ],
     body: fields.Body ?? "",
     publishedDate: fields["Published Date"] ?? "",
@@ -211,9 +215,17 @@ export function mapToLocalFeature(id: string, fields: AirtableLocalFeatureFields
     mobileSignalNote: fields["Mobile Signal Note"],
     pairsWellWith: fields["Pairs Well With"],
     wildlifeHighlights: fields["Wildlife & Seasonal Highlights"],
-    heroImageUrl: fields["Hero Image"]?.[0]?.url,
+    // Routed through /api/attachment rather than using fields[...].url
+    // directly - Airtable's own attachment URLs expire after a few hours,
+    // which breaks images baked into ISR-cached pages. See that route's
+    // comment for the full explanation.
+    heroImageUrl: fields["Hero Image"]?.[0]
+      ? `/api/attachment?t=tblwMce8jhsX9rYu9&r=${id}&f=fldsX3VuFuEFdIo3A&i=0`
+      : undefined,
     heroFocalY: fields["Hero Focal Y"],
-    gallery: (fields.Gallery ?? []).map((a) => a.url),
+    gallery: (fields.Gallery ?? []).map(
+      (_, i) => `/api/attachment?t=tblwMce8jhsX9rYu9&r=${id}&f=fld3U3Zq1Y8NbxPht&i=${i}`
+    ),
   };
 }
 
