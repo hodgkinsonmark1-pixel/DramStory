@@ -26,3 +26,27 @@ During the initial content build (July 2026), two real problems surfaced from re
 ## Broader content (Description, History, Fun Facts, Whisky Profile)
 
 Official sources are still preferred, but reputable third-party sources (Scotch Whisky Association / Whiskipedia, Wikipedia, established whisky press) remain acceptable here, since this content is less time-sensitive than live tour bookings and benefits from cross-referencing multiple independent sources. The distinction is specifically about **live, bookable, price-bearing operational data** (Tours), where staleness has a direct, visitor-facing consequence.
+
+## Natural Features content model (Beach / Walk / Bike Route / Local Gem)
+
+**Rule: every field below is a required part of the standard, not an optional extra.** Machir Bay and Saligo Bay were both built incrementally, with fields like Best Time to Visit, Wildlife & Seasonal Highlights, Mobile Signal Note, and a third "Good to Know" bullet added as afterthoughts rather than part of the original build. That inconsistency is exactly what this section exists to prevent going forward - every new Natural Feature record should ship complete against this list the first time, not need a follow-up pass to catch up to the standard.
+
+**Required fields for every record:**
+
+- `Why Visit` - short punchy hook, one line
+- `Description` ("What to Expect") - emotional, sensory scene-setting, not just a functional summary
+- `History` (+ Source + Last Verified) - only if there's a genuine, verifiable story; don't force one where none exists
+- `Safety & Tide Notes` (+ Source + Last Verified) + `Tide Times URL` - required for any coastal feature; hard-fact rigour, no softening real danger
+- `Great For` tags - must stay consistent with Safety & Tide Notes (never tag Swimming somewhere that's flagged unsafe)
+- `Highlights` ("Good to Know") - aim for **at least 3 bullets** for visual balance in the layout, each one a genuinely distinct fact not covered elsewhere on the page
+- `Wildlife & Seasonal Highlights` (+ Source + Last Verified) - what's actually likely to be seen and when, sourced from NatureScot/RSPB/SOC, not generic filler
+- `Best Time to Visit` - season/tide/light-dependent guidance; this is also what populates the 5th Quick Facts box, so leaving it blank visibly shortchanges the page (4 boxes instead of 5)
+- `Parking`, `Accessibility`, `Opening Hours` - written so the *first clause* (before the first comma/semicolon) stands alone as a useful short answer, since the Quick Facts strip truncates to that point
+- `Nearest Facilities` - same truncation rule as above: lead with the useful part (location/distance), not a restatement of the field's own purpose
+- `What to Bring`
+- `Mobile Signal Note` - honest, checkable against Ofcom's coverage checker
+- `Pairs Well With` - a genuine cross-link (nearby distillery, related record), written as a sentence, not just a bare reference
+- `Hero Image` (single) + `Gallery` (remainder) - required before a page is considered finished; a record without photos is incomplete, not just "pending"
+
+**Process:** draft all fields together against this checklist, run the second-pass review (duplication check + fact-check against sources), present for approval, then write to Airtable in one pass - not field-by-field as gaps get noticed after the fact.
+
