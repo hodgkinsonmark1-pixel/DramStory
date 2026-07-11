@@ -402,6 +402,13 @@ export default function MapCanvas({
       });
       const marker = L.marker([pos.lat, pos.lng], { icon });
       const categoryLabel = f.category.replace("-", " ");
+      // Popups need a short hook, not the full page copy - "More info"
+      // is right there for anyone who wants the rest. Why Visit is
+      // written to be exactly this length; only fall back to a trimmed
+      // Description for categories that don't have one yet.
+      const popupSummary =
+        f.whyVisit ??
+        (f.description.length > 140 ? f.description.slice(0, 140).replace(/\s+\S*$/, "") + "…" : f.description);
       // "More info" now links to a real DramStory detail page (parking,
       // accessibility, hours, highlights, length/difficulty for walks and
       // rides) - deliberately keeping visitors on-site rather than sending
@@ -410,7 +417,7 @@ export default function MapCanvas({
         `<div class="popup-inner">
           <div class="popup-tag">${categoryLabel}</div>
           <div class="popup-name">${f.name}</div>
-          <div class="popup-detail">${f.description}</div>
+          <div class="popup-detail">${popupSummary}</div>
           <div class="popup-actions">
             <a class="popup-btn popup-btn-secondary" href="/explore/${f.slug}">More info &rarr;</a>
             <button class="popup-btn popup-btn-primary" data-add-feature="${f.id}">+ Add to Trip</button>
