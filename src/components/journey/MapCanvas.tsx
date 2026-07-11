@@ -382,9 +382,25 @@ export default function MapCanvas({
       for (const d of distilleries) {
         if (!d.lat || !d.lng) continue;
         const dLat = lat - d.lat;
-        const dLng = (lng - d.lng) * 0.56; // rough longitude compression at ~56°N
-        if (Math.sqrt(dLat * dLat + dLng * dLng) < collisionThresholdDeg) {
-          return { lat: lat + offsetDistanceDeg, lng: lng + offsetDistanceLngDeg };
+        const dLngCompressed = (lng - d.lng) * 0.56; // rough longitude compression at ~56°N
+        const dist = Math.sqrt(dLat * dLat + dLngCompressed * dLngCompressed);
+        if (dist < collisionThresholdDeg) {
+          // Push away from the distillery along the real bearing between
+          // the two points, rather than always the same fixed NE nudge -
+          // a coastal feature (e.g. Machir Bay, right by Kilchoman)
+          // should end up pushed further toward the coast, not shoved
+          // inland/behind other pins depending on which side of the
+          // distillery it happens to sit on.
+          if (dist < 1e-9) {
+            // Exact same coordinates - no direction to work from.
+            return { lat: lat + offsetDistanceDeg, lng: lng + offsetDistanceLngDeg };
+          }
+          const unitLat = dLat / dist;
+          const unitLngCompressed = dLngCompressed / dist;
+          return {
+            lat: lat + unitLat * offsetDistanceDeg,
+            lng: lng + unitLngCompressed * offsetDistanceLngDeg,
+          };
         }
       }
       return { lat, lng };
