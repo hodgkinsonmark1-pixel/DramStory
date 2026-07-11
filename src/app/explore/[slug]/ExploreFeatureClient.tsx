@@ -40,9 +40,14 @@ const CATEGORY_COLORS: Record<LocalFeature["category"], string> = {
   transport: "#5C7A99",
 };
 
+// Beach/Walk/Bike Route/Local Gem get the single-column editorial
+// treatment built for Natural Features. Every other category still
+// uses the two-column Distillery-derived layout below, until each of
+// those gets its own pass (Transport is next).
+const NATURAL_FEATURE_CATEGORIES: LocalFeature["category"][] = ["beach", "walk", "bike-route", "local-gem"];
+
 /** Renders plain text containing [label](/path) markdown-style links as
- *  real internal <Link>s - same helper as the distillery pages, kept
- *  local here since Natural Features content uses the same convention. */
+ *  real internal <Link>s. */
 function renderWithLinks(text: string) {
   const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g);
   return parts.map((part, i) => {
@@ -73,27 +78,292 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
     }
   }
 
+  const backHref = totalStops > 0 ? "/journey?resume=1" : "/journey";
+  const backLabel = totalStops > 0 ? "Back to your journey" : "Back to the map";
+
+  const lightbox =
+    lightboxIndex !== null && f.gallery ? (
+      <div
+        className="dist-lightbox-overlay"
+        onClick={() => setLightboxIndex(null)}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${f.name} photo gallery`}
+      >
+        <button type="button" className="dist-lightbox-close" onClick={() => setLightboxIndex(null)} aria-label="Close photo">
+          &times;
+        </button>
+        {f.gallery.length > 1 && (
+          <button
+            type="button"
+            className="dist-lightbox-nav dist-lightbox-prev"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightboxIndex((i) => (i === null ? null : (i - 1 + f.gallery!.length) % f.gallery!.length));
+            }}
+            aria-label="Previous photo"
+          >
+            &larr;
+          </button>
+        )}
+        <div className="dist-lightbox-img-wrap" onClick={(e) => e.stopPropagation()}>
+          <Image
+            src={f.gallery[lightboxIndex]}
+            alt={`${f.name} photo ${lightboxIndex + 1}`}
+            fill
+            unoptimized
+            style={{ objectFit: "contain" }}
+          />
+        </div>
+        {f.gallery.length > 1 && (
+          <button
+            type="button"
+            className="dist-lightbox-nav dist-lightbox-next"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightboxIndex((i) => (i === null ? null : (i + 1) % f.gallery!.length));
+            }}
+            aria-label="Next photo"
+          >
+            &rarr;
+          </button>
+        )}
+      </div>
+    ) : null;
+
+  // ─────────────────────────────────────────────────────────────────
+  // Natural Features: single-column editorial layout (Beach/Walk/Bike
+  // Route/Local Gem). See journey-extra.css "Natural Feature page" for
+  // the CSS - deliberately not a two-column sidebar layout, so there's
+  // no independent column to run longer/shorter than the other.
+  // ─────────────────────────────────────────────────────────────────
+  if (NATURAL_FEATURE_CATEGORIES.includes(f.category)) {
+    const hasFooterInfo = f.nearestFacilities || f.whatToBring || f.mobileSignalNote || f.pairsWellWith || f.websiteUrl;
+
+    return (
+      <div className="nf-page page">
+        <div className="nf-hero">
+          {f.heroImageUrl ? (
+            <Image src={f.heroImageUrl} alt={f.name} fill unoptimized style={{ objectFit: "cover" }} />
+          ) : (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: `linear-gradient(135deg, ${CATEGORY_COLORS[f.category]}, ${CATEGORY_COLORS[f.category]}cc)`,
+              }}
+            />
+          )}
+          <div className="nf-hero-overlay" />
+          <Link href={backHref} style={{ position: "absolute", top: 16, left: 20, color: "white", fontSize: 12, opacity: 0.85 }}>
+            &larr; {backLabel}
+          </Link>
+          <div className="nf-hero-content">
+            <div>
+              <h1 className="nf-hero-title">{f.name}</h1>
+              <div className="nf-hero-tags">
+                <span className="nf-hero-tag nf-hero-tag-category">{CATEGORY_LABELS[f.category]}</span>
+                {(f.greatFor ?? []).slice(0, 4).map((tag) => (
+                  <span className="nf-hero-tag nf-hero-tag-activity" key={tag}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="nf-hero-actions">
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${f.lat},${f.lng}`}
+                target="_blank"
+                rel="noreferrer"
+                className="hero-action-btn hero-action-secondary"
+              >
+                Get Directions
+              </a>
+              <button className={"hero-action-btn hero-action-primary" + (inJourney ? " in-journey" : "")} onClick={toggleAddToTrip}>
+                {inJourney ? "✓ In Your Journey" : "+ Add to Journey"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ paddingTop: 24 }}>
+          {f.whyVisit && (
+            <div className="nf-pull-quote">
+              <p>&ldquo;{f.whyVisit}&rdquo;</p>
+            </div>
+          )}
+
+          <div className="nf-quick-facts">
+            <div className="nf-quick-fact">
+              <div className="nf-quick-fact-label">Parking</div>
+              <div className="nf-quick-fact-value">{f.parking}</div>
+            </div>
+            <div className="nf-quick-fact">
+              <div className="nf-quick-fact-label">Accessibility</div>
+              <div className="nf-quick-fact-value">{f.accessibility}</div>
+            </div>
+            <div className="nf-quick-fact">
+              <div className="nf-quick-fact-label">Hours</div>
+              <div className="nf-quick-fact-value">{f.openingHours}</div>
+            </div>
+            {f.bestTimeToVisit && (
+              <div className="nf-quick-fact">
+                <div className="nf-quick-fact-label">Best time</div>
+                <div className="nf-quick-fact-value">{f.bestTimeToVisit.split(".")[0]}.</div>
+              </div>
+            )}
+            {(f.length || f.duration || f.difficulty) && (
+              <div className="nf-quick-fact">
+                <div className="nf-quick-fact-label">Route</div>
+                <div className="nf-quick-fact-value">{[f.length, f.duration, f.difficulty].filter(Boolean).join(" · ")}</div>
+              </div>
+            )}
+          </div>
+
+          {f.description.split("\n\n").map((para, i) => (
+            <p className="nf-expect" key={i}>
+              {renderWithLinks(para)}
+            </p>
+          ))}
+
+          {f.highlights.length > 0 && (
+            <div style={{ marginBottom: 32 }}>
+              <div className="nf-section-title">Good to Know</div>
+              <ul className="fun-facts-list">
+                {f.highlights.map((h) => (
+                  <li key={h}>{renderWithLinks(h)}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {f.history && (
+            <div className="nf-history-grid">
+              <div>
+                <div className="nf-section-title">History</div>
+                {f.history.split("\n\n").map((para, i) => (
+                  <p key={i} style={{ marginBottom: 12 }}>
+                    {renderWithLinks(para)}
+                  </p>
+                ))}
+              </div>
+              {f.gallery && f.gallery[1] && (
+                <div className="nf-aside-photo">
+                  <Image src={f.gallery[1]} alt={`${f.name} photo relating to its history`} fill unoptimized style={{ objectFit: "cover" }} />
+                </div>
+              )}
+            </div>
+          )}
+
+          {f.wildlifeHighlights && (
+            <div className="nf-wildlife-box">
+              <div className="nf-wildlife-label">Wildlife &amp; Seasonal Highlights</div>
+              <p>{renderWithLinks(f.wildlifeHighlights)}</p>
+            </div>
+          )}
+
+          {f.gallery && f.gallery.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              <div className="nf-section-title">Gallery</div>
+              <div className="nf-gallery-strip">
+                {f.gallery.map((url, i) => (
+                  <button type="button" key={i} onClick={() => setLightboxIndex(i)} aria-label={`View larger photo ${i + 1} of ${f.name}`}>
+                    <Image src={url} alt={`${f.name} photo ${i + 1}`} fill unoptimized style={{ objectFit: "cover" }} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {f.safetyNotes && (
+            <div className="dist-status-notice" style={{ margin: "8px 0 0", maxWidth: "none", padding: "16px 20px" }}>
+              <span className="dist-status-icon">!</span>
+              <p>
+                {f.safetyNotes}
+                {f.tideTimesUrl && (
+                  <>
+                    {" "}
+                    <a href={f.tideTimesUrl} target="_blank" rel="noopener noreferrer" className="dist-inline-link">
+                      Check live tide times &rarr;
+                    </a>
+                  </>
+                )}
+              </p>
+            </div>
+          )}
+
+          {hasFooterInfo && (
+            <div className="nf-footer">
+              <div className="nf-footer-label">Plan Your Visit</div>
+              <div className="nf-footer-grid">
+                {f.nearestFacilities && (
+                  <div>
+                    <div className="nf-footer-item-label">Nearest facilities</div>
+                    <div className="nf-footer-item-value">{f.nearestFacilities}</div>
+                  </div>
+                )}
+                {f.whatToBring && (
+                  <div>
+                    <div className="nf-footer-item-label">What to bring</div>
+                    <div className="nf-footer-item-value">{f.whatToBring}</div>
+                  </div>
+                )}
+                {f.mobileSignalNote && (
+                  <div>
+                    <div className="nf-footer-item-label">Mobile signal</div>
+                    <div className="nf-footer-item-value">{f.mobileSignalNote}</div>
+                  </div>
+                )}
+                {f.pairsWellWith && (
+                  <div>
+                    <div className="nf-footer-item-label">Pairs well with</div>
+                    <div className="nf-footer-item-value">{renderWithLinks(f.pairsWellWith)}</div>
+                  </div>
+                )}
+                {f.websiteUrl && (
+                  <div>
+                    <div className="nf-footer-item-label">Website</div>
+                    <div className="nf-footer-item-value">
+                      <a href={f.websiteUrl} target="_blank" rel="noopener noreferrer" className="dist-inline-link">
+                        Visit official website ↗
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {lightbox}
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // Everything else (Food & Drink, Golf & Spa, Transport, Historic
+  // Site, Attraction Gem): unchanged two-column layout for now, each
+  // gets its own pass next.
+  // ─────────────────────────────────────────────────────────────────
   const isWalkOrRide = f.category === "walk" || f.category === "bike-route";
   const isFoodDrink = f.category === "pub" || f.category === "cafe" || f.category === "restaurant";
-
-  // "Trip Tips" sidebar card only appears if at least one of these fields
-  // has content - Natural Features get it, Food & Drink venues (which
-  // don't have these fields populated) simply won't show an empty card.
   const hasTripTips = f.bestTimeToVisit || f.nearestFacilities || f.whatToBring || f.mobileSignalNote || f.pairsWellWith;
 
   return (
     <div className="distillery-page page">
-      <Link href={totalStops > 0 ? "/journey?resume=1" : "/journey"} className="dist-back-bar">
-        <span>&larr; {totalStops > 0 ? "Back to your journey" : "Back to the map"}</span>
-        {totalStops > 0 && <span className="dist-back-stops">{totalStops} stop{totalStops > 1 ? "s" : ""}</span>}
+      <Link href={backHref} className="dist-back-bar">
+        <span>&larr; {backLabel}</span>
+        {totalStops > 0 && (
+          <span className="dist-back-stops">
+            {totalStops} stop{totalStops > 1 ? "s" : ""}
+          </span>
+        )}
       </Link>
 
       <div className="distillery-hero">
         {f.heroImageUrl ? (
           <Image className="distillery-hero-img" src={f.heroImageUrl} alt={f.name} fill unoptimized style={{ objectFit: "cover" }} />
         ) : (
-          // No hero photo uploaded yet - a colour + icon placeholder rather
-          // than a broken image, same fallback pattern as distilleries.
           <div
             style={{
               position: "absolute",
@@ -129,10 +399,7 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
             >
               Get Directions
             </a>
-            <button
-              className={"hero-action-btn hero-action-primary" + (inJourney ? " in-journey" : "")}
-              onClick={toggleAddToTrip}
-            >
+            <button className={"hero-action-btn hero-action-primary" + (inJourney ? " in-journey" : "")} onClick={toggleAddToTrip}>
               {inJourney ? "✓ In Your Journey" : "+ Add to Journey"}
             </button>
           </div>
@@ -150,26 +417,13 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
         <div className="dist-detail-grid">
           <div>
             <div className="dist-section">
-              <div className="dist-section-title">What to Expect</div>
+              <div className="dist-section-title">About</div>
               {f.description.split("\n\n").map((para, i) => (
                 <p className="dist-p" key={i} style={{ marginBottom: 12 }}>
                   {renderWithLinks(para)}
                 </p>
               ))}
             </div>
-
-            {f.greatFor && f.greatFor.length > 0 && (
-              <div className="dist-section">
-                <div className="dist-section-title">Great For</div>
-                <div className="facilities-grid">
-                  {f.greatFor.map((tag) => (
-                    <span className="facility-badge" key={tag}>
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {f.highlights.length > 0 && (
               <div className="dist-section">
@@ -179,27 +433,6 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
                     <li key={h}>{renderWithLinks(h)}</li>
                   ))}
                 </ul>
-              </div>
-            )}
-
-            {(f.history || f.wildlifeHighlights) && (
-              <div className="dist-below-line">
-                {f.history && (
-                  <div className="dist-section">
-                    <div className="dist-section-title">History</div>
-                    {f.history.split("\n\n").map((para, i) => (
-                      <p className="dist-p" key={i} style={{ marginBottom: 12 }}>
-                        {renderWithLinks(para)}
-                      </p>
-                    ))}
-                  </div>
-                )}
-                {f.wildlifeHighlights && (
-                  <div className="dist-section">
-                    <div className="dist-section-title">Wildlife &amp; Seasonal Highlights</div>
-                    <p className="dist-p">{renderWithLinks(f.wildlifeHighlights)}</p>
-                  </div>
-                )}
               </div>
             )}
 
@@ -219,23 +452,6 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {f.safetyNotes && (
-              <div className="dist-status-notice" style={{ margin: "20px 0 0", maxWidth: "none", padding: "16px 20px" }}>
-                <span className="dist-status-icon">!</span>
-                <p>
-                  {f.safetyNotes}
-                  {f.tideTimesUrl && (
-                    <>
-                      {" "}
-                      <a href={f.tideTimesUrl} target="_blank" rel="noopener noreferrer" className="dist-inline-link">
-                        Check live tide times &rarr;
-                      </a>
-                    </>
-                  )}
-                </p>
               </div>
             )}
           </div>
@@ -323,54 +539,7 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
         </div>
       </div>
 
-      {lightboxIndex !== null && f.gallery && (
-        <div
-          className="dist-lightbox-overlay"
-          onClick={() => setLightboxIndex(null)}
-          role="dialog"
-          aria-modal="true"
-          aria-label={`${f.name} photo gallery`}
-        >
-          <button type="button" className="dist-lightbox-close" onClick={() => setLightboxIndex(null)} aria-label="Close photo">
-            &times;
-          </button>
-          {f.gallery.length > 1 && (
-            <button
-              type="button"
-              className="dist-lightbox-nav dist-lightbox-prev"
-              onClick={(e) => {
-                e.stopPropagation();
-                setLightboxIndex((i) => (i === null ? null : (i - 1 + f.gallery!.length) % f.gallery!.length));
-              }}
-              aria-label="Previous photo"
-            >
-              &larr;
-            </button>
-          )}
-          <div className="dist-lightbox-img-wrap" onClick={(e) => e.stopPropagation()}>
-            <Image
-              src={f.gallery[lightboxIndex]}
-              alt={`${f.name} photo ${lightboxIndex + 1}`}
-              fill
-              unoptimized
-              style={{ objectFit: "contain" }}
-            />
-          </div>
-          {f.gallery.length > 1 && (
-            <button
-              type="button"
-              className="dist-lightbox-nav dist-lightbox-next"
-              onClick={(e) => {
-                e.stopPropagation();
-                setLightboxIndex((i) => (i === null ? null : (i + 1) % f.gallery!.length));
-              }}
-              aria-label="Next photo"
-            >
-              &rarr;
-            </button>
-          )}
-        </div>
-      )}
+      {lightbox}
     </div>
   );
 }
