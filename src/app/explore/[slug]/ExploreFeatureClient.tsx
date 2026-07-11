@@ -352,11 +352,17 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
             <div style={{ marginBottom: 8 }}>
               <div className="nf-section-title">Gallery</div>
               <div className="nf-gallery-strip">
-                {f.gallery.map((url, i) => (
-                  <button type="button" key={i} onClick={() => setLightboxIndex(i)} aria-label={`View larger photo ${i + 1} of ${f.name}`}>
-                    <Image src={url} alt={`${f.name} photo ${i + 1}`} fill unoptimized style={{ objectFit: "cover" }} />
-                  </button>
-                ))}
+                {f.gallery.map((url, i) => {
+                  // Index 1 is already shown alongside History above (when
+                  // History exists) - skip it here so it doesn't appear
+                  // twice on the same page.
+                  if (f.history && i === 1) return null;
+                  return (
+                    <button type="button" key={i} onClick={() => setLightboxIndex(i)} aria-label={`View larger photo ${i + 1} of ${f.name}`}>
+                      <Image src={url} alt={`${f.name} photo ${i + 1}`} fill unoptimized style={{ objectFit: "cover" }} />
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
