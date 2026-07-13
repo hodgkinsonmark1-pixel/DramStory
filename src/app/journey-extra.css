@@ -571,26 +571,30 @@ select.location-inline-input {
 }
 
 /* Pulsing ring for distilleries hosting a Local Event during the
-   selected date range - sits behind the normal distillery marker. */
+   selected date range - sits behind the normal distillery marker
+   (32px). Redesigned (July 2026) to actually be visible: previously
+   scaled down to 0.6x (smaller than the pin itself) while fading to
+   fully transparent, so for most of the animation cycle it was either
+   too small or fully invisible. Now stays larger than the pin
+   throughout and flashes between two clearly visible opacity levels
+   rather than fading out. */
 .distillery-pulse-ring {
-  width: 46px;
-  height: 46px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
-  background: rgba(212, 165, 116, 0.35);
-  animation: distillery-pulse 1.8s ease-out infinite;
+  background: rgba(255, 111, 42, 0.55);
+  border: 3px solid #ff6f2a;
+  box-shadow: 0 0 14px 4px rgba(255, 111, 42, 0.65);
+  animation: distillery-pulse 1s ease-in-out infinite;
 }
 @keyframes distillery-pulse {
-  0% {
-    transform: scale(0.6);
-    opacity: 0.9;
+  0%, 100% {
+    transform: scale(0.95);
+    opacity: 0.55;
   }
-  70% {
-    transform: scale(1.4);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1.4);
-    opacity: 0;
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
   }
 }
 

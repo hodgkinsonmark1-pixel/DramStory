@@ -470,8 +470,8 @@ export default function MapCanvas({
         const icon = L.divIcon({
           className: "distillery-pulse-icon",
           html: `<div class="distillery-pulse-ring"></div>`,
-          iconSize: [46, 46],
-          iconAnchor: [23, 23],
+          iconSize: [60, 60],
+          iconAnchor: [30, 30],
         });
         // No popup/interactivity on the ring itself - it's a pure visual
         // indicator sitting behind the real, clickable distillery marker.
