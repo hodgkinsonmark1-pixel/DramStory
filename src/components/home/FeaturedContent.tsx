@@ -54,6 +54,7 @@ export default function FeaturedContent({
               (r.id === activeRegionId ? " selected" : "") +
               (!r.live ? " q-card-not-live" : "")
             }
+            disabled={!r.live}
             onClick={() => setActiveRegionId(r.id)}
           >
             {r.label}

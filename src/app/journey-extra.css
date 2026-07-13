@@ -1074,6 +1074,15 @@ select.location-inline-input {
 .q-card-not-live {
   opacity: 0.6;
 }
+.q-card-not-live:disabled {
+  cursor: not-allowed;
+}
+.q-card-not-live:disabled:hover {
+  border-color: var(--stone);
+  color: var(--peat);
+  transform: none;
+  box-shadow: var(--shadow-card);
+}
 .location-notice {
   flex-basis: 100%;
   display: flex;
