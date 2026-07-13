@@ -458,6 +458,14 @@ export default function Workspace({
           >
             Distilleries
           </Link>
+          <Link
+            href="/local-features"
+            id="onboard-nav-local-features"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Local Features Hub
+          </Link>
           <Link href="/" onClick={() => trip.resetTrip()}>
             Start over
           </Link>
