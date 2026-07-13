@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDistilleries, getLocalFeatures } from "@/lib/data";
-import { CLASSIC_JOURNEYS, routeStartingPriceRange } from "@/lib/journeys-data";
+import { CLASSIC_JOURNEYS, tourPriceRange, formatPrice } from "@/lib/journeys-data";
 import type { JourneyStop } from "@/lib/journeys-data";
 import type { Distillery, LocalFeature } from "@/lib/types";
 import Logo from "@/components/Logo";
@@ -9,6 +9,7 @@ import Footer from "@/components/Footer";
 import JourneyDayMap from "@/components/journeys/JourneyDayMap";
 import AddJourneyToTripButton from "@/components/journeys/AddJourneyToTripButton";
 import AddDayToTripButton from "@/components/journeys/AddDayToTripButton";
+import CostReceipt from "@/components/journeys/CostReceipt";
 
 function JourneyStopsRow({
   label,
@@ -83,7 +84,7 @@ export default async function JourneyDetailPage({
 
   const distilleries = await getDistilleries();
   const localFeatures = await getLocalFeatures();
-  const priceRange = routeStartingPriceRange(journey, distilleries);
+  const priceRange = tourPriceRange(journey, distilleries);
 
   return (
     <>
@@ -103,7 +104,8 @@ export default async function JourneyDetailPage({
         <p style={{ maxWidth: 560, margin: "0 auto", opacity: 0.85, lineHeight: 1.7 }}>{journey.description}</p>
         {priceRange !== null && (
           <div style={{ marginTop: 20, fontSize: 15, color: "var(--amber-light)" }}>
-            £{priceRange.min}&ndash;£{priceRange.max}pp &middot; distillery admissions only
+            Tours from {formatPrice(priceRange.min)} to {formatPrice(priceRange.max)}pp &middot; 2026 prices, excl.
+            food &amp; accommodation
           </div>
         )}
       </div>
@@ -145,6 +147,7 @@ export default async function JourneyDetailPage({
                 {journey.accommodationNote}
               </p>
             )}
+            <CostReceipt journey={journey} distilleries={distilleries} />
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 40 }}>
               {journey.days.map((day) => (
                 <div

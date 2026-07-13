@@ -1,11 +1,10 @@
 import type { Distillery } from "@/lib/types";
-import { roundPriceUp } from "@/lib/pricing";
 
 // ─────────────────────────────────────────────────────────────────────────
 // CLASSIC JOURNEYS — curated named routes, grouped by real Islay geography
 // and distillery style (not arbitrary). Cost is deliberately NOT hardcoded
 // here — it's computed from each distillery's real cheapest tour price at
-// render time (see cheapestTourPrice / routeStartingPrice below), so it
+// render time (see cheapestTourPrice / tourPriceRange below), so it
 // never drifts out of sync with Airtable.
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -235,52 +234,31 @@ export function cheapestTourPrice(d: Distillery): number | null {
   return Math.min(...pricedTours.map((t) => t.price));
 }
 
-/** Sum of the cheapest tour at each distillery on a route — real numbers,
- *  not a hardcoded estimate, so it stays accurate as Airtable changes. */
-export function routeStartingPrice(journey: ClassicJourney, allDistilleries: Distillery[]): number | null {
-  const prices = journey.distillerySlugs
-    .map((slug) => allDistilleries.find((d) => d.slug === slug))
-    .filter((d): d is Distillery => !!d)
-    .map(cheapestTourPrice)
-    .filter((p): p is number => p !== null);
-  if (prices.length === 0) return null;
-  return roundPriceUp(prices.reduce((sum, p) => sum + p, 0));
-}
-
-/** Min/max distillery-admission cost across a whole route - min sums each
- *  distillery's cheapest tour, max sums each distillery's priciest tour.
- *  This is the honest range: what a visitor could actually pay depending
- *  on which tour tier they pick at each stop. Deliberately excludes
- *  accommodation, food, and travel - those vary too much by traveller to
- *  estimate honestly (see the "distillery admissions only" qualifier
- *  shown alongside it wherever this is displayed).
- *
- *  Distilleries with no priced tours yet (blank Price field in Airtable -
- *  see mapTour, which defaults blank to 0) are excluded from the sum
- *  rather than counted as free. This means the range can currently
- *  understate the true route cost when a stop is missing pricing data -
- *  known gap as of July 2026 for Bunnahabhain (tours exist, no price set)
- *  and Port Ellen (no tours linked yet). Not blocking on this; fold real
- *  prices in during the regular fortnightly data-accuracy review once
- *  they're confirmed with each distillery, rather than guessing now. */
-export function routeStartingPriceRange(
+/** Global min/max across every priced tour at every distillery on a route -
+ *  NOT a sum, just the spread of individual tour prices actually on offer.
+ *  Deliberately not a route total: summing per-distillery costs requires
+ *  every stop to have pricing data, which two of Islay's ten distilleries
+ *  currently don't (Bunnahabhain has unpriced tours, Port Ellen has none
+ *  linked yet - see the itemized CostReceipt component for that detail
+ *  and the "TBC" gaps). This range only describes tours that ARE priced,
+ *  so it's always accurate regardless of that gap. */
+export function tourPriceRange(
   journey: ClassicJourney,
   allDistilleries: Distillery[]
 ): { min: number; max: number } | null {
-  const perDistillery = journey.distillerySlugs
+  const prices = journey.distillerySlugs
     .map((slug) => allDistilleries.find((d) => d.slug === slug))
     .filter((d): d is Distillery => !!d)
-    .map((d) => {
-      const prices = d.tours.map((t) => t.price).filter((p) => p > 0);
-      if (prices.length === 0) return null;
-      return { min: Math.min(...prices), max: Math.max(...prices) };
-    })
-    .filter((p): p is { min: number; max: number } => !!p);
+    .flatMap((d) => d.tours.map((t) => t.price))
+    .filter((p) => p > 0);
+  if (prices.length === 0) return null;
+  return { min: Math.min(...prices), max: Math.max(...prices) };
+}
 
-  if (perDistillery.length === 0) return null;
-  const minSum = perDistillery.reduce((sum, p) => sum + p.min, 0);
-  const maxSum = perDistillery.reduce((sum, p) => sum + p.max, 0);
-  return { min: roundPriceUp(minSum), max: roundPriceUp(maxSum) };
+/** Format a price for display - whole pounds show as "£65", a real
+ *  half-pound price (e.g. Ardbeg's £22.50 tour) keeps the 2dp. */
+export function formatPrice(amount: number): string {
+  return amount % 1 === 0 ? `£${amount}` : `£${amount.toFixed(2)}`;
 }
 
 export function getJourneyDistilleries(journey: ClassicJourney, allDistilleries: Distillery[]): Distillery[] {
