@@ -52,6 +52,13 @@ export interface JourneyStop {
   /** Optional extra color/context shown under the stop, e.g. the
    *  MacTaggart pool's distillery-waste-heat story. */
   note?: string;
+  /** Slug of a real Local Features record, when this activity
+   *  corresponds to one that already has verified coordinates (e.g.
+   *  "Swim at MacTaggart Leisure Centre" -> mactaggart-leisure-centre).
+   *  Lets the day map plot it alongside the distillery stops rather than
+   *  only ever showing distilleries. Left unset for activities with no
+   *  single mappable location (e.g. "browse the high street"). */
+  localFeatureSlug?: string;
 }
 
 /** A single day within a multi-day Classic Journey. */
@@ -87,7 +94,7 @@ export const CLASSIC_JOURNEYS: ClassicJourney[] = [
   {
     slug: "islay-grand-tour",
     name: "The Islay Grand Tour",
-    tagline: "6 nights · all 9 distilleries",
+    tagline: "6 nights · all 10 distilleries",
     description:
       "A full week based in Port Ellen, covering every working distillery on the island - real pacing, real logistics, not a highlight reel.",
     distillerySlugs: [
@@ -95,7 +102,7 @@ export const CLASSIC_JOURNEYS: ClassicJourney[] = [
       "bowmore",
       "kilchoman", "bruichladdich",
       "lagavulin", "laphroaig",
-      "ardbeg",
+      "ardbeg", "port-ellen",
     ],
     live: true,
     // Adapted from a real 2026 trip. Mainland travel days on either end
@@ -127,7 +134,7 @@ export const CLASSIC_JOURNEYS: ClassicJourney[] = [
           { kind: "distillery", distillerySlug: "ardnahoe" },
           { kind: "distillery", distillerySlug: "caol_ila" },
         ],
-        afternoon: [{ kind: "activity", label: "Machir Bay (or another west-coast beach)" }],
+        afternoon: [{ kind: "activity", label: "Machir Bay (or another west-coast beach)", localFeatureSlug: "machir-bay" }],
         transportNote: "A tight but real morning - all three sit close together on the north coast road out of Port Askaig.",
         overnight: { village: "Port Ellen", lat: 55.630181, lng: -6.187415 },
       },
@@ -140,6 +147,7 @@ export const CLASSIC_JOURNEYS: ClassicJourney[] = [
             kind: "activity",
             label: "Swim at MacTaggart Leisure Centre, Bowmore",
             note: "Islay's only indoor pool - genuinely heated by waste heat piped over from Bowmore Distillery next door.",
+            localFeatureSlug: "mactaggart-leisure-centre",
           },
         ],
         afternoon: [
@@ -148,6 +156,7 @@ export const CLASSIC_JOURNEYS: ClassicJourney[] = [
             kind: "activity",
             label: "Kilarrow Parish Church (the Round Church)",
             note: "Built round, the story goes, so the devil would have no corners to hide in.",
+            localFeatureSlug: "round-church-bowmore",
           },
           { kind: "activity", label: "Browse Bowmore's high street - independent shops, not chains" },
           { kind: "activity", label: "Drinks at the harbour to close out the day" },
@@ -183,11 +192,14 @@ export const CLASSIC_JOURNEYS: ClassicJourney[] = [
       {
         dayNumber: 5,
         narrative:
-          "Your last full day on Islay, and it's an easy one to reach - walk the coast road to Ardbeg, stopping for lunch at the Old Kiln Caf\u00e9 along the way. The tour needs booking ahead, so treat this as the day you don't want to run late for.",
+          "Your last full day on Islay, and it's an easy one to reach - walk the coast road to Ardbeg, stopping for lunch at the Old Kiln Caf\u00e9 along the way. The tour needs booking ahead, so treat this as the day you don't want to run late for. Finish back in Port Ellen itself at the town's own distillery, recently restarted after decades silent - the tenth and last of the tour, and the one you can walk to from bed.",
         morning: [
-          { kind: "activity", label: "Walk to Ardbeg, lunch at the Old Kiln Caf\u00e9" },
+          { kind: "activity", label: "Walk to Ardbeg, lunch at the Old Kiln Caf\u00e9", localFeatureSlug: "old-kiln-cafe-ardbeg" },
         ],
-        afternoon: [{ kind: "distillery", distillerySlug: "ardbeg", needsBooking: true }],
+        afternoon: [
+          { kind: "distillery", distillerySlug: "ardbeg", needsBooking: true },
+          { kind: "distillery", distillerySlug: "port-ellen" },
+        ],
         overnight: { village: "Port Ellen", lat: 55.630181, lng: -6.187415 },
       },
     ],

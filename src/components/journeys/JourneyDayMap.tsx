@@ -10,6 +10,13 @@ interface JourneyDayMapProps {
   base: LatLng & { village: string };
   /** That day's distillery stops, in visiting order. */
   stops: Distillery[];
+  /** Non-distillery activity stops that happen to have a real, verified
+   *  Local Feature record behind them (a beach, a café, a church) - shown
+   *  with their own marker style, distinct from the distillery diamond,
+   *  linking through to /explore/[slug]. Activities with no single
+   *  mappable location (e.g. "browse the high street") simply aren't
+   *  passed here and don't appear on the map at all. */
+  featureStops?: { name: string; slug: string; lat: number; lng: number }[];
 }
 
 /**
@@ -21,7 +28,7 @@ interface JourneyDayMapProps {
  * between them - reusing the same Leaflet setup and OSRM routing utility
  * the main map uses, at a much smaller scope.
  */
-export default function JourneyDayMap({ base, stops }: JourneyDayMapProps) {
+export default function JourneyDayMap({ base, stops, featureStops = [] }: JourneyDayMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Leaflet.Map | null>(null);
 
@@ -79,9 +86,31 @@ export default function JourneyDayMap({ base, stops }: JourneyDayMapProps) {
         });
       }
 
+      for (const f of featureStops) {
+        const marker = L.marker([f.lat, f.lng], {
+          icon: L.divIcon({
+            className: "",
+            html: `<div style="background:#6F7F62;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;cursor:pointer;font-size:12px">📍</div>`,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+          }),
+        })
+          .bindTooltip(f.name, {
+            permanent: true,
+            direction: "top",
+            offset: [0, -14],
+            className: "journey-day-map-label",
+          })
+          .addTo(map);
+        marker.on("click", () => {
+          window.open(`/explore/${f.slug}`, "_blank", "noopener,noreferrer");
+        });
+      }
+
       const points: LatLng[] = [
         { lat: base.lat, lng: base.lng },
         ...stops.filter((d) => d.lat && d.lng).map((d) => ({ lat: d.lat, lng: d.lng })),
+        ...featureStops.map((f) => ({ lat: f.lat, lng: f.lng })),
         { lat: base.lat, lng: base.lng },
       ];
 

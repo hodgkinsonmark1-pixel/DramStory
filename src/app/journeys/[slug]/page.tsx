@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getDistilleries } from "@/lib/data";
+import { getDistilleries, getLocalFeatures } from "@/lib/data";
 import { CLASSIC_JOURNEYS, routeStartingPrice } from "@/lib/journeys-data";
 import type { JourneyStop } from "@/lib/journeys-data";
-import type { Distillery } from "@/lib/types";
+import type { Distillery, LocalFeature } from "@/lib/types";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import JourneyDayMap from "@/components/journeys/JourneyDayMap";
@@ -82,6 +82,7 @@ export default async function JourneyDetailPage({
   if (!journey) notFound();
 
   const distilleries = await getDistilleries();
+  const localFeatures = await getLocalFeatures();
   const price = routeStartingPrice(journey, distilleries);
 
   return (
@@ -199,10 +200,15 @@ export default async function JourneyDetailPage({
                         .filter((s) => s.kind === "distillery")
                         .map((s) => distilleries.find((d) => d.slug === s.distillerySlug))
                         .filter((d): d is Distillery => !!d);
-                      if (dayDistilleries.length === 0) return null;
+                      const dayFeatureStops = [...day.morning, ...day.afternoon]
+                        .filter((s) => s.localFeatureSlug)
+                        .map((s) => localFeatures.find((f) => f.slug === s.localFeatureSlug))
+                        .filter((f): f is LocalFeature => !!f)
+                        .map((f) => ({ name: f.name, slug: f.slug, lat: f.lat, lng: f.lng }));
+                      if (dayDistilleries.length === 0 && dayFeatureStops.length === 0) return null;
                       return (
                         <div style={{ marginTop: 12 }}>
-                          <JourneyDayMap base={{ ...day.overnight }} stops={dayDistilleries} />
+                          <JourneyDayMap base={{ ...day.overnight }} stops={dayDistilleries} featureStops={dayFeatureStops} />
                         </div>
                       );
                     })()}
