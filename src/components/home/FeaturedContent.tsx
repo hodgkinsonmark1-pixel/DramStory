@@ -119,6 +119,10 @@ export default function FeaturedContent({
               <p>Fèis Ìle dates, distillery masterclasses, and island festivals will appear here once confirmed.</p>
             </div>
           )}
+
+          <Link href="/local-features" className="featured-view-all">
+            Explore Local Features &rarr;
+          </Link>
         </>
       ) : (
         <div className="featured-coming-soon">
