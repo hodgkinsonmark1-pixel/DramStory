@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { Distillery, InterestCategoryId, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
 import { INTEREST_CATEGORIES, REGIONS } from "@/lib/journey-options";
-import { CLASSIC_JOURNEYS, getJourneyDistilleries, routeStartingPrice } from "@/lib/journeys-data";
+import { CLASSIC_JOURNEYS, getJourneyDistilleries, routeStartingPriceRange } from "@/lib/journeys-data";
+import { roundPriceUp } from "@/lib/pricing";
 import { getMonthClimate, MONTH_NAMES } from "@/lib/islay-climate";
 import { estimatedDriveMinutes, formatDuration } from "@/lib/drive-time";
 import { useRouteSegments } from "@/lib/use-route-segments";
@@ -221,7 +222,9 @@ export default function Workspace({
   const totalVisitMinutes = activeDay ? activeDay.stops.reduce((sum, s) => sum + stopVisitMinutes(s), 0) : 0;
   const toursBooked = activeDay ? activeDay.stops.filter((s) => s.kind === "distillery" && s.tour).length : 0;
   const toursTotal = activeDay
-    ? activeDay.stops.reduce((sum, s) => sum + (s.kind === "distillery" ? s.tour?.price ?? 0 : 0), 0)
+    ? roundPriceUp(
+        activeDay.stops.reduce((sum, s) => sum + (s.kind === "distillery" ? s.tour?.price ?? 0 : 0), 0)
+      )
     : 0;
 
   const expandedCategoryData = INTEREST_CATEGORIES.find((c) => c.id === expandedCategory);
@@ -954,13 +957,17 @@ export default function Workspace({
         <div className="journeys-grid">
           {CLASSIC_JOURNEYS.map((journey) => {
             const stops = getJourneyDistilleries(journey, distilleries);
-            const price = routeStartingPrice(journey, distilleries);
+            const priceRange = routeStartingPriceRange(journey, distilleries);
             return (
               <Link href={`/journeys/${journey.slug}`} className="journey-card" key={journey.slug}>
                 <div className="journey-card-tagline">{journey.tagline}</div>
                 <div className="journey-card-name">{journey.name}</div>
                 <div className="journey-card-stops">{stops.map((d) => d.name).join(", ")}</div>
-                {price !== null && <div className="journey-card-price">From £{price}pp</div>}
+                {priceRange !== null && (
+                  <div className="journey-card-price">
+                    £{priceRange.min}&ndash;£{priceRange.max}pp &middot; distillery admissions only
+                  </div>
+                )}
               </Link>
             );
           })}

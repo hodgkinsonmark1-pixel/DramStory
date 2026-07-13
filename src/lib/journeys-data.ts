@@ -1,4 +1,5 @@
 import type { Distillery } from "@/lib/types";
+import { roundPriceUp } from "@/lib/pricing";
 
 // ─────────────────────────────────────────────────────────────────────────
 // CLASSIC JOURNEYS — curated named routes, grouped by real Islay geography
@@ -239,7 +240,34 @@ export function routeStartingPrice(journey: ClassicJourney, allDistilleries: Dis
     .map(cheapestTourPrice)
     .filter((p): p is number => p !== null);
   if (prices.length === 0) return null;
-  return prices.reduce((sum, p) => sum + p, 0);
+  return roundPriceUp(prices.reduce((sum, p) => sum + p, 0));
+}
+
+/** Min/max distillery-admission cost across a whole route - min sums each
+ *  distillery's cheapest tour, max sums each distillery's priciest tour.
+ *  This is the honest range: what a visitor could actually pay depending
+ *  on which tour tier they pick at each stop. Deliberately excludes
+ *  accommodation, food, and travel - those vary too much by traveller to
+ *  estimate honestly (see the "distillery admissions only" qualifier
+ *  shown alongside it wherever this is displayed). */
+export function routeStartingPriceRange(
+  journey: ClassicJourney,
+  allDistilleries: Distillery[]
+): { min: number; max: number } | null {
+  const perDistillery = journey.distillerySlugs
+    .map((slug) => allDistilleries.find((d) => d.slug === slug))
+    .filter((d): d is Distillery => !!d)
+    .map((d) => {
+      if (d.tours.length === 0) return null;
+      const prices = d.tours.map((t) => t.price);
+      return { min: Math.min(...prices), max: Math.max(...prices) };
+    })
+    .filter((p): p is { min: number; max: number } => !!p);
+
+  if (perDistillery.length === 0) return null;
+  const minSum = perDistillery.reduce((sum, p) => sum + p.min, 0);
+  const maxSum = perDistillery.reduce((sum, p) => sum + p.max, 0);
+  return { min: roundPriceUp(minSum), max: roundPriceUp(maxSum) };
 }
 
 export function getJourneyDistilleries(journey: ClassicJourney, allDistilleries: Distillery[]): Distillery[] {

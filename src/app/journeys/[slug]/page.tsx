@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDistilleries, getLocalFeatures } from "@/lib/data";
-import { CLASSIC_JOURNEYS, routeStartingPrice } from "@/lib/journeys-data";
+import { CLASSIC_JOURNEYS, routeStartingPriceRange } from "@/lib/journeys-data";
 import type { JourneyStop } from "@/lib/journeys-data";
 import type { Distillery, LocalFeature } from "@/lib/types";
 import Logo from "@/components/Logo";
@@ -83,7 +83,7 @@ export default async function JourneyDetailPage({
 
   const distilleries = await getDistilleries();
   const localFeatures = await getLocalFeatures();
-  const price = routeStartingPrice(journey, distilleries);
+  const priceRange = routeStartingPriceRange(journey, distilleries);
 
   return (
     <>
@@ -101,8 +101,10 @@ export default async function JourneyDetailPage({
           {journey.name}
         </h1>
         <p style={{ maxWidth: 560, margin: "0 auto", opacity: 0.85, lineHeight: 1.7 }}>{journey.description}</p>
-        {price !== null && (
-          <div style={{ marginTop: 20, fontSize: 15, color: "var(--amber-light)" }}>From £{price}pp</div>
+        {priceRange !== null && (
+          <div style={{ marginTop: 20, fontSize: 15, color: "var(--amber-light)" }}>
+            £{priceRange.min}&ndash;£{priceRange.max}pp &middot; distillery admissions only
+          </div>
         )}
       </div>
 
