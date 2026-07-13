@@ -225,10 +225,14 @@ export const CLASSIC_JOURNEYS: ClassicJourney[] = [
   },
 ];
 
-/** Cheapest tour price at a distillery, or null if it has no tours listed. */
+/** Cheapest tour price at a distillery, or null if it has no priced tours.
+ *  A tour price of 0 means the price hasn't been entered in Airtable yet
+ *  (mapTour defaults blank to 0) rather than a genuinely free tour, so
+ *  those are excluded here rather than treated as £0. */
 export function cheapestTourPrice(d: Distillery): number | null {
-  if (d.tours.length === 0) return null;
-  return Math.min(...d.tours.map((t) => t.price));
+  const pricedTours = d.tours.filter((t) => t.price > 0);
+  if (pricedTours.length === 0) return null;
+  return Math.min(...pricedTours.map((t) => t.price));
 }
 
 /** Sum of the cheapest tour at each distillery on a route — real numbers,
@@ -249,7 +253,16 @@ export function routeStartingPrice(journey: ClassicJourney, allDistilleries: Dis
  *  on which tour tier they pick at each stop. Deliberately excludes
  *  accommodation, food, and travel - those vary too much by traveller to
  *  estimate honestly (see the "distillery admissions only" qualifier
- *  shown alongside it wherever this is displayed). */
+ *  shown alongside it wherever this is displayed).
+ *
+ *  Distilleries with no priced tours yet (blank Price field in Airtable -
+ *  see mapTour, which defaults blank to 0) are excluded from the sum
+ *  rather than counted as free. This means the range can currently
+ *  understate the true route cost when a stop is missing pricing data -
+ *  known gap as of July 2026 for Bunnahabhain (tours exist, no price set)
+ *  and Port Ellen (no tours linked yet). Not blocking on this; fold real
+ *  prices in during the regular fortnightly data-accuracy review once
+ *  they're confirmed with each distillery, rather than guessing now. */
 export function routeStartingPriceRange(
   journey: ClassicJourney,
   allDistilleries: Distillery[]
@@ -258,8 +271,8 @@ export function routeStartingPriceRange(
     .map((slug) => allDistilleries.find((d) => d.slug === slug))
     .filter((d): d is Distillery => !!d)
     .map((d) => {
-      if (d.tours.length === 0) return null;
-      const prices = d.tours.map((t) => t.price);
+      const prices = d.tours.map((t) => t.price).filter((p) => p > 0);
+      if (prices.length === 0) return null;
       return { min: Math.min(...prices), max: Math.max(...prices) };
     })
     .filter((p): p is { min: number; max: number } => !!p);
