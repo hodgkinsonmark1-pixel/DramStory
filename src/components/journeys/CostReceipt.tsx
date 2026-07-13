@@ -3,10 +3,15 @@ import { cheapestTourPrice, formatPrice } from "@/lib/journeys-data";
 import { roundPriceUp } from "@/lib/pricing";
 import type { Distillery } from "@/lib/types";
 
-/** A literal "receipt" of what this route actually costs, stop by stop -
- *  torn paper edges and a dotted price leader are the one deliberate
- *  visual flourish here; everything else stays quiet so the real content
- *  (which stops are priced, which aren't) reads clearly at a glance. */
+const RECEIPT_FONT =
+  "'SFMono-Regular', ui-monospace, 'IBM Plex Mono', 'Courier New', monospace";
+
+/** A literal printed till receipt - the kind that would actually get
+ *  folded up and put in a pocket. Monospace throughout (not the site's
+ *  display serif) is the one deliberate departure from the normal brand
+ *  type system here, because that's what makes it read as a receipt
+ *  rather than another styled card. Torn paper edges and dotted price
+ *  leaders carry the rest of the metaphor; everything else stays plain. */
 export default function CostReceipt({
   journey,
   distilleries,
@@ -33,11 +38,12 @@ export default function CostReceipt({
         style={{
           position: "relative",
           width: "100%",
-          maxWidth: 380,
+          maxWidth: 320,
           background: "var(--amber-pale)",
           border: "1px solid var(--stone)",
-          padding: "28px 26px 22px",
+          padding: "26px 22px 20px",
           boxShadow: "var(--shadow-card)",
+          fontFamily: RECEIPT_FONT,
         }}
       >
         {/* Torn perforated edges, top and bottom */}
@@ -70,45 +76,46 @@ export default function CostReceipt({
           }}
         />
 
-        <div style={{ textAlign: "center", marginBottom: 4 }}>
+        <div style={{ textAlign: "center", marginBottom: 2 }}>
           <div
             style={{
-              fontFamily: "var(--font-body)",
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: 600,
-              letterSpacing: "0.14em",
+              letterSpacing: "0.12em",
               textTransform: "uppercase",
               color: "var(--copper)",
             }}
           >
-            2026 Price Guide
+            {journey.name}
           </div>
           <div
             style={{
-              fontFamily: "var(--font-display)",
-              fontSize: 18,
-              fontWeight: 500,
+              fontSize: 15,
+              fontWeight: 700,
+              letterSpacing: "0.03em",
+              textTransform: "uppercase",
               color: "var(--dark)",
-              marginTop: 4,
+              marginTop: 5,
             }}
           >
-            {journey.name}
+            Our journey costs 2026
           </div>
         </div>
 
-        <div style={{ borderTop: "1px dashed var(--mist)", margin: "16px 0 12px" }} />
+        <div style={{ borderTop: "1px dashed var(--mist)", margin: "14px 0 12px" }} />
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {priced.map((s) => (
             <ReceiptRow key={s.name} label={s.name} value={`from ${formatPrice(s.price)}`} />
           ))}
           {unpriced.map((d) => (
             <ReceiptRow key={d.slug} label={d.name} value="TBC" muted />
           ))}
+          <ReceiptRow label="Swim (MacTaggart Leisure Centre)" value="TBC" muted />
           <ReceiptRow label="E-bike hire (Islay E-Wheels)" value="TBC" muted />
         </div>
 
-        <div style={{ borderTop: "2px double var(--peat)", margin: "14px 0 10px" }} />
+        <div style={{ borderTop: "2px double var(--peat)", margin: "12px 0 10px" }} />
 
         <ReceiptRow
           label="Distillery admissions"
@@ -118,12 +125,11 @@ export default function CostReceipt({
 
         <div
           style={{
-            fontFamily: "var(--font-body)",
-            fontSize: 11,
+            fontSize: 10,
             color: "var(--slate)",
             textAlign: "center",
             marginTop: 16,
-            lineHeight: 1.5,
+            lineHeight: 1.6,
           }}
         >
           Excl. food, accommodation &amp; travel between stops.
@@ -154,12 +160,13 @@ function ReceiptRow({
     <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
       <span
         style={{
-          fontFamily: "var(--font-body)",
-          fontSize: 13,
+          fontSize: 12,
           color: bold ? "var(--dark)" : muted ? "var(--slate)" : "var(--peat)",
-          fontWeight: bold ? 600 : 400,
+          fontWeight: bold ? 700 : 400,
           fontStyle: muted ? "italic" : "normal",
           whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
         }}
       >
         {label}
@@ -174,10 +181,9 @@ function ReceiptRow({
       />
       <span
         style={{
-          fontFamily: "var(--font-body)",
           fontVariantNumeric: "tabular-nums",
-          fontSize: 13,
-          fontWeight: bold ? 600 : 400,
+          fontSize: 12,
+          fontWeight: bold ? 700 : 400,
           color: bold ? "var(--dark)" : muted ? "var(--slate)" : "var(--peat)",
           fontStyle: muted ? "italic" : "normal",
           whiteSpace: "nowrap",
@@ -188,3 +194,4 @@ function ReceiptRow({
     </div>
   );
 }
+
