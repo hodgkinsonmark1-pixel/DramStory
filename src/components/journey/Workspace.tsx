@@ -304,6 +304,14 @@ export default function Workspace({
   function calendarDayLabel(dayIndex: number): string {
     return formatDisplayDate(addDays(trip.tripDates.startDate, dayIndex));
   }
+  // Flags it when the itinerary has grown past a date range that was
+  // later narrowed - syncDayCount is grow-only (see trip-context), so
+  // this can genuinely happen rather than self-correcting. Passive only:
+  // names the mismatch and suggests the two fixes, doesn't force either.
+  const dateRangeSpan = useCalendarDayLabels
+    ? daysBetween(trip.tripDates.startDate, trip.tripDates.endDate) + 1
+    : null;
+  const dayCountExceedsRange = dateRangeSpan !== null && days.length > dateRangeSpan;
   const localEventsActive = activeCategories.has("local-events");
   // No events at all until a real date/month has been chosen - this is
   // the map-pin indicator now (a pulsing ring on the hosting distillery,
@@ -386,6 +394,7 @@ export default function Workspace({
                     type="date"
                     className="event-date-input"
                     value={trip.tripDates.startDate}
+                    onClick={(e) => e.currentTarget.showPicker?.()}
                     onChange={(e) => {
                       const newStart = e.target.value;
                       // No previous start yet (still blank on first use) -
@@ -407,6 +416,7 @@ export default function Workspace({
                     value={trip.tripDates.endDate}
                     min={trip.tripDates.startDate || undefined}
                     max={trip.tripDates.startDate ? addDays(trip.tripDates.startDate, 14) : undefined}
+                    onClick={(e) => e.currentTarget.showPicker?.()}
                     onChange={(e) => trip.setDateRange(trip.tripDates.startDate || e.target.value, e.target.value)}
                   />
                 </>
@@ -415,6 +425,7 @@ export default function Workspace({
                   type="month"
                   className="event-date-input"
                   value={trip.tripDates.month}
+                  onClick={(e) => e.currentTarget.showPicker?.()}
                   onChange={(e) => trip.setDateMonth(e.target.value)}
                 />
               )}
@@ -497,6 +508,13 @@ export default function Workspace({
               )}
             </div>
           </div>
+
+          {dayCountExceedsRange && (
+            <div className="day-count-mismatch-notice">
+              Your itinerary has {days.length} days, but your selected dates only cover {dateRangeSpan}.
+              Remove the extra days, or widen your date range above.
+            </div>
+          )}
 
           <div className="journey-stops">
             {isFlyingIn && activeDayIndex === 0 && (

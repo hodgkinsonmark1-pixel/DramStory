@@ -13,7 +13,7 @@ const STORAGE_KEY = "dramstory-trip-v2";
  *  inputs render empty on first arrival, rather than looking like a
  *  choice has already silently been made for the visitor. */
 function defaultTripDates(): TripDates {
-  return { mode: "month", startDate: "", endDate: "", month: "", confirmed: false };
+  return { mode: "range", startDate: "", endDate: "", month: "", confirmed: false };
 }
 
 interface StoredTrip {

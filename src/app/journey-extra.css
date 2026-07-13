@@ -175,6 +175,17 @@ select.location-inline-input {
   color: #c0392b;
 }
 
+.day-count-mismatch-notice {
+  margin: 0 20px 12px;
+  padding: 10px 14px;
+  background: var(--amber-pale);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--peat);
+}
+
 .accommodation-row {
   display: flex;
   align-items: center;
