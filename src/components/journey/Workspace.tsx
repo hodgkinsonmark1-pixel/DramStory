@@ -40,6 +40,11 @@ function describeLocation(location: LocationAnswer): string {
 // simple day-count arithmetic on ISO strings.
 function addDays(isoDate: string, days: number): string {
   const d = new Date(isoDate);
+  // Guards against an empty/invalid isoDate (e.g. a still-unset date
+  // field) - toISOString() throws on an Invalid Date, which previously
+  // crashed the whole page rather than failing quietly. Falls back to
+  // today rather than propagating the invalid value further.
+  if (isNaN(d.getTime())) return new Date().toISOString().slice(0, 10);
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
 }
@@ -98,6 +103,13 @@ export default function Workspace({
   const [showCostBreakdown, setShowCostBreakdown] = useState(false);
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [weatherMinimized, setWeatherMinimized] = useState(false);
+  // Shown only after pressing "Save My Dram Story", not continuously
+  // while editing - dismissible via its own close button. Re-derives
+  // dayCountExceedsRange fresh each click rather than trusting a stale
+  // flag, so it also self-hides if the mismatch gets fixed later and
+  // Save is pressed again.
+  const [showDayMismatchNotice, setShowDayMismatchNotice] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
 
   // There's no longer a "how long" question (Step 3 removed, July 2026) -
   // trips start at a flat default day count and grow/shrink automatically
@@ -300,7 +312,8 @@ export default function Workspace({
   // Calendar-date day labels only make sense once a specific range (not
   // just a month) has been confirmed - a month alone doesn't pin down
   // which exact day "Day 1" falls on.
-  const useCalendarDayLabels = timing !== "today" && trip.tripDates.mode === "range" && trip.tripDates.confirmed;
+  const useCalendarDayLabels =
+    timing !== "today" && trip.tripDates.mode === "range" && trip.tripDates.confirmed && Boolean(trip.tripDates.startDate);
   function calendarDayLabel(dayIndex: number): string {
     return formatDisplayDate(addDays(trip.tripDates.startDate, dayIndex));
   }
@@ -509,8 +522,15 @@ export default function Workspace({
             </div>
           </div>
 
-          {dayCountExceedsRange && (
+          {showDayMismatchNotice && dayCountExceedsRange && (
             <div className="day-count-mismatch-notice">
+              <button
+                className="day-count-mismatch-close"
+                onClick={() => setShowDayMismatchNotice(false)}
+                aria-label="Dismiss"
+              >
+                &times;
+              </button>
               Your itinerary has {days.length} days, but your selected dates only cover {dateRangeSpan}.
               Remove the extra days, or widen your date range above.
             </div>
@@ -677,7 +697,25 @@ export default function Workspace({
                 </>
               )}
 
-              <button className="save-journey-btn">📖 Save My Dram Story</button>
+              <button
+                className="save-journey-btn"
+                onClick={() => {
+                  // The trip already auto-persists to localStorage on every
+                  // change (see TripContext) - there's no separate save
+                  // step yet functionally. This button's job for now is
+                  // just to surface the day-count/date-range mismatch at a
+                  // point the visitor actively chose, rather than
+                  // continuously nagging while they're still mid-edit.
+                  if (dayCountExceedsRange) {
+                    setShowDayMismatchNotice(true);
+                  } else {
+                    setJustSaved(true);
+                    setTimeout(() => setJustSaved(false), 2000);
+                  }
+                }}
+              >
+                {justSaved ? "✓ Saved" : "📖 Save My Dram Story"}
+              </button>
             </div>
           )}
         </div>

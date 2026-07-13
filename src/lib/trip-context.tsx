@@ -194,7 +194,14 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setDateMode = useCallback((mode: TripDateMode) => {
-    setTripDates((prev) => ({ ...prev, mode }));
+    // Resets confirmed to false on every mode switch - otherwise switching
+    // from a confirmed Month pick straight to Dates (or vice versa) left
+    // confirmed:true paired with that mode's still-empty value, which
+    // downstream code (calendar-date day labels, the weather popup) took
+    // as "a real date is set" and crashed trying to format an empty
+    // string as a date. Switching modes now always requires picking the
+    // new mode's value again before anything date-dependent reappears.
+    setTripDates((prev) => ({ ...prev, mode, confirmed: false }));
   }, []);
 
   const setDateRange = useCallback((startDate: string, endDate: string) => {

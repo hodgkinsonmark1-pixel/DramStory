@@ -176,13 +176,29 @@ select.location-inline-input {
 }
 
 .day-count-mismatch-notice {
+  position: relative;
   margin: 0 20px 12px;
-  padding: 10px 14px;
+  padding: 10px 30px 10px 14px;
   background: var(--amber-pale);
   border: 1px solid var(--amber);
   border-radius: var(--radius-sm);
   font-size: 12px;
   line-height: 1.5;
+  color: var(--peat);
+}
+.day-count-mismatch-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--slate);
+  cursor: pointer;
+  padding: 4px;
+}
+.day-count-mismatch-close:hover {
   color: var(--peat);
 }
 
