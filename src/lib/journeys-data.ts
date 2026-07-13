@@ -22,6 +22,15 @@ export interface ClassicJourney {
    *  turned into an actual bookable-shaped tour (vs. just a themed route
    *  of stops). One entry per day, in order. */
   days?: JourneyDay[];
+  /** Practical "how you actually get there" logistics that don't belong
+   *  in the numbered day-by-day breakdown because there's no touring
+   *  content on that leg (a ferry, a transfer) - shown once, in the
+   *  intro, rather than consuming a "Day 1" slot with nothing to tour. */
+  gettingThereNote?: string;
+  /** Why this journey's overnight base makes sense for THIS route
+   *  specifically (not a generic "no booking yet" disclaimer, which
+   *  stays separate and applies to every journey regardless). */
+  accommodationNote?: string;
 }
 
 /** A single stop within a day - either a distillery visit or a
@@ -56,6 +65,12 @@ export interface JourneyDay {
    *  deliberately stops short of claiming any bookable inventory. Null on
    *  a final departure day where the trip ends rather than continues. */
   overnight: JourneyNight | null;
+  /** A short, evocative scene-setting paragraph shown above the stop
+   *  list - the "why this day feels the way it does" framing, not a
+   *  restatement of the stops themselves. Content, not a code feature -
+   *  drafted per journey and due Mark's own review before being treated
+   *  as final, same as any other published copy on the site. */
+  narrative?: string;
 }
 
 export interface JourneyNight {
@@ -86,15 +101,22 @@ export const CLASSIC_JOURNEYS: ClassicJourney[] = [
     // Accommodation shown as "Port Ellen" only, not the specific named
     // property from the original trip - no booking integration exists yet,
     // so this doesn't claim to endorse or have availability for any one place.
+    //
+    // July 2026: the arrival day (ferry + transfer, no distilleries) was
+    // pulled out of the numbered day-by-day breakdown - it had nothing to
+    // tour, so counting it as "Day 1" undersold how much the tour itself
+    // actually covers. That logistics info now lives in gettingThereNote
+    // instead, and the days below start on the first day with real
+    // touring content (previously Day 2).
+    gettingThereNote:
+      "Ferry from Kennacraig to Port Askaig, then a transfer south to settle into Port Ellen - allow the rest of arrival day for this before the tour itself begins.",
+    accommodationNote:
+      "Port Ellen is the base for the whole week: it's a proper town (not just a distillery car park), with a genuinely nice beach on your doorstep and the facilities you'd actually want after a day of touring. It's also the right geography for this route specifically - Day 4 and Day 5 are both close enough to reach on foot or by bike, and Bowmore is a short, easy bus ride away for Day 2.",
     days: [
       {
         dayNumber: 1,
-        morning: [{ kind: "activity", label: "Ferry from Kennacraig to Port Askaig" }],
-        afternoon: [{ kind: "activity", label: "Transfer south and settle into Port Ellen" }],
-        overnight: { village: "Port Ellen", lat: 55.630181, lng: -6.187415 },
-      },
-      {
-        dayNumber: 2,
+        narrative:
+          "The tour starts on Islay's quieter northern shore, where three very different distilleries sit almost within sight of each other along the coast road out of Port Askaig - traditional at Bunnahabhain, brand new at Ardnahoe, unmistakably peated at Caol Ila. Three character studies before lunch. Spend the afternoon at Machir Bay, one of the most photographed beaches in Scotland, and let the pace drop before it picks back up tomorrow.",
         morning: [
           { kind: "distillery", distillerySlug: "bunnahabhain" },
           { kind: "distillery", distillerySlug: "ardnahoe" },
@@ -105,7 +127,9 @@ export const CLASSIC_JOURNEYS: ClassicJourney[] = [
         overnight: { village: "Port Ellen", lat: 55.630181, lng: -6.187415 },
       },
       {
-        dayNumber: 3,
+        dayNumber: 2,
+        narrative:
+          "A gentler start today - Islay's only swimming pool happens to be heated by waste heat piped straight from Bowmore Distillery next door, one of those quietly brilliant details that only make sense once you've seen it. Cross the road afterwards for a tour of the island's oldest working distillery, its warehouses built below sea level and still maturing casks the old way.",
         morning: [
           {
             kind: "activity",
@@ -118,14 +142,18 @@ export const CLASSIC_JOURNEYS: ClassicJourney[] = [
         overnight: { village: "Port Ellen", lat: 55.630181, lng: -6.187415 },
       },
       {
-        dayNumber: 4,
+        dayNumber: 3,
+        narrative:
+          "Today belongs to Islay's farming distilleries. Kilchoman still grows, malts, and distils barley from its own fields - genuinely rare anywhere in Scotland - before an afternoon at Bruichladdich, where experimentation is practically the house style. Both need booking ahead, so this is the day to have your tour times locked in before you arrive.",
         morning: [{ kind: "distillery", distillerySlug: "kilchoman", needsBooking: true }],
         afternoon: [{ kind: "distillery", distillerySlug: "bruichladdich", needsBooking: true }],
         transportNote: "Taxi out to Kilchoman, walk from there to Port Charlotte for Bruichladdich, bus back to Port Ellen.",
         overnight: { village: "Port Ellen", lat: 55.630181, lng: -6.187415 },
       },
       {
-        dayNumber: 5,
+        dayNumber: 4,
+        narrative:
+          "Trade the bus timetable for two wheels this morning, hiring e-bikes in Port Ellen and riding the coast road out with the sea on one side. By afternoon you're at Lagavulin, then Laphroaig next door - two of the most intensely peated, iodine-heavy drams on the island, tasted almost within walking distance of each other and of home for the night.",
         morning: [
           {
             kind: "activity",
@@ -139,7 +167,9 @@ export const CLASSIC_JOURNEYS: ClassicJourney[] = [
         overnight: { village: "Port Ellen", lat: 55.630181, lng: -6.187415 },
       },
       {
-        dayNumber: 6,
+        dayNumber: 5,
+        narrative:
+          "Your last full day on Islay, and it's an easy one to reach - walk the coast road to Ardbeg, stopping for lunch at the Old Kiln Caf\u00e9 along the way. The tour needs booking ahead, so treat this as the day you don't want to run late for.",
         morning: [
           { kind: "activity", label: "Walk to Ardbeg, lunch at the Old Kiln Caf\u00e9" },
         ],
@@ -147,7 +177,9 @@ export const CLASSIC_JOURNEYS: ClassicJourney[] = [
         overnight: { village: "Port Ellen", lat: 55.630181, lng: -6.187415 },
       },
       {
-        dayNumber: 7,
+        dayNumber: 6,
+        narrative:
+          "Ferry back to Kennacraig from Port Askaig this morning - no tours today, just the crossing, and six days of distilleries to let settle in on the way home.",
         morning: [{ kind: "activity", label: "Ferry from Port Askaig back to Kennacraig" }],
         afternoon: [],
         overnight: null,

@@ -8,6 +8,7 @@ import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import JourneyDayMap from "@/components/journeys/JourneyDayMap";
 import AddJourneyToTripButton from "@/components/journeys/AddJourneyToTripButton";
+import AddDayToTripButton from "@/components/journeys/AddDayToTripButton";
 
 function JourneyStopsRow({
   label,
@@ -106,14 +107,37 @@ export default async function JourneyDetailPage({
       </div>
 
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "48px 24px" }}>
+        {journey.gettingThereNote && (
+          <div
+            style={{
+              padding: "16px 20px",
+              background: "var(--cream)",
+              borderRadius: "var(--radius)",
+              border: "1px solid var(--stone)",
+              marginBottom: 24,
+              fontSize: 14,
+              color: "var(--peat)",
+              lineHeight: 1.6,
+            }}
+          >
+            <strong style={{ color: "var(--dark)" }}>Getting there: </strong>
+            {journey.gettingThereNote}
+          </div>
+        )}
+
         {journey.days && journey.days.length > 0 && (
           <>
             <h2 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 500, marginBottom: 8 }}>
               Day by day
             </h2>
-            <p style={{ fontSize: 14, color: "var(--slate)", marginBottom: 24 }}>
-              Based in Port Ellen throughout &mdash; accommodation booking isn&apos;t live yet, so treat this as
-              where to base your search for now, not a specific place we&apos;re recommending.
+            {journey.accommodationNote && (
+              <p style={{ fontSize: 14, color: "var(--peat)", lineHeight: 1.6, marginBottom: 10 }}>
+                {journey.accommodationNote}
+              </p>
+            )}
+            <p style={{ fontSize: 13, color: "var(--slate)", fontStyle: "italic", marginBottom: 24 }}>
+              Accommodation booking isn&apos;t live yet, so treat this as where to base your search for now, not a
+              specific place we&apos;re recommending.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 40 }}>
               {journey.days.map((day) => (
@@ -137,6 +161,12 @@ export default async function JourneyDetailPage({
                   >
                     Day {day.dayNumber}
                   </div>
+
+                  {day.narrative && (
+                    <p style={{ fontSize: 14, color: "var(--peat)", lineHeight: 1.65, marginBottom: 14 }}>
+                      {day.narrative}
+                    </p>
+                  )}
 
                   {day.morning.length > 0 && (
                     <JourneyStopsRow label="Morning" stops={day.morning} distilleries={distilleries} />
@@ -167,6 +197,10 @@ export default async function JourneyDetailPage({
 
                   <div style={{ fontSize: 13, color: "var(--slate)", marginTop: 10, fontWeight: 500 }}>
                     {day.overnight ? `Overnight: ${day.overnight.village}` : "Departure day"}
+                  </div>
+
+                  <div style={{ marginTop: 14 }}>
+                    <AddDayToTripButton day={day} distilleries={distilleries} />
                   </div>
                 </div>
               ))}

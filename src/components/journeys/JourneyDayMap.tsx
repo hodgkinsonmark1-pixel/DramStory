@@ -53,16 +53,30 @@ export default function JourneyDayMap({ base, stops }: JourneyDayMapProps) {
 
       for (const d of stops) {
         if (!d.lat || !d.lng) continue;
-        L.marker([d.lat, d.lng], {
+        const marker = L.marker([d.lat, d.lng], {
           icon: L.divIcon({
             className: "",
-            html: `<div style="background:#1A3A4A;color:white;width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;border:2px solid white"><span style="transform:rotate(45deg);font-size:12px">🥃</span></div>`,
+            html: `<div style="background:#1A3A4A;color:white;width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;border:2px solid white;cursor:pointer"><span style="transform:rotate(45deg);font-size:12px">🥃</span></div>`,
             iconSize: [26, 26],
             iconAnchor: [13, 26],
           }),
         })
-          .bindPopup(d.name)
+          // Permanent tooltip (not a click-to-reveal popup) so the name
+          // shows straight away, matching "the icons show each location
+          // name" rather than requiring a click just to identify a pin.
+          .bindTooltip(d.name, {
+            permanent: true,
+            direction: "top",
+            offset: [0, -22],
+            className: "journey-day-map-label",
+          })
           .addTo(map);
+        // Opens the distillery's own page in a new tab rather than
+        // navigating away from the journey page the visitor is
+        // currently reading.
+        marker.on("click", () => {
+          window.open(`/distilleries/${d.slug}`, "_blank", "noopener,noreferrer");
+        });
       }
 
       const points: LatLng[] = [

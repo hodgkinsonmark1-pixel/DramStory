@@ -1372,3 +1372,23 @@ select.location-inline-input {
     align-items: flex-start;
   }
 }
+
+/* Permanent name label on Classic Journey day-map distillery pins - a
+   clean, brand-toned override of Leaflet's default plain white tooltip
+   box, since the label needs to be readable and legible at a glance,
+   not just functional. Clicking the pin itself (not this label) opens
+   the distillery's page in a new tab - see JourneyDayMap.tsx. */
+.journey-day-map-label {
+  background: white;
+  border: 1px solid var(--stone);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dark);
+  box-shadow: var(--shadow-card);
+}
+.journey-day-map-label::before {
+  border-top-color: var(--stone);
+}
