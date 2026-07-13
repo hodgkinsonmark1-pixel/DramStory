@@ -44,20 +44,6 @@ export const INTEREST_CATEGORIES: InterestCategoryOption[] = [
     alwaysOn: true,
   },
   {
-    id: "local-features-hub",
-    label: "Local Features Hub",
-    icon: "🧭",
-    // Deliberately additive, not a merge - Natural Features and Local
-    // Attractions below are untouched and keep their own full subcategory
-    // sets (including Golf & Spa, and their own separate "Local Gems"
-    // bucket). This tab draws the same underlying pins as a fast,
-    // independent "scan everything non-retail" view, the same role
-    // Distilleries plays for distilleries - deliberately excludes
-    // Golf & Spa and Places to Eat/Stay, which lean retail/directory
-    // rather than "place to see", per the site's USP.
-    subcategories: ["Beaches", "Walks", "Bike Rides", "Local Gems", "Historic Sites", "Transport"],
-  },
-  {
     id: "natural-features",
     label: "Natural Features",
     icon: "🏞️",

@@ -226,25 +226,6 @@ export default function Workspace({
 
   const expandedCategoryData = INTEREST_CATEGORIES.find((c) => c.id === expandedCategory);
 
-  // Local Features Hub subcategory labels -> LocalFeature.category values.
-  // Deliberately its own map, independent of Natural Features' identical
-  // labels below - this tab's "Local Gems" means the same local-gem
-  // bucket as Natural Features (not Local Attractions' attraction-gem),
-  // per how the hub was specced: a fast, combined scan across exactly
-  // the non-retail place types, not a merge of the other two tabs.
-  const HUB_SUBCAT_TO_FEATURE_CATEGORY: Record<string, LocalFeature["category"]> = {
-    Beaches: "beach",
-    Walks: "walk",
-    "Bike Rides": "bike-route",
-    "Local Gems": "local-gem",
-    "Historic Sites": "historic-site",
-    Transport: "transport",
-  };
-  const localFeaturesHubActive = activeCategories.has("local-features-hub");
-  const activeHubSubcats = Array.from(activeSubcats)
-    .filter((key) => key.startsWith("local-features-hub:"))
-    .map((key) => HUB_SUBCAT_TO_FEATURE_CATEGORY[key.split(":")[1]]);
-
   // Natural Features subcategory labels -> LocalFeature.category values.
   const SUBCAT_TO_FEATURE_CATEGORY: Record<string, LocalFeature["category"]> = {
     Beaches: "beach",
@@ -291,19 +272,7 @@ export default function Workspace({
     .map((key) => EAT_SUBCAT_TO_FEATURE_CATEGORY[key.split(":")[1]])
     .filter((c): c is LocalFeature["category"] => c !== undefined);
 
-  const rawVisibleLocalFeatures = [
-    ...(localFeaturesHubActive
-      ? localFeatures.filter(
-          (f) =>
-            (f.category === "beach" ||
-              f.category === "walk" ||
-              f.category === "bike-route" ||
-              f.category === "local-gem" ||
-              f.category === "historic-site" ||
-              f.category === "transport") &&
-            (activeHubSubcats.length === 0 || activeHubSubcats.includes(f.category))
-        )
-      : []),
+  const visibleLocalFeatures = [
     ...(naturalFeaturesActive
       ? localFeatures.filter(
           (f) =>
@@ -326,15 +295,6 @@ export default function Workspace({
         )
       : []),
   ];
-  // Local Features Hub is deliberately independent of Natural
-  // Features/Local Attractions, so the same pin (e.g. a beach, or a
-  // historic site) can legitimately be pulled in by two active tabs at
-  // once - Hub + Natural Features both drawing the same beach, say.
-  // Dedupes by id here so the map never renders the same pin twice
-  // stacked on top of itself.
-  const visibleLocalFeatures = Array.from(
-    new Map(rawVisibleLocalFeatures.map((f) => [f.id, f])).values()
-  );
 
   // Local Events: resolve the currently-selected date range (fixed to
   // today for "today" timing; otherwise the header's shared date/month

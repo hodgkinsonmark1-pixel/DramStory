@@ -259,21 +259,15 @@ export type LocationAnswer =
   | { kind: "distillery"; distillerySlug: string };
 
 /** Q3 — "What matters most to your trip?" Multi-select; Distilleries is
- *  always-on (it's the core of the site), the other 6 are toggleable and
- *  double as the map's top-bar layer filters later in the workspace.
- *  local-features-hub (July 2026) is a deliberately independent, additive
- *  filter - not a merge of natural-features/local-attractions, which stay
- *  exactly as they are. It exists purely as a fast "scan everything
- *  non-retail" view, the same way Distilleries lets you scan every
- *  distillery at once. */
+ *  always-on (it's the core of the site), the other 5 are toggleable and
+ *  double as the map's top-bar layer filters later in the workspace. */
 export type InterestCategoryId =
   | "distilleries"
   | "natural-features"
   | "local-attractions"
   | "local-events"
   | "places-to-eat"
-  | "places-to-stay"
-  | "local-features-hub";
+  | "places-to-stay";
 
 export interface TripIntake {
   timing: TripTiming;
