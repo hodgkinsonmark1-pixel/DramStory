@@ -464,7 +464,7 @@ export default function Workspace({
             target="_blank"
             rel="noopener noreferrer"
           >
-            Local Features Hub
+            Local Features
           </Link>
           <Link href="/" onClick={() => trip.resetTrip()}>
             Start over
