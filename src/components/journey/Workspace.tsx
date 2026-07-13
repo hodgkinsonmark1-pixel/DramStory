@@ -226,17 +226,12 @@ export default function Workspace({
 
   const expandedCategoryData = INTEREST_CATEGORIES.find((c) => c.id === expandedCategory);
 
-  // Local Features Hub subcategory labels -> LocalFeature.category values.
-  // July 2026: absorbed Historic Sites and Transport from Local
-  // Attractions (see journey-options.ts) - this is now the "everything
-  // static and place-based" tab, sitting right next to Distilleries.
+  // Natural Features subcategory labels -> LocalFeature.category values.
   const SUBCAT_TO_FEATURE_CATEGORY: Record<string, LocalFeature["category"]> = {
     Beaches: "beach",
     Walks: "walk",
     "Bike Rides": "bike-route",
     "Local Gems": "local-gem",
-    "Historic Sites": "historic-site",
-    Transport: "transport",
   };
   const naturalFeaturesActive = activeCategories.has("natural-features");
   const activeNaturalSubcats = Array.from(activeSubcats)
@@ -245,16 +240,17 @@ export default function Workspace({
 
   // Local Attractions subcategory labels -> LocalFeature.category values.
   // "Local Gems" here means a different bucket (attraction-gem) than
-  // Local Features Hub's "Local Gems" (local-gem) - the chip keys are
+  // Natural Features' "Local Gems" (local-gem) - the chip keys are
   // prefixed with the category id, so there's no collision, just two
   // separate label->category maps. "Golf & Spa" maps to TWO Local
   // Feature categories at once (golf + spa), now real Airtable pins
   // (verified Machrie Golf, Islay Sauna, Bothan Jura Wild Sauna) rather
-  // than the earlier Google Places-sourced list view. Historic Sites and
-  // Transport moved out to Local Features Hub (July 2026).
+  // than the earlier Google Places-sourced list view.
   const ATTRACTION_SUBCAT_TO_FEATURE_CATEGORIES: Record<string, LocalFeature["category"][]> = {
+    "Historic Sites": ["historic-site"],
     "Local Gems": ["attraction-gem"],
     "Golf & Spa": ["golf", "spa"],
+    Transport: ["transport"],
   };
   const localAttractionsActive = activeCategories.has("local-attractions");
   const activeAttractionSubcats = Array.from(activeSubcats)
@@ -280,19 +276,14 @@ export default function Workspace({
     ...(naturalFeaturesActive
       ? localFeatures.filter(
           (f) =>
-            (f.category === "beach" ||
-              f.category === "walk" ||
-              f.category === "bike-route" ||
-              f.category === "local-gem" ||
-              f.category === "historic-site" ||
-              f.category === "transport") &&
+            (f.category === "beach" || f.category === "walk" || f.category === "bike-route" || f.category === "local-gem") &&
             (activeNaturalSubcats.length === 0 || activeNaturalSubcats.includes(f.category))
         )
       : []),
     ...(localAttractionsActive
       ? localFeatures.filter(
           (f) =>
-            (f.category === "attraction-gem" || f.category === "golf" || f.category === "spa") &&
+            (f.category === "historic-site" || f.category === "attraction-gem" || f.category === "golf" || f.category === "spa" || f.category === "transport") &&
             (activeAttractionSubcats.length === 0 || activeAttractionSubcats.includes(f.category))
         )
       : []),

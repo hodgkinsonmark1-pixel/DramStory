@@ -45,23 +45,15 @@ export const INTEREST_CATEGORIES: InterestCategoryOption[] = [
   },
   {
     id: "natural-features",
-    label: "Local Features Hub",
+    label: "Natural Features",
     icon: "🏞️",
-    // July 2026: absorbed Historic Sites and Transport from Local
-    // Attractions - this tab is now "everything static and place-based
-    // that isn't a distillery, event, or place to eat/stay", sitting
-    // right next to Distilleries in the filter bar as the natural
-    // second stop.
-    subcategories: ["Beaches", "Walks", "Bike Rides", "Local Gems", "Historic Sites", "Transport"],
+    subcategories: ["Beaches", "Walks", "Bike Rides", "Local Gems"],
   },
   {
     id: "local-attractions",
     label: "Local Attractions",
     icon: "🏛️",
-    // Historic Sites and Transport moved to Local Features Hub (above) -
-    // this tab is now just the two subcategories that didn't fit that
-    // "static places" framing as naturally.
-    subcategories: ["Golf & Spa", "Local Gems"],
+    subcategories: ["Historic Sites", "Golf & Spa", "Local Gems", "Transport"],
   },
   {
     id: "local-events",
