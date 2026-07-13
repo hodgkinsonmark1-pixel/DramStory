@@ -73,7 +73,7 @@ export default function LocationStep({ distilleriesPromise, onNext, onBack }: Lo
       <SiteHeader transparent logoSize={48} />
 
       <div className="journey-header">
-        <div className="journey-eyebrow">Building your journey — step 2 of 4</div>
+        <div className="journey-eyebrow">Building your journey — step 2 of 3</div>
         <h1 className="journey-title">
           Where does your <em>story</em> take you?
         </h1>
@@ -82,7 +82,6 @@ export default function LocationStep({ distilleriesPromise, onNext, onBack }: Lo
       <div className="progress-dots">
         <div className="dot done" />
         <div className="dot active" />
-        <div className="dot" />
         <div className="dot" />
       </div>
 

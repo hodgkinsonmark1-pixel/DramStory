@@ -4,8 +4,8 @@ import JourneyFlow from "@/components/journey/JourneyFlow";
 
 function parseTiming(mode: string | string[] | undefined): TripTiming {
   const value = Array.isArray(mode) ? mode[0] : mode;
-  if (value === "today" || value === "planning") return value;
-  return "planning";
+  if (value === "today" || value === "planning" || value === "dreaming") return value;
+  return "dreaming";
 }
 
 export default async function JourneyPage({

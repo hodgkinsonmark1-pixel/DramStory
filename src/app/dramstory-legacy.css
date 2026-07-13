@@ -73,7 +73,8 @@ html,body{min-height:100%;font-family:var(--font-body);background:var(--off-whit
 /* WORKSPACE */
 .workspace-root{display:flex;flex-direction:column;height:calc(100vh - 64px);overflow:hidden;flex-shrink:0}
 .map-page-header{height:64px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:var(--off-white);border-bottom:1px solid var(--stone);z-index:30}
-.map-page-header-logo{display:flex;align-items:center;gap:10px;cursor:pointer;text-decoration:none}
+.map-page-header-left{display:flex;align-items:center;gap:20px;min-width:0}
+.map-page-header-logo{display:flex;align-items:center;gap:10px;cursor:pointer;text-decoration:none;flex-shrink:0}
 .map-page-header-logo-text{display:none}
 .map-page-header-links{display:flex;align-items:center;gap:24px}
 .map-page-header-links a{font-size:13px;font-weight:500;letter-spacing:0.03em;color:var(--peat);text-decoration:none;transition:color 0.2s;cursor:pointer}

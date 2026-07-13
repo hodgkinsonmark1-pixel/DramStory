@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { Distillery, InterestCategoryId, LocalEvent, LocalFeature, LocationAnswer, TripLength, TripTiming } from "@/lib/types";
-import { INTEREST_CATEGORIES, REGIONS, TRIP_LENGTHS } from "@/lib/journey-options";
+import type { Distillery, InterestCategoryId, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
+import { INTEREST_CATEGORIES, REGIONS } from "@/lib/journey-options";
 import { CLASSIC_JOURNEYS, getJourneyDistilleries, routeStartingPrice } from "@/lib/journeys-data";
 import { getMonthClimate, MONTH_NAMES } from "@/lib/islay-climate";
 import { estimatedDriveMinutes, formatDuration } from "@/lib/drive-time";
@@ -22,7 +22,6 @@ interface WorkspaceProps {
   localFeatures: LocalFeature[];
   localEvents: LocalEvent[];
   location: LocationAnswer;
-  tripLength: TripLength;
   initialInterests: InterestCategoryId[];
   timing: TripTiming;
 }
@@ -72,7 +71,6 @@ export default function Workspace({
   localFeatures,
   localEvents,
   location,
-  tripLength,
   initialInterests,
   timing,
 }: WorkspaceProps) {
@@ -101,11 +99,27 @@ export default function Workspace({
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [weatherMinimized, setWeatherMinimized] = useState(false);
 
-  const startingDayCount = TRIP_LENGTHS.find((t) => t.id === tripLength)?.days ?? 1;
+  // There's no longer a "how long" question (Step 3 removed, July 2026) -
+  // trips start at a flat default day count and grow/shrink automatically
+  // once the visitor sets a specific date range below, or manually via
+  // +Add day/Remove at any time regardless.
+  const DEFAULT_STARTING_DAYS = 3;
   useEffect(() => {
-    if (trip.ready) trip.initDays(startingDayCount);
+    if (trip.ready) trip.initDays(DEFAULT_STARTING_DAYS);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip.ready]);
+
+  // Once a specific (not month-only) date range is confirmed in the
+  // header, the itinerary's day count follows it automatically - the
+  // clearest possible signal of "how long", now that it isn't asked
+  // upfront. Deliberately does nothing for month-only selections (no
+  // exact span to derive a day count from) or before any range is set.
+  useEffect(() => {
+    if (!trip.ready || trip.tripDates.mode !== "range" || !trip.tripDates.confirmed) return;
+    const span = daysBetween(trip.tripDates.startDate, trip.tripDates.endDate) + 1;
+    if (span > 0 && span <= 30) trip.syncDayCount(span);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trip.ready, trip.tripDates.mode, trip.tripDates.confirmed, trip.tripDates.startDate, trip.tripDates.endDate]);
 
   const title = describeLocation(location);
   const isLive = location.kind !== "region" || location.region === "islay";
@@ -114,6 +128,18 @@ export default function Workspace({
   function toggleCategory(id: InterestCategoryId, alwaysOn?: boolean) {
     if (alwaysOn) {
       setExpandedCategory((prev) => (prev === id ? null : id));
+      return;
+    }
+    // Local Events has no drill-down anymore (map pins only, per the July
+    // 2026 redesign) - toggle its membership without ever expanding a
+    // subcategory/date-picker row for it.
+    if (id === "local-events") {
+      setActiveCategories((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
       return;
     }
     setActiveCategories((prev) => {
@@ -260,14 +286,17 @@ export default function Workspace({
 
   // Local Events: resolve the currently-selected date range (fixed to
   // today for "today" timing; otherwise the header's shared date/month
-  // picker), find events overlapping it, and collect which distilleries
-  // should get the pulsing map highlight.
-  const selectedRange: [string, string] =
+  // picker). Null when nothing's been picked yet - Local Events pins and
+  // the weather popup both stay empty/hidden in that case, rather than
+  // guessing a range nobody chose.
+  const selectedRange: [string, string] | null =
     timing === "today"
       ? [todayIso, todayIso]
-      : trip.tripDates.mode === "month"
-        ? [`${trip.tripDates.month}-01`, lastDayOfMonth(trip.tripDates.month)]
-        : [trip.tripDates.startDate, trip.tripDates.endDate];
+      : !trip.tripDates.confirmed
+        ? null
+        : trip.tripDates.mode === "month"
+          ? [`${trip.tripDates.month}-01`, lastDayOfMonth(trip.tripDates.month)]
+          : [trip.tripDates.startDate, trip.tripDates.endDate];
   // Calendar-date day labels only make sense once a specific range (not
   // just a month) has been confirmed - a month alone doesn't pin down
   // which exact day "Day 1" falls on.
@@ -276,21 +305,28 @@ export default function Workspace({
     return formatDisplayDate(addDays(trip.tripDates.startDate, dayIndex));
   }
   const localEventsActive = activeCategories.has("local-events");
-  const activeEvents = localEventsActive
-    ? localEvents.filter((e) => rangesOverlap(e.date, e.endDate ?? e.date, selectedRange[0], selectedRange[1]))
-    : [];
+  // No events at all until a real date/month has been chosen - this is
+  // the map-pin indicator now (a pulsing ring on the hosting distillery,
+  // per MapCanvas), not a list, so "no events" just means no ring shows.
+  const activeEvents =
+    localEventsActive && selectedRange
+      ? localEvents.filter((e) => rangesOverlap(e.date, e.endDate ?? e.date, selectedRange[0], selectedRange[1]))
+      : [];
   const highlightedDistillerySlugs = Array.from(new Set(activeEvents.flatMap((e) => e.distillerySlugs)));
 
   // Weather/daylight banner - uses the same selectedRange as Local
   // Events, but deliberately independent of whether that filter is
   // toggled on, since this is a separate "when are you visiting" insight
-  // that should show regardless.
-  const weatherMonthNumber = Number(selectedRange[0].slice(5, 7));
+  // that should show regardless. Falls back to today's date purely for
+  // the arithmetic below when nothing's selected yet; weatherReady (below)
+  // is what actually keeps the popup hidden in that case.
+  const weatherRange = selectedRange ?? [todayIso, todayIso];
+  const weatherMonthNumber = Number(weatherRange[0].slice(5, 7));
   const weatherMonthClimate = getMonthClimate(weatherMonthNumber);
   const weatherMonthName = MONTH_NAMES[weatherMonthNumber - 1];
-  const eventsDuringVisit = localEvents.filter((e) =>
-    rangesOverlap(e.date, e.endDate ?? e.date, selectedRange[0], selectedRange[1])
-  );
+  const eventsDuringVisit = selectedRange
+    ? localEvents.filter((e) => rangesOverlap(e.date, e.endDate ?? e.date, selectedRange[0], selectedRange[1]))
+    : [];
   // "Today" always has a real date (today), so the popup can show
   // immediately; other timings need the header date control to have
   // actually been used at least once first.
@@ -322,16 +358,13 @@ export default function Workspace({
     <OnboardingOverlay />
     <div className="workspace-root">
       <div className="map-page-header">
-        <Link href="/" className="map-page-header-logo">
-          <Logo size={36} />
-          <span className="map-page-header-logo-text">DramStory</span>
-        </Link>
-        <div className="map-page-header-links">
-          <span className="map-page-header-badge">{title}</span>
+        <div className="map-page-header-left">
+          <Link href="/" className="map-page-header-logo">
+            <Logo size={36} />
+            <span className="map-page-header-logo-text">DramStory</span>
+          </Link>
 
-          {timing === "today" ? (
-            <span className="header-date-today">📅 Today</span>
-          ) : (
+          {timing !== "today" && (
             <div className="header-date-control">
               <div className="event-mode-toggle">
                 <button
@@ -355,6 +388,13 @@ export default function Workspace({
                     value={trip.tripDates.startDate}
                     onChange={(e) => {
                       const newStart = e.target.value;
+                      // No previous start yet (still blank on first use) -
+                      // just seed a single-day range rather than computing a
+                      // span from an empty/invalid previous value.
+                      if (!trip.tripDates.startDate) {
+                        trip.setDateRange(newStart, newStart);
+                        return;
+                      }
                       const span = daysBetween(trip.tripDates.startDate, trip.tripDates.endDate);
                       const newEnd = span > 14 || span < 0 ? addDays(newStart, 7) : addDays(newStart, span);
                       trip.setDateRange(newStart, newEnd);
@@ -365,9 +405,9 @@ export default function Workspace({
                     type="date"
                     className="event-date-input"
                     value={trip.tripDates.endDate}
-                    min={trip.tripDates.startDate}
-                    max={addDays(trip.tripDates.startDate, 14)}
-                    onChange={(e) => trip.setDateRange(trip.tripDates.startDate, e.target.value)}
+                    min={trip.tripDates.startDate || undefined}
+                    max={trip.tripDates.startDate ? addDays(trip.tripDates.startDate, 14) : undefined}
+                    onChange={(e) => trip.setDateRange(trip.tripDates.startDate || e.target.value, e.target.value)}
                   />
                 </>
               ) : (
@@ -380,6 +420,11 @@ export default function Workspace({
               )}
             </div>
           )}
+        </div>
+
+        <div className="map-page-header-links">
+          <span className="map-page-header-badge">{title}</span>
+          {timing === "today" && <span className="header-date-today">📅 Today</span>}
 
           <Link
             href="/distilleries"
@@ -660,49 +705,6 @@ export default function Workspace({
 
                   {expandedCategoryData.id === "places-to-stay" && (
                     <AccommodationControl dayIndex={activeDayIndex} accommodation={accommodation} />
-                  )}
-
-                  {expandedCategoryData.id === "local-events" && (
-                    <>
-                      <div className="event-date-controls">
-                        <span className="event-date-today">
-                          📅{" "}
-                          {timing === "today"
-                            ? `Showing events for ${formatDisplayDate(todayIso)}`
-                            : trip.tripDates.confirmed
-                              ? `Showing events for ${
-                                  trip.tripDates.mode === "month"
-                                    ? MONTH_NAMES[Number(trip.tripDates.month.slice(5, 7)) - 1]
-                                    : `${formatDisplayDate(trip.tripDates.startDate)} \u2013 ${formatDisplayDate(trip.tripDates.endDate)}`
-                                }`
-                              : "Pick dates in the header above to filter events"}
-                        </span>
-                      </div>
-
-                      <div className="event-results-list">
-                        {activeEvents.length === 0 ? (
-                          <span className="event-results-empty">No events found in this date range</span>
-                        ) : (
-                          activeEvents.map((e) => (
-                            <div className="event-result-card" key={e.id}>
-                              <span className="event-result-name">{e.name}</span>
-                              <span className="event-result-meta">
-                                {formatDisplayDate(e.date)}
-                                {e.endDate && e.endDate !== e.date ? ` \u2013 ${formatDisplayDate(e.endDate)}` : ""}
-                                {" \u00b7 "}
-                                {e.location}
-                                {e.price ? ` \u00b7 ${e.price}` : ""}
-                              </span>
-                              {e.link && (
-                                <a href={e.link} target="_blank" rel="noreferrer" className="event-result-link">
-                                  Book &rarr;
-                                </a>
-                              )}
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </>
                   )}
                 </>
               ) : (

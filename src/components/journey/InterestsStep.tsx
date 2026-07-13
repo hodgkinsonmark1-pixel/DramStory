@@ -17,7 +17,7 @@ interface InterestsStepProps {
 const SELECTABLE_CATEGORIES = INTEREST_CATEGORIES.filter((c) => !c.alwaysOn);
 
 /**
- * Q4 (step 4 of 4) - "What matters most to your trip?"
+ * Q3 (step 3 of 3) - "What matters most to your trip?"
  * The 5 real categories laid out side by side, multi-select - real trips
  * combine interests rather than picking just one.
  */
@@ -40,14 +40,13 @@ export default function InterestsStep({ onNext, onBack }: InterestsStepProps) {
       <SiteHeader transparent logoSize={48} />
 
       <div className="journey-header">
-        <div className="journey-eyebrow">Building your journey — step 4 of 4</div>
+        <div className="journey-eyebrow">Building your journey — step 3 of 3</div>
         <h1 className="journey-title">
           What matters most to <em>your</em> trip?
         </h1>
       </div>
 
       <div className="progress-dots">
-        <div className="dot done" />
         <div className="dot done" />
         <div className="dot done" />
         <div className="dot active" />

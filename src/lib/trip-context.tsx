@@ -7,11 +7,13 @@ import { stopId } from "@/lib/itinerary-stop";
 const STORAGE_KEY = "dramstory-trip-v2";
 
 /** Untouched default - "confirmed: false" keeps anything date-dependent
- *  (weather popup, calendar-date day labels) hidden until the visitor
- *  actually interacts with the header date control. */
+ *  (weather popup, calendar-date day labels, Local Events pins) hidden
+ *  until the visitor actually interacts with the header date control.
+ *  Deliberately blank (not pre-filled with today) so the header's date
+ *  inputs render empty on first arrival, rather than looking like a
+ *  choice has already silently been made for the visitor. */
 function defaultTripDates(): TripDates {
-  const todayIso = new Date().toISOString().slice(0, 10);
-  return { mode: "month", startDate: todayIso, endDate: todayIso, month: todayIso.slice(0, 7), confirmed: false };
+  return { mode: "month", startDate: "", endDate: "", month: "", confirmed: false };
 }
 
 interface StoredTrip {
@@ -60,6 +62,14 @@ interface TripContextValue {
    *  flash of "no days yet" before hydration catches up. */
   ready: boolean;
   initDays: (count: number) => void;
+  /** Grows the day list to match a target count if it's currently
+   *  shorter, preserving every existing day and its stops - used when the
+   *  visitor sets a specific date range in the header, now that there's
+   *  no longer a separate "how long" question to seed the day count
+   *  from. Deliberately grow-only: a narrower range never auto-removes
+   *  days (and their stops) - shrinking stays a manual "Remove" action.
+   *  A no-op if the count already matches or is smaller. */
+  syncDayCount: (targetCount: number) => void;
   completeIntake: (intake: TripIntake) => void;
   /** Clears the saved trip and intake entirely - used by "Start over". */
   resetTrip: () => void;
@@ -151,6 +161,23 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         label: `Day ${i + 1}`,
         stops: [],
       }));
+    });
+  }, []);
+
+  const syncDayCount = useCallback((targetCount: number) => {
+    setDays((prev) => {
+      // Grow-only: a narrower date range never auto-removes days, since
+      // that would silently drop any stops already added to them with no
+      // warning. Shrinking stays a deliberate manual action via the
+      // existing "Remove" button, which the visitor can already see and
+      // undo their way out of.
+      if (targetCount <= prev.length) return prev;
+      const extra = Array.from({ length: targetCount - prev.length }, (_, i) => ({
+        id: `day-${prev.length + i + 1}`,
+        label: `Day ${prev.length + i + 1}`,
+        stops: [] as ItineraryDay["stops"],
+      }));
+      return [...prev, ...extra];
     });
   }, []);
 
@@ -304,6 +331,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         intake,
         ready,
         initDays,
+        syncDayCount,
         completeIntake,
         resetTrip,
         addDay,

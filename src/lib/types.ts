@@ -206,17 +206,21 @@ export interface BlogPost {
 
 // ─────────────────────────────────────────────────────────────────────────
 // JOURNEY PLANNER INTAKE — Q1 (When) is answered on the homepage Hero and
-// passed through as ?mode=. Q2 (Where), Step 3 (How long), and Q4 (What
-// matters) are answered on /journey before the workspace (map + itinerary)
-// loads.
+// passed through as ?mode=. Q2 (Where) and Q3 (What matters) are answered
+// on /journey before the workspace (map + itinerary) loads. There is no
+// longer a "how long" question - trip length is no longer asked upfront;
+// it becomes evident once the visitor sets specific dates (the itinerary
+// day count then follows the date range) or simply builds their own
+// itinerary by adding/removing days freely.
 // ─────────────────────────────────────────────────────────────────────────
 
 /** Q1 — answered on the homepage Hero, passed through as the `mode` query
- *  param. Collapsed from three options to two (July 2026): "planning" now
- *  covers both a firm future trip and pure daydreaming - the header date
- *  picker's own month-vs-specific-date choice carries that distinction
- *  now, rather than gating it on which Q1 button was clicked. */
-export type TripTiming = "today" | "planning";
+ *  param. Three options: a firm "here today" visit, a "planning" trip with
+ *  real (if not yet fixed) intent, or pure "dreaming" with no concrete
+ *  plan yet. The header date control's own month-vs-specific-date choice
+ *  is independent of this - a "planning" visitor can still pick just a
+ *  month, and a "dreaming" one can still pick exact dates. */
+export type TripTiming = "today" | "planning" | "dreaming";
 
 /** Whether the header date control is set to a single specific range or a
  *  looser month. Shared by Local Events filtering, the weather popup, and
@@ -245,9 +249,6 @@ export interface TripDates {
 
 export type RegionId = "islay" | "speyside" | "highland" | "campbeltown" | "lowland";
 
-/** Step 3 of 4 — "How long will your adventure last?" */
-export type TripLength = "day-trip" | "weekend" | "3-5-days" | "week-plus";
-
 /** Q2 — "Where does your story take you?" Three distinct shapes depending on
  *  which of the 7 options the visitor picks. Only "islay" has live Airtable
  *  data today; every other region still routes to the workspace, just with
@@ -271,15 +272,15 @@ export type InterestCategoryId =
 export interface TripIntake {
   timing: TripTiming;
   location: LocationAnswer;
-  tripLength: TripLength;
   interests: InterestCategoryId[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// ITINERARY — day-based model for the workspace panel. Day count is seeded
-// from the trip-length answer (see TRIP_LENGTHS in journey-options.ts) and
-// the visitor can add more days freely (mainly useful for the "just
-// dreaming" flow, where the length was only ever a rough guess).
+// ITINERARY — day-based model for the workspace panel. Day count starts at
+// a flat default (see DEFAULT_STARTING_DAYS in Workspace.tsx) and follows
+// a specific date range automatically once one is set in the header
+// (Workspace's date-range sync effect); the visitor can also add/remove
+// days freely at any time regardless.
 //
 // When the location answer is "airport", Day 1 shows an arrival banner and
 // the LAST day shows a departure banner at that airport. These aren't

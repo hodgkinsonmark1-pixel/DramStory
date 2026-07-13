@@ -2,10 +2,9 @@
 
 import { Suspense, use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Distillery, InterestCategoryId, LocalEvent, LocalFeature, LocationAnswer, TripLength, TripTiming } from "@/lib/types";
+import type { Distillery, InterestCategoryId, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
 import { useTrip } from "@/lib/trip-context";
 import LocationStep from "./LocationStep";
-import TripLengthStep from "./TripLengthStep";
 import InterestsStep from "./InterestsStep";
 import Workspace from "./Workspace";
 
@@ -17,8 +16,8 @@ interface JourneyFlowProps {
   distilleriesPromise: Promise<Distillery[]>;
   /** Deliberately an unresolved Promise, not a plain array - Local
    *  Features isn't needed until the final "workspace" step, so the page
-   *  no longer blocks Q2/Step3/Q4 on this fetch resolving. Unwrapped via
-   *  use() only once we reach the workspace, inside a Suspense boundary. */
+   *  no longer blocks Q2/Q3 on this fetch resolving. Unwrapped via use()
+   *  only once we reach the workspace, inside a Suspense boundary. */
   localFeaturesPromise: Promise<LocalFeature[]>;
   /** Same deferred-fetch treatment as localFeaturesPromise, for the same
    *  reason - Local Events isn't needed before the workspace either. */
@@ -28,12 +27,12 @@ interface JourneyFlowProps {
    *  resuming the saved trip is wanted. A fresh homepage Q1 click never
    *  sets this, even if a trip from a previous session still exists in
    *  localStorage - that previously caused a real bug: picking a Q1
-   *  option looked like it "skipped" Q2/Step3/Q4 straight to the map,
-   *  because ANY saved intake was silently resumed regardless of intent. */
+   *  option looked like it "skipped" Q2/Q3 straight to the map, because
+   *  ANY saved intake was silently resumed regardless of intent. */
   resume: boolean;
 }
 
-type Step = "location" | "tripLength" | "interests" | "workspace";
+type Step = "location" | "interests" | "workspace";
 
 /** Tiny wrapper so use() (which suspends) is isolated to just this
  *  component - only the workspace step ever waits on Local Features/Events. */
@@ -42,7 +41,6 @@ function WorkspaceWithFeatures(props: {
   localFeaturesPromise: Promise<LocalFeature[]>;
   localEventsPromise: Promise<LocalEvent[]>;
   location: LocationAnswer;
-  tripLength: TripLength;
   initialInterests: InterestCategoryId[];
   timing: TripTiming;
 }) {
@@ -55,7 +53,6 @@ function WorkspaceWithFeatures(props: {
       localFeatures={localFeatures}
       localEvents={localEvents}
       location={props.location}
-      tripLength={props.tripLength}
       initialInterests={props.initialInterests}
       timing={props.timing}
     />
@@ -63,17 +60,22 @@ function WorkspaceWithFeatures(props: {
 }
 
 /**
- * Orchestrates the full 4-step intake: Q1 (When, already happened on the
- * homepage Hero) -> Q2 (Where) -> Step 3 (How long) -> Q4 (What matters)
- * -> workspace (map + itinerary). `timing` arrives here as the ?mode=
- * query param from the homepage.
+ * Orchestrates the intake: Q1 (When, already happened on the homepage
+ * Hero) -> Q2 (Where) -> Q3 (What matters) -> workspace (map + itinerary).
+ * `timing` arrives here as the ?mode= query param from the homepage.
+ *
+ * There used to be a "How long will your adventure last?" step (Step 3 of
+ * 4) between Q2 and Q3 - removed (July 2026) since trip length no longer
+ * needs asking upfront: it becomes evident once the visitor sets specific
+ * dates in the workspace header (the itinerary day count then follows the
+ * date range - see Workspace's date-range sync effect), or simply from
+ * however many days they build for themselves via +Add day/Remove.
  */
 export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, resume }: JourneyFlowProps) {
   const router = useRouter();
   const trip = useTrip();
   const [step, setStep] = useState<Step>("location");
   const [location, setLocation] = useState<LocationAnswer | null>(null);
-  const [tripLength, setTripLength] = useState<TripLength | null>(null);
   const [interests, setInterests] = useState<InterestCategoryId[]>([]);
   const [handledInitialState, setHandledInitialState] = useState(false);
 
@@ -82,7 +84,7 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
   //   with those saved answers (the "Back to your journey" case)
   // - resume=1 + no intake but real stops exist -> a trip started
   //   directly from a distillery page's "+ Add to Journey" button, which
-  //   never goes through Q1-Q4 and so never sets intake. Jump to the
+  //   never goes through Q1-Q3 and so never sets intake. Jump to the
   //   workspace anyway with sensible defaults, rather than stranding the
   //   visitor back at Q1 despite having a real trip with real stops.
   // - otherwise -> clear any stale trip so a fresh Q1 visit always starts
@@ -92,13 +94,10 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
     if (resume && trip.intake) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocation(trip.intake.location);
-      setTripLength(trip.intake.tripLength);
       setInterests(trip.intake.interests);
       setStep("workspace");
     } else if (resume && !trip.intake && trip.days.length > 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocation({ kind: "region", region: "islay" });
-      setTripLength("week-plus");
       setInterests(["distilleries"]);
       setStep("workspace");
     } else if (!resume && (trip.intake || trip.days.length > 0)) {
@@ -115,18 +114,6 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
         onBack={() => router.push("/")}
         onNext={(answer) => {
           setLocation(answer);
-          setStep("tripLength");
-        }}
-      />
-    );
-  }
-
-  if (step === "tripLength") {
-    return (
-      <TripLengthStep
-        onBack={() => setStep("location")}
-        onNext={(length) => {
-          setTripLength(length);
           setStep("interests");
         }}
       />
@@ -136,17 +123,17 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
   if (step === "interests") {
     return (
       <InterestsStep
-        onBack={() => setStep("tripLength")}
+        onBack={() => setStep("location")}
         onNext={(selected) => {
           setInterests(selected);
-          trip.completeIntake({ timing, location: location!, tripLength: tripLength!, interests: selected });
+          trip.completeIntake({ timing, location: location!, interests: selected });
           setStep("workspace");
         }}
       />
     );
   }
 
-  // step === "workspace" - location and tripLength are guaranteed set by now.
+  // step === "workspace" - location is guaranteed set by now.
   // Prefer the saved intake's timing on a resumed session (trip.intake.timing)
   // over the fresh ?mode= prop, since that's what was actually answered.
   return (
@@ -156,7 +143,6 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
         localFeaturesPromise={localFeaturesPromise}
         localEventsPromise={localEventsPromise}
         location={location!}
-        tripLength={tripLength!}
         initialInterests={interests}
         timing={trip.intake?.timing ?? timing}
       />

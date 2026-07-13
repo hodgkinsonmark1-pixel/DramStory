@@ -51,7 +51,6 @@ export default function AddJourneyToTripButton({
     trip.completeIntake({
       timing: "planning",
       location: { kind: "region", region: "islay" },
-      tripLength: "week-plus",
       interests: ["distilleries"],
     });
     router.push("/journey?resume=1");
