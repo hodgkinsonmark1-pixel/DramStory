@@ -92,23 +92,14 @@ export default function Workspace({
     trip.setCurrentDayIndex(next);
   }
 
-  // Local Events date UI - lives in that category's drill-down submenu.
-  // No real event data exists in Airtable yet, so this doesn't filter
-  // anything for now; it's the UI ready for whenever events are populated.
+  // "When are you visiting" now lives in TripContext (trip.tripDates) -
+  // set once via the workspace header, not per-subtab local state - so it
+  // survives navigating away and back and is available to Local Events,
+  // the weather popup, and calendar-date day labels alike.
   const todayIso = new Date().toISOString().slice(0, 10);
-  const [eventDateMode, setEventDateMode] = useState<"range" | "month">("range");
-  const [eventStartDate, setEventStartDate] = useState(todayIso);
-  const [eventEndDate, setEventEndDate] = useState(todayIso);
-  const [eventMonth, setEventMonth] = useState(todayIso.slice(0, 7));
   const [showCostBreakdown, setShowCostBreakdown] = useState(false);
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [weatherMinimized, setWeatherMinimized] = useState(false);
-  // Weather box should only appear once the person has actually chosen a
-  // date - eventStartDate/eventMonth default to today so the weather data
-  // is technically always "available", but showing it before any date has
-  // been set makes it look like an unrequested distraction on first
-  // opening the map, not a response to something the person asked for.
-  const [datesConfirmed, setDatesConfirmed] = useState(false);
 
   const startingDayCount = TRIP_LENGTHS.find((t) => t.id === tripLength)?.days ?? 1;
   useEffect(() => {
@@ -118,7 +109,6 @@ export default function Workspace({
 
   const title = describeLocation(location);
   const isLive = location.kind !== "region" || location.region === "islay";
-  const lengthLabel = TRIP_LENGTHS.find((t) => t.id === tripLength)?.label;
   const isFlyingIn = location.kind === "airport";
 
   function toggleCategory(id: InterestCategoryId, alwaysOn?: boolean) {
@@ -268,16 +258,23 @@ export default function Workspace({
       : []),
   ];
 
-  // Local Events: resolve the currently-selected date range (varies by
-  // timing - "today" is fixed to today, "planning"/"inspiration" share
-  // the same range/month picker), find events overlapping it, and
-  // collect which distilleries should get the pulsing map highlight.
+  // Local Events: resolve the currently-selected date range (fixed to
+  // today for "today" timing; otherwise the header's shared date/month
+  // picker), find events overlapping it, and collect which distilleries
+  // should get the pulsing map highlight.
   const selectedRange: [string, string] =
     timing === "today"
       ? [todayIso, todayIso]
-      : eventDateMode === "month"
-        ? [`${eventMonth}-01`, lastDayOfMonth(eventMonth)]
-        : [eventStartDate, eventEndDate];
+      : trip.tripDates.mode === "month"
+        ? [`${trip.tripDates.month}-01`, lastDayOfMonth(trip.tripDates.month)]
+        : [trip.tripDates.startDate, trip.tripDates.endDate];
+  // Calendar-date day labels only make sense once a specific range (not
+  // just a month) has been confirmed - a month alone doesn't pin down
+  // which exact day "Day 1" falls on.
+  const useCalendarDayLabels = timing !== "today" && trip.tripDates.mode === "range" && trip.tripDates.confirmed;
+  function calendarDayLabel(dayIndex: number): string {
+    return formatDisplayDate(addDays(trip.tripDates.startDate, dayIndex));
+  }
   const localEventsActive = activeCategories.has("local-events");
   const activeEvents = localEventsActive
     ? localEvents.filter((e) => rangesOverlap(e.date, e.endDate ?? e.date, selectedRange[0], selectedRange[1]))
@@ -294,6 +291,27 @@ export default function Workspace({
   const eventsDuringVisit = localEvents.filter((e) =>
     rangesOverlap(e.date, e.endDate ?? e.date, selectedRange[0], selectedRange[1])
   );
+  // "Today" always has a real date (today), so the popup can show
+  // immediately; other timings need the header date control to have
+  // actually been used at least once first.
+  const weatherReady = isLive && (timing === "today" || trip.tripDates.confirmed);
+
+  // Seasonal-closure / silent-season notices for any distillery currently
+  // in the active day's itinerary. Reads the existing free-text
+  // statusNotice field rather than a structured date range, since that
+  // field isn't date-range-structured in Airtable yet - so this surfaces
+  // whatever's flagged regardless of the exact dates selected, rather
+  // than truly matching against the visit window.
+  const closureNotices = activeDay
+    ? Array.from(
+        new Set(
+          activeDay.stops
+            .filter((s): s is Extract<typeof s, { kind: "distillery" }> => s.kind === "distillery")
+            .map((s) => s.distillery.statusNotice)
+            .filter((n): n is string => Boolean(n))
+        )
+      )
+    : [];
 
   if (!trip.ready || !activeDay) {
     return <div className="workspace-root" />;
@@ -309,10 +327,60 @@ export default function Workspace({
           <span className="map-page-header-logo-text">DramStory</span>
         </Link>
         <div className="map-page-header-links">
-          <span className="map-page-header-badge">
-            {title}
-            {lengthLabel ? ` · ${lengthLabel}` : ""}
-          </span>
+          <span className="map-page-header-badge">{title}</span>
+
+          {timing === "today" ? (
+            <span className="header-date-today">📅 Today</span>
+          ) : (
+            <div className="header-date-control">
+              <div className="event-mode-toggle">
+                <button
+                  className={"event-mode-btn" + (trip.tripDates.mode === "range" ? " active" : "")}
+                  onClick={() => trip.setDateMode("range")}
+                >
+                  Dates
+                </button>
+                <button
+                  className={"event-mode-btn" + (trip.tripDates.mode === "month" ? " active" : "")}
+                  onClick={() => trip.setDateMode("month")}
+                >
+                  Month
+                </button>
+              </div>
+              {trip.tripDates.mode === "range" ? (
+                <>
+                  <input
+                    type="date"
+                    className="event-date-input"
+                    value={trip.tripDates.startDate}
+                    onChange={(e) => {
+                      const newStart = e.target.value;
+                      const span = daysBetween(trip.tripDates.startDate, trip.tripDates.endDate);
+                      const newEnd = span > 14 || span < 0 ? addDays(newStart, 7) : addDays(newStart, span);
+                      trip.setDateRange(newStart, newEnd);
+                    }}
+                  />
+                  <span className="event-date-sep">to</span>
+                  <input
+                    type="date"
+                    className="event-date-input"
+                    value={trip.tripDates.endDate}
+                    min={trip.tripDates.startDate}
+                    max={addDays(trip.tripDates.startDate, 14)}
+                    onChange={(e) => trip.setDateRange(trip.tripDates.startDate, e.target.value)}
+                  />
+                </>
+              ) : (
+                <input
+                  type="month"
+                  className="event-date-input"
+                  value={trip.tripDates.month}
+                  onChange={(e) => trip.setDateMonth(e.target.value)}
+                />
+              )}
+            </div>
+          )}
+
           <Link
             href="/distilleries"
             id="onboard-nav-distilleries"
@@ -340,7 +408,9 @@ export default function Workspace({
               >
                 &#8249;
               </button>
-              <div className="day-nav-label">{activeDay.label}</div>
+              <div className="day-nav-label">
+                {useCalendarDayLabels ? calendarDayLabel(activeDayIndex) : activeDay.label}
+              </div>
               <button
                 className="day-nav-arrow"
                 onClick={() => setActiveDayIndex(Math.min(days.length - 1, activeDayIndex + 1))}
@@ -400,7 +470,7 @@ export default function Workspace({
                 <p>
                   {totalStops === 0
                     ? "Your journey is empty — click a distillery on the map to start building your trip."
-                    : `Nothing added to ${activeDay.label} yet — explore the map and add distilleries or places.`}
+                    : `Nothing added to ${useCalendarDayLabels ? calendarDayLabel(activeDayIndex) : activeDay.label} yet — explore the map and add distilleries or places.`}
                 </p>
               </div>
             ) : (
@@ -595,67 +665,18 @@ export default function Workspace({
                   {expandedCategoryData.id === "local-events" && (
                     <>
                       <div className="event-date-controls">
-                        {timing === "today" && (
-                          <span className="event-date-today">📅 Showing events for {formatDisplayDate(todayIso)}</span>
-                        )}
-
-                        {(timing === "planning" || timing === "inspiration") && (
-                          <>
-                            <div className="event-mode-toggle">
-                              <button
-                                className={"event-mode-btn" + (eventDateMode === "range" ? " active" : "")}
-                                onClick={() => setEventDateMode("range")}
-                              >
-                                Date range
-                              </button>
-                              <button
-                                className={"event-mode-btn" + (eventDateMode === "month" ? " active" : "")}
-                                onClick={() => setEventDateMode("month")}
-                              >
-                                Month
-                              </button>
-                            </div>
-                            {eventDateMode === "range" ? (
-                              <>
-                                <input
-                                  type="date"
-                                  className="event-date-input"
-                                  value={eventStartDate}
-                                  onChange={(e) => {
-                                    const newStart = e.target.value;
-                                    setEventStartDate(newStart);
-                                    setDatesConfirmed(true);
-                                    if (daysBetween(newStart, eventEndDate) > 14 || daysBetween(newStart, eventEndDate) < 0) {
-                                      setEventEndDate(addDays(newStart, 7));
-                                    }
-                                  }}
-                                />
-                                <span className="event-date-sep">to</span>
-                                <input
-                                  type="date"
-                                  className="event-date-input"
-                                  value={eventEndDate}
-                                  min={eventStartDate}
-                                  max={addDays(eventStartDate, 14)}
-                                  onChange={(e) => {
-                                    setEventEndDate(e.target.value);
-                                    setDatesConfirmed(true);
-                                  }}
-                                />
-                              </>
-                            ) : (
-                              <input
-                                type="month"
-                                className="event-date-input"
-                                value={eventMonth}
-                                onChange={(e) => {
-                                  setEventMonth(e.target.value);
-                                  setDatesConfirmed(true);
-                                }}
-                              />
-                            )}
-                          </>
-                        )}
+                        <span className="event-date-today">
+                          📅{" "}
+                          {timing === "today"
+                            ? `Showing events for ${formatDisplayDate(todayIso)}`
+                            : trip.tripDates.confirmed
+                              ? `Showing events for ${
+                                  trip.tripDates.mode === "month"
+                                    ? MONTH_NAMES[Number(trip.tripDates.month.slice(5, 7)) - 1]
+                                    : `${formatDisplayDate(trip.tripDates.startDate)} \u2013 ${formatDisplayDate(trip.tripDates.endDate)}`
+                                }`
+                              : "Pick dates in the header above to filter events"}
+                        </span>
                       </div>
 
                       <div className="event-results-list">
@@ -748,7 +769,7 @@ export default function Workspace({
                 {title} is on the roadmap — Islay is the only region loaded so far.
               </div>
             )}
-            {isLive && datesConfirmed && !weatherMinimized && (
+            {weatherReady && !weatherMinimized && (
               <div className="weather-popup">
                 <button
                   className="weather-popup-close"
@@ -758,16 +779,33 @@ export default function Workspace({
                   &times;
                 </button>
                 <div className="weather-popup-title">
-                  🌤️ Visiting in {weatherMonthName}
+                  {timing === "today" ? "🌤️ Today on Islay" : `🌤️ Visiting in ${weatherMonthName}`}
                 </div>
                 <p className="weather-popup-text">
-                  ~{weatherMonthClimate.daylightHours} of daylight, average high {weatherMonthClimate.avgHighC}°C —{" "}
-                  {weatherMonthClimate.summary}.
+                  {timing === "today" ? (
+                    <>
+                      Check a live forecast before you head out —{" "}
+                      <a href="https://www.metoffice.gov.uk" target="_blank" rel="noreferrer">
+                        Met Office
+                      </a>
+                      .
+                    </>
+                  ) : (
+                    <>
+                      You can expect ~{weatherMonthClimate.daylightHours} of daylight, average high{" "}
+                      {weatherMonthClimate.avgHighC}°C — {weatherMonthClimate.summary}.
+                    </>
+                  )}
                 </p>
                 {eventsDuringVisit.length > 0 && (
                   <p className="weather-popup-events">
                     📅 Worth knowing: {eventsDuringVisit.map((e) => e.name).join(", ")}{" "}
                     {eventsDuringVisit.length > 1 ? "are" : "is"} on during your visit.
+                  </p>
+                )}
+                {closureNotices.length > 0 && (
+                  <p className="weather-popup-events">
+                    ⚠️ {closureNotices.join(" ")}
                   </p>
                 )}
                 <button className="weather-popup-dismiss" onClick={() => setWeatherMinimized(true)}>
@@ -779,13 +817,25 @@ export default function Workspace({
         </div>
       </div>
 
-      {isLive && datesConfirmed && weatherMinimized && (
+      {weatherReady && weatherMinimized && (
         <div className="below-map-section weather-banner-section">
           <div className="weather-banner">
             <span className="weather-banner-icon">🌤️</span>
             <span className="weather-banner-text">
-              Visiting in {weatherMonthName}: ~{weatherMonthClimate.daylightHours} of daylight, average high{" "}
-              {weatherMonthClimate.avgHighC}°C — {weatherMonthClimate.summary}.
+              {timing === "today" ? (
+                <>
+                  Today on Islay — check a live forecast before you head out (
+                  <a href="https://www.metoffice.gov.uk" target="_blank" rel="noreferrer">
+                    Met Office
+                  </a>
+                  ).
+                </>
+              ) : (
+                <>
+                  Visiting in {weatherMonthName}: ~{weatherMonthClimate.daylightHours} of daylight, average high{" "}
+                  {weatherMonthClimate.avgHighC}°C — {weatherMonthClimate.summary}.
+                </>
+              )}
               {eventsDuringVisit.length > 0 && (
                 <>
                   {" "}
@@ -793,6 +843,7 @@ export default function Workspace({
                   {eventsDuringVisit.length > 1 ? "are" : "is"} on during your visit.
                 </>
               )}
+              {closureNotices.length > 0 && <> ⚠️ {closureNotices.join(" ")}</>}
             </span>
             <button className="weather-banner-expand" onClick={() => setWeatherMinimized(false)}>
               More &darr;

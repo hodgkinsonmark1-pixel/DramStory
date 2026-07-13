@@ -206,12 +206,42 @@ export interface BlogPost {
 
 // ─────────────────────────────────────────────────────────────────────────
 // JOURNEY PLANNER INTAKE — Q1 (When) is answered on the homepage Hero and
-// passed through as ?mode=. Q2 (Where) and Q3 (What matters) are answered
-// on /journey before the workspace (map + itinerary) loads.
+// passed through as ?mode=. Q2 (Where), Step 3 (How long), and Q4 (What
+// matters) are answered on /journey before the workspace (map + itinerary)
+// loads.
 // ─────────────────────────────────────────────────────────────────────────
 
-/** Q1 — answered on the homepage Hero, passed through as the `mode` query param. */
-export type TripTiming = "today" | "planning" | "inspiration";
+/** Q1 — answered on the homepage Hero, passed through as the `mode` query
+ *  param. Collapsed from three options to two (July 2026): "planning" now
+ *  covers both a firm future trip and pure daydreaming - the header date
+ *  picker's own month-vs-specific-date choice carries that distinction
+ *  now, rather than gating it on which Q1 button was clicked. */
+export type TripTiming = "today" | "planning";
+
+/** Whether the header date control is set to a single specific range or a
+ *  looser month. Shared by Local Events filtering, the weather popup, and
+ *  (once live) accommodation - see TripDates. */
+export type TripDateMode = "range" | "month";
+
+/** Global "when are you visiting" state, set once via the workspace
+ *  header and read everywhere it's needed - Local Events filtering, the
+ *  weather/daylight popup, calendar-date itinerary labels, and (once
+ *  live) accommodation availability. Lives in TripContext (persisted),
+ *  not local component state, so it survives navigating away and back
+ *  and isn't tied to any one subtab being open. */
+export interface TripDates {
+  mode: TripDateMode;
+  /** ISO date, used when mode === "range". */
+  startDate: string;
+  /** ISO date, used when mode === "range". */
+  endDate: string;
+  /** "YYYY-MM", used when mode === "month". */
+  month: string;
+  /** True once the visitor has actively picked a date/month - false for
+   *  the untouched default, so nothing date-dependent (weather popup,
+   *  calendar-date day labels) shows before it's actually relevant. */
+  confirmed: boolean;
+}
 
 export type RegionId = "islay" | "speyside" | "highland" | "campbeltown" | "lowland";
 

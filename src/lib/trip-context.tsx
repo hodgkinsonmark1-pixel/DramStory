@@ -1,16 +1,25 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import type { Distillery, ItineraryDay, LocalFeature, Tour, TripAccommodation, TripIntake, TripMapView } from "@/lib/types";
+import type { Distillery, ItineraryDay, LocalFeature, Tour, TripAccommodation, TripDateMode, TripDates, TripIntake, TripMapView } from "@/lib/types";
 import { stopId } from "@/lib/itinerary-stop";
 
 const STORAGE_KEY = "dramstory-trip-v2";
+
+/** Untouched default - "confirmed: false" keeps anything date-dependent
+ *  (weather popup, calendar-date day labels) hidden until the visitor
+ *  actually interacts with the header date control. */
+function defaultTripDates(): TripDates {
+  const todayIso = new Date().toISOString().slice(0, 10);
+  return { mode: "month", startDate: todayIso, endDate: todayIso, month: todayIso.slice(0, 7), confirmed: false };
+}
 
 interface StoredTrip {
   days: ItineraryDay[];
   intake: TripIntake | null;
   currentDayIndex: number;
   mapView: TripMapView | null;
+  tripDates: TripDates | null;
 }
 
 interface TripContextValue {
@@ -30,6 +39,18 @@ interface TripContextValue {
    *  least once. */
   mapView: TripMapView | null;
   setMapView: (view: TripMapView) => void;
+  /** When the visitor is/will be visiting - set via the workspace header,
+   *  not gated to any one subtab. See TripDates for what reads it. */
+  tripDates: TripDates;
+  /** Switches between a specific date range and a looser month, without
+   *  otherwise changing what's selected. Deliberately does NOT set
+   *  confirmed - that only flips once an actual date/month is picked, so
+   *  merely toggling the mode doesn't summon the weather popup. */
+  setDateMode: (mode: TripDateMode) => void;
+  /** Sets a specific start/end date and marks tripDates confirmed. */
+  setDateRange: (startDate: string, endDate: string) => void;
+  /** Sets a "YYYY-MM" month and marks tripDates confirmed. */
+  setDateMonth: (month: string) => void;
   /** The completed Q2/Step3/Q4 answers, once the visitor has been through
    *  the intake flow at least once - lets "Back to your journey" (from a
    *  distillery page) jump straight to the workspace instead of
@@ -83,6 +104,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   const [intake, setIntake] = useState<TripIntake | null>(null);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [mapView, setMapView] = useState<TripMapView | null>(null);
+  const [tripDates, setTripDates] = useState<TripDates>(defaultTripDates);
   const [ready, setReady] = useState(false);
 
   // Reads localStorage after mount rather than in a lazy useState
@@ -101,6 +123,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         setIntake(parsed.intake ?? null);
         setCurrentDayIndex(parsed.currentDayIndex ?? 0);
         setMapView(parsed.mapView ?? null);
+        setTripDates(parsed.tripDates ?? defaultTripDates());
       }
     } catch {
       // Corrupt or inaccessible storage - just start fresh.
@@ -113,12 +136,12 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!ready) return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ days, intake, currentDayIndex, mapView }));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ days, intake, currentDayIndex, mapView, tripDates }));
     } catch {
       // Storage full or unavailable - the trip still works for this
       // session, it just won't survive a reload.
     }
-  }, [days, intake, currentDayIndex, mapView, ready]);
+  }, [days, intake, currentDayIndex, mapView, tripDates, ready]);
 
   const initDays = useCallback((count: number) => {
     setDays((prev) => {
@@ -140,6 +163,19 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     setIntake(null);
     setCurrentDayIndex(0);
     setMapView(null);
+    setTripDates(defaultTripDates());
+  }, []);
+
+  const setDateMode = useCallback((mode: TripDateMode) => {
+    setTripDates((prev) => ({ ...prev, mode }));
+  }, []);
+
+  const setDateRange = useCallback((startDate: string, endDate: string) => {
+    setTripDates((prev) => ({ ...prev, mode: "range", startDate, endDate, confirmed: true }));
+  }, []);
+
+  const setDateMonth = useCallback((month: string) => {
+    setTripDates((prev) => ({ ...prev, mode: "month", month, confirmed: true }));
   }, []);
 
   const addDay = useCallback(() => {
@@ -261,6 +297,10 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         setCurrentDayIndex,
         mapView,
         setMapView,
+        tripDates,
+        setDateMode,
+        setDateRange,
+        setDateMonth,
         intake,
         ready,
         initDays,

@@ -35,8 +35,7 @@ export default function Hero() {
 
   const options = [
     { label: "I'm here today", mode: "today" },
-    { label: "Planning a future trip", mode: "planning" },
-    { label: "Just dreaming", mode: "inspiration" },
+    { label: "Dreaming of a future trip", mode: "planning" },
   ] as const;
 
   function handleSelect(opt: (typeof options)[number]) {
