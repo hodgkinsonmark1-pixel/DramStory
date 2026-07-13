@@ -23,9 +23,14 @@ const HUB_CATEGORIES: { label: string; value: LocalFeature["category"] }[] = [
   { label: "Transport", value: "transport" },
 ];
 
-const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(
-  HUB_CATEGORIES.map((c) => [c.value, c.label.replace(/s$/, "")])
-);
+const CATEGORY_LABEL: Record<string, string> = {
+  beach: "Beach",
+  walk: "Walk",
+  "bike-route": "Bike Ride",
+  "local-gem": "Local Gem",
+  "historic-site": "Historic Site",
+  transport: "Transport",
+};
 
 export default function LocalFeaturesGrid({ features }: LocalFeaturesGridProps) {
   const [activeCategory, setActiveCategory] = useState<LocalFeature["category"] | null>(null);
