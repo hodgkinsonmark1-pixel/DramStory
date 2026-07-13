@@ -335,6 +335,24 @@ export default function Workspace({
       : [];
   const highlightedDistillerySlugs = Array.from(new Set(activeEvents.flatMap((e) => e.distillerySlugs)));
 
+  // Local Events used to have its own inline "no events found" text in
+  // the (now-removed) drill-down list; toggling the filter with no
+  // matching pins to show otherwise looked like it did nothing at all.
+  // This surfaces the same two messages as a dismissible map popup
+  // instead - reset to visible each time the filter is freshly turned
+  // on, so re-opening it after dismissing shows it again rather than
+  // staying silently hidden forever.
+  const [eventsNoticeDismissed, setEventsNoticeDismissed] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (localEventsActive) setEventsNoticeDismissed(false);
+  }, [localEventsActive]);
+  const showEventsNotice =
+    localEventsActive && !eventsNoticeDismissed && (!selectedRange || activeEvents.length === 0);
+  const eventsNoticeText = !selectedRange
+    ? "Pick dates in the header above to see events during your visit."
+    : "No events found for the dates you've selected.";
+
   // Weather/daylight banner - uses the same selectedRange as Local
   // Events, but deliberately independent of whether that filter is
   // toggled on, since this is a separate "when are you visiting" insight
@@ -833,6 +851,18 @@ export default function Workspace({
                 }}
               >
                 {title} is on the roadmap — Islay is the only region loaded so far.
+              </div>
+            )}
+            {showEventsNotice && (
+              <div className="events-notice-popup">
+                <button
+                  className="events-notice-close"
+                  onClick={() => setEventsNoticeDismissed(true)}
+                  aria-label="Dismiss"
+                >
+                  &times;
+                </button>
+                📅 {eventsNoticeText}
               </div>
             )}
             {weatherReady && !weatherMinimized && (

@@ -609,6 +609,34 @@ select.location-inline-input {
   max-width: 420px;
   width: calc(100% - 32px);
 }
+.events-notice-popup {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: white;
+  padding: 12px 36px 12px 16px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  z-index: 600;
+  max-width: 300px;
+  font-size: 13px;
+  color: var(--peat);
+  line-height: 1.5;
+}
+.events-notice-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: var(--slate);
+  cursor: pointer;
+  line-height: 1;
+}
+.events-notice-close:hover {
+  color: var(--dark);
+}
 .weather-popup-close {
   position: absolute;
   top: 10px;
