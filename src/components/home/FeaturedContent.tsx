@@ -43,14 +43,17 @@ export default function FeaturedContent({
 
   return (
     <section className="featured-section">
-      <div className="how-eyebrow">Get to know</div>
       <h2 className="how-title">Get to know {activeRegion.label}</h2>
 
       <div className="featured-region-tabs">
         {REGIONS.map((r) => (
           <button
             key={r.id}
-            className={"q-card featured-region-tab" + (r.id === activeRegionId ? " selected" : "")}
+            className={
+              "q-card featured-region-tab" +
+              (r.id === activeRegionId ? " selected" : "") +
+              (!r.live ? " q-card-not-live" : "")
+            }
             onClick={() => setActiveRegionId(r.id)}
           >
             {r.label}

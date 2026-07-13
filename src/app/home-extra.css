@@ -143,6 +143,16 @@
   padding: 8px 18px;
   font-size: 13px;
 }
+/* Overrides the generic .q-card.selected (green border+fill) with a gold
+   underline instead - this section's own selection convention, distinct
+   from Q2's solid-fill selected card style. */
+.featured-region-tab.selected {
+  border-color: var(--stone);
+  background: white;
+  color: var(--peat);
+  font-weight: 500;
+  border-bottom: 2px solid var(--amber);
+}
 .discover-section {
   max-width: 1100px;
   margin: 0 auto;
