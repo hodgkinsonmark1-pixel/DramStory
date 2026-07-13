@@ -1,4 +1,4 @@
-import { getDistilleries, getLocalEvents, getLocalFeatures } from "@/lib/data";
+import { getDistilleries, getLocalEvents, getLocalFeatures, getJournalPosts } from "@/lib/data";
 import type { TripTiming } from "@/lib/types";
 import JourneyFlow from "@/components/journey/JourneyFlow";
 
@@ -28,6 +28,10 @@ export default async function JourneyPage({
   // workspace.
   const localFeaturesPromise = getLocalFeatures();
   const localEventsPromise = getLocalEvents();
+  // Also deliberately not awaited, same reasoning - only needed now that
+  // Q2/Q3 show the homepage's below-the-fold sections (including the
+  // Journal preview) beneath their own question, per the July 2026 change.
+  const journalPostsPromise = getJournalPosts();
 
   return (
     <JourneyFlow
@@ -35,6 +39,7 @@ export default async function JourneyPage({
       distilleriesPromise={distilleriesPromise}
       localFeaturesPromise={localFeaturesPromise}
       localEventsPromise={localEventsPromise}
+      journalPostsPromise={journalPostsPromise}
       resume={resume === "1"}
     />
   );

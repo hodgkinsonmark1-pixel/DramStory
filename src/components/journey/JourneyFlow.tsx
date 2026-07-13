@@ -2,7 +2,7 @@
 
 import { Suspense, use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Distillery, InterestCategoryId, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
+import type { Distillery, InterestCategoryId, JournalPost, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
 import { useTrip } from "@/lib/trip-context";
 import LocationStep from "./LocationStep";
 import InterestsStep from "./InterestsStep";
@@ -12,16 +12,22 @@ interface JourneyFlowProps {
   timing: TripTiming;
   /** Deferred, same reasoning as localFeaturesPromise/localEventsPromise -
    *  Q2's primary region cards don't need this; only the secondary "a
-   *  specific distillery" dropdown does, and the workspace step. */
+   *  specific distillery" dropdown does, and the workspace step. Also now
+   *  used by both Q2 and Q3's below-the-fold homepage sections. */
   distilleriesPromise: Promise<Distillery[]>;
   /** Deliberately an unresolved Promise, not a plain array - Local
    *  Features isn't needed until the final "workspace" step, so the page
    *  no longer blocks Q2/Q3 on this fetch resolving. Unwrapped via use()
    *  only once we reach the workspace, inside a Suspense boundary. */
   localFeaturesPromise: Promise<LocalFeature[]>;
-  /** Same deferred-fetch treatment as localFeaturesPromise, for the same
-   *  reason - Local Events isn't needed before the workspace either. */
+  /** Same deferred-fetch treatment as localFeaturesPromise for the
+   *  workspace step - also threaded into Q2/Q3's below-the-fold "Get to
+   *  know" section, which needs it for the Events column. */
   localEventsPromise: Promise<LocalEvent[]>;
+  /** Deferred fetch for the below-the-fold Journal preview shown under
+   *  Q2 and Q3 now that those steps extend the homepage rather than
+   *  being separate dead-ended pages (July 2026). */
+  journalPostsPromise: Promise<JournalPost[]>;
   /** True only when arriving via "Back to your journey" (see
    *  DistilleryPageClient's ?resume=1 link) - an explicit signal that
    *  resuming the saved trip is wanted. A fresh homepage Q1 click never
@@ -71,7 +77,7 @@ function WorkspaceWithFeatures(props: {
  * date range - see Workspace's date-range sync effect), or simply from
  * however many days they build for themselves via +Add day/Remove.
  */
-export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, resume }: JourneyFlowProps) {
+export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, resume }: JourneyFlowProps) {
   const router = useRouter();
   const trip = useTrip();
   const [step, setStep] = useState<Step>("location");
@@ -111,6 +117,8 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
     return (
       <LocationStep
         distilleriesPromise={distilleriesPromise}
+        localEventsPromise={localEventsPromise}
+        journalPostsPromise={journalPostsPromise}
         onBack={() => router.push("/")}
         onNext={(answer) => {
           setLocation(answer);
@@ -123,6 +131,9 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
   if (step === "interests") {
     return (
       <InterestsStep
+        distilleriesPromise={distilleriesPromise}
+        localEventsPromise={localEventsPromise}
+        journalPostsPromise={journalPostsPromise}
         onBack={() => setStep("location")}
         onNext={(selected) => {
           setInterests(selected);

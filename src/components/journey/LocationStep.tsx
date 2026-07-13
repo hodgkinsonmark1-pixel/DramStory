@@ -1,16 +1,22 @@
 "use client";
 
 import { Suspense, use, useState } from "react";
-import type { Distillery, LocationAnswer } from "@/lib/types";
+import type { Distillery, JournalPost, LocalEvent, LocationAnswer } from "@/lib/types";
 import { REGIONS } from "@/lib/journey-options";
 import SiteHeader from "@/components/SiteHeader";
 import BackgroundImage from "@/components/BackgroundImage";
+import HomeSectionsBelowFold from "@/components/home/HomeSectionsBelowFold";
 
 interface LocationStepProps {
   /** Deferred - Q2's primary region cards don't need distillery data at
    *  all, so this is only resolved (via Suspense, below) once someone
-   *  actually picks "a specific distillery". */
+   *  actually picks "a specific distillery", or once the below-the-fold
+   *  homepage sections need it. */
   distilleriesPromise: Promise<Distillery[]>;
+  /** For the below-the-fold "Get to know" section's Events column. */
+  localEventsPromise: Promise<LocalEvent[]>;
+  /** For the below-the-fold Journal preview. */
+  journalPostsPromise: Promise<JournalPost[]>;
   onNext: (answer: LocationAnswer) => void;
   onBack: () => void;
 }
@@ -53,7 +59,7 @@ function DistilleryPicker({
  * (typing an airport, picking a distillery), so those advance on Enter /
  * on selecting a dropdown value instead of on the initial card click.
  */
-export default function LocationStep({ distilleriesPromise, onNext, onBack }: LocationStepProps) {
+export default function LocationStep({ distilleriesPromise, localEventsPromise, journalPostsPromise, onNext, onBack }: LocationStepProps) {
   const [selected, setSelected] = useState<OptionId | null>(null);
   const [airportName, setAirportName] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
@@ -67,6 +73,7 @@ export default function LocationStep({ distilleriesPromise, onNext, onBack }: Lo
   }
 
   return (
+    <>
     <div className="journey-screen">
       <BackgroundImage />
       <div className="hero-overlay" />
@@ -140,5 +147,20 @@ export default function LocationStep({ distilleriesPromise, onNext, onBack }: Lo
         Back
       </button>
     </div>
+
+    {/* Below-the-fold homepage sections (July 2026) - makes Q2 read as a
+        continuation of the homepage you scroll through, rather than a
+        dead-ended standalone page. Suspense-wrapped so this streams in
+        once the underlying fetches resolve, without delaying the
+        question above, which is the whole point of the deferred
+        promises in the first place. */}
+    <Suspense fallback={null}>
+      <HomeSectionsBelowFold
+        distilleriesPromise={distilleriesPromise}
+        localEventsPromise={localEventsPromise}
+        journalPostsPromise={journalPostsPromise}
+      />
+    </Suspense>
+    </>
   );
 }

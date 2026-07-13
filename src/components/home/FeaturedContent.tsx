@@ -1,5 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import type { Distillery, LocalEvent } from "@/lib/types";
+import { REGIONS } from "@/lib/journey-options";
 
 // Same editorial curation DiscoverDistilleries used to show as its own
 // full section - now a compact preview column here instead, since that
@@ -22,6 +26,13 @@ export default function FeaturedContent({
   distilleries: Distillery[];
   localEvents: LocalEvent[];
 }) {
+  // Region tabs (July 2026) - only Islay has live distillery/event data
+  // today, but the tab row is built for all 5 up front so switching in
+  // each new region as it's populated is just wiring up real data here,
+  // not redesigning this section again.
+  const [activeRegionId, setActiveRegionId] = useState(REGIONS[0].id);
+  const activeRegion = REGIONS.find((r) => r.id === activeRegionId) ?? REGIONS[0];
+
   const featuredDistilleries = Object.keys(EDITORIAL)
     .map((slug) => distilleries.find((d) => d.slug === slug))
     .filter((d): d is Distillery => !!d);
@@ -32,62 +43,82 @@ export default function FeaturedContent({
 
   return (
     <section className="featured-section">
-      <div className="how-eyebrow">Featured</div>
-      <h2 className="how-title">Get to know Islay</h2>
+      <div className="how-eyebrow">Get to know</div>
+      <h2 className="how-title">Get to know {activeRegion.label}</h2>
 
-      <div className="featured-col-title">Distilleries</div>
-      <div className="discover-grid featured-compact-grid">
-        {featuredDistilleries.map((d) => {
-          const editorial = EDITORIAL[d.slug];
-          return (
-            <Link href={`/distilleries/${d.slug}`} className="discover-card" key={d.slug}>
-              <div className="discover-card-image" style={{ backgroundImage: `url(${d.image})` }} />
-              <div className="discover-card-body">
-                <div className="discover-card-tag">{editorial.tag}</div>
-                <div className="discover-card-name">{d.name}</div>
-                <p className="discover-card-desc">{editorial.description}</p>
-                <div className="discover-card-footer">
-                  <span className="discover-card-meta">
-                    {d.region} &middot; Est. {d.founded}
-                  </span>
-                  <span className="discover-card-link">Explore &rarr;</span>
-                </div>
-              </div>
-            </Link>
-          );
-        })}
+      <div className="featured-region-tabs">
+        {REGIONS.map((r) => (
+          <button
+            key={r.id}
+            className={"q-card featured-region-tab" + (r.id === activeRegionId ? " selected" : "")}
+            onClick={() => setActiveRegionId(r.id)}
+          >
+            {r.label}
+          </button>
+        ))}
       </div>
-      <Link href="/distilleries" className="featured-view-all">
-        View all distilleries &rarr;
-      </Link>
 
-      <div className="featured-col-title">Events &amp; Experiences</div>
-      {upcomingEvents.length > 0 ? (
-        <div className="featured-events-list">
-          {upcomingEvents.map((e) => (
-            <div className="featured-event-card" key={e.id}>
-              <div className="featured-event-date">
-                {formatEventDate(e.date)}
-                {e.endDate && e.endDate !== e.date ? ` – ${formatEventDate(e.endDate)}` : ""}
-              </div>
-              <div className="featured-event-body">
-                <div className="featured-event-name">{e.name}</div>
-                <div className="featured-event-meta">
-                  {e.location}
-                  {e.price ? ` · ${e.price}` : ""}
+      {activeRegion.live ? (
+        <>
+          <div className="featured-col-title">Distilleries</div>
+          <div className="discover-grid featured-compact-grid">
+            {featuredDistilleries.map((d) => {
+              const editorial = EDITORIAL[d.slug];
+              return (
+                <Link href={`/distilleries/${d.slug}`} className="discover-card" key={d.slug}>
+                  <div className="discover-card-image" style={{ backgroundImage: `url(${d.image})` }} />
+                  <div className="discover-card-body">
+                    <div className="discover-card-tag">{editorial.tag}</div>
+                    <div className="discover-card-name">{d.name}</div>
+                    <p className="discover-card-desc">{editorial.description}</p>
+                    <div className="discover-card-footer">
+                      <span className="discover-card-meta">
+                        {d.region} &middot; Est. {d.founded}
+                      </span>
+                      <span className="discover-card-link">Explore &rarr;</span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+          <Link href="/distilleries" className="featured-view-all">
+            View all distilleries &rarr;
+          </Link>
+
+          <div className="featured-col-title">Events &amp; Experiences</div>
+          {upcomingEvents.length > 0 ? (
+            <div className="featured-events-list">
+              {upcomingEvents.map((e) => (
+                <div className="featured-event-card" key={e.id}>
+                  <div className="featured-event-date">
+                    {formatEventDate(e.date)}
+                    {e.endDate && e.endDate !== e.date ? ` – ${formatEventDate(e.endDate)}` : ""}
+                  </div>
+                  <div className="featured-event-body">
+                    <div className="featured-event-name">{e.name}</div>
+                    <div className="featured-event-meta">
+                      {e.location}
+                      {e.price ? ` · ${e.price}` : ""}
+                    </div>
+                  </div>
+                  {e.link && (
+                    <a href={e.link} target="_blank" rel="noreferrer" className="featured-event-link">
+                      Details &rarr;
+                    </a>
+                  )}
                 </div>
-              </div>
-              {e.link && (
-                <a href={e.link} target="_blank" rel="noreferrer" className="featured-event-link">
-                  Details &rarr;
-                </a>
-              )}
+              ))}
             </div>
-          ))}
-        </div>
+          ) : (
+            <div className="featured-coming-soon">
+              <p>Fèis Ìle dates, distillery masterclasses, and island festivals will appear here once confirmed.</p>
+            </div>
+          )}
+        </>
       ) : (
         <div className="featured-coming-soon">
-          <p>Fèis Ìle dates, distillery masterclasses, and island festivals will appear here once confirmed.</p>
+          <p>{activeRegion.label} is on the roadmap — Islay &amp; Jura is fully built and ready to explore in the meantime.</p>
         </div>
       )}
     </section>

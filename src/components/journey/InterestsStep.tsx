@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import type { InterestCategoryId } from "@/lib/types";
+import { Suspense, useState } from "react";
+import type { Distillery, InterestCategoryId, JournalPost, LocalEvent } from "@/lib/types";
 import { INTEREST_CATEGORIES } from "@/lib/journey-options";
 import SiteHeader from "@/components/SiteHeader";
 import BackgroundImage from "@/components/BackgroundImage";
+import HomeSectionsBelowFold from "@/components/home/HomeSectionsBelowFold";
 
 interface InterestsStepProps {
+  /** For the below-the-fold "Get to know" and Classic Journeys sections. */
+  distilleriesPromise: Promise<Distillery[]>;
+  localEventsPromise: Promise<LocalEvent[]>;
+  journalPostsPromise: Promise<JournalPost[]>;
   onNext: (interests: InterestCategoryId[]) => void;
   onBack: () => void;
 }
@@ -21,7 +26,7 @@ const SELECTABLE_CATEGORIES = INTEREST_CATEGORIES.filter((c) => !c.alwaysOn);
  * The 5 real categories laid out side by side, multi-select - real trips
  * combine interests rather than picking just one.
  */
-export default function InterestsStep({ onNext, onBack }: InterestsStepProps) {
+export default function InterestsStep({ distilleriesPromise, localEventsPromise, journalPostsPromise, onNext, onBack }: InterestsStepProps) {
   const [selected, setSelected] = useState<Set<InterestCategoryId>>(new Set());
 
   function toggle(id: InterestCategoryId) {
@@ -34,6 +39,7 @@ export default function InterestsStep({ onNext, onBack }: InterestsStepProps) {
   }
 
   return (
+    <>
     <div className="journey-screen">
       <BackgroundImage />
       <div className="hero-overlay" />
@@ -73,5 +79,16 @@ export default function InterestsStep({ onNext, onBack }: InterestsStepProps) {
         Back
       </button>
     </div>
+
+    {/* Below-the-fold homepage sections (July 2026) - see LocationStep
+        for the full reasoning; same treatment here for Q3. */}
+    <Suspense fallback={null}>
+      <HomeSectionsBelowFold
+        distilleriesPromise={distilleriesPromise}
+        localEventsPromise={localEventsPromise}
+        journalPostsPromise={journalPostsPromise}
+      />
+    </Suspense>
+    </>
   );
 }
