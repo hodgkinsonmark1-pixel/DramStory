@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { Distillery, InterestCategoryId, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
 import { INTEREST_CATEGORIES, REGIONS } from "@/lib/journey-options";
-import { CLASSIC_JOURNEYS, getJourneyDistilleries, tourPriceRange, formatPrice } from "@/lib/journeys-data";
+import { CLASSIC_JOURNEYS, getJourneyDistilleries } from "@/lib/journeys-data";
 import { roundPriceUp } from "@/lib/pricing";
 import { getMonthClimate, MONTH_NAMES } from "@/lib/islay-climate";
 import { estimatedDriveMinutes, formatDuration } from "@/lib/drive-time";
@@ -957,17 +957,11 @@ export default function Workspace({
         <div className="journeys-grid">
           {CLASSIC_JOURNEYS.map((journey) => {
             const stops = getJourneyDistilleries(journey, distilleries);
-            const priceRange = tourPriceRange(journey, distilleries);
             return (
               <Link href={`/journeys/${journey.slug}`} className="journey-card" key={journey.slug}>
                 <div className="journey-card-tagline">{journey.tagline}</div>
                 <div className="journey-card-name">{journey.name}</div>
                 <div className="journey-card-stops">{stops.map((d) => d.name).join(", ")}</div>
-                {priceRange !== null && (
-                  <div className="journey-card-price">
-                    Tours from {formatPrice(priceRange.min)} to {formatPrice(priceRange.max)}pp
-                  </div>
-                )}
               </Link>
             );
           })}

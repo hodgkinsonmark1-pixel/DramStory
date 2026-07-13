@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDistilleries, getLocalFeatures } from "@/lib/data";
-import { CLASSIC_JOURNEYS, tourPriceRange, formatPrice } from "@/lib/journeys-data";
+import { CLASSIC_JOURNEYS } from "@/lib/journeys-data";
 import type { JourneyStop } from "@/lib/journeys-data";
 import type { Distillery, LocalFeature } from "@/lib/types";
 import Logo from "@/components/Logo";
@@ -9,7 +9,6 @@ import Footer from "@/components/Footer";
 import JourneyDayMap from "@/components/journeys/JourneyDayMap";
 import AddJourneyToTripButton from "@/components/journeys/AddJourneyToTripButton";
 import AddDayToTripButton from "@/components/journeys/AddDayToTripButton";
-import CostReceipt from "@/components/journeys/CostReceipt";
 
 function JourneyStopsRow({
   label,
@@ -84,7 +83,6 @@ export default async function JourneyDetailPage({
 
   const distilleries = await getDistilleries();
   const localFeatures = await getLocalFeatures();
-  const priceRange = tourPriceRange(journey, distilleries);
 
   return (
     <>
@@ -102,12 +100,6 @@ export default async function JourneyDetailPage({
           {journey.name}
         </h1>
         <p style={{ maxWidth: 560, margin: "0 auto", opacity: 0.85, lineHeight: 1.7 }}>{journey.description}</p>
-        {priceRange !== null && (
-          <div style={{ marginTop: 20, fontSize: 15, color: "var(--amber-light)" }}>
-            Tours from {formatPrice(priceRange.min)} to {formatPrice(priceRange.max)}pp &middot; 2026 prices, excl.
-            food &amp; accommodation
-          </div>
-        )}
       </div>
 
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "48px 24px" }}>
@@ -147,7 +139,6 @@ export default async function JourneyDetailPage({
                 {journey.accommodationNote}
               </p>
             )}
-            <CostReceipt journey={journey} distilleries={distilleries} />
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 40 }}>
               {journey.days.map((day) => (
                 <div

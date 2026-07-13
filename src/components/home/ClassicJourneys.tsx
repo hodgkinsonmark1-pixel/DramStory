@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Distillery } from "@/lib/types";
-import { CLASSIC_JOURNEYS, tourPriceRange, formatPrice, getJourneyDistilleries } from "@/lib/journeys-data";
+import { CLASSIC_JOURNEYS, getJourneyDistilleries } from "@/lib/journeys-data";
 
 export default function ClassicJourneys({ distilleries }: { distilleries: Distillery[] }) {
   const [notice, setNotice] = useState<string | null>(null);
@@ -15,17 +15,11 @@ export default function ClassicJourneys({ distilleries }: { distilleries: Distil
       <div className="journeys-grid">
         {CLASSIC_JOURNEYS.map((journey) => {
           const stops = getJourneyDistilleries(journey, distilleries);
-          const priceRange = tourPriceRange(journey, distilleries);
           const cardContent = (
             <>
               <div className="journey-card-tagline">{journey.tagline}</div>
               <div className="journey-card-name">{journey.name}</div>
               <div className="journey-card-stops">{stops.map((d) => d.name).join(", ")}</div>
-              {priceRange !== null && (
-                <div className="journey-card-price">
-                  Tours from {formatPrice(priceRange.min)} to {formatPrice(priceRange.max)}pp
-                </div>
-              )}
               {!journey.live && <div className="journey-card-price">Coming soon</div>}
             </>
           );
