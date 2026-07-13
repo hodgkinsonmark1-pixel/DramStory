@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDistilleries } from "@/lib/data";
-import { CLASSIC_JOURNEYS, cheapestTourPrice, getJourneyDistilleries, routeStartingPrice } from "@/lib/journeys-data";
+import { CLASSIC_JOURNEYS, routeStartingPrice } from "@/lib/journeys-data";
 import type { JourneyStop } from "@/lib/journeys-data";
 import type { Distillery } from "@/lib/types";
 import Logo from "@/components/Logo";
@@ -82,7 +82,6 @@ export default async function JourneyDetailPage({
   if (!journey) notFound();
 
   const distilleries = await getDistilleries();
-  const stops = getJourneyDistilleries(journey, distilleries);
   const price = routeStartingPrice(journey, distilleries);
 
   return (
@@ -122,6 +121,14 @@ export default async function JourneyDetailPage({
           >
             <strong style={{ color: "var(--dark)" }}>Getting there: </strong>
             {journey.gettingThereNote}
+            {journey.gettingThereJournalSlug && (
+              <>
+                {" "}
+                <Link href={`/journal/${journey.gettingThereJournalSlug}`} style={{ color: "var(--copper)", fontWeight: 500 }}>
+                  Read the full guide &rarr;
+                </Link>
+              </>
+            )}
           </div>
         )}
 
@@ -131,14 +138,10 @@ export default async function JourneyDetailPage({
               Day by day
             </h2>
             {journey.accommodationNote && (
-              <p style={{ fontSize: 14, color: "var(--peat)", lineHeight: 1.6, marginBottom: 10 }}>
+              <p style={{ fontSize: 14, color: "var(--peat)", lineHeight: 1.6, marginBottom: 24 }}>
                 {journey.accommodationNote}
               </p>
             )}
-            <p style={{ fontSize: 13, color: "var(--slate)", fontStyle: "italic", marginBottom: 24 }}>
-              Accommodation booking isn&apos;t live yet, so treat this as where to base your search for now, not a
-              specific place we&apos;re recommending.
-            </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 40 }}>
               {journey.days.map((day) => (
                 <div
@@ -168,12 +171,21 @@ export default async function JourneyDetailPage({
                     </p>
                   )}
 
-                  {day.morning.length > 0 && (
-                    <JourneyStopsRow label="Morning" stops={day.morning} distilleries={distilleries} />
-                  )}
-                  {day.afternoon.length > 0 && (
-                    <JourneyStopsRow label="Afternoon" stops={day.afternoon} distilleries={distilleries} />
-                  )}
+                  {(() => {
+                    const allStops = [...day.morning, ...day.afternoon];
+                    const distilleryStops = allStops.filter((s) => s.kind === "distillery");
+                    const otherStops = allStops.filter((s) => s.kind === "activity");
+                    return (
+                      <>
+                        {distilleryStops.length > 0 && (
+                          <JourneyStopsRow label="Distilleries visited" stops={distilleryStops} distilleries={distilleries} />
+                        )}
+                        {otherStops.length > 0 && (
+                          <JourneyStopsRow label="Other features visited" stops={otherStops} distilleries={distilleries} />
+                        )}
+                      </>
+                    );
+                  })()}
 
                   {day.transportNote && (
                     <div style={{ fontSize: 12, color: "var(--slate)", fontStyle: "italic", marginTop: 8 }}>
@@ -207,61 +219,6 @@ export default async function JourneyDetailPage({
             </div>
           </>
         )}
-
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 500, marginBottom: 24 }}>
-          On this route
-        </h2>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 40 }}>
-          {stops.map((d, i) => {
-            const tourPrice = cheapestTourPrice(d);
-            return (
-              <Link
-                href={`/distilleries/${d.slug}`}
-                key={d.slug}
-                style={{
-                  display: "flex",
-                  gap: 16,
-                  padding: 20,
-                  background: "white",
-                  borderRadius: "var(--radius)",
-                  boxShadow: "var(--shadow-card)",
-                  textDecoration: "none",
-                  color: "inherit",
-                }}
-              >
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: "50%",
-                    background: "var(--green-deep)",
-                    color: "white",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 600,
-                    fontSize: 13,
-                    flexShrink: 0,
-                  }}
-                >
-                  {i + 1}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: 19, color: "var(--dark)" }}>{d.name}</div>
-                  <div style={{ fontSize: 13, color: "var(--slate)", marginBottom: 6 }}>
-                    {d.region} &middot; {d.style}
-                  </div>
-                  <p style={{ fontSize: 13, color: "var(--peat)" }}>{d.tagline}</p>
-                </div>
-                {tourPrice !== null && (
-                  <div style={{ fontSize: 13, fontWeight: 500, color: "var(--dark)", whiteSpace: "nowrap" }}>
-                    from £{tourPrice}
-                  </div>
-                )}
-              </Link>
-            );
-          })}
-        </div>
 
         {journey.days && journey.days.length > 0 ? (
           <AddJourneyToTripButton journey={journey} distilleries={distilleries} />

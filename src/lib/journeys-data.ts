@@ -27,6 +27,10 @@ export interface ClassicJourney {
    *  content on that leg (a ferry, a transfer) - shown once, in the
    *  intro, rather than consuming a "Day 1" slot with nothing to tour. */
   gettingThereNote?: string;
+  /** Slug of a Journal post with more detail on the getting-there
+   *  logistics, if one exists - linked from the intro alongside
+   *  gettingThereNote rather than embedded as markup in that string. */
+  gettingThereJournalSlug?: string;
   /** Why this journey's overnight base makes sense for THIS route
    *  specifically (not a generic "no booking yet" disclaimer, which
    *  stays separate and applies to every journey regardless). */
@@ -110,6 +114,7 @@ export const CLASSIC_JOURNEYS: ClassicJourney[] = [
     // touring content (previously Day 2).
     gettingThereNote:
       "Ferry from Kennacraig to Port Askaig, then a transfer south to settle into Port Ellen - allow the rest of arrival day for this before the tour itself begins.",
+    gettingThereJournalSlug: "getting-to-islay-ferries-flights-travel",
     accommodationNote:
       "Port Ellen is the base for the whole week: it's a proper town (not just a distillery car park), with a genuinely nice beach on your doorstep and the facilities you'd actually want after a day of touring. It's also the right geography for this route specifically - Day 4 and Day 5 are both close enough to reach on foot or by bike, and Bowmore is a short, easy bus ride away for Day 2.",
     days: [
@@ -129,7 +134,7 @@ export const CLASSIC_JOURNEYS: ClassicJourney[] = [
       {
         dayNumber: 2,
         narrative:
-          "A gentler start today - Islay's only swimming pool happens to be heated by waste heat piped straight from Bowmore Distillery next door, one of those quietly brilliant details that only make sense once you've seen it. Cross the road afterwards for a tour of the island's oldest working distillery, its warehouses built below sea level and still maturing casks the old way.",
+          "A gentler start today - Islay's only swimming pool happens to be heated by waste heat piped straight from Bowmore Distillery next door, one of those quietly brilliant details that only make sense once you've seen it. Cross the road afterwards for a tour of the island's oldest working distillery, its warehouses built below sea level and still maturing casks the old way. Give the rest of the day to the town itself - Bowmore rewards slowing down.",
         morning: [
           {
             kind: "activity",
@@ -137,7 +142,16 @@ export const CLASSIC_JOURNEYS: ClassicJourney[] = [
             note: "Islay's only indoor pool - genuinely heated by waste heat piped over from Bowmore Distillery next door.",
           },
         ],
-        afternoon: [{ kind: "distillery", distillerySlug: "bowmore" }],
+        afternoon: [
+          { kind: "distillery", distillerySlug: "bowmore" },
+          {
+            kind: "activity",
+            label: "Kilarrow Parish Church (the Round Church)",
+            note: "Built round, the story goes, so the devil would have no corners to hide in.",
+          },
+          { kind: "activity", label: "Browse Bowmore's high street - independent shops, not chains" },
+          { kind: "activity", label: "Drinks at the harbour to close out the day" },
+        ],
         transportNote: "Bus to Bowmore, bus back to Port Ellen.",
         overnight: { village: "Port Ellen", lat: 55.630181, lng: -6.187415 },
       },
@@ -175,14 +189,6 @@ export const CLASSIC_JOURNEYS: ClassicJourney[] = [
         ],
         afternoon: [{ kind: "distillery", distillerySlug: "ardbeg", needsBooking: true }],
         overnight: { village: "Port Ellen", lat: 55.630181, lng: -6.187415 },
-      },
-      {
-        dayNumber: 6,
-        narrative:
-          "Ferry back to Kennacraig from Port Askaig this morning - no tours today, just the crossing, and six days of distilleries to let settle in on the way home.",
-        morning: [{ kind: "activity", label: "Ferry from Port Askaig back to Kennacraig" }],
-        afternoon: [],
-        overnight: null,
       },
     ],
   },
