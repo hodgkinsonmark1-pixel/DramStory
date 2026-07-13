@@ -35,6 +35,15 @@ export interface ClassicJourney {
    *  specifically (not a generic "no booking yet" disclaimer, which
    *  stays separate and applies to every journey regardless). */
   accommodationNote?: string;
+  /** Path under /public for a hero image on the journey detail page.
+   *  Optional - journeys without one keep the plain navy header. */
+  heroImage?: string;
+  /** Required whenever heroImage is set and sourced from a third party
+   *  (e.g. Geograph/Wikimedia Commons under CC BY-SA) - photographer
+   *  name and a link back to the original, rendered as a small credit
+   *  line over the image. Not legally optional once a CC-licensed photo
+   *  is in use; leave heroImage unset rather than ship without this. */
+  heroImageCredit?: { text: string; url: string };
 }
 
 /** A single stop within a day - either a distillery visit or a
@@ -105,6 +114,14 @@ export const CLASSIC_JOURNEYS: ClassicJourney[] = [
       "ardbeg", "port-ellen",
     ],
     live: true,
+    heroImage: "/images/journeys/islay-grand-tour-hero.jpg",
+    // TODO before this counts as launch-ready: this photo is CC BY-SA
+    // (Geograph, "Heatherhouse from the Bunnahabhain road" by an
+    // uncredited photographer as far as Claude's tools could confirm -
+    // Mark to pull the real photographer name + Geograph page URL from
+    // the source page and fill in heroImageCredit below). Do not treat
+    // as launch-ready without it - CC BY-SA requires attribution.
+    // heroImageCredit: { text: "Photo: [Name] / Geograph, CC BY-SA 2.0", url: "https://www.geograph.org.uk/photo/2435646" },
     // Adapted from a real 2026 trip. Mainland travel days on either end
     // (drive to/from the ferry) deliberately excluded - this starts on
     // arrival at Port Askaig and ends on departure from there, per the

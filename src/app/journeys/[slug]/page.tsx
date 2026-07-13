@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getDistilleries, getLocalFeatures } from "@/lib/data";
 import { CLASSIC_JOURNEYS } from "@/lib/journeys-data";
@@ -92,15 +93,45 @@ export default async function JourneyDetailPage({
         </Link>
       </div>
 
-      <div style={{ background: "var(--navy)", color: "white", padding: "56px 24px", textAlign: "center" }}>
-        <div style={{ color: "var(--amber-light)", fontSize: 13, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>
-          {journey.tagline}
+      {journey.heroImage ? (
+        <div className="journey-hero">
+          <Image
+            className="journey-hero-img"
+            src={journey.heroImage}
+            alt={journey.name}
+            fill
+            priority
+            style={{ objectFit: "cover" }}
+          />
+          <div className="journey-hero-overlay" />
+          <div className="journey-hero-content">
+            <div style={{ color: "var(--amber-light)", fontSize: 13, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>
+              {journey.tagline}
+            </div>
+            <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(32px,5vw,52px)", fontWeight: 300, marginBottom: 16, color: "white" }}>
+              {journey.name}
+            </h1>
+            <p style={{ maxWidth: 560, margin: "0 auto", opacity: 0.9, lineHeight: 1.7, color: "white" }}>{journey.description}</p>
+          </div>
+          {journey.heroImageCredit && (
+            <div className="journey-hero-credit">
+              <a href={journey.heroImageCredit.url} target="_blank" rel="noopener noreferrer">
+                {journey.heroImageCredit.text}
+              </a>
+            </div>
+          )}
         </div>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(32px,5vw,52px)", fontWeight: 300, marginBottom: 16 }}>
-          {journey.name}
-        </h1>
-        <p style={{ maxWidth: 560, margin: "0 auto", opacity: 0.85, lineHeight: 1.7 }}>{journey.description}</p>
-      </div>
+      ) : (
+        <div style={{ background: "var(--navy)", color: "white", padding: "56px 24px", textAlign: "center" }}>
+          <div style={{ color: "var(--amber-light)", fontSize: 13, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>
+            {journey.tagline}
+          </div>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(32px,5vw,52px)", fontWeight: 300, marginBottom: 16 }}>
+            {journey.name}
+          </h1>
+          <p style={{ maxWidth: 560, margin: "0 auto", opacity: 0.85, lineHeight: 1.7 }}>{journey.description}</p>
+        </div>
+      )}
 
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "48px 24px" }}>
         {journey.gettingThereNote && (
