@@ -407,10 +407,11 @@ export default function Workspace({
           </Link>
 
           {timing !== "today" && (
-            <div className="header-date-control">
+            <div className="header-date-control" id="onboard-header-dates">
               <div className="event-mode-toggle">
                 <button
                   className={"event-mode-btn" + (trip.tripDates.mode === "range" ? " active" : "")}
+                  data-date-mode-btn="range"
                   onClick={() => trip.setDateMode("range")}
                 >
                   Dates

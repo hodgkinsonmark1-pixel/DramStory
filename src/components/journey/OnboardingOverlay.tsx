@@ -18,7 +18,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 //   the dot points at one specific button within it)
 // ─────────────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = "dramstory_onboarding_seen_v4";
+const STORAGE_KEY = "dramstory_onboarding_seen_v5";
 const BOWMORE_SELECTOR = '[data-distillery-slug="bowmore"]';
 const PIN_SPOTLIGHT_DIAMETER = 110;
 const RECT_PADDING = 8;
@@ -87,6 +87,13 @@ const STEPS: Step[] = [
     cutout: { id: "onboard-toolbar-row", shape: "rect" },
     dot: { selector: '[data-category-id="distilleries"]' },
     advanceOn: { selector: '[data-category-id="distilleries"]' },
+  },
+  {
+    icon: "📅",
+    text: "Select your travel dates",
+    cutout: { id: "onboard-header-dates", shape: "rect" },
+    dot: { selector: '[data-date-mode-btn="range"]' },
+    advanceOn: { selector: '[data-date-mode-btn="range"]' },
   },
 ];
 
