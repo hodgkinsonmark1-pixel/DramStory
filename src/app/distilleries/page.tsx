@@ -16,19 +16,6 @@ export default async function DistilleriesIndexPage() {
       </div>
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px" }}>
-        <div
-          style={{
-            fontFamily: "var(--font-body)",
-            fontSize: 11,
-            fontWeight: 600,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: "var(--green-deep)",
-            marginBottom: 12,
-          }}
-        >
-          Islay · {distilleries.length} Distilleries
-        </div>
         <h1
           style={{
             fontFamily: "var(--font-display)",
