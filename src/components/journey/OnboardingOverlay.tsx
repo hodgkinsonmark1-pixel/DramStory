@@ -19,7 +19,7 @@ import type { TripTiming } from "@/lib/types";
 //   the dot points at one specific button within it)
 // ─────────────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = "dramstory_onboarding_seen_v5";
+const STORAGE_KEY = "dramstory_onboarding_seen_v6";
 const BOWMORE_SELECTOR = '[data-distillery-slug="bowmore"]';
 const PIN_SPOTLIGHT_DIAMETER = 110;
 const RECT_PADDING = 8;
@@ -74,6 +74,12 @@ const BASE_STEPS: Step[] = [
     text: "Compare distilleries anytime from the menu",
     cutout: { id: "onboard-nav-distilleries", shape: "rect" },
     advanceOn: { id: "onboard-nav-distilleries" },
+  },
+  {
+    icon: "🌊",
+    text: "Click here to explore natural and local features",
+    cutout: { id: "onboard-nav-local-features", shape: "rect" },
+    advanceOn: { id: "onboard-nav-local-features" },
   },
   {
     icon: "🌿",
