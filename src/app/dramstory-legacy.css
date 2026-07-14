@@ -276,6 +276,8 @@ html,body{min-height:100%;font-family:var(--font-body);background:var(--off-whit
 .dist-inline-link{color:var(--copper);text-decoration:underline;text-underline-offset:2px}
 .dist-inline-link:hover{color:var(--green-deep)}
 .dist-website-link{display:block;margin-top:14px;padding-top:14px;border-top:1px solid var(--stone);font-size:13px;font-weight:500;color:var(--copper);text-decoration:none}
+.weather-inline-link{color:var(--copper);font-weight:700;text-decoration:underline;text-underline-offset:2px}
+.weather-inline-link:hover{color:var(--peat)}
 .dist-website-link:hover{color:var(--green-deep);text-decoration:underline}
 .dist-gallery-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
 .dist-gallery-img{position:relative;aspect-ratio:4/3;border-radius:var(--radius-sm);overflow:hidden;background:var(--stone);border:none;padding:0;cursor:pointer;display:block;width:100%}

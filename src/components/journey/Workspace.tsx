@@ -885,8 +885,13 @@ export default function Workspace({
                   {timing === "today" ? (
                     <>
                       Check a live forecast before you head out —{" "}
-                      <a href="https://www.metoffice.gov.uk" target="_blank" rel="noreferrer">
-                        Met Office
+                      <a
+                        className="weather-inline-link"
+                        href="https://weather.metoffice.gov.uk/forecast/gcgt0ynnb"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Met Office forecast for Bowmore, Islay ↗
                       </a>
                       .
                     </>
@@ -925,8 +930,13 @@ export default function Workspace({
               {timing === "today" ? (
                 <>
                   Today on Islay — check a live forecast before you head out (
-                  <a href="https://www.metoffice.gov.uk" target="_blank" rel="noreferrer">
-                    Met Office
+                  <a
+                    className="weather-inline-link"
+                    href="https://weather.metoffice.gov.uk/forecast/gcgt0ynnb"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Met Office ↗
                   </a>
                   ).
                 </>
