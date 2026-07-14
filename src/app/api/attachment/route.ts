@@ -43,15 +43,23 @@ export async function GET(req: NextRequest) {
   }
 
   const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${table}/${record}?returnFieldsByFieldId=true`;
+  const fetchOpts = { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } };
 
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` },
-    // Short-lived cache on our side - Airtable's signed URLs are typically
-    // valid for a couple of hours, so re-resolving every 30 min keeps us
-    // comfortably inside that window without hitting the Airtable API on
-    // every single image load.
-    next: { revalidate: 1800 },
-  });
+  // Short-lived cache on our side - Airtable's signed URLs are typically
+  // valid for a couple of hours, so re-resolving every 30 min keeps us
+  // comfortably inside that window without hitting the Airtable API on
+  // every single image load.
+  let res = await fetch(url, { ...fetchOpts, next: { revalidate: 1800 } });
+
+  // A transient Airtable hiccup (rate limit, timeout) on the FIRST call to
+  // resolve a given attachment gets cached by the line above just like a
+  // success would be - so without this, one bad moment could serve a
+  // broken image for up to 30 minutes to everyone, not just the one
+  // unlucky request. Retry once with caching bypassed entirely so a
+  // transient failure never gets stuck in the cache.
+  if (!res.ok) {
+    res = await fetch(url, { ...fetchOpts, cache: "no-store" });
+  }
 
   if (!res.ok) {
     return new Response(`Airtable lookup failed: ${res.status}`, { status: 502 });
