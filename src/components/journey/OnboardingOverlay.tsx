@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import type { TripTiming } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────
 // A real spotlight walkthrough, not a modal: the page behind it darkens
@@ -53,7 +54,7 @@ interface Step {
   advanceOn?: DotTarget;
 }
 
-const STEPS: Step[] = [
+const BASE_STEPS: Step[] = [
   {
     icon: "🥃",
     text: "Tap a distillery to see details",
@@ -88,14 +89,18 @@ const STEPS: Step[] = [
     dot: { selector: '[data-category-id="distilleries"]' },
     advanceOn: { selector: '[data-category-id="distilleries"]' },
   },
-  {
-    icon: "📅",
-    text: "Select your travel dates",
-    cutout: { id: "onboard-header-dates", shape: "rect" },
-    dot: { selector: '[data-date-mode-btn="range"]' },
-    advanceOn: { selector: '[data-date-mode-btn="range"]' },
-  },
 ];
+
+// Skipped for "today" visitors - there's no date control to point at
+// (the header shows a static "📅 Today" badge instead), and picking
+// travel dates isn't a relevant action for someone visiting today anyway.
+const DATES_STEP: Step = {
+  icon: "📅",
+  text: "Select your travel dates",
+  cutout: { id: "onboard-header-dates", shape: "rect" },
+  dot: { selector: '[data-date-mode-btn="range"]' },
+  advanceOn: { selector: '[data-date-mode-btn="range"]' },
+};
 
 function subscribe(): () => void {
   return () => {};
@@ -132,7 +137,8 @@ function unionRect(a: Rect, b: Rect): Rect {
   return { left, top, width: right - left, height: bottom - top };
 }
 
-export default function OnboardingOverlay() {
+export default function OnboardingOverlay({ timing }: { timing: TripTiming }) {
+  const STEPS = useMemo(() => (timing === "today" ? BASE_STEPS : [...BASE_STEPS, DATES_STEP]), [timing]);
   const [step, setStep] = useState(0);
   const [dismissed, setDismissed] = useState(false);
   const [cutoutRect, setCutoutRect] = useState<Rect | null>(null);
@@ -251,7 +257,7 @@ export default function OnboardingOverlay() {
     }
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
-  }, [active, step, currentStep]);
+  }, [active, step, currentStep, STEPS.length]);
 
   if (!active) return null;
 

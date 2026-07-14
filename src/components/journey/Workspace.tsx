@@ -397,7 +397,7 @@ export default function Workspace({
 
   return (
     <>
-    <OnboardingOverlay />
+    <OnboardingOverlay timing={timing} />
     <div className="workspace-root">
       <div className="map-page-header">
         <div className="map-page-header-left">
