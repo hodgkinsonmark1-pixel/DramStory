@@ -40,6 +40,15 @@ interface JourneyFlowProps {
 
 type Step = "location" | "interests" | "workspace";
 
+// Q3 ("what matters most to your trip?") is skipped on desktop - the
+// walkthrough already demonstrates that every one of these categories is
+// just a toggle button on the map itself, so pre-selecting them upfront on
+// a wide screen where toggling costs nothing is just extra friction before
+// the actual product. Kept for tablet/mobile for now, where a cluttered
+// first impression of the map matters more - revisit properly as part of
+// the dedicated mobile design review.
+const DESKTOP_BREAKPOINT = 1024;
+
 /** Tiny wrapper so use() (which suspends) is isolated to just this
  *  component - only the workspace step ever waits on Local Features/Events. */
 function WorkspaceWithFeatures(props: {
@@ -69,6 +78,9 @@ function WorkspaceWithFeatures(props: {
  * Orchestrates the intake: Q1 (When, already happened on the homepage
  * Hero) -> Q2 (Where) -> Q3 (What matters) -> workspace (map + itinerary).
  * `timing` arrives here as the ?mode= query param from the homepage.
+ *
+ * Q3 is skipped on desktop as of July 2026 - see DESKTOP_BREAKPOINT above
+ * for the reasoning. Still shown on tablet/mobile widths for now.
  *
  * There used to be a "How long will your adventure last?" step (Step 3 of
  * 4) between Q2 and Q3 - removed (July 2026) since trip length no longer
@@ -122,7 +134,16 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
         onBack={() => router.push("/")}
         onNext={(answer) => {
           setLocation(answer);
-          setStep("interests");
+          if (typeof window !== "undefined" && window.innerWidth >= DESKTOP_BREAKPOINT) {
+            // Desktop: skip Q3, default to just Distilleries active (same
+            // fallback already used for the "today" flow elsewhere).
+            const defaultInterests: InterestCategoryId[] = ["distilleries"];
+            setInterests(defaultInterests);
+            trip.completeIntake({ timing, location: answer, interests: defaultInterests });
+            setStep("workspace");
+          } else {
+            setStep("interests");
+          }
         }}
       />
     );
