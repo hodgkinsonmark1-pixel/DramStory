@@ -57,10 +57,10 @@ export default function Hero() {
         <h1 className={"hero-tagline" + (tagVis ? " visible" : "")}>
           Where <em>whisky adventures</em>
           <br />
-          are crafted
+          begin
         </h1>
         <p className={"hero-question" + (qVis ? " visible" : "")}>
-          When does your dram story begin?
+          Where are you in your story?
         </p>
         <div className={"hero-options" + (optVis ? " visible" : "")}>
           {options.map((o) => (
