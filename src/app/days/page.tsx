@@ -19,6 +19,8 @@ import Footer from "@/components/Footer";
  * decisions (e.g. gamification).
  */
 
+import HubDayMap, { type HubDayMapStop } from "@/components/journeys/HubDayMap";
+
 type DummyDay = {
   id: string;
   name: string;
@@ -29,10 +31,12 @@ type DummyDay = {
   durationPortEllen: string;
   durationBowmore: string;
   cost: string;
-  /** True for the one real, Airtable-sourced Day (Bowmore) used to check
-   *  the template against actual reviewed content. Everything else on
-   *  this page is still placeholder. */
+  /** True once a Day's content is real/reviewed rather than placeholder. */
   isReal?: boolean;
+  /** Real map stops (distilleries + any linked Local Features) for Days
+   *  that have them. Absent for any Day still without a real map. */
+  mapDistilleries?: HubDayMapStop[];
+  mapFeatures?: HubDayMapStop[];
 };
 
 /** Renders plain text containing [label](/path) markdown-style links as
@@ -80,6 +84,8 @@ const DUMMY_DAYS: DummyDay[] = [
     durationBowmore: "≈5.5 hrs",
     cost: "£22.50pp — Classic Ardbeg Tour",
     isReal: true,
+    mapDistilleries: [{ name: "Ardbeg", slug: "ardbeg", lat: 55.6411, lng: -6.1609 }],
+    mapFeatures: [{ name: "The Old Kiln Cafe", slug: "old-kiln-cafe-ardbeg", lat: 55.6403983, lng: -6.108545 }],
   },
   {
     id: "bowmore-day",
@@ -93,6 +99,11 @@ const DUMMY_DAYS: DummyDay[] = [
     durationBowmore: "≈4.5 hrs",
     cost: "£100pp — Essence of Islay Tasting with Seafood Selection",
     isReal: true,
+    mapDistilleries: [{ name: "Bowmore", slug: "bowmore", lat: 55.7557, lng: -6.2875 }],
+    mapFeatures: [
+      { name: "Mactaggart Leisure Centre", slug: "mactaggart-leisure-centre", lat: 55.756234, lng: -6.290194 },
+      { name: "Round Church of Bowmore", slug: "round-church-bowmore", lat: 55.7551, lng: -6.2864 },
+    ],
   },
   {
     id: "three-distilleries-one-road",
@@ -106,6 +117,11 @@ const DUMMY_DAYS: DummyDay[] = [
     durationBowmore: "≈5.5 hrs",
     cost: "£56pp — Flavour Journey, Spirit of Ardnahoe, Production Tour",
     isReal: true,
+    mapDistilleries: [
+      { name: "Caol Ila", slug: "caol_ila", lat: 55.8544, lng: -6.1092 },
+      { name: "Ardnahoe", slug: "ardnahoe", lat: 55.8697, lng: -6.1189 },
+      { name: "Bunnahabhain", slug: "bunnahabhain", lat: 55.8831, lng: -6.1258 },
+    ],
   },
 ];
 
@@ -150,23 +166,31 @@ function DayCard({ day }: { day: DummyDay }) {
       }}
     >
       <div style={{ display: "flex", flexWrap: "wrap" }}>
-        {/* Map placeholder */}
+        {/* Map: real for Days with map data, placeholder otherwise */}
         <div
           style={{
             width: 280,
             minWidth: 220,
             flexShrink: 0,
-            background:
-              "repeating-linear-gradient(45deg, var(--stone), var(--stone) 10px, var(--off-white) 10px, var(--off-white) 20px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
             minHeight: 200,
+            ...(day.mapDistilleries
+              ? {}
+              : {
+                  background:
+                    "repeating-linear-gradient(45deg, var(--stone), var(--stone) 10px, var(--off-white) 10px, var(--off-white) 20px)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }),
           }}
         >
-          <span style={{ fontSize: 12, color: "var(--slate)", fontWeight: 500 }}>
-            [ Map placeholder ]
-          </span>
+          {day.mapDistilleries ? (
+            <HubDayMap distilleries={day.mapDistilleries} featureStops={day.mapFeatures} />
+          ) : (
+            <span style={{ fontSize: 12, color: "var(--slate)", fontWeight: 500 }}>
+              [ Map placeholder ]
+            </span>
+          )}
         </div>
 
         <div style={{ flex: 1, minWidth: 280, padding: "24px 28px" }}>
