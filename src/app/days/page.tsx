@@ -225,21 +225,6 @@ function DayCard({ day }: { day: DummyDay }) {
           >
             {day.isReal ? renderWithLinks(day.narrative) : day.narrative}
           </p>
-          {day.isReal && (
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 600,
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-                color: "var(--green-deep)",
-                marginTop: -12,
-                marginBottom: 18,
-              }}
-            >
-              Real, reviewed content — everything else on this page is still placeholder
-            </div>
-          )}
 
           <div
             style={{
@@ -330,18 +315,6 @@ export default function PreDesignedDaysHubPage() {
           padding: "56px 24px 24px",
         }}
       >
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 600,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: "var(--green-deep)",
-            marginBottom: 12,
-          }}
-        >
-          Layout draft — 3 of ~15 Days reviewed and confirmed
-        </div>
         <h1
           style={{
             fontFamily: "var(--font-display)",
@@ -356,7 +329,7 @@ export default function PreDesignedDaysHubPage() {
         </h1>
         <p style={{ fontSize: 15, color: "var(--peat)", maxWidth: 620, marginBottom: 20 }}>
           A ready-made day, built around the distilleries you want to see. Add it straight to
-          your trip, then rearrange or edit anything, just as if you&apos;d built it yourself.
+          your trip, then make it yours — keep what you love, swap out what you don&apos;t.
         </p>
 
         <p
