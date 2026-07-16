@@ -6,14 +6,17 @@ import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 
 /**
- * PRE-DESIGNED DAYS HUB — LAYOUT PASS, DUMMY CONTENT ONLY
+ * PRE-DESIGNED DAYS HUB — LAYOUT TEMPLATE, 3 REAL DAYS SO FAR
  * ---------------------------------------------------------------
- * This page is a template/layout review. Every distillery name,
- * narrative, cost, duration, and tour is placeholder text — none
- * of it is sourced or real. Nothing here reads from Airtable yet.
- * Do not link this route from live navigation until the real
- * Days content lands. See docs/deferred-features.md for related
- * parked decisions (e.g. gamification).
+ * All three Days currently on this page (Bowmore Unhurried, Three
+ * Distilleries One Road, Ardbeg on Foot) are real, sourced, and have
+ * been through the draft → review → second-pass process, matching
+ * their Airtable records (Status: Draft). This is still a layout
+ * template exercise, not the final data-driven page - the remaining
+ * ~12-13 Days will be added the same way before this reads from
+ * Airtable directly and goes live. Do not link this route from live
+ * navigation yet. See docs/deferred-features.md for related parked
+ * decisions (e.g. gamification).
  */
 
 type DummyDay = {
@@ -66,16 +69,17 @@ const DUMMY_DISTILLERIES = [
 
 const DUMMY_DAYS: DummyDay[] = [
   {
-    id: "ardbeg-solo",
-    name: "Ardbeg, Slowly",
+    id: "ardbeg-on-foot",
+    name: "Ardbeg, on Foot",
     type: "Solo",
     distilleries: ["Ardbeg"],
     narrative:
-      "[Placeholder narrative — one whole-day paragraph. Mood, the coast road down to the distillery, what the light does out here in the afternoon, no re-listing of distillery facts already on its own page.]",
+      "Ardbeg rewards the walk. Take the coast road out from Port Ellen with the sea on one side, and stop at [The Old Kiln Cafe](/explore/old-kiln-cafe-ardbeg) along the way — right on the distillery's own pier, looking straight out at the Atlantic. At [Ardbeg](/distilleries/ardbeg) itself, the Classic Ardbeg Tour takes you from malting through to the stills, with a guided tasting of three core-range drams as you go — book ahead, this one fills up. Afterwards, there's nowhere to be. Sit out on the pier, let the peat smoke settle in, and watch the Atlantic do its thing for as long as you've got left in the day.",
     pacing: "Relaxed",
-    durationPortEllen: "≈4.5 hrs",
+    durationPortEllen: "≈3.5 hrs",
     durationBowmore: "≈5.5 hrs",
-    cost: "£15pp — placeholder tour",
+    cost: "£22.50pp — Classic Ardbeg Tour",
+    isReal: true,
   },
   {
     id: "bowmore-day",
@@ -91,16 +95,17 @@ const DUMMY_DAYS: DummyDay[] = [
     isReal: true,
   },
   {
-    id: "kildalton-triangle",
-    name: "The Kildalton Triangle",
+    id: "three-distilleries-one-road",
+    name: "Three Distilleries, One Road",
     type: "Multi",
-    distilleries: ["Bunnahabhain", "Ardnahoe", "Caol Ila"],
+    distilleries: ["Caol Ila", "Ardnahoe", "Bunnahabhain"],
     narrative:
-      "[Placeholder narrative — one paragraph covering the whole day: the drive between three neighbouring distilleries, old guard vs new arrival contrast, pacing between stops.]",
+      "Heading along the coast from Port Askaig, today you'll take in three very different distilleries — largest, newest, and most traditional. First is [Caol Ila](/distilleries/caol_ila), the largest of the three, for the Flavour Journey tour, with perhaps the most beautiful distillery views over the Sound of Islay to the Paps of Jura. Next is [Ardnahoe](/distilleries/ardnahoe), the newest distillery on the island, for the quick Spirit of Ardnahoe tour, finishing with two drams and a glass to keep. Last is [Bunnahabhain](/distilleries/bunnahabhain), the most traditional and remote of the three, and the island's one great unpeated outlier while every other distillery here chases peat smoke — fifty minutes through the malt mill, mash tun, washbacks and stills, ending with two drams from the core range. Three distilleries, three characters, one road, incredible scenery. A busy and amazing day.",
     pacing: "Packed",
-    durationPortEllen: "≈7 hrs",
-    durationBowmore: "≈8 hrs",
-    cost: "£45pp — placeholder tours",
+    durationPortEllen: "≈6.5 hrs",
+    durationBowmore: "≈5.5 hrs",
+    cost: "£56pp — Flavour Journey, Spirit of Ardnahoe, Production Tour",
+    isReal: true,
   },
 ];
 
@@ -335,7 +340,7 @@ export default function PreDesignedDaysHubPage() {
             marginBottom: 12,
           }}
         >
-          Layout draft — placeholder content
+          Layout draft — 3 of ~15 Days reviewed and confirmed
         </div>
         <h1
           style={{
