@@ -231,22 +231,21 @@ function DayCard({ day }: { day: DummyDay }) {
             <button
               style={{
                 marginLeft: "auto",
-                padding: "12px 28px",
-                background: "var(--green-deep)",
-                color: "white",
-                border: "none",
-                borderRadius: 100,
+                padding: "9px 18px",
+                background: "white",
+                color: "var(--copper)",
+                border: "1px solid var(--copper)",
+                borderRadius: "var(--radius-sm)",
                 fontFamily: "var(--font-body)",
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: 500,
                 cursor: "pointer",
-                letterSpacing: "0.02em",
                 whiteSpace: "nowrap",
               }}
               disabled
               title="Placeholder — not wired to TripContext yet"
             >
-              Add this day to my trip
+              + Add this day to my trip
             </button>
           </div>
         </div>
