@@ -82,7 +82,7 @@ const DUMMY_DAYS: DummyDay[] = [
     pacing: "Relaxed",
     durationPortEllen: "≈3.5 hrs",
     durationBowmore: "≈5.5 hrs",
-    cost: "£22.50pp — Classic Ardbeg Tour",
+    cost: "£22.50pp",
     isReal: true,
     mapDistilleries: [{ name: "Ardbeg", slug: "ardbeg", lat: 55.6411, lng: -6.1609 }],
     mapFeatures: [{ name: "The Old Kiln Cafe", slug: "old-kiln-cafe-ardbeg", lat: 55.6403983, lng: -6.108545 }],
@@ -97,7 +97,7 @@ const DUMMY_DAYS: DummyDay[] = [
     pacing: "Relaxed",
     durationPortEllen: "≈5.5 hrs",
     durationBowmore: "≈4.5 hrs",
-    cost: "£100pp — Essence of Islay Tasting with Seafood Selection",
+    cost: "£100pp",
     isReal: true,
     mapDistilleries: [{ name: "Bowmore", slug: "bowmore", lat: 55.7557, lng: -6.2875 }],
     mapFeatures: [
@@ -115,7 +115,7 @@ const DUMMY_DAYS: DummyDay[] = [
     pacing: "Packed",
     durationPortEllen: "≈6.5 hrs",
     durationBowmore: "≈5.5 hrs",
-    cost: "£56pp — Flavour Journey, Spirit of Ardnahoe, Production Tour",
+    cost: "£56pp",
     isReal: true,
     mapDistilleries: [
       { name: "Caol Ila", slug: "caol_ila", lat: 55.8544, lng: -6.1092 },
@@ -275,7 +275,7 @@ function DayCard({ day }: { day: DummyDay }) {
             </div>
             <div>
               <div style={{ fontSize: 11, color: "var(--slate)", marginBottom: 2 }}>
-                Indicative cost
+                Indicative distillery cost
               </div>
               <div style={{ fontWeight: 600, color: "var(--copper)" }}>{day.cost}</div>
             </div>
