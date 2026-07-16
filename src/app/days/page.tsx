@@ -26,7 +26,29 @@ type DummyDay = {
   durationPortEllen: string;
   durationBowmore: string;
   cost: string;
+  /** True for the one real, Airtable-sourced Day (Bowmore) used to check
+   *  the template against actual reviewed content. Everything else on
+   *  this page is still placeholder. */
+  isReal?: boolean;
 };
+
+/** Renders plain text containing [label](/path) markdown-style links as
+ *  real internal <Link>s - same helper used on Distillery/Explore pages,
+ *  reused here so real Day narratives render identically once this goes
+ *  live. */
+function renderWithLinks(text: string) {
+  const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g);
+  return parts.map((part, i) => {
+    const match = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+    if (!match) return part;
+    const [, label, href] = match;
+    return (
+      <Link href={href} key={i} className="dist-inline-link">
+        {label}
+      </Link>
+    );
+  });
+}
 
 const DUMMY_DISTILLERIES = [
   "Ardbeg",
@@ -56,16 +78,17 @@ const DUMMY_DAYS: DummyDay[] = [
     cost: "£15pp — placeholder tour",
   },
   {
-    id: "bowmore-solo",
-    name: "Bowmore, the Old Way",
+    id: "bowmore-day",
+    name: "Bowmore, Unhurried",
     type: "Solo",
     distilleries: ["Bowmore"],
     narrative:
-      "[Placeholder narrative — whole-day feel for a single distillery visit, written in the round rather than stop-by-stop.]",
+      "Give the whole day to Bowmore — there's no need to rush. Start at [MacTaggart Leisure Centre](/explore/mactaggart-leisure-centre), Islay's only pool, warmed by heat piped over from the distillery next door. Cross the road to [Bowmore](/distilleries/bowmore) itself for the Essence of Islay Tasting — ninety unhurried minutes through four of the distillery's more exclusive expressions, talked through by someone who can explain exactly why they taste the way they do, before it moves along the harbour to the Harbour Inn's private bar for a plate of local seafood alongside the last of the drams. It's a proper sit-down, not a rush between stops — book ahead. Once you're back on your feet, step into [Round Church of Bowmore](/explore/round-church-bowmore), built round, so the story goes, so the devil would have nowhere to hide, then finish with a wander down the high street's independent shops before the light goes, and see in the evening at the local pub that most takes your eye.",
     pacing: "Relaxed",
-    durationPortEllen: "≈5 hrs",
-    durationBowmore: "≈3 hrs",
-    cost: "£15pp — placeholder tour",
+    durationPortEllen: "≈5.5 hrs",
+    durationBowmore: "≈4.5 hrs",
+    cost: "£100pp — Essence of Islay Tasting with Seafood Selection",
+    isReal: true,
   },
   {
     id: "kildalton-triangle",
@@ -195,8 +218,23 @@ function DayCard({ day }: { day: DummyDay }) {
               maxWidth: 560,
             }}
           >
-            {day.narrative}
+            {day.isReal ? renderWithLinks(day.narrative) : day.narrative}
           </p>
+          {day.isReal && (
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 600,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                color: "var(--green-deep)",
+                marginTop: -12,
+                marginBottom: 18,
+              }}
+            >
+              Real, reviewed content — everything else on this page is still placeholder
+            </div>
+          )}
 
           <div
             style={{
@@ -311,9 +349,27 @@ export default function PreDesignedDaysHubPage() {
         >
           Pre-Designed <em style={{ fontStyle: "italic", color: "var(--amber)" }}>Days</em>
         </h1>
-        <p style={{ fontSize: 15, color: "var(--peat)", maxWidth: 620, marginBottom: 32 }}>
+        <p style={{ fontSize: 15, color: "var(--peat)", maxWidth: 620, marginBottom: 20 }}>
           A ready-made day, built around the distilleries you want to see. Add it straight to
           your trip, then rearrange or edit anything, just as if you&apos;d built it yourself.
+        </p>
+
+        <p
+          style={{
+            fontSize: 13,
+            lineHeight: 1.6,
+            color: "var(--slate)",
+            maxWidth: 620,
+            marginBottom: 32,
+            paddingLeft: 14,
+            borderLeft: "2px solid var(--stone)",
+          }}
+        >
+          <strong style={{ color: "var(--peat)" }}>These are inspiration, not bookings.</strong>{" "}
+          Tours, prices, and availability shown here reflect what&apos;s confirmed at time of
+          writing, but distilleries change opening days, tour formats, and pricing throughout
+          the year. Always check the distillery&apos;s own website for your actual travel dates
+          before building a day around a specific tour.
         </p>
 
         {/* Distillery dropdown */}
