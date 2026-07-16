@@ -202,8 +202,9 @@ function DayCard({ day }: { day: DummyDay }) {
             style={{
               display: "flex",
               flexWrap: "wrap",
+              alignItems: "center",
               gap: "20px 32px",
-              marginBottom: 20,
+              marginBottom: 4,
               fontSize: 13,
               color: "var(--peat)",
             }}
@@ -226,26 +227,28 @@ function DayCard({ day }: { day: DummyDay }) {
               </div>
               <div style={{ fontWeight: 600, color: "var(--copper)" }}>{day.cost}</div>
             </div>
-          </div>
 
-          <button
-            style={{
-              padding: "12px 28px",
-              background: "var(--green-deep)",
-              color: "white",
-              border: "none",
-              borderRadius: 100,
-              fontFamily: "var(--font-body)",
-              fontSize: 14,
-              fontWeight: 500,
-              cursor: "pointer",
-              letterSpacing: "0.02em",
-            }}
-            disabled
-            title="Placeholder — not wired to TripContext yet"
-          >
-            Add this day to my trip
-          </button>
+            <button
+              style={{
+                marginLeft: "auto",
+                padding: "12px 28px",
+                background: "var(--green-deep)",
+                color: "white",
+                border: "none",
+                borderRadius: 100,
+                fontFamily: "var(--font-body)",
+                fontSize: 14,
+                fontWeight: 500,
+                cursor: "pointer",
+                letterSpacing: "0.02em",
+                whiteSpace: "nowrap",
+              }}
+              disabled
+              title="Placeholder — not wired to TripContext yet"
+            >
+              Add this day to my trip
+            </button>
+          </div>
         </div>
       </div>
     </div>
