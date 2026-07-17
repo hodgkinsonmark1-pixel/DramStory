@@ -226,6 +226,9 @@ function PacingTag({ pacing }: { pacing: DummyDay["pacing"] }) {
 }
 
 function DayCard({ day }: { day: DummyDay }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = day.narrative.length > 380;
+
   return (
     <div
       style={{
@@ -316,12 +319,38 @@ function DayCard({ day }: { day: DummyDay }) {
               fontSize: 14,
               lineHeight: 1.65,
               color: "var(--peat)",
-              marginBottom: 18,
+              marginBottom: isLong ? 6 : 18,
               maxWidth: 560,
+              ...(isLong && !expanded
+                ? {
+                    display: "-webkit-box",
+                    WebkitLineClamp: 4,
+                    WebkitBoxOrient: "vertical" as const,
+                    overflow: "hidden",
+                  }
+                : {}),
             }}
           >
             {day.isReal ? renderWithLinks(day.narrative) : day.narrative}
           </p>
+          {isLong && (
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              style={{
+                background: "none",
+                border: "none",
+                padding: 0,
+                marginBottom: 18,
+                fontSize: 13,
+                fontWeight: 600,
+                color: "var(--copper)",
+                cursor: "pointer",
+                fontFamily: "var(--font-body)",
+              }}
+            >
+              {expanded ? "See less" : "See more"}
+            </button>
+          )}
 
           <div
             style={{
