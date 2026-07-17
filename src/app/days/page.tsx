@@ -6,17 +6,19 @@ import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 
 /**
- * PRE-DESIGNED DAYS HUB — LAYOUT TEMPLATE, 4 REAL DAYS SO FAR
+ * PRE-DESIGNED DAYS HUB — LAYOUT TEMPLATE, 7 REAL DAYS SO FAR
  * ---------------------------------------------------------------
- * All four Days currently on this page (Bowmore Unhurried, Three
- * Distilleries One Road, Ardbeg on Foot, Lagavulin Unhurried) are real,
- * sourced, and have been through the draft → review → second-pass
- * process, matching their Airtable records (Status: Draft). This is
- * still a layout template exercise, not the final data-driven page -
- * the remaining ~11-12 Days will be added the same way before this
- * reads from Airtable directly and goes live. Do not link this route
- * from live navigation yet. See docs/deferred-features.md for related
- * parked decisions (e.g. gamification).
+ * All seven Days currently on this page (Bowmore Unhurried, Three
+ * Distilleries One Road, Ardbeg on Foot, Lagavulin Unhurried, Farm to
+ * Bottle Rhinns Peninsula, Bruichladdich by the Loch, Kilchoman and
+ * Machir Bay) are real, sourced, and have been through the draft →
+ * review → second-pass process, matching their Airtable records
+ * (Status: Draft). This is still a layout template exercise, not the
+ * final data-driven page - the remaining ~8-9 Days will be added the
+ * same way before this reads from Airtable directly and goes live. Do
+ * not link this route from live navigation yet. See
+ * docs/deferred-features.md for related parked decisions (e.g.
+ * gamification).
  */
 
 import HubDayMap, { type HubDayMapStop } from "@/components/journeys/HubDayMap";
@@ -140,6 +142,59 @@ const DUMMY_DAYS: DummyDay[] = [
       { name: "Dunyveg Castle", slug: "dunyvaig-castle-ruins", lat: 55.6336, lng: -6.1231 },
       { name: "Lagavulin Bay", slug: "lagavulin-bay", lat: 55.6345, lng: -6.1245 },
     ],
+  },
+  {
+    id: "farm-to-bottle-rhinns",
+    name: "Farm to Bottle, Rhinns Peninsula",
+    type: "Multi",
+    distilleries: ["Bruichladdich", "Kilchoman"],
+    narrative:
+      "Today sees two special tours as you head out west. Be sure to pack your camera for the incredible scenery and views. Start at [Bruichladdich](/distilleries/bruichladdich) in Port Charlotte for the Guided Distillery Tour — ninety minutes through a working Victorian distillery with no computers anywhere in the process, tasting across all three single malts, from unpeated Bruichladdich through to super-peated Octomore. Make time for a leisurely lunch in the rear garden of the [Port Charlotte Hotel](/explore/port-charlotte-hotel) — a stunning view awaits. From there it's on to [Kilchoman](/distilleries/kilchoman), the most westerly distillery in Scotland and the only one on the island growing, malting and distilling its own barley — the Roving Tour goes deeper into the process for an hour and a half, finishing with a special dram in the warehouse. Pack a picnic and finish the day at [Machir Bay Beach](/explore/machir-bay), right by the distillery, and stay for a breathtaking sunset.",
+    pacing: "Moderate",
+    durationPortEllen: "≈7.5 hrs",
+    durationBowmore: "≈4.5 hrs",
+    cost: "£55pp",
+    isReal: true,
+    mapDistilleries: [
+      { name: "Bruichladdich", slug: "bruichladdich", lat: 55.7638, lng: -6.3605 },
+      { name: "Kilchoman", slug: "kilchoman", lat: 55.7919, lng: -6.4419 },
+    ],
+    mapFeatures: [
+      { name: "Port Charlotte Hotel", slug: "port-charlotte-hotel", lat: 55.74021, lng: -6.378353 },
+      { name: "Machir Bay Beach", slug: "machir-bay", lat: 55.78333, lng: -6.46667 },
+    ],
+  },
+  {
+    id: "bruichladdich-by-the-loch",
+    name: "Bruichladdich, by the Loch",
+    type: "Solo",
+    distilleries: ["Bruichladdich"],
+    narrative:
+      "Port Charlotte wasn't built for tourists — it was built for whisky. Today is a day to lose yourself in local history. Walter Frederick Campbell founded the village in 1828, naming it after his mother, to house the workers of the Lochindaal Distillery next door. That distillery ran for exactly a century before falling silent in 1929; its old buildings still stand, now home to the youth hostel and the Islay Natural History Trust. [Bruichladdich](/distilleries/bruichladdich), two miles up the road, is where that same tradition carries on — the Guided Distillery Tour spends ninety minutes in a working Victorian distillery with no computers anywhere in the process, tasting your way from unpeated Bruichladdich through to super-peated Octomore. Afterwards, walk down to the old stone pier, where locals have fished for mackerel and watched for dolphins for generations, or lose an hour in the [Museum of Islay Life](/explore/museum-of-islay-life), housed in a former church just up from the shore. Loch Indaal does the rest — sit with a view over the water and let the day slow right down.",
+    pacing: "Relaxed",
+    durationPortEllen: "≈4 hrs",
+    durationBowmore: "≈2.5 hrs",
+    cost: "£25pp",
+    isReal: true,
+    mapDistilleries: [{ name: "Bruichladdich", slug: "bruichladdich", lat: 55.7638, lng: -6.3605 }],
+    mapFeatures: [
+      { name: "Museum of Islay Life", slug: "museum-of-islay-life", lat: 55.7424, lng: -6.3857 },
+    ],
+  },
+  {
+    id: "kilchoman-machir-bay",
+    name: "Kilchoman and Machir Bay",
+    type: "Solo",
+    distilleries: ["Kilchoman"],
+    narrative:
+      "Kilchoman is the most westerly distillery in Scotland, and the only one on the island growing, malting and distilling its own barley on its own farm — genuinely Islay in a glass, start to finish. The Roving Tour goes deep into that process for an hour and a half, finishing with a special dram in the warehouse. Afterwards, walk out to [Machir Bay Beach](/explore/machir-bay) on the island. An area of incredible beauty, and incredible power. Here you immediately feel at one with nature. Two miles of white sand that's swallowed more ships than almost anywhere on the island, including the wreck of the Patti, still half-buried in the sand at low tide. Locals don't swim here; the currents run too strong to risk it. Stand on that sand and it's not hard to go back a hundred years, to October 1918, when HMS Otranto went down offshore in a storm with hundreds of men aboard — so close to home, so close to the war finally ending. Kilchoman even named one of its own whiskies after this beach. Let the rest of the day be whatever the tide and the weather allow.",
+    pacing: "Relaxed",
+    durationPortEllen: "≈4.5 hrs",
+    durationBowmore: "≈3 hrs",
+    cost: "£30pp",
+    isReal: true,
+    mapDistilleries: [{ name: "Kilchoman", slug: "kilchoman", lat: 55.7919, lng: -6.4419 }],
+    mapFeatures: [{ name: "Machir Bay Beach", slug: "machir-bay", lat: 55.78333, lng: -6.46667 }],
   },
 ];
 
