@@ -137,8 +137,8 @@ const DUMMY_DAYS: DummyDay[] = [
     isReal: true,
     mapDistilleries: [{ name: "Lagavulin", slug: "lagavulin", lat: 55.6357, lng: -6.1269 }],
     mapFeatures: [
-      { name: "Dunyveg Castle", slug: "dunyvaig-castle-ruins", lat: 55.6337, lng: -6.1287 },
-      { name: "Lagavulin Bay", slug: "lagavulin-bay", lat: 55.633, lng: -6.127 },
+      { name: "Dunyveg Castle", slug: "dunyvaig-castle-ruins", lat: 55.6336, lng: -6.1231 },
+      { name: "Lagavulin Bay", slug: "lagavulin-bay", lat: 55.6345, lng: -6.1245 },
     ],
   },
 ];
