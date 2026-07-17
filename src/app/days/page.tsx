@@ -6,17 +6,17 @@ import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 
 /**
- * PRE-DESIGNED DAYS HUB — LAYOUT TEMPLATE, 3 REAL DAYS SO FAR
+ * PRE-DESIGNED DAYS HUB — LAYOUT TEMPLATE, 4 REAL DAYS SO FAR
  * ---------------------------------------------------------------
- * All three Days currently on this page (Bowmore Unhurried, Three
- * Distilleries One Road, Ardbeg on Foot) are real, sourced, and have
- * been through the draft → review → second-pass process, matching
- * their Airtable records (Status: Draft). This is still a layout
- * template exercise, not the final data-driven page - the remaining
- * ~12-13 Days will be added the same way before this reads from
- * Airtable directly and goes live. Do not link this route from live
- * navigation yet. See docs/deferred-features.md for related parked
- * decisions (e.g. gamification).
+ * All four Days currently on this page (Bowmore Unhurried, Three
+ * Distilleries One Road, Ardbeg on Foot, Lagavulin Unhurried) are real,
+ * sourced, and have been through the draft → review → second-pass
+ * process, matching their Airtable records (Status: Draft). This is
+ * still a layout template exercise, not the final data-driven page -
+ * the remaining ~11-12 Days will be added the same way before this
+ * reads from Airtable directly and goes live. Do not link this route
+ * from live navigation yet. See docs/deferred-features.md for related
+ * parked decisions (e.g. gamification).
  */
 
 import HubDayMap, { type HubDayMapStop } from "@/components/journeys/HubDayMap";
@@ -121,6 +121,24 @@ const DUMMY_DAYS: DummyDay[] = [
       { name: "Caol Ila", slug: "caol_ila", lat: 55.8544, lng: -6.1092 },
       { name: "Ardnahoe", slug: "ardnahoe", lat: 55.8697, lng: -6.1189 },
       { name: "Bunnahabhain", slug: "bunnahabhain", lat: 55.8831, lng: -6.1258 },
+    ],
+  },
+  {
+    id: "lagavulin-unhurried",
+    name: "Lagavulin, Unhurried",
+    type: "Solo",
+    distilleries: ["Lagavulin"],
+    narrative:
+      "Lagavulin sits on its own bay, near the ruins of [Dunyveg Castle](/explore/dunyvaig-castle-ruins), on Islay's south coast. Allow yourself time to enjoy the beautiful 2 mile stroll from Port Ellen, appreciate the coast on one side and Islay's peat-rich hills on the other. Relax, today nothing is rushed, including the tour. The Distillery Exclusive Experience at [Lagavulin](/distilleries/lagavulin) runs a full two hours, built for people who actually want to sit with it — through the production areas and the iconic Still House, then settling into the Mackie Lounge for four Lagavulin bottlings, a single cask sample, and a taste of the spirit before it's even whisky yet. You leave having hand-filled your own bottle from that cask — a genuine one-off, nothing you can buy again. Arrive fifteen minutes early, and know this one's for adults only. Sit by [Lagavulin Bay](/explore/lagavulin-bay) afterwards and let it all settle before heading back.",
+    pacing: "Relaxed",
+    durationPortEllen: "≈4 hrs",
+    durationBowmore: "≈6 hrs",
+    cost: "£130pp",
+    isReal: true,
+    mapDistilleries: [{ name: "Lagavulin", slug: "lagavulin", lat: 55.6357, lng: -6.1269 }],
+    mapFeatures: [
+      { name: "Dunyveg Castle", slug: "dunyvaig-castle-ruins", lat: 55.6337, lng: -6.1287 },
+      { name: "Lagavulin Bay", slug: "lagavulin-bay", lat: 55.6357, lng: -6.1269 },
     ],
   },
 ];
