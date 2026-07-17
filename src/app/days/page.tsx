@@ -39,6 +39,9 @@ type DummyDay = {
    *  that have them. Absent for any Day still without a real map. */
   mapDistilleries?: HubDayMapStop[];
   mapFeatures?: HubDayMapStop[];
+  /** For Solo Days: the distillery's own hero image, used as the card
+   *  visual instead of the map. Absent = falls back to map/placeholder. */
+  heroImageUrl?: string;
 };
 
 /** Renders plain text containing [label](/path) markdown-style links as
@@ -86,6 +89,7 @@ const DUMMY_DAYS: DummyDay[] = [
     durationBowmore: "≈5.5 hrs",
     cost: "£22.50pp",
     isReal: true,
+    heroImageUrl: "/api/attachment?t=tblSPRTIf1sFK3UDL&r=reclGZQjVcuXzMLUs&f=fldbYJ8xNSPCLwG0h&i=0",
     mapDistilleries: [{ name: "Ardbeg", slug: "ardbeg", lat: 55.6411, lng: -6.1609 }],
     mapFeatures: [{ name: "The Old Kiln Cafe", slug: "old-kiln-cafe-ardbeg", lat: 55.6403983, lng: -6.108545 }],
   },
@@ -101,6 +105,7 @@ const DUMMY_DAYS: DummyDay[] = [
     durationBowmore: "≈4.5 hrs",
     cost: "£100pp",
     isReal: true,
+    heroImageUrl: "/api/attachment?t=tblSPRTIf1sFK3UDL&r=recddt65hbDkOeCOs&f=fldbYJ8xNSPCLwG0h&i=0",
     mapDistilleries: [{ name: "Bowmore", slug: "bowmore", lat: 55.7557, lng: -6.2875 }],
     mapFeatures: [
       { name: "Mactaggart Leisure Centre", slug: "mactaggart-leisure-centre", lat: 55.756234, lng: -6.290194 },
@@ -137,6 +142,7 @@ const DUMMY_DAYS: DummyDay[] = [
     durationBowmore: "≈6 hrs",
     cost: "£130pp",
     isReal: true,
+    heroImageUrl: "/api/attachment?t=tblSPRTIf1sFK3UDL&r=recx0ZErm7bEBkj22&f=fldbYJ8xNSPCLwG0h&i=0",
     mapDistilleries: [{ name: "Lagavulin", slug: "lagavulin", lat: 55.6357, lng: -6.1269 }],
     mapFeatures: [
       { name: "Dunyveg Castle", slug: "dunyvaig-castle-ruins", lat: 55.6336, lng: -6.1231 },
@@ -176,6 +182,7 @@ const DUMMY_DAYS: DummyDay[] = [
     durationBowmore: "≈2.5 hrs",
     cost: "£25pp",
     isReal: true,
+    heroImageUrl: "/api/attachment?t=tblSPRTIf1sFK3UDL&r=recJH8arRpmDVxGyF&f=fldbYJ8xNSPCLwG0h&i=0",
     mapDistilleries: [{ name: "Bruichladdich", slug: "bruichladdich", lat: 55.7638, lng: -6.3605 }],
     mapFeatures: [
       { name: "Museum of Islay Life", slug: "museum-of-islay-life", lat: 55.7424, lng: -6.3857 },
@@ -193,6 +200,7 @@ const DUMMY_DAYS: DummyDay[] = [
     durationBowmore: "≈3 hrs",
     cost: "£30pp",
     isReal: true,
+    heroImageUrl: "/api/attachment?t=tblSPRTIf1sFK3UDL&r=recU2G0zFAF44YGWO&f=fldbYJ8xNSPCLwG0h&i=0",
     mapDistilleries: [{ name: "Kilchoman", slug: "kilchoman", lat: 55.7919, lng: -6.4419 }],
     mapFeatures: [{ name: "Machir Bay Beach", slug: "machir-bay", lat: 55.78333, lng: -6.46667 }],
   },
@@ -242,14 +250,16 @@ function DayCard({ day }: { day: DummyDay }) {
       }}
     >
       <div style={{ display: "flex", flexWrap: "wrap" }}>
-        {/* Map: real for Days with map data, placeholder otherwise */}
+        {/* Visual: hero image for Solo Days that have one, else real map, else placeholder */}
         <div
           style={{
             width: 280,
             minWidth: 220,
             flexShrink: 0,
             minHeight: 200,
-            ...(day.mapDistilleries
+            position: "relative",
+            overflow: "hidden",
+            ...(day.heroImageUrl || day.mapDistilleries
               ? {}
               : {
                   background:
@@ -260,7 +270,14 @@ function DayCard({ day }: { day: DummyDay }) {
                 }),
           }}
         >
-          {day.mapDistilleries ? (
+          {day.heroImageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={day.heroImageUrl}
+              alt={day.distilleries[0] ?? day.name}
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            />
+          ) : day.mapDistilleries ? (
             <HubDayMap distilleries={day.mapDistilleries} featureStops={day.mapFeatures} />
           ) : (
             <span style={{ fontSize: 12, color: "var(--slate)", fontWeight: 500 }}>
