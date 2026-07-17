@@ -42,6 +42,10 @@ type DummyDay = {
   /** For Solo Days: the distillery's own hero image, used as the card
    *  visual instead of the map. Absent = falls back to map/placeholder. */
   heroImageUrl?: string;
+  /** For Multi Days with 2 distilleries: both hero images shown as a
+   *  side-by-side split, instead of a map. Takes priority over
+   *  mapDistilleries/mapFeatures when present. */
+  heroImageUrls?: string[];
 };
 
 /** Renders plain text containing [label](/path) markdown-style links as
@@ -161,6 +165,10 @@ const DUMMY_DAYS: DummyDay[] = [
     durationBowmore: "≈4.5 hrs",
     cost: "£55pp",
     isReal: true,
+    heroImageUrls: [
+      "/api/attachment?t=tblSPRTIf1sFK3UDL&r=recJH8arRpmDVxGyF&f=fldbYJ8xNSPCLwG0h&i=0",
+      "/api/attachment?t=tblSPRTIf1sFK3UDL&r=recU2G0zFAF44YGWO&f=fldbYJ8xNSPCLwG0h&i=0",
+    ],
     mapDistilleries: [
       { name: "Bruichladdich", slug: "bruichladdich", lat: 55.7638, lng: -6.3605 },
       { name: "Kilchoman", slug: "kilchoman", lat: 55.7919, lng: -6.4419 },
@@ -250,7 +258,8 @@ function DayCard({ day }: { day: DummyDay }) {
       }}
     >
       <div style={{ display: "flex", flexWrap: "wrap" }}>
-        {/* Visual: hero image for Solo Days that have one, else real map, else placeholder */}
+        {/* Visual: split hero images for 2-stop Multi Days, single hero for
+            Solo Days, else real map, else placeholder */}
         <div
           style={{
             width: 280,
@@ -259,7 +268,8 @@ function DayCard({ day }: { day: DummyDay }) {
             minHeight: 200,
             position: "relative",
             overflow: "hidden",
-            ...(day.heroImageUrl || day.mapDistilleries
+            display: day.heroImageUrls ? "flex" : undefined,
+            ...(day.heroImageUrl || day.heroImageUrls || day.mapDistilleries
               ? {}
               : {
                   background:
@@ -270,7 +280,17 @@ function DayCard({ day }: { day: DummyDay }) {
                 }),
           }}
         >
-          {day.heroImageUrl ? (
+          {day.heroImageUrls ? (
+            day.heroImageUrls.map((url, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={url}
+                src={url}
+                alt={day.distilleries[i] ?? day.name}
+                style={{ width: "50%", height: "100%", objectFit: "cover", display: "block" }}
+              />
+            ))
+          ) : day.heroImageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={day.heroImageUrl}
