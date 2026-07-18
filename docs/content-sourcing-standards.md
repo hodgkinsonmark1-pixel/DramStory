@@ -23,6 +23,10 @@ During the initial content build (July 2026), two real problems surfaced from re
 - Every `Tours` record's `Source` field should name the specific official page it was confirmed against, not just "confirmed via research."
 - If a distillery's own site indicates tours are paused, reduced, or unavailable, that overrides any other source, however recent-looking.
 
+### Pending: full tour audit direct from Mark
+
+**Noted 18 July 2026.** Once all Hub Day content is drafted and under review, Mark will provide tour details for **all** tours at **all** distilleries directly, sourced by him from each distillery's own site. This supersedes any tour data Claude has independently researched/sourced up to that point where the two conflict - Mark's direct-from-distillery figures are the higher-confidence source, not a second opinion to weigh against existing Airtable records. When that audit happens, treat existing `Tours` records as provisional and expect corrections, not just additions - as already happened once with Laphroaig, where a freshly-provided "Laphroaig Experience" (£22, 1.5hrs) turned out to differ significantly in name, price, and duration from the previously-researched "Grain to Glass Experience" record (£60, 2-2.5hrs) still on file. Both records currently exist; the older one should be reviewed for staleness when the audit happens, not treated as still-current in the meantime.
+
 ## Broader content (Description, History, Fun Facts, Whisky Profile)
 
 Official sources are still preferred, but reputable third-party sources (Scotch Whisky Association / Whiskipedia, Wikipedia, established whisky press) remain acceptable here, since this content is less time-sensitive than live tour bookings and benefits from cross-referencing multiple independent sources. The distinction is specifically about **live, bookable, price-bearing operational data** (Tours), where staleness has a direct, visitor-facing consequence.
