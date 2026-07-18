@@ -46,6 +46,21 @@ after a redeploy.
 **Found:** 17 July 2026, while trying to screenshot the live site and a
 Vercel preview branch deployment via Claude's browser automation tooling.
 
+**UPDATE, 17 July 2026 (same day, later investigation):** the original
+theory below - a continuous background script or polling interval in the
+app - has been disproven. Confirmed via direct JS execution in the actual
+page context: `document.readyState` is `"complete"`, zero new entries in
+`performance.getEntriesByType('resource')` over a 3-second window (i.e.
+genuinely no network activity), and disabling the Vercel Toolbar via
+`VERCEL_PREVIEW_FEEDBACK_ENABLED=0` made no difference. The page is
+verifiably idle by every measure available from inside it. The screenshot
+action still fails regardless, including on the homepage (no maps, no
+Hub-specific code at all) - so this is not a DramStory app bug. It looks
+like a limitation in Claude's own browser-automation screenshot tooling
+when working with this deployment, not something fixable from the
+codebase or Vercel project settings. Leaving the original notes below for
+context, but don't spend further time hunting for an app-level cause.
+
 **The behaviour:** Screenshot/script-injection calls against dramstory.com
 and its Vercel preview deployments consistently fail with a script
 injection timeout ("the page is busy or mid-navigation"), even after
