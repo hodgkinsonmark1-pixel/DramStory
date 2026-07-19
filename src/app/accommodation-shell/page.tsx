@@ -23,9 +23,15 @@ import Footer from "@/components/Footer";
  * Not linked from live navigation.
  */
 
-// Easy to flip once Mark decides which platform to lead with, after
-// comparing property range/attractiveness for Islay specifically.
-// Expedia.com itself deliberately excluded (18 July 2026 - "too broad").
+// CONFIRMED 18 July 2026: Hotels.com is the primary supplier. Reasoning:
+// Expedia Group's 7-day cookie window beats Booking.com's session-based
+// attribution (Booking.com only credits a booking completed in the same
+// browser session as the click - unlikely for a whisky trip someone
+// researches over several visits). Commission-wise: 4% hotel / 2%
+// vacation rental via Expedia Group vs. Booking.com's flat 4% on
+// accommodation - worth re-checking whether Hotels.com's 4% actually
+// applies to Islay's mostly-cottage inventory too, or only proper
+// hotels, before assuming the full 4% on every booking.
 const PRIMARY_SUPPLIER: "hotels" | "vrbo" | "booking" = "hotels";
 
 // Real tracking codes go here once available - see conversation of
