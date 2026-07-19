@@ -9,23 +9,33 @@ import Footer from "@/components/Footer";
  * BOOK YOUR STAY — UI SHELL, PLACEHOLDER TRACKING CODES
  * ---------------------------------------------------------------
  * Demo page for the accommodation flow: select location -> select class
- * -> generate tracked deep links to Expedia and Booking.com. Both
- * platforms are now live, approved affiliate accounts (18 July 2026),
- * but this page uses PLACEHOLDER tracking codes (YOUR_MDPCID_HERE,
- * YOUR_AID_HERE) - the generated links are real, working search-results
- * pages, just without commission attribution until the real codes are
- * dropped in below. Swap PRIMARY_SUPPLIER to 'booking' to preview the
- * other ordering. Not linked from live navigation.
+ * -> generate tracked deep links to Hotels.com, Vrbo, and Booking.com.
+ * Expedia.com itself is deliberately excluded (18 July 2026 - "too
+ * broad" as a brand for this audience), even though it's the same
+ * underlying Expedia Group account. All three platforms are live,
+ * approved affiliate accounts, but this page uses PLACEHOLDER tracking
+ * codes (YOUR_MDPCID_HERE, YOUR_AID_HERE, YOUR_CAMREF_HERE) - the
+ * generated links are real, working search-results pages, just without
+ * commission attribution until the real codes are dropped in below.
+ * Note Vrbo uses a different tracking mechanism (Partnerize camref
+ * wrapper) from the other two (simple query params) - see
+ * buildVrboLink. Swap PRIMARY_SUPPLIER to preview a different ordering.
+ * Not linked from live navigation.
  */
 
 // Easy to flip once Mark decides which platform to lead with, after
 // comparing property range/attractiveness for Islay specifically.
-const PRIMARY_SUPPLIER: "expedia" | "booking" = "expedia";
+// Expedia.com itself deliberately excluded (18 July 2026 - "too broad").
+const PRIMARY_SUPPLIER: "hotels" | "vrbo" | "booking" = "hotels";
 
 // Real tracking codes go here once available - see conversation of
 // 18 July 2026. Links work without them, just earn no commission yet.
-const EXPEDIA_MDPCID = "YOUR_MDPCID_HERE";
+const HOTELS_MDPCID = "YOUR_MDPCID_HERE";
 const BOOKING_AID = "YOUR_AID_HERE";
+// Vrbo uses a different mechanism (Partnerize), not a simple query param -
+// this is your camref, found in your Partnerize/Vrbo dashboard, not the
+// same code as HOTELS_MDPCID above.
+const VRBO_CAMREF = "YOUR_CAMREF_HERE";
 
 const LOCATIONS = [
   "Bowmore",
@@ -49,7 +59,7 @@ function addNights(dateIso: string, nights: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-function buildExpediaLink(location: string, checkin: string, checkout: string): string {
+function buildHotelsLink(location: string, checkin: string, checkout: string): string {
   const params = new URLSearchParams({
     SearchType: "Destination",
     CityName: `${location}, Islay, Scotland`,
@@ -57,9 +67,20 @@ function buildExpediaLink(location: string, checkin: string, checkout: string): 
     EndDate: checkout,
     NumRoom: "1",
     NumAdult1: "2",
-    mdpcid: EXPEDIA_MDPCID,
+    mdpcid: HOTELS_MDPCID,
   });
-  return `https://www.expedia.co.uk/go/hotel/search/Destination?${params.toString()}`;
+  return `https://www.hotels.com/go/hotel/search/Destination?${params.toString()}`;
+}
+
+function buildVrboLink(location: string, checkin: string, checkout: string): string {
+  // Vrbo/Partnerize rule: the destination URL must be unaltered - no extra
+  // query params appended beyond what Vrbo's own search page needs, and
+  // the tracking prefix wraps the whole thing rather than being a query
+  // param within it.
+  const destination = `https://www.vrbo.com/search?destination=${encodeURIComponent(
+    `${location}, Islay, Scotland`
+  )}&startDate=${checkin}&endDate=${checkout}&adults=2`;
+  return `https://prf.hn/click/camref:${VRBO_CAMREF}/destination:${destination}`;
 }
 
 function buildBookingLink(location: string, checkin: string, checkout: string): string {
@@ -84,13 +105,19 @@ export default function AccommodationShellPage() {
   const checkin = addNights(today, 14);
   const checkout = addNights(today, 17);
 
-  const expediaLink = buildExpediaLink(location, checkin, checkout);
+  const hotelsLink = buildHotelsLink(location, checkin, checkout);
   const bookingLink = buildBookingLink(location, checkin, checkout);
+  const vrboLink = buildVrboLink(location, checkin, checkout);
 
-  const primaryLink = PRIMARY_SUPPLIER === "expedia" ? expediaLink : bookingLink;
-  const secondaryLink = PRIMARY_SUPPLIER === "expedia" ? bookingLink : expediaLink;
-  const primaryName = PRIMARY_SUPPLIER === "expedia" ? "Expedia" : "Booking.com";
-  const secondaryName = PRIMARY_SUPPLIER === "expedia" ? "Booking.com" : "Expedia";
+  const suppliers = {
+    hotels: { name: "Hotels.com", link: hotelsLink },
+    booking: { name: "Booking.com", link: bookingLink },
+    vrbo: { name: "Vrbo", link: vrboLink },
+  } as const;
+  const primary = suppliers[PRIMARY_SUPPLIER];
+  const secondaries = (Object.keys(suppliers) as (keyof typeof suppliers)[])
+    .filter((k) => k !== PRIMARY_SUPPLIER)
+    .map((k) => suppliers[k]);
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--off-white)" }}>
@@ -133,7 +160,7 @@ export default function AccommodationShellPage() {
           Book Your <em style={{ fontStyle: "italic", color: "var(--amber)" }}>Stay</em>
         </h1>
         <p style={{ fontSize: 15, color: "var(--peat)", marginBottom: 40 }}>
-          Find somewhere to stay near your trip, through Expedia or Booking.com.
+          Find somewhere to stay near your trip, through Hotels.com, Vrbo, or Booking.com.
         </p>
 
         {/* Step 1: location */}
@@ -215,9 +242,9 @@ export default function AccommodationShellPage() {
             ))}
           </div>
           <p style={{ fontSize: 12, color: "var(--slate)", marginTop: 10, maxWidth: 480 }}>
-            This sets your expectations going in - neither Expedia nor Booking.com&apos;s
-            simple search links can guarantee a hard star-rating filter, so you&apos;ll still
-            narrow down by class once you land on their results.
+            This sets your expectations going in - none of Hotels.com, Vrbo, or
+            Booking.com&apos;s simple search links can guarantee a hard star-rating filter, so
+            you&apos;ll still narrow down by class once you land on their results.
           </p>
         </div>
 
@@ -257,7 +284,7 @@ export default function AccommodationShellPage() {
             </div>
 
             <a
-              href={primaryLink}
+              href={primary.link}
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -272,25 +299,28 @@ export default function AccommodationShellPage() {
                 textDecoration: "none",
               }}
             >
-              Search on {primaryName} &rarr;
+              Search on {primary.name} &rarr;
             </a>
 
-            <a
-              href={secondaryLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "block",
-                textAlign: "center",
-                padding: "10px 20px",
-                color: "var(--copper)",
-                fontSize: 13,
-                fontWeight: 500,
-                textDecoration: "underline",
-              }}
-            >
-              Or search on {secondaryName} instead
-            </a>
+            {secondaries.map((s) => (
+              <a
+                key={s.name}
+                href={s.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "block",
+                  textAlign: "center",
+                  padding: "10px 20px",
+                  color: "var(--copper)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  textDecoration: "underline",
+                }}
+              >
+                Or search on {s.name} instead
+              </a>
+            ))}
           </div>
         )}
       </div>
