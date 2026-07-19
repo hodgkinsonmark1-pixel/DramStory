@@ -44,7 +44,7 @@ interface MapCanvasProps {
 // Rough center of Scotland, used when a region has no pins yet so the map
 // doesn't default to (0,0) in the Atlantic.
 const SCOTLAND_CENTER: [number, number] = [56.8, -4.2];
-const ISLAY_CENTER: [number, number] = [55.75, -6.2];
+const ISLAY_CENTER: [number, number] = [55.63, -6.188]; // Port Ellen - the standard default location, per 18 July 2026 conversation (was a generic island-center point, roughly at Bowmore)
 
 // Distinct color per Natural Feature category, so pins read at a glance
 // without needing to open a popup - kept apart from the navy distillery
