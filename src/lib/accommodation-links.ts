@@ -48,7 +48,8 @@ export function buildAccommodationBookingLink(location: string, tripDates?: Trip
   // working hotels.com URL (19 July 2026 conversation) - chkin/chkout/
   // destination - rather than Expedia's generic /go/ deeplink redirector
   // format (StartDate/EndDate), which didn't appear to carry dates
-  // through correctly in practice.
+  // through correctly in practice. Search-results-page param names not
+  // yet independently confirmed - see HONEST CAVEAT above.
   const params = new URLSearchParams({
     destination: `${location}, Islay, Scotland`,
     chkin: checkin,
@@ -57,4 +58,27 @@ export function buildAccommodationBookingLink(location: string, tripDates?: Trip
     mdpcid: HOTELS_MDPCID,
   });
   return `https://uk.hotels.com/Hotel-Search?${params.toString()}`;
+}
+
+/**
+ * Booking.com - secondary supplier, deliberately smaller/less prominent
+ * than Hotels.com in the UI (19 July 2026: "clearly as a 2nd option...
+ * not on equal booking"). Session-based attribution, not a multi-day
+ * cookie - see business-plan.md, Pillar 5, for the reasoning behind
+ * Hotels.com being primary instead.
+ */
+const BOOKING_AID = "YOUR_AID_HERE";
+
+export function buildBookingComLink(location: string, tripDates?: TripDates): string {
+  const { checkin, checkout } = resolveCheckinCheckout(tripDates);
+  const params = new URLSearchParams({
+    aid: BOOKING_AID,
+    ss: `${location}, Islay, Scotland`,
+    checkin,
+    checkout,
+    group_adults: "2",
+    no_rooms: "1",
+    selected_currency: "GBP",
+  });
+  return `https://www.booking.com/searchresults.html?${params.toString()}`;
 }

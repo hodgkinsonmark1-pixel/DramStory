@@ -10,7 +10,7 @@ import { getMonthClimate, MONTH_NAMES } from "@/lib/islay-climate";
 import { estimatedDriveMinutes, formatDuration } from "@/lib/drive-time";
 import { useRouteSegments } from "@/lib/use-route-segments";
 import { useTrip } from "@/lib/trip-context";
-import { buildAccommodationBookingLink } from "@/lib/accommodation-links";
+import { buildAccommodationBookingLink, buildBookingComLink } from "@/lib/accommodation-links";
 import { stopCoords, stopId, stopName, stopVisitMinutes, incrementVisitMinutes } from "@/lib/itinerary-stop";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
@@ -753,6 +753,19 @@ export default function Workspace({
                         style={{ background: "var(--green-deep)", color: "white", fontWeight: 600 }}
                       >
                         Book Now
+                      </a>
+                      <a
+                        href={buildBookingComLink(accommodation?.name ?? "Port Ellen", trip.tripDates)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          fontSize: 12,
+                          color: "var(--slate)",
+                          textDecoration: "underline",
+                          marginLeft: 4,
+                        }}
+                      >
+                        or try Booking.com
                       </a>
                     </>
                   ) : (
