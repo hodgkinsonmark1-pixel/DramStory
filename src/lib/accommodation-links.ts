@@ -6,15 +6,16 @@ import type { TripDates } from "@/lib/types";
  * 2% vacation rental, 7-day cookie via the Expedia Group Travel Creator
  * Program). Link works without it, just earns no commission yet.
  *
- * HONEST CAVEAT (19 July 2026): appending mdpcid directly onto this
- * hotels.com/Hotel-Search URL (rather than via Expedia's documented
- * /go/ deeplink redirector) hasn't been independently verified to
- * actually track commission - it may simply be ignored as an unknown
- * param. The destination/date fix below is confirmed correct (matches
- * a real, working hotels.com URL Mark shared), but the *tracking*
- * mechanism on this exact URL shape is unconfirmed. Worth testing with
- * the real mdpcid once available, or checking with Expedia Group
- * support whether tracking survives on this URL format specifically.
+ * HONEST CAVEAT (19 July 2026): the destination/date parameters below
+ * are now confirmed correct - taken directly from a real, working
+ * hotels.com SEARCH-RESULTS page URL Mark shared (not inferred from
+ * docs, and not the property-page params an earlier version of this
+ * function wrongly assumed also applied to search). What's still
+ * unverified is whether mdpcid tracking survives being appended onto
+ * this URL shape, since it wasn't part of Mark's organic example (no
+ * affiliate link was involved when he generated it). Worth testing
+ * with the real mdpcid once available, or checking with Expedia Group
+ * support whether tracking works on this exact URL format.
  *
  * This mirrors the fuller three-supplier version built on the
  * accommodation-shell branch (Hotels.com/Vrbo/Booking.com, primary +
@@ -42,19 +43,36 @@ function resolveCheckinCheckout(tripDates?: TripDates): { checkin: string; check
   return { checkin: addDays(today, 14), checkout: addDays(today, 17) };
 }
 
+// Real coordinates for each village, used alongside the text destination -
+// matches the pattern in a real, confirmed hotels.com search URL (19 July
+// 2026), which included both. Same figures used elsewhere on the site
+// (MapCanvas, HubDayMap).
+const VILLAGE_COORDS: Record<string, { lat: number; lng: number }> = {
+  "Port Ellen": { lat: 55.63, lng: -6.188 },
+  Bowmore: { lat: 55.7557, lng: -6.2875 },
+};
+
 export function buildAccommodationBookingLink(location: string, tripDates?: TripDates): string {
   const { checkin, checkout } = resolveCheckinCheckout(tripDates);
-  // Uses the same parameter names confirmed directly from a real,
-  // working hotels.com URL (19 July 2026 conversation) - chkin/chkout/
-  // destination - rather than Expedia's generic /go/ deeplink redirector
-  // format (StartDate/EndDate), which didn't appear to carry dates
-  // through correctly in practice. Search-results-page param names not
-  // yet independently confirmed - see HONEST CAVEAT above.
+  // Parameter names confirmed 19 July 2026 from a real, working
+  // hotels.com SEARCH-RESULTS page URL - genuinely different from the
+  // PROPERTY page's params used in the previous (wrong) version of this
+  // function. Search results use d1/startDate (duplicated) for check-in,
+  // d2/endDate (duplicated) for check-out, and adults/rooms rather than
+  // rm1=a2. regionId is a hotels.com-internal ID we don't have a source
+  // for per village, so it's deliberately omitted - destination (free
+  // text) plus latLong should still resolve correctly without it.
+  const coords = VILLAGE_COORDS[location];
   const params = new URLSearchParams({
     destination: `${location}, Islay, Scotland`,
-    chkin: checkin,
-    chkout: checkout,
-    rm1: "a2", // room 1: 2 adults
+    ...(coords ? { latLong: `${coords.lat},${coords.lng}` } : {}),
+    flexibility: "0_DAY",
+    d1: checkin,
+    startDate: checkin,
+    d2: checkout,
+    endDate: checkout,
+    adults: "2",
+    rooms: "1",
     mdpcid: HOTELS_MDPCID,
   });
   return `https://uk.hotels.com/Hotel-Search?${params.toString()}`;
