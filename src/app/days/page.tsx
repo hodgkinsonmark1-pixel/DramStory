@@ -94,7 +94,7 @@ const DUMMY_DAYS: DummyDay[] = [
     cost: "£22.50pp",
     isReal: true,
     heroImageUrl: "/api/attachment?t=tblSPRTIf1sFK3UDL&r=reclGZQjVcuXzMLUs&f=fldbYJ8xNSPCLwG0h&i=0",
-    mapDistilleries: [{ name: "Ardbeg", slug: "ardbeg", lat: 55.6411, lng: -6.1609 }],
+    mapDistilleries: [{ name: "Ardbeg", slug: "ardbeg", lat: 55.6406, lng: -6.1082 }],
     mapFeatures: [{ name: "The Old Kiln Cafe", slug: "old-kiln-cafe-ardbeg", lat: 55.6403983, lng: -6.108545 }],
   },
   {
