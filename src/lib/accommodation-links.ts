@@ -41,13 +41,13 @@ function resolveCheckinCheckout(tripDates?: TripDates): { checkin: string; check
   }
   if (tripDates?.mode === "month" && tripDates.confirmed && tripDates.month) {
     // "Just this month" doesn't map to one exact date pair, since Hotels.com
-    // needs real dates - defaults to the 10th of that month for 3 nights, a
-    // reasonable placeholder the visitor can still adjust once they land on
-    // the real search results. Better than silently ignoring the month
-    // they actually picked in favour of an unrelated ~2-weeks-from-today
-    // fallback.
-    const checkin = `${tripDates.month}-10`;
-    const checkout = addDays(checkin, 3);
+    // needs real dates - defaults to the 1st-28th of that month (28 used
+    // deliberately so it's always a valid date regardless of the month's
+    // actual length), giving the widest reasonable span rather than a
+    // short representative stay. Still adjustable by the visitor once
+    // they land on the real search results.
+    const checkin = `${tripDates.month}-01`;
+    const checkout = `${tripDates.month}-28`;
     return { checkin, checkout };
   }
   const today = new Date().toISOString().slice(0, 10);
