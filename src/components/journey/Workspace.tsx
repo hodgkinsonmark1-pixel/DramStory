@@ -754,7 +754,8 @@ export default function Workspace({
         <div className="map-area">
           <div className="map-toolbar">
             <div className="map-toolbar-row" id="onboard-toolbar-row">
-              {expandedCategoryData && expandedCategoryData.subcategories.length > 0 ? (
+              {expandedCategoryData &&
+              (expandedCategoryData.subcategories.length > 0 || expandedCategoryData.id === "places-to-stay") ? (
                 <>
                   <button className="filter-btn active" data-category-id="distilleries" onClick={() => toggleCategory("distilleries", true)}>
                     <span>🥃</span> Distilleries
