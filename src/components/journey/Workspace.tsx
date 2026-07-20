@@ -16,6 +16,7 @@ import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MapCanvas from "./MapCanvas";
 import AccommodationControl from "./AccommodationControl";
+import DateRangePicker from "./DateRangePicker";
 import TripEssentials from "./TripEssentials";
 import OnboardingOverlay from "./OnboardingOverlay";
 
@@ -425,37 +426,11 @@ export default function Workspace({
                 </button>
               </div>
               {trip.tripDates.mode === "range" ? (
-                <>
-                  <input
-                    type="date"
-                    className="event-date-input"
-                    value={trip.tripDates.startDate}
-                    onClick={(e) => e.currentTarget.showPicker?.()}
-                    onChange={(e) => {
-                      const newStart = e.target.value;
-                      // No previous start yet (still blank on first use) -
-                      // just seed a single-day range rather than computing a
-                      // span from an empty/invalid previous value.
-                      if (!trip.tripDates.startDate) {
-                        trip.setDateRange(newStart, newStart);
-                        return;
-                      }
-                      const span = daysBetween(trip.tripDates.startDate, trip.tripDates.endDate);
-                      const newEnd = span > 14 || span < 0 ? addDays(newStart, 7) : addDays(newStart, span);
-                      trip.setDateRange(newStart, newEnd);
-                    }}
-                  />
-                  <span className="event-date-sep">to</span>
-                  <input
-                    type="date"
-                    className="event-date-input"
-                    value={trip.tripDates.endDate}
-                    min={trip.tripDates.startDate || undefined}
-                    max={trip.tripDates.startDate ? addDays(trip.tripDates.startDate, 14) : undefined}
-                    onClick={(e) => e.currentTarget.showPicker?.()}
-                    onChange={(e) => trip.setDateRange(trip.tripDates.startDate || e.target.value, e.target.value)}
-                  />
-                </>
+                <DateRangePicker
+                  startDate={trip.tripDates.startDate}
+                  endDate={trip.tripDates.endDate}
+                  onChange={(start, end) => trip.setDateRange(start, end)}
+                />
               ) : (
                 <input
                   type="month"
