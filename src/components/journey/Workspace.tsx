@@ -112,6 +112,16 @@ export default function Workspace({
   // flag, so it also self-hides if the mismatch gets fixed later and
   // Save is pressed again.
   const [showDayMismatchNotice, setShowDayMismatchNotice] = useState(false);
+  // Per-stop collapse state, scoped by stopId - a UI preference, not core
+  // trip data, so it's local state rather than persisted via TripContext.
+  const [collapsedStops, setCollapsedStops] = useState<Set<string>>(new Set());
+  const toggleStopCollapsed = (id: string) =>
+    setCollapsedStops((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   const [justSaved, setJustSaved] = useState(false);
 
   // There's no longer a "how long" question (Step 3 removed, July 2026) -
@@ -528,6 +538,27 @@ export default function Workspace({
               <button className="day-nav-add" onClick={trip.addDay}>
                 + Add day
               </button>
+              {activeDay.stops.length > 0 && (
+                <button
+                  className="day-nav-reorder"
+                  onClick={() => {
+                    const allIds = activeDay.stops.map((s) => stopId(s));
+                    const allCollapsed = allIds.every((id) => collapsedStops.has(id));
+                    setCollapsedStops((prev) => {
+                      const next = new Set(prev);
+                      for (const id of allIds) {
+                        if (allCollapsed) next.delete(id);
+                        else next.add(id);
+                      }
+                      return next;
+                    });
+                  }}
+                >
+                  {activeDay.stops.map((s) => stopId(s)).every((id) => collapsedStops.has(id))
+                    ? "Expand all"
+                    : "Collapse all"}
+                </button>
+              )}
               {days.length > 1 && (
                 <button className="day-nav-remove" onClick={() => trip.removeDay(activeDayIndex)}>
                   Remove
@@ -571,82 +602,124 @@ export default function Workspace({
                 </p>
               </div>
             ) : (
-              activeDay.stops.map((stop, i) => (
-                <div key={stopId(stop)}>
-                  <div className="journey-stop">
-                    <div className="stop-number">{i + 1}</div>
-                    <div style={{ flex: 1 }}>
-                      <div className="stop-name">{stopName(stop)}</div>
-                      {stop.kind === "distillery" ? (
-                        <>
-                          <div className="stop-region">{stop.distillery.region}</div>
-                          {stop.tour && (
-                            <>
-                              <div className="stop-tour">🎟 {stop.tour.name}</div>
-                              <div className="stop-cost">£{stop.tour.price} per person</div>
-                            </>
+              activeDay.stops.map((stop, i) => {
+                const id = stopId(stop);
+                const collapsed = collapsedStops.has(id);
+                const tourName = stop.kind === "distillery" ? stop.tour?.name : undefined;
+
+                return (
+                  <div key={id}>
+                    <div className="journey-stop">
+                      <div className="stop-number">{i + 1}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                          <div className="stop-name">{stopName(stop)}</div>
+                          {collapsed && tourName && (
+                            <div className="stop-tour" style={{ fontSize: 13 }}>
+                              🎟 {tourName}
+                            </div>
                           )}
-                        </>
-                      ) : (
-                        <div className="stop-region">
-                          {stop.feature.icon} {stop.feature.category.replace("-", " ")}
                         </div>
-                      )}
-                      <div className="stop-time-row">
-                        <span className="stop-time">~{formatDuration(stopVisitMinutes(stop))} visit</span>
+
+                        {!collapsed && stop.kind === "distillery" && stop.tour && (
+                          <>
+                            <div className="stop-tour">🎟 {stop.tour.name}</div>
+                            <div className="stop-cost">£{stop.tour.price} per person</div>
+                          </>
+                        )}
+                        {!collapsed && stop.kind === "feature" && (
+                          <div className="stop-region">
+                            {stop.feature.icon} {stop.feature.category.replace("-", " ")}
+                          </div>
+                        )}
+
+                        {/* Note - a free-text reminder, editable whether the
+                            stop is collapsed or expanded, since it's exactly
+                            the kind of detail worth seeing at a glance. */}
+                        <input
+                          type="text"
+                          value={stop.note ?? ""}
+                          onChange={(e) => trip.setStopNote(activeDayIndex, id, e.target.value)}
+                          placeholder="Add a note (e.g. tour at 12)"
+                          style={{
+                            display: "block",
+                            width: "100%",
+                            marginTop: 6,
+                            marginBottom: collapsed ? 4 : 0,
+                            padding: "4px 8px",
+                            fontSize: 12,
+                            fontStyle: stop.note ? "normal" : "italic",
+                            color: stop.note ? "var(--dark)" : "var(--slate)",
+                            border: "1px solid var(--stone)",
+                            borderRadius: "var(--radius-sm)",
+                            background: "var(--off-white)",
+                          }}
+                        />
+
+                        {!collapsed && (
+                          <div className="stop-time-row">
+                            <span className="stop-time">~{formatDuration(stopVisitMinutes(stop))} visit</span>
+                            <button
+                              className="stop-time-btn"
+                              onClick={() =>
+                                trip.setStopMinutes(activeDayIndex, id, incrementVisitMinutes(stop, -1))
+                              }
+                              aria-label="Decrease visit time"
+                            >
+                              &minus;
+                            </button>
+                            <button
+                              className="stop-time-btn"
+                              onClick={() => trip.setStopMinutes(activeDayIndex, id, incrementVisitMinutes(stop, 1))}
+                              aria-label="Increase visit time"
+                            >
+                              +
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        className="stop-move-btn"
+                        onClick={() => toggleStopCollapsed(id)}
+                        aria-label={collapsed ? `Expand ${stopName(stop)}` : `Collapse ${stopName(stop)}`}
+                        title={collapsed ? "Expand" : "Collapse"}
+                      >
+                        {collapsed ? "▸" : "▾"}
+                      </button>
+                      <div className="stop-move-col">
                         <button
-                          className="stop-time-btn"
-                          onClick={() =>
-                            trip.setStopMinutes(activeDayIndex, stopId(stop), incrementVisitMinutes(stop, -1))
-                          }
-                          aria-label="Decrease visit time"
+                          className="stop-move-btn"
+                          onClick={() => trip.moveStop(activeDayIndex, i, -1)}
+                          disabled={i === 0}
+                          aria-label={`Move ${stopName(stop)} earlier`}
                         >
-                          &minus;
+                          &#8963;
                         </button>
                         <button
-                          className="stop-time-btn"
-                          onClick={() =>
-                            trip.setStopMinutes(activeDayIndex, stopId(stop), incrementVisitMinutes(stop, 1))
-                          }
-                          aria-label="Increase visit time"
+                          className="stop-move-btn"
+                          onClick={() => trip.moveStop(activeDayIndex, i, 1)}
+                          disabled={i === activeDay.stops.length - 1}
+                          aria-label={`Move ${stopName(stop)} later`}
                         >
-                          +
+                          &#8964;
                         </button>
                       </div>
-                    </div>
-                    <div className="stop-move-col">
                       <button
-                        className="stop-move-btn"
-                        onClick={() => trip.moveStop(activeDayIndex, i, -1)}
-                        disabled={i === 0}
-                        aria-label={`Move ${stopName(stop)} earlier`}
+                        className="stop-remove"
+                        onClick={() => trip.removeStop(activeDayIndex, id)}
+                        aria-label={`Remove ${stopName(stop)}`}
                       >
-                        &#8963;
-                      </button>
-                      <button
-                        className="stop-move-btn"
-                        onClick={() => trip.moveStop(activeDayIndex, i, 1)}
-                        disabled={i === activeDay.stops.length - 1}
-                        aria-label={`Move ${stopName(stop)} later`}
-                      >
-                        &#8964;
+                        &times;
                       </button>
                     </div>
-                    <button
-                      className="stop-remove"
-                      onClick={() => trip.removeStop(activeDayIndex, stopId(stop))}
-                      aria-label={`Remove ${stopName(stop)}`}
-                    >
-                      &times;
-                    </button>
+                    {i < activeDay.stops.length - 1 && (
+                      <div className="drive-time-between">
+                        🚗 {formatDuration(driveSegments[i])} drive
+                      </div>
+                    )}
                   </div>
-                  {i < activeDay.stops.length - 1 && (
-                    <div className="drive-time-between">
-                      🚗 {formatDuration(driveSegments[i])} drive
-                    </div>
-                  )}
-                </div>
-              ))
+                );
+              })
             )}
 
             {isFlyingIn && activeDayIndex === days.length - 1 && (

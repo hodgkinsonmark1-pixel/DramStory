@@ -299,6 +299,11 @@ export type ItineraryStop = (
    *  set via the +/- toggle next to the "~X visit" line. Undefined means
    *  "use the default estimate". */
   customMinutes?: number;
+  /** A free-text reminder for this stop (e.g. "tour at 12", "should be
+   *  there for 2") - shown and editable even when the stop is collapsed,
+   *  since it's exactly the kind of detail someone wants at a glance
+   *  while scanning a busy day. Per 19 July 2026 conversation. */
+  note?: string;
 };
 
 /** Where a day's trip starts/ends - a real, verifiable place (a village,
