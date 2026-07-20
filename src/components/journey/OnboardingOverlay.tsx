@@ -52,9 +52,14 @@ interface Step {
   cutout?: CutoutTarget;
   openPopupSlug?: string;
   /** Dispatched once when this step becomes active - lets the step
-   *  perform the real action itself so the visitor sees it done. Not
-   *  reversed on cleanup - the result stays visible afterward. */
+   *  perform the real action itself so the visitor sees it done. */
   autoActionEvent?: string;
+  /** Dispatched when leaving this step - reverses the auto-action (e.g.
+   *  collapsing the stop/summary back down), mirroring how Bowmore's
+   *  popup closes again on cleanup. Per 19 July 2026 feedback: unlike
+   *  the first pass, the result should NOT stay visible into later
+   *  steps. */
+  autoActionReverseEvent?: string;
   advanceOn?: { selector?: string; id?: string };
   boxPosition?: "center" | "right";
 }
@@ -70,6 +75,7 @@ const EXPAND_STOP_STEP: Step = {
   text: "Expand a stop to see the details.",
   cutout: { id: "onboard-first-stop", shape: "rect" },
   autoActionEvent: "onboarding:expand-first-stop",
+  autoActionReverseEvent: "onboarding:collapse-first-stop",
 };
 
 const JOURNEY_TIME_STEP: Step = {
@@ -77,6 +83,7 @@ const JOURNEY_TIME_STEP: Step = {
   text: "See your total journey time.",
   cutout: { id: "onboard-journey-summary-panel", shape: "rect" },
   autoActionEvent: "onboarding:expand-journey-summary",
+  autoActionReverseEvent: "onboarding:collapse-journey-summary",
   advanceOn: { id: "onboard-journey-summary" },
 };
 
@@ -269,6 +276,9 @@ export default function OnboardingOverlay({ timing }: { timing: TripTiming }) {
         window.dispatchEvent(
           new CustomEvent("onboarding:close-distillery-popup", { detail: { slug: currentStep.openPopupSlug } })
         );
+      }
+      if (currentStep.autoActionReverseEvent) {
+        window.dispatchEvent(new CustomEvent(currentStep.autoActionReverseEvent));
       }
     };
   }, [active, currentStep]);

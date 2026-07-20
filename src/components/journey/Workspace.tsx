@@ -225,18 +225,40 @@ export default function Workspace({
         return next;
       });
     }
+    function handleCollapseFirstStop() {
+      const first = activeDay?.stops[0];
+      if (!first) return;
+      const id = stopId(first);
+      setCollapsedStops((prev) => {
+        if (prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      });
+    }
     window.addEventListener("onboarding:expand-first-stop", handleExpandFirstStop);
-    return () => window.removeEventListener("onboarding:expand-first-stop", handleExpandFirstStop);
+    window.addEventListener("onboarding:collapse-first-stop", handleCollapseFirstStop);
+    return () => {
+      window.removeEventListener("onboarding:expand-first-stop", handleExpandFirstStop);
+      window.removeEventListener("onboarding:collapse-first-stop", handleCollapseFirstStop);
+    };
   }, [activeDay]);
   // Same pattern for the "total journey time" walkthrough step - auto-
-  // expands the real summary panel so the visitor sees it done, not
-  // reversed on cleanup (stays expanded afterward).
+  // expands/collapses the real summary panel so the visitor sees it done,
+  // then folds it back once the step is over (19 July 2026 feedback).
   useEffect(() => {
     function handleExpandSummary() {
       setSummaryExpanded(true);
     }
+    function handleCollapseSummary() {
+      setSummaryExpanded(false);
+    }
     window.addEventListener("onboarding:expand-journey-summary", handleExpandSummary);
-    return () => window.removeEventListener("onboarding:expand-journey-summary", handleExpandSummary);
+    window.addEventListener("onboarding:collapse-journey-summary", handleCollapseSummary);
+    return () => {
+      window.removeEventListener("onboarding:expand-journey-summary", handleExpandSummary);
+      window.removeEventListener("onboarding:collapse-journey-summary", handleCollapseSummary);
+    };
   }, []);
   // Distinguishes "the whole trip is empty" (first-time visitor, show the
   // welcoming onboarding message) from "this specific day is empty but
