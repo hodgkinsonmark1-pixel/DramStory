@@ -40,6 +40,10 @@ interface CutoutTarget {
    *  dot itself stays pinned to the original pin position, computed
    *  separately below. */
   includePopupFor?: string;
+  /** Union this target's rect with another element's rect too - e.g.
+   *  the "explore all distilleries and local features" step highlights
+   *  both nav links together, not just one. */
+  alsoInclude?: { selector?: string; id?: string };
 }
 
 interface Step {
@@ -114,7 +118,7 @@ const DISTILLERY_STEP: Step = {
 const LOCAL_FEATURES_HUB_STEP: Step = {
   icon: "🌊",
   text: "Explore all distilleries and local features.",
-  cutout: { id: "onboard-nav-local-features", shape: "rect" },
+  cutout: { id: "onboard-nav-local-features", shape: "rect", alsoInclude: { id: "onboard-nav-distilleries" } },
   advanceOn: { id: "onboard-nav-local-features" },
   boxPosition: "right",
 };
@@ -122,7 +126,7 @@ const LOCAL_FEATURES_HUB_STEP: Step = {
 const LOCAL_FEATURES_OVERLAY_STEP: Step = {
   icon: "🌿",
   text: "...or see them right on the map.",
-  cutout: { selector: '[data-category-id="natural-features"]', shape: "rect" },
+  cutout: { id: "onboard-toolbar-row", shape: "rect" },
   advanceOn: { selector: '[data-category-id="natural-features"]' },
   boxPosition: "right",
 };
@@ -226,6 +230,12 @@ export default function OnboardingOverlay({ timing }: { timing: TripTiming }) {
         }
       } else {
         resolved = toRect(r, RECT_PADDING);
+        if (currentStep.cutout.alsoInclude) {
+          const otherEl = findElement(currentStep.cutout.alsoInclude);
+          if (otherEl) {
+            resolved = unionRect(resolved, toRect(otherEl.getBoundingClientRect(), RECT_PADDING));
+          }
+        }
       }
 
       setHighlightRect(resolved);
