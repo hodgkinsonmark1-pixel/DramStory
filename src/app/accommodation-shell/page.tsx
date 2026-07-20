@@ -8,8 +8,13 @@ import Footer from "@/components/Footer";
 /**
  * BOOK YOUR STAY — UI SHELL, PLACEHOLDER TRACKING CODES
  * ---------------------------------------------------------------
- * Demo page for the accommodation flow: select location -> select class
+ * Demo page for the accommodation flow: select location -> Book Now
  * -> generate tracked deep links to Hotels.com, Vrbo, and Booking.com.
+ * Simplified 19 July 2026 - dropped the Hotels/B&Bs/Self-Catering (then
+ * budget/mid/luxury) selector step entirely; a single "Book Now" is
+ * enough, since none of the three platforms could guarantee a hard
+ * filter on that anyway - the visitor narrows down once they land on
+ * real results regardless.
  * Expedia.com itself is deliberately excluded (18 July 2026 - "too
  * broad" as a brand for this audience), even though it's the same
  * underlying Expedia Group account. All three platforms are live,
@@ -51,12 +56,6 @@ const LOCATIONS = [
   "Bridgend",
   "Bruichladdich",
   "Craighouse, Jura",
-];
-
-const CLASSES: { id: string; label: string; note: string }[] = [
-  { id: "budget", label: "Budget", note: "Simple, comfortable, good value" },
-  { id: "mid", label: "Mid-range", note: "A bit more comfort and character" },
-  { id: "luxury", label: "Luxury", note: "The best rooms on the island" },
 ];
 
 function addNights(dateIso: string, nights: number): string {
@@ -104,7 +103,6 @@ function buildBookingLink(location: string, checkin: string, checkout: string): 
 
 export default function AccommodationShellPage() {
   const [location, setLocation] = useState(LOCATIONS[0]);
-  const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [showLinks, setShowLinks] = useState(false);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -206,70 +204,21 @@ export default function AccommodationShellPage() {
           </select>
         </div>
 
-        {/* Step 2: class */}
-        <div style={{ marginBottom: 40 }}>
-          <label
-            style={{
-              display: "block",
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-              color: "var(--slate)",
-              marginBottom: 10,
-            }}
-          >
-            Select your class
-          </label>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            {CLASSES.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => {
-                  setSelectedClass(c.id);
-                  setShowLinks(false);
-                }}
-                style={{
-                  padding: "14px 20px",
-                  borderRadius: "var(--radius-sm)",
-                  border: selectedClass === c.id ? "2px solid var(--copper)" : "1.5px solid var(--stone)",
-                  background: selectedClass === c.id ? "var(--amber-pale)" : "white",
-                  cursor: "pointer",
-                  textAlign: "left",
-                  minWidth: 150,
-                  fontFamily: "var(--font-body)",
-                }}
-              >
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--dark)", marginBottom: 4 }}>
-                  {c.label}
-                </div>
-                <div style={{ fontSize: 12, color: "var(--slate)" }}>{c.note}</div>
-              </button>
-            ))}
-          </div>
-          <p style={{ fontSize: 12, color: "var(--slate)", marginTop: 10, maxWidth: 480 }}>
-            This sets your expectations going in - none of Hotels.com, Vrbo, or
-            Booking.com&apos;s simple search links can guarantee a hard star-rating filter, so
-            you&apos;ll still narrow down by class once you land on their results.
-          </p>
-        </div>
-
         <button
           onClick={() => setShowLinks(true)}
-          disabled={!selectedClass}
           style={{
             padding: "14px 32px",
-            background: selectedClass ? "var(--green-deep)" : "var(--stone)",
+            background: "var(--green-deep)",
             color: "white",
             border: "none",
             borderRadius: 100,
             fontSize: 14,
             fontWeight: 500,
-            cursor: selectedClass ? "pointer" : "not-allowed",
+            cursor: "pointer",
             marginBottom: 32,
           }}
         >
-          Find places to stay
+          Book Now
         </button>
 
         {showLinks && (
@@ -285,8 +234,8 @@ export default function AccommodationShellPage() {
             }}
           >
             <div style={{ fontSize: 13, color: "var(--slate)" }}>
-              {location} · {CLASSES.find((c) => c.id === selectedClass)?.label} · {checkin} to{" "}
-              {checkout} (2 guests, 1 room — placeholder dates until real trip dates are wired in)
+              {location} · {checkin} to {checkout} (2 guests, 1 room — placeholder dates until
+              real trip dates are wired in)
             </div>
 
             <a
