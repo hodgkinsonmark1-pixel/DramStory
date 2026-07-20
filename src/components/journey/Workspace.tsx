@@ -130,6 +130,16 @@ export default function Workspace({
       return next;
     });
   const [justSaved, setJustSaved] = useState(false);
+  // Featured/curated accommodation partners - distinct from the generic
+  // Hotels.com/Booking.com search above. Real, sourced, official links
+  // (19 July 2026): The Machrie's room booking is a JS widget with no
+  // direct URL, so links to their official hotel page instead; Port
+  // Charlotte Hotel has a real direct booking-engine link.
+  const FEATURED_STAYS = [
+    { name: "The Machrie", url: "https://another.place/the-machrie/hotel" },
+    { name: "Port Charlotte Hotel", url: "https://bookings.hopsoftware.com/en/property/Port-Charlotte-Hotel" },
+  ];
+  const [selectedFeatured, setSelectedFeatured] = useState(FEATURED_STAYS[0].name);
 
   // There's no longer a "how long" question (Step 3 removed, July 2026) -
   // trips start at a flat default day count and grow/shrink automatically
@@ -959,6 +969,41 @@ export default function Workspace({
                 })
               )}
             </div>
+
+            {expandedCategoryData?.id === "places-to-stay" && (
+              <div className="map-toolbar-row" style={{ marginTop: 8 }}>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: "var(--copper)",
+                    marginRight: 4,
+                  }}
+                >
+                  Featured stays
+                </span>
+                {FEATURED_STAYS.map((stay) => (
+                  <button
+                    key={stay.name}
+                    className={"subcat-chip" + (selectedFeatured === stay.name ? " active" : "")}
+                    onClick={() => setSelectedFeatured(stay.name)}
+                  >
+                    {stay.name}
+                  </button>
+                ))}
+                <a
+                  href={FEATURED_STAYS.find((s) => s.name === selectedFeatured)?.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="subcat-chip"
+                  style={{ background: "var(--copper)", color: "white", fontWeight: 600 }}
+                >
+                  Book Now
+                </a>
+              </div>
+            )}
           </div>
 
           <div style={{ position: "relative", flex: 1, minHeight: 0 }} id="onboard-map">
