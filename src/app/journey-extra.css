@@ -935,28 +935,34 @@ select.location-inline-input {
   color: var(--green-deep);
 }
 
-/* Onboarding spotlight walkthrough - darkened layer + cutout + marker are
-   all pointer-events: none, so nothing here can ever block a real click
-   on the page underneath. Only the caption card's own buttons interact. */
+/* Second onboarding rebuild, 19 July 2026: the dark layer is now a flat,
+   uniform overlay covering the whole page (no "reveal" hole punched in
+   it) - the current target instead gets a colored (gold) highlight box
+   drawn on top of the darkness, rather than being un-darkened. Neither
+   ever blocks a real click underneath - both are pointer-events: none. */
 .onboarding-dark-layer {
   position: fixed;
   inset: 0;
   z-index: 490;
+  background: rgba(20, 20, 20, 0.62);
   pointer-events: none;
 }
-.onboarding-cutout {
+.onboarding-highlight {
   position: fixed;
+  z-index: 491;
   border-radius: 14px;
-  box-shadow: 0 0 0 9999px rgba(20, 20, 20, 0.62);
+  border: 3px solid var(--amber, #d4a574);
+  background: rgba(212, 165, 116, 0.16);
+  box-shadow: 0 0 24px rgba(212, 165, 116, 0.55);
   transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
   pointer-events: none;
 }
-.onboarding-cutout-circle {
+.onboarding-highlight-circle {
   border-radius: 50%;
 }
 .onboarding-marker {
   position: fixed;
-  z-index: 491;
+  z-index: 492;
   width: 0;
   height: 0;
   pointer-events: none;

@@ -228,6 +228,16 @@ export default function Workspace({
     window.addEventListener("onboarding:expand-first-stop", handleExpandFirstStop);
     return () => window.removeEventListener("onboarding:expand-first-stop", handleExpandFirstStop);
   }, [activeDay]);
+  // Same pattern for the "total journey time" walkthrough step - auto-
+  // expands the real summary panel so the visitor sees it done, not
+  // reversed on cleanup (stays expanded afterward).
+  useEffect(() => {
+    function handleExpandSummary() {
+      setSummaryExpanded(true);
+    }
+    window.addEventListener("onboarding:expand-journey-summary", handleExpandSummary);
+    return () => window.removeEventListener("onboarding:expand-journey-summary", handleExpandSummary);
+  }, []);
   // Distinguishes "the whole trip is empty" (first-time visitor, show the
   // welcoming onboarding message) from "this specific day is empty but
   // other days have stops" (show the more specific per-day message).

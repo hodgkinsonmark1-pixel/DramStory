@@ -71,6 +71,7 @@ const JOURNEY_TIME_STEP: Step = {
   icon: "⏱️",
   text: "See your total journey time.",
   cutout: { id: "onboard-journey-summary", shape: "rect" },
+  autoActionEvent: "onboarding:expand-journey-summary",
   advanceOn: { id: "onboard-journey-summary" },
 };
 
@@ -292,14 +293,15 @@ export default function OnboardingOverlay({ timing }: { timing: TripTiming }) {
 
   return (
     <>
-      <div className="onboarding-dark-layer" aria-hidden="true">
-        {cutoutRect && (
-          <div
-            className={"onboarding-cutout" + (cutoutIsCircle ? " onboarding-cutout-circle" : "")}
-            style={{ top: cutoutRect.top, left: cutoutRect.left, width: cutoutRect.width, height: cutoutRect.height }}
-          />
-        )}
-      </div>
+      <div className="onboarding-dark-layer" aria-hidden="true" />
+
+      {cutoutRect && (
+        <div
+          className={"onboarding-highlight" + (cutoutIsCircle ? " onboarding-highlight-circle" : "")}
+          style={{ top: cutoutRect.top, left: cutoutRect.left, width: cutoutRect.width, height: cutoutRect.height }}
+          aria-hidden="true"
+        />
+      )}
 
       {cutoutRect && (
         <div
