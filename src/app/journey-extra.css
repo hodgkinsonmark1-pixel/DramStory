@@ -950,6 +950,7 @@ select.location-inline-input {
 }
 .onboarding-highlight {
   position: fixed;
+  z-index: 490;
   border-radius: 14px;
   border: 3px solid var(--amber, #d4a574);
   box-shadow: 0 0 0 9999px rgba(20, 20, 20, 0.62), 0 0 18px rgba(212, 165, 116, 0.5);
