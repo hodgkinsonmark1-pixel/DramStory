@@ -774,7 +774,7 @@ export default function Workspace({
           </div>
 
           {activeDay.stops.length > 0 && (
-            <div className="journey-summary">
+            <div className="journey-summary" id="onboard-journey-summary-panel">
               <button
                 id="onboard-journey-summary"
                 className="summary-total summary-total-toggle"

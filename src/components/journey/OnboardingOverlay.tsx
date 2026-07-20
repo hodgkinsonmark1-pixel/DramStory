@@ -4,23 +4,29 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { TripTiming } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────
-// Second rebuild, 19 July 2026 (same day as the first - the first attempt
-// dropped the darkening entirely in favour of a bare gold dot, which
-// turned out to be the wrong call). Current design:
-// - The page darkens everywhere except a spotlight cutout around
-//   whatever the current step is talking about (a pin, a stop row, a
-//   toolbar button) - same mechanism the original walkthrough used.
-// - A gold pulsing dot sits on/near the cutout as an extra cue.
-// - The explainer box itself is FIXED (doesn't follow the cutout around
-//   the page) - genuinely centered on screen by default, moving to
-//   bottom-right from the "customise a day, or build your own" step
-//   onward.
-// - Some steps actually PERFORM the real action themselves (expand the
-//   first stop, open Bowmore's popup) so the visitor watches it happen,
-//   rather than just being told where to click.
+// Third pass, 19 July 2026 (same day). Current design, refined again per
+// screenshot feedback:
+// - A single "highlight" element does the darkening AND the reveal in
+//   one go, via a huge box-shadow spread (the classic spotlight-cutout
+//   trick) - not a separate always-on dark layer plus a tinted box.
+//   The revealed area shows through at full brightness, with a gold
+//   border wrapped around it.
+// - The pulsing gold dot is reserved for CIRCLE targets (map pins)
+//   only - rect targets (panels, buttons, rows) rely on the border
+//   alone, no dot.
+// - For the Bowmore step, once the real popup opens, the highlight
+//   itself expands to cover pin + popup together (so the popup text is
+//   legible, not dark) - but the dot stays anchored to the pin's own
+//   center throughout, not drifting to the merged rect's center.
+// - The explainer box is fixed (doesn't follow the page), genuinely
+//   centered by default, moving to bottom-right from the "customise a
+//   day, or build your own" step onward.
+// - Some steps perform the real action themselves (expand the first
+//   stop, expand the journey summary, open Bowmore's popup) so the
+//   visitor watches it happen.
 // ─────────────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = "dramstory_onboarding_seen_v10";
+const STORAGE_KEY = "dramstory_onboarding_seen_v11";
 const BOWMORE_SELECTOR = '[data-distillery-slug="bowmore"]';
 const PIN_SPOTLIGHT_DIAMETER = 110;
 const RECT_PADDING = 8;
@@ -29,9 +35,10 @@ interface CutoutTarget {
   selector?: string;
   id?: string;
   shape: "circle" | "rect";
-  /** Once Bowmore's popup is open, expand the cutout to cover both the
-   *  pin and the popup together (as one combined rect), not just the
-   *  tiny pin. */
+  /** Once Bowmore's popup is open, expand the highlight to cover both
+   *  the pin and the popup together (as one combined rect) - but the
+   *  dot itself stays pinned to the original pin position, computed
+   *  separately below. */
   includePopupFor?: string;
 }
 
@@ -41,16 +48,10 @@ interface Step {
   cutout?: CutoutTarget;
   openPopupSlug?: string;
   /** Dispatched once when this step becomes active - lets the step
-   *  perform the real action itself (e.g. expanding the first stop) so
-   *  the visitor sees it done, not just pointed at. Not reversed when
-   *  leaving the step - the result should stay visible afterward. */
+   *  perform the real action itself so the visitor sees it done. Not
+   *  reversed on cleanup - the result stays visible afterward. */
   autoActionEvent?: string;
-  /** If the person actually performs the real action being demonstrated
-   *  (clicks the real pin, the real toolbar button) rather than clicking
-   *  the tour's own "Next", the tour advances too. */
   advanceOn?: { selector?: string; id?: string };
-  /** Where the fixed explainer box sits for this step. Defaults to
-   *  "center" (genuinely centered on screen) if omitted. */
   boxPosition?: "center" | "right";
 }
 
@@ -70,16 +71,15 @@ const EXPAND_STOP_STEP: Step = {
 const JOURNEY_TIME_STEP: Step = {
   icon: "⏱️",
   text: "See your total journey time.",
-  cutout: { id: "onboard-journey-summary", shape: "rect" },
+  cutout: { id: "onboard-journey-summary-panel", shape: "rect" },
   autoActionEvent: "onboarding:expand-journey-summary",
   advanceOn: { id: "onboard-journey-summary" },
 };
 
 // Placeholder target - there's no live Days Hub nav link yet (as of 19
 // July 2026, the Hub isn't in live navigation, per the agreed sequencing
-// of finishing infrastructure/content before go-live). This step can't
-// actually be wired up until that link exists. Flagged rather than
-// pointing at nothing or fabricating a fake target.
+// of finishing infrastructure/content before go-live). Flagged rather
+// than pointing at nothing or fabricating a fake target.
 const ADD_DAYS_STEP: Step = {
   icon: "📖",
   text: "Explore and add more days here.",
@@ -87,9 +87,7 @@ const ADD_DAYS_STEP: Step = {
   advanceOn: { id: "onboard-nav-days-hub" },
 };
 
-// Skipped for "today" visitors - there's no date control to point at
-// (the header shows a static "📅 Today" badge instead), and picking
-// travel dates isn't a relevant action for someone visiting today anyway.
+// Skipped for "today" visitors - there's no date control to point at.
 const DATES_STEP: Step = {
   icon: "📅",
   text: "Pick your dates.",
@@ -99,7 +97,7 @@ const DATES_STEP: Step = {
 const ACCOMMODATION_STEP: Step = {
   icon: "🛏️",
   text: "Book your stay.",
-  cutout: { id: "onboard-toolbar-row", shape: "rect" },
+  cutout: { selector: '[data-category-id="places-to-stay"]', shape: "rect" },
   advanceOn: { selector: '[data-category-id="places-to-stay"]' },
 };
 
@@ -115,7 +113,7 @@ const DISTILLERY_STEP: Step = {
 
 const LOCAL_FEATURES_HUB_STEP: Step = {
   icon: "🌊",
-  text: "Explore local features.",
+  text: "Explore all distilleries and local features.",
   cutout: { id: "onboard-nav-local-features", shape: "rect" },
   advanceOn: { id: "onboard-nav-local-features" },
   boxPosition: "right",
@@ -124,7 +122,7 @@ const LOCAL_FEATURES_HUB_STEP: Step = {
 const LOCAL_FEATURES_OVERLAY_STEP: Step = {
   icon: "🌿",
   text: "...or see them right on the map.",
-  cutout: { id: "onboard-toolbar-row", shape: "rect" },
+  cutout: { selector: '[data-category-id="natural-features"]', shape: "rect" },
   advanceOn: { selector: '[data-category-id="natural-features"]' },
   boxPosition: "right",
 };
@@ -145,7 +143,7 @@ function getSnapshot(): boolean {
   return window.localStorage.getItem(STORAGE_KEY) !== null;
 }
 function getServerSnapshot(): boolean {
-  return true; // treat as "already seen" during SSR, so nothing flashes before hydration
+  return true;
 }
 
 interface Rect {
@@ -177,8 +175,9 @@ export default function OnboardingOverlay({ timing }: { timing: TripTiming }) {
   const STEPS = useMemo(() => buildSteps(timing), [timing]);
   const [step, setStep] = useState(0);
   const [dismissed, setDismissed] = useState(false);
-  const [cutoutRect, setCutoutRect] = useState<Rect | null>(null);
-  const [cutoutIsCircle, setCutoutIsCircle] = useState(false);
+  const [highlightRect, setHighlightRect] = useState<Rect | null>(null);
+  const [highlightIsCircle, setHighlightIsCircle] = useState(false);
+  const [dotRect, setDotRect] = useState<Rect | null>(null);
   const alreadySeen = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const active = !alreadySeen && !dismissed;
   const currentStep = STEPS[step];
@@ -188,40 +187,50 @@ export default function OnboardingOverlay({ timing }: { timing: TripTiming }) {
 
     function update() {
       if (!currentStep.cutout) {
-        setCutoutRect(null);
+        setHighlightRect(null);
+        setDotRect(null);
         return;
       }
       const el = findElement(currentStep.cutout);
-      let resolvedCutout: Rect | null = null;
-      let isCircle = false;
-
-      if (el) {
-        const r = el.getBoundingClientRect();
-        if (currentStep.cutout!.shape === "circle") {
-          const cx = r.left + r.width / 2;
-          const cy = r.top + r.height / 2;
-          resolvedCutout = {
-            top: cy - PIN_SPOTLIGHT_DIAMETER / 2,
-            left: cx - PIN_SPOTLIGHT_DIAMETER / 2,
-            width: PIN_SPOTLIGHT_DIAMETER,
-            height: PIN_SPOTLIGHT_DIAMETER,
-          };
-          isCircle = true;
-
-          if (currentStep.cutout!.includePopupFor) {
-            const popupEl = document.querySelector(".leaflet-popup");
-            if (popupEl) {
-              resolvedCutout = unionRect(resolvedCutout, toRect(popupEl.getBoundingClientRect(), RECT_PADDING));
-              isCircle = false;
-            }
-          }
-        } else {
-          resolvedCutout = toRect(r, RECT_PADDING);
-        }
+      if (!el) {
+        setHighlightRect(null);
+        setDotRect(null);
+        return;
       }
 
-      setCutoutRect(resolvedCutout);
-      setCutoutIsCircle(isCircle);
+      const r = el.getBoundingClientRect();
+      let resolved: Rect;
+      let isCircle = false;
+      let dot: Rect | null = null;
+
+      if (currentStep.cutout.shape === "circle") {
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        resolved = {
+          top: cy - PIN_SPOTLIGHT_DIAMETER / 2,
+          left: cx - PIN_SPOTLIGHT_DIAMETER / 2,
+          width: PIN_SPOTLIGHT_DIAMETER,
+          height: PIN_SPOTLIGHT_DIAMETER,
+        };
+        isCircle = true;
+        // The dot always stays anchored to the pin's own center, even if
+        // the highlight itself grows to include a popup below.
+        dot = resolved;
+
+        if (currentStep.cutout.includePopupFor) {
+          const popupEl = document.querySelector(".leaflet-popup");
+          if (popupEl) {
+            resolved = unionRect(resolved, toRect(popupEl.getBoundingClientRect(), RECT_PADDING));
+            isCircle = false;
+          }
+        }
+      } else {
+        resolved = toRect(r, RECT_PADDING);
+      }
+
+      setHighlightRect(resolved);
+      setHighlightIsCircle(isCircle);
+      setDotRect(dot);
     }
 
     update();
@@ -235,11 +244,6 @@ export default function OnboardingOverlay({ timing }: { timing: TripTiming }) {
     };
   }, [active, step, currentStep]);
 
-  // Opens/closes Bowmore's real popup, and/or fires this step's own
-  // auto-action (e.g. expanding the first stop) - both let the visitor
-  // watch the real thing happen rather than just being told where to
-  // click. Auto-actions are deliberately not reversed on cleanup - their
-  // result should stay visible into later steps too.
   useEffect(() => {
     if (!active) return;
     if (currentStep.openPopupSlug) {
@@ -259,8 +263,6 @@ export default function OnboardingOverlay({ timing }: { timing: TripTiming }) {
     };
   }, [active, currentStep]);
 
-  // Following through on the real action advances the tour too, not just
-  // clicking the tour's own "Next".
   useEffect(() => {
     if (!active || !currentStep.advanceOn) return;
     const { selector, id } = currentStep.advanceOn;
@@ -293,20 +295,20 @@ export default function OnboardingOverlay({ timing }: { timing: TripTiming }) {
 
   return (
     <>
-      <div className="onboarding-dark-layer" aria-hidden="true" />
-
-      {cutoutRect && (
+      {highlightRect ? (
         <div
-          className={"onboarding-highlight" + (cutoutIsCircle ? " onboarding-highlight-circle" : "")}
-          style={{ top: cutoutRect.top, left: cutoutRect.left, width: cutoutRect.width, height: cutoutRect.height }}
+          className={"onboarding-highlight" + (highlightIsCircle ? " onboarding-highlight-circle" : "")}
+          style={{ top: highlightRect.top, left: highlightRect.left, width: highlightRect.width, height: highlightRect.height }}
           aria-hidden="true"
         />
+      ) : (
+        <div className="onboarding-dark-layer" aria-hidden="true" />
       )}
 
-      {cutoutRect && (
+      {dotRect && (
         <div
           className="onboarding-marker"
-          style={{ top: cutoutRect.top + cutoutRect.height / 2, left: cutoutRect.left + cutoutRect.width / 2 }}
+          style={{ top: dotRect.top + dotRect.height / 2, left: dotRect.left + dotRect.width / 2 }}
           aria-hidden="true"
         >
           <span className="onboarding-marker-ping" />

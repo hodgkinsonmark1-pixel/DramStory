@@ -935,11 +935,12 @@ select.location-inline-input {
   color: var(--green-deep);
 }
 
-/* Second onboarding rebuild, 19 July 2026: the dark layer is now a flat,
-   uniform overlay covering the whole page (no "reveal" hole punched in
-   it) - the current target instead gets a colored (gold) highlight box
-   drawn on top of the darkness, rather than being un-darkened. Neither
-   ever blocks a real click underneath - both are pointer-events: none. */
+/* Third onboarding pass, 19 July 2026: back to a "reveal" cutout (the
+   highlighted area shows through at full brightness via a box-shadow
+   trick, rather than staying dark with a tinted fill) - but now with a
+   gold border wrapped around the revealed area too. The pulsing gold
+   dot is reserved for circle (map pin) targets only - rect targets
+   (panels, buttons, rows) rely on the border alone. */
 .onboarding-dark-layer {
   position: fixed;
   inset: 0;
@@ -949,11 +950,9 @@ select.location-inline-input {
 }
 .onboarding-highlight {
   position: fixed;
-  z-index: 491;
   border-radius: 14px;
   border: 3px solid var(--amber, #d4a574);
-  background: rgba(212, 165, 116, 0.16);
-  box-shadow: 0 0 24px rgba(212, 165, 116, 0.55);
+  box-shadow: 0 0 0 9999px rgba(20, 20, 20, 0.62), 0 0 18px rgba(212, 165, 116, 0.5);
   transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
   pointer-events: none;
 }
