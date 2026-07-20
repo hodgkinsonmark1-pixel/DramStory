@@ -4,57 +4,73 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { TripTiming } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────
-// Rebuilt 19 July 2026: a fixed, always-in-the-same-place explainer box
-// (bottom-center by default, moving to bottom-right from the "customise a
-// day, or build your own" step onward) plus a separate gold dot that
-// travels independently to whatever the current step is talking about.
-// No full-screen darkening/cutout - the dot alone is the indicator, so
-// the real page stays fully visible and interactive underneath at all
-// times (nothing here has ever blocked a real click, before or after
-// this rebuild).
+// Second rebuild, 19 July 2026 (same day as the first - the first attempt
+// dropped the darkening entirely in favour of a bare gold dot, which
+// turned out to be the wrong call). Current design:
+// - The page darkens everywhere except a spotlight cutout around
+//   whatever the current step is talking about (a pin, a stop row, a
+//   toolbar button) - same mechanism the original walkthrough used.
+// - A gold pulsing dot sits on/near the cutout as an extra cue.
+// - The explainer box itself is FIXED (doesn't follow the cutout around
+//   the page) - genuinely centered on screen by default, moving to
+//   bottom-right from the "customise a day, or build your own" step
+//   onward.
+// - Some steps actually PERFORM the real action themselves (expand the
+//   first stop, open Bowmore's popup) so the visitor watches it happen,
+//   rather than just being told where to click.
 // ─────────────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = "dramstory_onboarding_seen_v9";
+const STORAGE_KEY = "dramstory_onboarding_seen_v10";
 const BOWMORE_SELECTOR = '[data-distillery-slug="bowmore"]';
+const PIN_SPOTLIGHT_DIAMETER = 110;
+const RECT_PADDING = 8;
 
-interface DotTarget {
+interface CutoutTarget {
   selector?: string;
   id?: string;
+  shape: "circle" | "rect";
+  /** Once Bowmore's popup is open, expand the cutout to cover both the
+   *  pin and the popup together (as one combined rect), not just the
+   *  tiny pin. */
+  includePopupFor?: string;
 }
 
 interface Step {
   icon: string;
   text: string;
-  /** Omit for a step with no specific target (e.g. the opening line,
-   *  before the dot first appears). */
-  dot?: DotTarget;
+  cutout?: CutoutTarget;
   openPopupSlug?: string;
+  /** Dispatched once when this step becomes active - lets the step
+   *  perform the real action itself (e.g. expanding the first stop) so
+   *  the visitor sees it done, not just pointed at. Not reversed when
+   *  leaving the step - the result should stay visible afterward. */
+  autoActionEvent?: string;
   /** If the person actually performs the real action being demonstrated
-   *  (clicks the real pin, the real "+Add" button, the real toolbar
-   *  button) rather than clicking the tour's own "Next", the tour
-   *  advances too. */
-  advanceOn?: DotTarget;
+   *  (clicks the real pin, the real toolbar button) rather than clicking
+   *  the tour's own "Next", the tour advances too. */
+  advanceOn?: { selector?: string; id?: string };
   /** Where the fixed explainer box sits for this step. Defaults to
-   *  "center" (bottom-center) if omitted. */
+   *  "center" (genuinely centered on screen) if omitted. */
   boxPosition?: "center" | "right";
 }
 
 const TRIP_SO_FAR_STEP: Step = {
   icon: "🗺️",
   text: "Your trip so far — see your day come to life.",
+  cutout: { id: "onboard-sidebar", shape: "rect" },
 };
 
 const EXPAND_STOP_STEP: Step = {
   icon: "🔎",
   text: "Expand a stop to see the details.",
-  dot: { id: "onboard-first-stop-collapse" },
-  advanceOn: { id: "onboard-first-stop-collapse" },
+  cutout: { id: "onboard-first-stop", shape: "rect" },
+  autoActionEvent: "onboarding:expand-first-stop",
 };
 
 const JOURNEY_TIME_STEP: Step = {
   icon: "⏱️",
   text: "See your total journey time.",
-  dot: { id: "onboard-journey-summary" },
+  cutout: { id: "onboard-journey-summary", shape: "rect" },
   advanceOn: { id: "onboard-journey-summary" },
 };
 
@@ -66,7 +82,7 @@ const JOURNEY_TIME_STEP: Step = {
 const ADD_DAYS_STEP: Step = {
   icon: "📖",
   text: "Explore and add more days here.",
-  dot: { id: "onboard-nav-days-hub" }, // TODO: id doesn't exist yet
+  cutout: { id: "onboard-nav-days-hub", shape: "rect" }, // TODO: id doesn't exist yet
   advanceOn: { id: "onboard-nav-days-hub" },
 };
 
@@ -76,13 +92,13 @@ const ADD_DAYS_STEP: Step = {
 const DATES_STEP: Step = {
   icon: "📅",
   text: "Pick your dates.",
-  dot: { id: "onboard-header-dates" },
+  cutout: { id: "onboard-header-dates", shape: "rect" },
 };
 
 const ACCOMMODATION_STEP: Step = {
   icon: "🛏️",
   text: "Book your stay.",
-  dot: { selector: '[data-category-id="places-to-stay"]' },
+  cutout: { id: "onboard-toolbar-row", shape: "rect" },
   advanceOn: { selector: '[data-category-id="places-to-stay"]' },
 };
 
@@ -90,7 +106,7 @@ const ACCOMMODATION_STEP: Step = {
 const DISTILLERY_STEP: Step = {
   icon: "🥃",
   text: "...to customise a day, or totally build your own — tap any distillery to see details, then add it to your trip yourself.",
-  dot: { selector: BOWMORE_SELECTOR },
+  cutout: { selector: BOWMORE_SELECTOR, shape: "circle", includePopupFor: "bowmore" },
   openPopupSlug: "bowmore",
   advanceOn: { selector: '[data-add-distillery="bowmore"]' },
   boxPosition: "right",
@@ -99,7 +115,7 @@ const DISTILLERY_STEP: Step = {
 const LOCAL_FEATURES_HUB_STEP: Step = {
   icon: "🌊",
   text: "Explore local features.",
-  dot: { id: "onboard-nav-local-features" },
+  cutout: { id: "onboard-nav-local-features", shape: "rect" },
   advanceOn: { id: "onboard-nav-local-features" },
   boxPosition: "right",
 };
@@ -107,7 +123,7 @@ const LOCAL_FEATURES_HUB_STEP: Step = {
 const LOCAL_FEATURES_OVERLAY_STEP: Step = {
   icon: "🌿",
   text: "...or see them right on the map.",
-  dot: { selector: '[data-category-id="natural-features"]' },
+  cutout: { id: "onboard-toolbar-row", shape: "rect" },
   advanceOn: { selector: '[data-category-id="natural-features"]' },
   boxPosition: "right",
 };
@@ -144,15 +160,24 @@ function findElement(target: { selector?: string; id?: string }): Element | null
   return null;
 }
 
-function toRect(r: DOMRect): Rect {
-  return { top: r.top, left: r.left, width: r.width, height: r.height };
+function toRect(r: DOMRect, padding = 0): Rect {
+  return { top: r.top - padding, left: r.left - padding, width: r.width + padding * 2, height: r.height + padding * 2 };
+}
+
+function unionRect(a: Rect, b: Rect): Rect {
+  const left = Math.min(a.left, b.left);
+  const top = Math.min(a.top, b.top);
+  const right = Math.max(a.left + a.width, b.left + b.width);
+  const bottom = Math.max(a.top + a.height, b.top + b.height);
+  return { left, top, width: right - left, height: bottom - top };
 }
 
 export default function OnboardingOverlay({ timing }: { timing: TripTiming }) {
   const STEPS = useMemo(() => buildSteps(timing), [timing]);
   const [step, setStep] = useState(0);
   const [dismissed, setDismissed] = useState(false);
-  const [dotRect, setDotRect] = useState<Rect | null>(null);
+  const [cutoutRect, setCutoutRect] = useState<Rect | null>(null);
+  const [cutoutIsCircle, setCutoutIsCircle] = useState(false);
   const alreadySeen = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const active = !alreadySeen && !dismissed;
   const currentStep = STEPS[step];
@@ -161,19 +186,46 @@ export default function OnboardingOverlay({ timing }: { timing: TripTiming }) {
     if (!active) return;
 
     function update() {
-      if (!currentStep.dot) {
-        setDotRect(null);
+      if (!currentStep.cutout) {
+        setCutoutRect(null);
         return;
       }
-      const el = findElement(currentStep.dot);
-      setDotRect(el ? toRect(el.getBoundingClientRect()) : null);
+      const el = findElement(currentStep.cutout);
+      let resolvedCutout: Rect | null = null;
+      let isCircle = false;
+
+      if (el) {
+        const r = el.getBoundingClientRect();
+        if (currentStep.cutout!.shape === "circle") {
+          const cx = r.left + r.width / 2;
+          const cy = r.top + r.height / 2;
+          resolvedCutout = {
+            top: cy - PIN_SPOTLIGHT_DIAMETER / 2,
+            left: cx - PIN_SPOTLIGHT_DIAMETER / 2,
+            width: PIN_SPOTLIGHT_DIAMETER,
+            height: PIN_SPOTLIGHT_DIAMETER,
+          };
+          isCircle = true;
+
+          if (currentStep.cutout!.includePopupFor) {
+            const popupEl = document.querySelector(".leaflet-popup");
+            if (popupEl) {
+              resolvedCutout = unionRect(resolvedCutout, toRect(popupEl.getBoundingClientRect(), RECT_PADDING));
+              isCircle = false;
+            }
+          }
+        } else {
+          resolvedCutout = toRect(r, RECT_PADDING);
+        }
+      }
+
+      setCutoutRect(resolvedCutout);
+      setCutoutIsCircle(isCircle);
     }
 
     update();
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
-    // Targets can mount a beat after this component does (map markers,
-    // popup opening) - retry briefly rather than giving up on one query.
     const retry = setInterval(update, 300);
     return () => {
       window.removeEventListener("resize", update);
@@ -182,14 +234,20 @@ export default function OnboardingOverlay({ timing }: { timing: TripTiming }) {
     };
   }, [active, step, currentStep]);
 
-  // Opens/closes Bowmore's real popup to match the step that talks about
-  // adding it to the journey.
+  // Opens/closes Bowmore's real popup, and/or fires this step's own
+  // auto-action (e.g. expanding the first stop) - both let the visitor
+  // watch the real thing happen rather than just being told where to
+  // click. Auto-actions are deliberately not reversed on cleanup - their
+  // result should stay visible into later steps too.
   useEffect(() => {
     if (!active) return;
     if (currentStep.openPopupSlug) {
       window.dispatchEvent(
         new CustomEvent("onboarding:open-distillery-popup", { detail: { slug: currentStep.openPopupSlug } })
       );
+    }
+    if (currentStep.autoActionEvent) {
+      window.dispatchEvent(new CustomEvent(currentStep.autoActionEvent));
     }
     return () => {
       if (currentStep.openPopupSlug) {
@@ -201,9 +259,7 @@ export default function OnboardingOverlay({ timing }: { timing: TripTiming }) {
   }, [active, currentStep]);
 
   // Following through on the real action advances the tour too, not just
-  // clicking the tour's own "Next" - delegated at the document level so
-  // it still works even if the target element mounts after this effect
-  // runs (a popup's "+Add" button, for instance).
+  // clicking the tour's own "Next".
   useEffect(() => {
     if (!active || !currentStep.advanceOn) return;
     const { selector, id } = currentStep.advanceOn;
@@ -236,10 +292,19 @@ export default function OnboardingOverlay({ timing }: { timing: TripTiming }) {
 
   return (
     <>
-      {dotRect && (
+      <div className="onboarding-dark-layer" aria-hidden="true">
+        {cutoutRect && (
+          <div
+            className={"onboarding-cutout" + (cutoutIsCircle ? " onboarding-cutout-circle" : "")}
+            style={{ top: cutoutRect.top, left: cutoutRect.left, width: cutoutRect.width, height: cutoutRect.height }}
+          />
+        )}
+      </div>
+
+      {cutoutRect && (
         <div
           className="onboarding-marker"
-          style={{ top: dotRect.top + dotRect.height / 2, left: dotRect.left + dotRect.width / 2 }}
+          style={{ top: cutoutRect.top + cutoutRect.height / 2, left: cutoutRect.left + cutoutRect.width / 2 }}
           aria-hidden="true"
         >
           <span className="onboarding-marker-ping" />

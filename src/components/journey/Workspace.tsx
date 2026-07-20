@@ -208,6 +208,26 @@ export default function Workspace({
 
   const days = trip.days;
   const activeDay = days[activeDayIndex];
+  // Lets the onboarding walkthrough actually perform the "expand a stop"
+  // action itself, rather than just pointing at it - the visitor watches
+  // it happen, and it deliberately stays expanded afterward (not
+  // re-collapsed), so the following "total journey time" step still
+  // shows it expanded. Per 19 July 2026 conversation.
+  useEffect(() => {
+    function handleExpandFirstStop() {
+      const first = activeDay?.stops[0];
+      if (!first) return;
+      const id = stopId(first);
+      setCollapsedStops((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+    window.addEventListener("onboarding:expand-first-stop", handleExpandFirstStop);
+    return () => window.removeEventListener("onboarding:expand-first-stop", handleExpandFirstStop);
+  }, [activeDay]);
   // Distinguishes "the whole trip is empty" (first-time visitor, show the
   // welcoming onboarding message) from "this specific day is empty but
   // other days have stops" (show the more specific per-day message).
@@ -617,7 +637,7 @@ export default function Workspace({
                 const visitLabel = `~${formatDuration(stopVisitMinutes(stop))}`;
 
                 return (
-                  <div key={id}>
+                  <div key={id} id={i === 0 ? "onboard-first-stop" : undefined}>
                     <div className="journey-stop">
                       <div className="stop-move-col" style={{ marginRight: 4 }}>
                         <button
