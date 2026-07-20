@@ -464,6 +464,14 @@ export default function Workspace({
           >
             Local Features
           </Link>
+          <Link
+            href="/days"
+            id="onboard-nav-days-hub"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Day Plans
+          </Link>
           <Link href="/" onClick={() => trip.resetTrip()}>
             Start over
           </Link>
