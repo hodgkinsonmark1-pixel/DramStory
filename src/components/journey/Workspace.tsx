@@ -707,6 +707,7 @@ export default function Workspace({
                       </div>
                       <button
                         className="stop-move-btn"
+                        id={i === 0 ? "onboard-first-stop-collapse" : undefined}
                         onClick={() => toggleStopCollapsed(id)}
                         aria-label={collapsed ? `Expand ${stopName(stop)}` : `Collapse ${stopName(stop)}`}
                         title={collapsed ? "Expand" : "Collapse"}
@@ -744,7 +745,11 @@ export default function Workspace({
 
           {activeDay.stops.length > 0 && (
             <div className="journey-summary">
-              <button className="summary-total summary-total-toggle" onClick={() => setSummaryExpanded((v) => !v)}>
+              <button
+                id="onboard-journey-summary"
+                className="summary-total summary-total-toggle"
+                onClick={() => setSummaryExpanded((v) => !v)}
+              >
                 <span>Total journey</span>
                 <span>
                   {formatDuration(totalDriveMinutes + totalVisitMinutes)}

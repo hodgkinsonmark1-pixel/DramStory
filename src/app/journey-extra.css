@@ -1007,6 +1007,23 @@ select.location-inline-input {
   padding: 20px;
   border: 1px solid var(--stone);
 }
+/* Two fixed positions (19 July 2026 rebuild): bottom-center is the
+   default for most of the walkthrough; bottom-right takes over from the
+   "customise a day, or build your own" step onward. Neither ever
+   dynamically follows the page the way the old cutout-based card did -
+   only the gold dot moves now. */
+.onboarding-card-center {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  transition: left 0.3s ease, right 0.3s ease, transform 0.3s ease;
+}
+.onboarding-card-right {
+  left: auto;
+  right: 24px;
+  transform: none;
+  transition: left 0.3s ease, right 0.3s ease, transform 0.3s ease;
+}
 .onboarding-dismiss {
   position: absolute;
   top: 10px;
