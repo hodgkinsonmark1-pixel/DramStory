@@ -114,7 +114,14 @@ export default function Workspace({
   const [showDayMismatchNotice, setShowDayMismatchNotice] = useState(false);
   // Per-stop collapse state, scoped by stopId - a UI preference, not core
   // trip data, so it's local state rather than persisted via TripContext.
-  const [collapsedStops, setCollapsedStops] = useState<Set<string>>(new Set());
+  // Opens with everything collapsed by default (19 July 2026 feedback) -
+  // lazy initializer reads whatever stops are already in the current day
+  // at mount time (e.g. the seeded default Day), rather than a separate
+  // effect calling setState.
+  const [collapsedStops, setCollapsedStops] = useState<Set<string>>(() => {
+    const initialDay = trip.days[trip.currentDayIndex] ?? trip.days[0];
+    return new Set(initialDay ? initialDay.stops.map((s) => stopId(s)) : []);
+  });
   const toggleStopCollapsed = (id: string) =>
     setCollapsedStops((prev) => {
       const next = new Set(prev);
@@ -606,87 +613,13 @@ export default function Workspace({
                 const id = stopId(stop);
                 const collapsed = collapsedStops.has(id);
                 const tourName = stop.kind === "distillery" ? stop.tour?.name : undefined;
+                const tourCost = stop.kind === "distillery" && stop.tour ? `£${stop.tour.price}pp` : undefined;
+                const visitLabel = `~${formatDuration(stopVisitMinutes(stop))}`;
 
                 return (
                   <div key={id}>
                     <div className="journey-stop">
-                      <div className="stop-number">{i + 1}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                          <div className="stop-name">{stopName(stop)}</div>
-                          {collapsed && tourName && (
-                            <div className="stop-tour" style={{ fontSize: 13 }}>
-                              🎟 {tourName}
-                            </div>
-                          )}
-                        </div>
-
-                        {!collapsed && stop.kind === "distillery" && stop.tour && (
-                          <>
-                            <div className="stop-tour">🎟 {stop.tour.name}</div>
-                            <div className="stop-cost">£{stop.tour.price} per person</div>
-                          </>
-                        )}
-                        {!collapsed && stop.kind === "feature" && (
-                          <div className="stop-region">
-                            {stop.feature.icon} {stop.feature.category.replace("-", " ")}
-                          </div>
-                        )}
-
-                        {/* Note - a free-text reminder, editable whether the
-                            stop is collapsed or expanded, since it's exactly
-                            the kind of detail worth seeing at a glance. */}
-                        <input
-                          type="text"
-                          value={stop.note ?? ""}
-                          onChange={(e) => trip.setStopNote(activeDayIndex, id, e.target.value)}
-                          placeholder="Add a note (e.g. tour at 12)"
-                          style={{
-                            display: "block",
-                            width: "100%",
-                            marginTop: 6,
-                            marginBottom: collapsed ? 4 : 0,
-                            padding: "4px 8px",
-                            fontSize: 12,
-                            fontStyle: stop.note ? "normal" : "italic",
-                            color: stop.note ? "var(--dark)" : "var(--slate)",
-                            border: "1px solid var(--stone)",
-                            borderRadius: "var(--radius-sm)",
-                            background: "var(--off-white)",
-                          }}
-                        />
-
-                        {!collapsed && (
-                          <div className="stop-time-row">
-                            <span className="stop-time">~{formatDuration(stopVisitMinutes(stop))} visit</span>
-                            <button
-                              className="stop-time-btn"
-                              onClick={() =>
-                                trip.setStopMinutes(activeDayIndex, id, incrementVisitMinutes(stop, -1))
-                              }
-                              aria-label="Decrease visit time"
-                            >
-                              &minus;
-                            </button>
-                            <button
-                              className="stop-time-btn"
-                              onClick={() => trip.setStopMinutes(activeDayIndex, id, incrementVisitMinutes(stop, 1))}
-                              aria-label="Increase visit time"
-                            >
-                              +
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        className="stop-move-btn"
-                        onClick={() => toggleStopCollapsed(id)}
-                        aria-label={collapsed ? `Expand ${stopName(stop)}` : `Collapse ${stopName(stop)}`}
-                        title={collapsed ? "Expand" : "Collapse"}
-                      >
-                        {collapsed ? "▸" : "▾"}
-                      </button>
-                      <div className="stop-move-col">
+                      <div className="stop-move-col" style={{ marginRight: 4 }}>
                         <button
                           className="stop-move-btn"
                           onClick={() => trip.moveStop(activeDayIndex, i, -1)}
@@ -704,6 +637,82 @@ export default function Workspace({
                           &#8964;
                         </button>
                       </div>
+                      <div className="stop-number">{i + 1}</div>
+                      <div style={{ flex: 1 }}>
+                        <div className="stop-name">{stopName(stop)}</div>
+
+                        {collapsed ? (
+                          // Compact plain-text summary line - no input box,
+                          // no separate rows, just the essentials at a
+                          // glance: note, tour, length, cost.
+                          <div style={{ fontSize: 12, color: "var(--peat)", marginTop: 2 }}>
+                            {[stop.note, tourName, visitLabel, tourCost].filter(Boolean).join(" · ")}
+                          </div>
+                        ) : (
+                          <>
+                            {stop.kind === "distillery" && stop.tour && (
+                              <>
+                                <div className="stop-tour">🎟 {stop.tour.name}</div>
+                                <div className="stop-cost">£{stop.tour.price} per person</div>
+                              </>
+                            )}
+                            {stop.kind === "feature" && (
+                              <div className="stop-region">
+                                {stop.feature.icon} {stop.feature.category.replace("-", " ")}
+                              </div>
+                            )}
+
+                            <input
+                              type="text"
+                              value={stop.note ?? ""}
+                              onChange={(e) => trip.setStopNote(activeDayIndex, id, e.target.value)}
+                              placeholder="Add a note (e.g. tour at 12)"
+                              style={{
+                                display: "block",
+                                width: "100%",
+                                marginTop: 6,
+                                padding: "4px 8px",
+                                fontSize: 12,
+                                fontStyle: stop.note ? "normal" : "italic",
+                                color: stop.note ? "var(--dark)" : "var(--slate)",
+                                border: "1px solid var(--stone)",
+                                borderRadius: "var(--radius-sm)",
+                                background: "var(--off-white)",
+                              }}
+                            />
+
+                            <div className="stop-time-row">
+                              <span className="stop-time">{visitLabel} visit</span>
+                              <button
+                                className="stop-time-btn"
+                                onClick={() =>
+                                  trip.setStopMinutes(activeDayIndex, id, incrementVisitMinutes(stop, -1))
+                                }
+                                aria-label="Decrease visit time"
+                              >
+                                &minus;
+                              </button>
+                              <button
+                                className="stop-time-btn"
+                                onClick={() =>
+                                  trip.setStopMinutes(activeDayIndex, id, incrementVisitMinutes(stop, 1))
+                                }
+                                aria-label="Increase visit time"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      <button
+                        className="stop-move-btn"
+                        onClick={() => toggleStopCollapsed(id)}
+                        aria-label={collapsed ? `Expand ${stopName(stop)}` : `Collapse ${stopName(stop)}`}
+                        title={collapsed ? "Expand" : "Collapse"}
+                      >
+                        {collapsed ? "▸" : "▾"}
+                      </button>
                       <button
                         className="stop-remove"
                         onClick={() => trip.removeStop(activeDayIndex, id)}

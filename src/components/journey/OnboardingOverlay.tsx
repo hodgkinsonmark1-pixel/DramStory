@@ -19,7 +19,7 @@ import type { TripTiming } from "@/lib/types";
 //   the dot points at one specific button within it)
 // ─────────────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = "dramstory_onboarding_seen_v7";
+const STORAGE_KEY = "dramstory_onboarding_seen_v8";
 const BOWMORE_SELECTOR = '[data-distillery-slug="bowmore"]';
 const PIN_SPOTLIGHT_DIAMETER = 110;
 const RECT_PADDING = 8;
@@ -76,7 +76,7 @@ const TRIP_SO_FAR_STEP: Step = {
 // pointing at nothing or fabricating a fake target.
 const ADD_DAYS_STEP: Step = {
   icon: "📖",
-  text: "Add more ready-made days here",
+  text: "Explore and add more days here",
   cutout: { id: "onboard-nav-days-hub", shape: "rect" }, // TODO: id doesn't exist yet
   advanceOn: { id: "onboard-nav-days-hub" },
 };
@@ -124,9 +124,13 @@ const ACCOMMODATION_STEP: Step = {
 function buildSteps(timing: TripTiming): Step[] {
   const steps: Step[] = [];
   if (timing !== "today") steps.push(TRIP_SO_FAR_STEP);
-  steps.push(ADD_DAYS_STEP, DISTILLERY_STEP, LOCAL_FEATURES_HUB_STEP, LOCAL_FEATURES_OVERLAY_STEP);
+  steps.push(ADD_DAYS_STEP);
+  // Dates and Accommodation moved up (19 July 2026 feedback: "accommodation
+  // is too late in the chain") - the two highest-value, most action-
+  // oriented steps now come right after "add more days", ahead of the
+  // more exploratory steps (tap a distillery, browse local features).
   if (timing !== "today") steps.push(DATES_STEP);
-  steps.push(ACCOMMODATION_STEP);
+  steps.push(ACCOMMODATION_STEP, DISTILLERY_STEP, LOCAL_FEATURES_HUB_STEP, LOCAL_FEATURES_OVERLAY_STEP);
   return steps;
 }
 
