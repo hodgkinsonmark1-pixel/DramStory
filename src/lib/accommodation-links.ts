@@ -6,6 +6,16 @@ import type { TripDates } from "@/lib/types";
  * 2% vacation rental, 7-day cookie via the Expedia Group Travel Creator
  * Program). Link works without it, just earns no commission yet.
  *
+ * HONEST CAVEAT (19 July 2026): appending mdpcid directly onto this
+ * hotels.com/Hotel-Search URL (rather than via Expedia's documented
+ * /go/ deeplink redirector) hasn't been independently verified to
+ * actually track commission - it may simply be ignored as an unknown
+ * param. The destination/date fix below is confirmed correct (matches
+ * a real, working hotels.com URL Mark shared), but the *tracking*
+ * mechanism on this exact URL shape is unconfirmed. Worth testing with
+ * the real mdpcid once available, or checking with Expedia Group
+ * support whether tracking survives on this URL format specifically.
+ *
  * This mirrors the fuller three-supplier version built on the
  * accommodation-shell branch (Hotels.com/Vrbo/Booking.com, primary +
  * secondary links) - only the primary Hotels.com link is wired into the
@@ -34,14 +44,17 @@ function resolveCheckinCheckout(tripDates?: TripDates): { checkin: string; check
 
 export function buildAccommodationBookingLink(location: string, tripDates?: TripDates): string {
   const { checkin, checkout } = resolveCheckinCheckout(tripDates);
+  // Uses the same parameter names confirmed directly from a real,
+  // working hotels.com URL (19 July 2026 conversation) - chkin/chkout/
+  // destination - rather than Expedia's generic /go/ deeplink redirector
+  // format (StartDate/EndDate), which didn't appear to carry dates
+  // through correctly in practice.
   const params = new URLSearchParams({
-    SearchType: "Destination",
-    CityName: `${location}, Islay, Scotland`,
-    StartDate: checkin,
-    EndDate: checkout,
-    NumRoom: "1",
-    NumAdult1: "2",
+    destination: `${location}, Islay, Scotland`,
+    chkin: checkin,
+    chkout: checkout,
+    rm1: "a2", // room 1: 2 adults
     mdpcid: HOTELS_MDPCID,
   });
-  return `https://www.hotels.com/go/hotel/search/Destination?${params.toString()}`;
+  return `https://uk.hotels.com/Hotel-Search?${params.toString()}`;
 }
