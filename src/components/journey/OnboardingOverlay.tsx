@@ -19,7 +19,7 @@ import type { TripTiming } from "@/lib/types";
 //   the dot points at one specific button within it)
 // ─────────────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = "dramstory_onboarding_seen_v6";
+const STORAGE_KEY = "dramstory_onboarding_seen_v7";
 const BOWMORE_SELECTOR = '[data-distillery-slug="bowmore"]';
 const PIN_SPOTLIGHT_DIAMETER = 110;
 const RECT_PADDING = 8;
@@ -28,10 +28,10 @@ interface CutoutTarget {
   selector?: string;
   id?: string;
   shape: "circle" | "rect";
-  /** Step 2 only: once Bowmore's popup is open, expand the cutout to
-   *  cover both the pin and the popup together (as one combined rect),
-   *  not just the tiny pin - otherwise the popup itself sits outside the
-   *  spotlight and reads as darkened-out. */
+  /** Once Bowmore's popup is open, expand the cutout to cover both the
+   *  pin and the popup together (as one combined rect), not just the
+   *  tiny pin - otherwise the popup itself sits outside the spotlight
+   *  and reads as darkened-out. */
   includePopupFor?: string;
 }
 
@@ -54,59 +54,81 @@ interface Step {
   advanceOn?: DotTarget;
 }
 
-const BASE_STEPS: Step[] = [
-  {
-    icon: "🥃",
-    text: "Tap a distillery to see details",
-    cutout: { selector: BOWMORE_SELECTOR, shape: "circle" },
-    advanceOn: { selector: BOWMORE_SELECTOR },
-  },
-  {
-    icon: "➕",
-    text: "Add it to your Journey",
-    cutout: { selector: BOWMORE_SELECTOR, shape: "circle", includePopupFor: "bowmore" },
-    openPopupSlug: "bowmore",
-    advanceOn: { selector: '[data-add-distillery="bowmore"]' },
-  },
-  { icon: "🗺️", text: "See your route, timings, and running cost on the left", cutout: { id: "onboard-sidebar", shape: "rect" } },
-  {
-    icon: "⚖️",
-    text: "Compare distilleries anytime from the menu",
-    cutout: { id: "onboard-nav-distilleries", shape: "rect" },
-    advanceOn: { id: "onboard-nav-distilleries" },
-  },
-  {
-    icon: "🌊",
-    text: "Click here to explore natural and local features",
-    cutout: { id: "onboard-nav-local-features", shape: "rect" },
-    advanceOn: { id: "onboard-nav-local-features" },
-  },
-  {
-    icon: "🌿",
-    text: "Click to see further things to explore",
-    cutout: { id: "onboard-toolbar-row", shape: "rect" },
-    dot: { selector: '[data-category-id="natural-features"]' },
-    advanceOn: { selector: '[data-category-id="natural-features"]' },
-  },
-  {
-    icon: "🥃",
-    text: "Click Distilleries to return to main map",
-    cutout: { id: "onboard-toolbar-row", shape: "rect" },
-    dot: { selector: '[data-category-id="distilleries"]' },
-    advanceOn: { selector: '[data-category-id="distilleries"]' },
-  },
-];
+// Rewritten 19 July 2026 for the pre-populated workspace (the old
+// sequence assumed a blank map and taught "tap a distillery, add it,
+// watch your sidebar fill up" as the very first thing - no longer true
+// once a visitor's workspace opens with a real Day already built in).
+//
+// TRIP_SO_FAR is skipped for "today" visitors, since that flow still
+// opens blank for now (its own considered default is separate,
+// unbuilt work - see JourneyFlow.tsx) - its premise ("look, you
+// already have a trip") wouldn't be true for them.
+const TRIP_SO_FAR_STEP: Step = {
+  icon: "🗺️",
+  text: "This is your trip so far — see your route, timings, and running cost on the left",
+  cutout: { id: "onboard-sidebar", shape: "rect" },
+};
+
+// Placeholder target - there's no live Days Hub nav link yet (as of 19
+// July 2026, the Hub isn't in live navigation, per the agreed sequencing
+// of finishing infrastructure/content before go-live). This step can't
+// actually be wired up until that link exists. Flagged rather than
+// pointing at nothing or fabricating a fake target.
+const ADD_DAYS_STEP: Step = {
+  icon: "📖",
+  text: "Add more ready-made days here",
+  cutout: { id: "onboard-nav-days-hub", shape: "rect" }, // TODO: id doesn't exist yet
+  advanceOn: { id: "onboard-nav-days-hub" },
+};
+
+const DISTILLERY_STEP: Step = {
+  icon: "🥃",
+  text: "Tap any distillery to see details, then add it to your trip yourself",
+  cutout: { selector: BOWMORE_SELECTOR, shape: "circle", includePopupFor: "bowmore" },
+  openPopupSlug: "bowmore",
+  advanceOn: { selector: '[data-add-distillery="bowmore"]' },
+};
+
+const LOCAL_FEATURES_HUB_STEP: Step = {
+  icon: "🌊",
+  text: "Explore local features",
+  cutout: { id: "onboard-nav-local-features", shape: "rect" },
+  advanceOn: { id: "onboard-nav-local-features" },
+};
+
+const LOCAL_FEATURES_OVERLAY_STEP: Step = {
+  icon: "🌿",
+  text: "...or see them right on the map",
+  cutout: { id: "onboard-toolbar-row", shape: "rect" },
+  dot: { selector: '[data-category-id="natural-features"]' },
+  advanceOn: { selector: '[data-category-id="natural-features"]' },
+};
 
 // Skipped for "today" visitors - there's no date control to point at
 // (the header shows a static "📅 Today" badge instead), and picking
 // travel dates isn't a relevant action for someone visiting today anyway.
 const DATES_STEP: Step = {
   icon: "📅",
-  text: "Select your travel dates",
+  text: "Pick your dates",
   cutout: { id: "onboard-header-dates", shape: "rect" },
-  dot: { selector: '[data-date-mode-btn="range"]' },
-  advanceOn: { selector: '[data-date-mode-btn="range"]' },
 };
+
+const ACCOMMODATION_STEP: Step = {
+  icon: "🛏️",
+  text: "Book your stay",
+  cutout: { id: "onboard-toolbar-row", shape: "rect" },
+  dot: { selector: '[data-category-id="places-to-stay"]' },
+  advanceOn: { selector: '[data-category-id="places-to-stay"]' },
+};
+
+function buildSteps(timing: TripTiming): Step[] {
+  const steps: Step[] = [];
+  if (timing !== "today") steps.push(TRIP_SO_FAR_STEP);
+  steps.push(ADD_DAYS_STEP, DISTILLERY_STEP, LOCAL_FEATURES_HUB_STEP, LOCAL_FEATURES_OVERLAY_STEP);
+  if (timing !== "today") steps.push(DATES_STEP);
+  steps.push(ACCOMMODATION_STEP);
+  return steps;
+}
 
 function subscribe(): () => void {
   return () => {};
@@ -144,7 +166,7 @@ function unionRect(a: Rect, b: Rect): Rect {
 }
 
 export default function OnboardingOverlay({ timing }: { timing: TripTiming }) {
-  const STEPS = useMemo(() => (timing === "today" ? BASE_STEPS : [...BASE_STEPS, DATES_STEP]), [timing]);
+  const STEPS = useMemo(() => buildSteps(timing), [timing]);
   const [step, setStep] = useState(0);
   const [dismissed, setDismissed] = useState(false);
   const [cutoutRect, setCutoutRect] = useState<Rect | null>(null);
@@ -300,7 +322,7 @@ export default function OnboardingOverlay({ timing }: { timing: TripTiming }) {
         <button className="onboarding-dismiss" onClick={dismiss} aria-label="Dismiss">
           &times;
         </button>
-        <div className="onboarding-heading">How to Navigate</div>
+        <div className="onboarding-heading">Your Trip, Ready to Go</div>
         <div className="onboarding-icon">{currentStep.icon}</div>
         <p className="onboarding-text">{currentStep.text}</p>
         <div className="onboarding-footer">
