@@ -10,6 +10,7 @@ import { getMonthClimate, MONTH_NAMES } from "@/lib/islay-climate";
 import { estimatedDriveMinutes, formatDuration } from "@/lib/drive-time";
 import { useRouteSegments } from "@/lib/use-route-segments";
 import { useTrip } from "@/lib/trip-context";
+import { buildAccommodationBookingLink } from "@/lib/accommodation-links";
 import { stopCoords, stopId, stopName, stopVisitMinutes, incrementVisitMinutes } from "@/lib/itinerary-stop";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
@@ -765,32 +766,45 @@ export default function Workspace({
                     <span>{expandedCategoryData.icon}</span> {expandedCategoryData.label}
                   </button>
                   <span className="toolbar-divider" />
-                  <button
-                    className={
-                      "subcat-chip" +
-                      (Array.from(activeSubcats).every((k) => !k.startsWith(`${expandedCategoryData.id}:`))
-                        ? " active"
-                        : "")
-                    }
-                    onClick={() => clearSubcatsForCategory(expandedCategoryData.id)}
-                  >
-                    Everything
-                  </button>
-                  {expandedCategoryData.subcategories.map((sub) => {
-                    const key = `${expandedCategoryData.id}:${sub}`;
-                    return (
-                      <button
-                        key={key}
-                        className={"subcat-chip" + (activeSubcats.has(key) ? " active" : "")}
-                        onClick={() => toggleSubcat(key)}
+                  {expandedCategoryData.id === "places-to-stay" ? (
+                    <>
+                      <AccommodationControl dayIndex={activeDayIndex} accommodation={accommodation} />
+                      <a
+                        href={buildAccommodationBookingLink(accommodation?.name ?? "Port Ellen", trip.tripDates)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="subcat-chip"
+                        style={{ background: "var(--green-deep)", color: "white", fontWeight: 600 }}
                       >
-                        {sub}
+                        Book Now
+                      </a>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        className={
+                          "subcat-chip" +
+                          (Array.from(activeSubcats).every((k) => !k.startsWith(`${expandedCategoryData.id}:`))
+                            ? " active"
+                            : "")
+                        }
+                        onClick={() => clearSubcatsForCategory(expandedCategoryData.id)}
+                      >
+                        Everything
                       </button>
-                    );
-                  })}
-
-                  {expandedCategoryData.id === "places-to-stay" && (
-                    <AccommodationControl dayIndex={activeDayIndex} accommodation={accommodation} />
+                      {expandedCategoryData.subcategories.map((sub) => {
+                        const key = `${expandedCategoryData.id}:${sub}`;
+                        return (
+                          <button
+                            key={key}
+                            className={"subcat-chip" + (activeSubcats.has(key) ? " active" : "")}
+                            onClick={() => toggleSubcat(key)}
+                          >
+                            {sub}
+                          </button>
+                        );
+                      })}
+                    </>
                   )}
                 </>
               ) : (
