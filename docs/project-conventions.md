@@ -69,6 +69,8 @@ docs it points to below - this file is the map, not a replacement for any of the
 |---|---|
 | `content-sourcing-standards.md` | Sourcing rules, required fields per record type, photo requirements |
 | `day-narrative-standard.md` | The Hub Day narrative bar, with before/after examples |
+| `brand-voice.md` | How to actually write for this site - tone, honesty, never-fabricate rules |
+| `content-structure-conventions.md` | Page/template structure as currently built - distillery pages, Classic Journey day template, Local Features Hub |
 | `deferred-features.md` | Product ideas deliberately parked, not forgotten |
 | `technical-notes.md` | Real findings about how the site actually behaves (caching, automation limits) |
 | `business-plan.md` | Core objective, monetization sequencing, accommodation strategy, partnership opportunities |
