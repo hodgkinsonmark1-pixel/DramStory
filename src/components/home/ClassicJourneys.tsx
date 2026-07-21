@@ -31,7 +31,9 @@ export default function ClassicJourneys({ distilleries }: { distilleries: Distil
                 type="button"
                 className="journey-card journey-card-not-live"
                 onClick={() =>
-                  setNotice(`${journey.name} isn't fully mapped out yet — check out the Islay Grand Tour instead.`)
+                  setNotice(
+                    `${journey.name} isn't fully mapped out yet — check out the Islay Grand Tour, or browse our Pre-Designed Days, instead.`
+                  )
                 }
               >
                 {cardContent}
@@ -46,6 +48,10 @@ export default function ClassicJourneys({ distilleries }: { distilleries: Distil
           );
         })}
       </div>
+
+      <p className="journeys-hub-link">
+        Prefer to plan day by day? <Link href="/days">Browse all Pre-Designed Days &rarr;</Link>
+      </p>
 
       {notice && (
         <div className="location-notice">

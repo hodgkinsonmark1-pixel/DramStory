@@ -115,6 +115,20 @@
   font-weight: 500;
   color: var(--dark);
 }
+.journeys-hub-link {
+  text-align: center;
+  margin: 32px auto 0;
+  font-size: 14px;
+  color: var(--peat);
+}
+.journeys-hub-link a {
+  color: var(--copper);
+  font-weight: 600;
+  text-decoration: none;
+}
+.journeys-hub-link a:hover {
+  text-decoration: underline;
+}
 
 .featured-section {
   background: white;
