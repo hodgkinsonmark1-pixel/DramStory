@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Distillery, JournalPost, LocalEvent, LocalFeature, PlaceListing } from "@/lib/types";
 import { airtableFetchAll } from "@/lib/airtable";
 import { searchAccommodation, searchNearbyByCategory } from "@/lib/google-places";
@@ -28,19 +29,22 @@ import {
 //                                                                    (fallback: Google Places "lodging")
 // ─────────────────────────────────────────────────────────────────────────
 
-let distilleriesCache: Promise<Distillery[]> | null = null;
-
-export async function getDistilleries(): Promise<Distillery[]> {
-  if (!distilleriesCache) {
-    distilleriesCache = fetchDistilleriesFromAirtable().catch((err) => {
-      // Reset the cache on failure so the next request retries instead of
-      // permanently serving a rejected promise.
-      distilleriesCache = null;
-      throw err;
-    });
-  }
-  return distilleriesCache;
-}
+// UPDATE 21 July 2026 - this used to be a hand-rolled module-level `let
+// distilleriesCache: Promise<...> | null` memo. That's WRONG in a
+// serverless environment: a warm Vercel function instance can survive
+// across many separate incoming requests, and a plain module-level
+// variable survives with it - so the very first successful fetch on a
+// given warm instance silently became "the" answer for every later
+// request that instance ever served, however stale, regardless of any
+// per-fetch cache option. This was a real, live contributor to the
+// Port Ellen/Isle of Jura undercount investigated the same day (see
+// technical-notes.md). React's cache() is the correct tool here: it
+// memoizes/dedupes within a single request's render pass only, and
+// never persists across separate requests, so it can't reintroduce
+// this exact staleness.
+export const getDistilleries = cache(async (): Promise<Distillery[]> => {
+  return fetchDistilleriesFromAirtable();
+});
 
 async function fetchDistilleriesFromAirtable(): Promise<Distillery[]> {
   const [distilleryRecords, tourRecords, featureRecords] = await Promise.all([
@@ -115,18 +119,13 @@ async function fetchDistilleriesFromAirtable(): Promise<Distillery[]> {
 }
 
 /** Natural Features (Beach/Walk/Bike Route/Local Gem) for the workspace
- *  map's overlay - separate from each distillery's own "Nearby" list. */
-let localFeaturesCache: Promise<LocalFeature[]> | null = null;
-
-export async function getLocalFeatures(): Promise<LocalFeature[]> {
-  if (!localFeaturesCache) {
-    localFeaturesCache = fetchLocalFeaturesFromAirtable().catch((err) => {
-      localFeaturesCache = null;
-      throw err;
-    });
-  }
-  return localFeaturesCache;
-}
+ *  map's overlay - separate from each distillery's own "Nearby" list.
+ *  Uses React's cache() (see getDistilleries above for why) rather than a
+ *  module-level variable, so this can't persist stale data across
+ *  separate requests on a warm serverless instance. */
+export const getLocalFeatures = cache(async (): Promise<LocalFeature[]> => {
+  return fetchLocalFeaturesFromAirtable();
+});
 
 async function fetchLocalFeaturesFromAirtable(): Promise<LocalFeature[]> {
   const records = await airtableFetchAll<AirtableLocalFeatureFields>("Local Features");
@@ -141,18 +140,11 @@ export async function getLocalFeatureBySlug(slug: string): Promise<LocalFeature 
 }
 
 /** Journal blog posts - filters out drafts (Published unchecked) so
- *  in-progress writing never accidentally goes live. */
-let journalPostsCache: Promise<JournalPost[]> | null = null;
-
-export async function getJournalPosts(): Promise<JournalPost[]> {
-  if (!journalPostsCache) {
-    journalPostsCache = fetchJournalPostsFromAirtable().catch((err) => {
-      journalPostsCache = null;
-      throw err;
-    });
-  }
-  return journalPostsCache;
-}
+ *  in-progress writing never accidentally goes live. React's cache() again
+ *  (see getDistilleries above) rather than a module-level variable. */
+export const getJournalPosts = cache(async (): Promise<JournalPost[]> => {
+  return fetchJournalPostsFromAirtable();
+});
 
 async function fetchJournalPostsFromAirtable(): Promise<JournalPost[]> {
   const records = await airtableFetchAll<AirtableJournalFields>("Journal");

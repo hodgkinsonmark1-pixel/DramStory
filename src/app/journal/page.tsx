@@ -11,6 +11,13 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 }
 
+// Forced dynamic 21 July 2026 - same fix as /distilleries (see
+// docs/technical-notes.md): this was silently prerendered fully static,
+// so a newly published Journal post wouldn't show up here until the next
+// deploy regenerated it, same class of bug that hid Port Ellen and Isle
+// of Jura on the distilleries page.
+export const dynamic = "force-dynamic";
+
 export default async function JournalPage() {
   const posts = await getJournalPosts();
 

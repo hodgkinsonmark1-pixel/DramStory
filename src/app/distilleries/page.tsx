@@ -4,6 +4,15 @@ import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import DistilleriesGrid from "@/components/DistilleriesGrid";
 
+// Forced dynamic 21 July 2026 - this page was silently prerendered as
+// fully static (built once, frozen until the next deploy) even after the
+// underlying Airtable fetch was switched to cache: "no-store". A static
+// page's data fetch only ever runs at build time regardless of the
+// fetch's own cache option, so Port Ellen and Isle of Jura (added to
+// Airtable 9/11 July) stayed invisible here for 10+ days. See
+// docs/technical-notes.md for the full investigation.
+export const dynamic = "force-dynamic";
+
 export default async function DistilleriesIndexPage() {
   const distilleries = await getDistilleries();
 

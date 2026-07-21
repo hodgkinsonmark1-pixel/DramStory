@@ -6,6 +6,13 @@ import LocalFeaturesGrid from "@/components/LocalFeaturesGrid";
 
 const HUB_CATEGORIES = new Set(["beach", "walk", "bike-route", "local-gem", "historic-site", "transport"]);
 
+// Forced dynamic 21 July 2026 - same fix as /distilleries (see
+// docs/technical-notes.md): this was silently prerendered fully static,
+// so a new Local Feature added in Airtable wouldn't show up here until
+// the next deploy regenerated it, same class of bug that hid Port Ellen
+// and Isle of Jura on the distilleries page.
+export const dynamic = "force-dynamic";
+
 export default async function LocalFeaturesHubPage() {
   const allFeatures = await getLocalFeatures();
   const hubFeatures = allFeatures.filter((f) => HUB_CATEGORIES.has(f.category));
