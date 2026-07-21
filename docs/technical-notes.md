@@ -29,15 +29,46 @@ was available in that session to directly purge Vercel's Data Cache by
 tag (`vercel cache invalidate` needs an interactive login; a
 `revalidateTag` route needs a new secret env var set in Vercel first).
 
-Second attempt, this is what's actually live now: switched to
-`cache: "no-store"` - every request hits Airtable live, no Data Cache
-involved, so this exact bug class can't recur. Cost is one live
-Airtable call per table per request; acceptable for now given low
-pre-launch traffic and the Team plan quota headroom (see further down
-this file). Worth reintroducing real caching - ideally with proper
-on-demand revalidation (`revalidateTag` tied to an Airtable webhook,
-not a bare time window) - once traffic actually makes the per-request
-Airtable calls worth optimising away.
+Second attempt: switched to `cache: "no-store"`. Also did NOT fix it -
+checked live again after that deploy, still 9. This is what finally
+revealed the REAL root cause wasn't the Data Cache at all: the Next.js
+build output showed `/distilleries` as `○ (Static)` - a fully static
+page whose data fetch runs exactly once, at build time, no matter what
+caching option the underlying fetch uses. Neither of the two attempts
+above could ever have worked, because they only affect re-fetch
+behaviour for a page that actually re-renders - a static page never
+does, after build.
+
+Added a temporary always-dynamic diagnostic API route
+(`/api/debug-distilleries`, since removed) to check, directly and live,
+what Vercel's actual configured Airtable credentials return - confirmed
+11 real records, Port Ellen and Isle of Jura both present, base ID
+correct. This proved the data layer was fine and pointed squarely at
+page-level static rendering as the real cause.
+
+**Actual fix, two parts:**
+1. `export const dynamic = "force-dynamic"` added to `/distilleries`,
+   `/local-features`, and `/journal` (the three Airtable-backed index
+   pages that were silently static) - forces per-request rendering
+   instead of a build-time-frozen page.
+2. `getDistilleries`/`getLocalFeatures`/`getJournalPosts` in
+   `src/lib/data/index.ts` used a hand-rolled module-level
+   `let cache: Promise<T> | null` memo. In a serverless environment a
+   warm function instance survives across many separate incoming
+   requests, and a plain module-level variable survives with it - so
+   the first successful fetch on a given warm instance would silently
+   become the answer for every later request that instance served,
+   regardless of any per-fetch cache option. This would have
+   undermined `force-dynamic` on its own. Replaced with React's
+   `cache()` (the documented per-request dedupe primitive for exactly
+   this pattern in the App Router), which cannot persist across
+   separate requests the way a bare module variable does.
+
+`cache: "no-store"` on the underlying Airtable fetch (from the second
+attempt) was left in place - harmless now, and correct given these
+pages are dynamic anyway. Cost is one live Airtable call per table per
+request to these three pages; acceptable given low pre-launch traffic
+and the Team plan quota headroom (see further down this file).
 
 **The behaviour (as originally found, now historical - `src/lib/airtable.ts`
 no longer uses a cached fetch at all, see update above):** the fetches used:
