@@ -54,9 +54,21 @@ export async function airtableFetchAll<T>(table: string): Promise<AirtableRecord
 
     const res = await fetch(url.toString(), {
       headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` },
-      // ISR: re-fetch from Airtable at most once an hour. Adjust as needed —
-      // set to 0 / remove during active content editing if you want instant updates.
-      next: { revalidate: 3600 },
+      // ISR, shortened 21 July 2026 (was 3600/1hr) - real incident: Port
+      // Ellen and Isle of Jura were added to the Distilleries table on 9
+      // and 11 July but stayed invisible on the live /distilleries page
+      // for 10+ days. Root cause per docs/technical-notes.md: this Data
+      // Cache entry can persist across deployments, so redeploying alone
+      // didn't force a refresh, and low pre-launch traffic meant nothing
+      // triggered the background revalidation either. 60s means any
+      // content-editing session self-heals on the live site within a
+      // minute, at the cost of one extra Airtable API call per table per
+      // minute under real traffic - fine given the Team plan headroom
+      // (see technical-notes.md, "Airtable API quota (historical,
+      // resolved)"). Worth raising again once content stabilises post-MVP,
+      // or replacing with proper on-demand revalidation (revalidateTag)
+      // tied to an Airtable webhook if this keeps needing manual chasing.
+      next: { revalidate: 60 },
     });
 
     if (!res.ok) {
