@@ -7,6 +7,7 @@ import { useTrip } from "@/lib/trip-context";
 import LocationStep from "./LocationStep";
 import InterestsStep from "./InterestsStep";
 import Workspace from "./Workspace";
+import { FEATURED_STAYS } from "./AccommodationControl";
 
 interface JourneyFlowProps {
   timing: TripTiming;
@@ -165,10 +166,12 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
         const d = distilleries.find((x) => x.slug === slug);
         if (d) trip.addStop(0, d);
       }
-      // Port Ellen as the default accommodation base, matching the map's
-      // own default center - see 19 July 2026 conversation. Real
-      // coordinates, same figure used for MapCanvas's ISLAY_CENTER.
-      trip.setAccommodation(0, { name: "Port Ellen", lat: 55.63, lng: -6.188 });
+      // The Machrie as the default accommodation base (21 July 2026 -
+      // supersedes the original Port Ellen default from 19 July). Same
+      // Featured Stay AccommodationControl now defaults to whenever a day
+      // has no stay set - kept in sync via the shared FEATURED_STAYS
+      // export rather than a second hardcoded value here.
+      trip.setAccommodation(0, FEATURED_STAYS[0]);
       trip.completeIntake({ timing, location: freshLocation, interests: freshInterests });
       setStep("workspace");
       setHandledInitialState(true);
