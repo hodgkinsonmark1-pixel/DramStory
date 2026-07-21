@@ -8,12 +8,26 @@ function parseTiming(mode: string | string[] | undefined): TripTiming {
   return "dreaming";
 }
 
+/** Temporary QA aid, added 21 July 2026 - lets Mark preview seedTodayDay's
+ *  before/after-4pm branches on demand (e.g. ?mode=today&debugHour=13)
+ *  without waiting for the device clock to actually reach that hour.
+ *  Undefined (real device clock used) unless a valid 0-23 integer is
+ *  passed. Remove once the "today" flow is merged to main and this kind
+ *  of manual spot-check is no longer needed. */
+function parseDebugHour(debugHour: string | string[] | undefined): number | undefined {
+  const value = Array.isArray(debugHour) ? debugHour[0] : debugHour;
+  if (value === undefined) return undefined;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 23) return undefined;
+  return parsed;
+}
+
 export default async function JourneyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string; resume?: string }>;
+  searchParams: Promise<{ mode?: string; resume?: string; debugHour?: string }>;
 }) {
-  const { mode, resume } = await searchParams;
+  const { mode, resume, debugHour } = await searchParams;
   // Deliberately NOT awaited, same reasoning as Local Features/Events
   // below: Q2's primary region cards don't touch distillery data at all -
   // only the secondary "a specific distillery" dropdown does. Blocking
@@ -41,6 +55,7 @@ export default async function JourneyPage({
       localEventsPromise={localEventsPromise}
       journalPostsPromise={journalPostsPromise}
       resume={resume === "1"}
+      debugHour={parseDebugHour(debugHour)}
     />
   );
 }
