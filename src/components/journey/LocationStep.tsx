@@ -36,6 +36,10 @@ export function DistilleryPicker({
   onNext: (answer: LocationAnswer) => void;
 }) {
   const distilleries = use(distilleriesPromise);
+  // Alphabetical, not Airtable record order - easier to scan/find a
+  // specific name in a plain <select> than whatever order records
+  // happen to be in.
+  const sortedDistilleries = [...distilleries].sort((a, b) => a.name.localeCompare(b.name));
   return (
     <select
       className="q-card location-inline-input"
@@ -46,7 +50,7 @@ export function DistilleryPicker({
       autoFocus
     >
       <option value="">Choose a distillery…</option>
-      {distilleries.map((d) => (
+      {sortedDistilleries.map((d) => (
         <option key={d.slug} value={d.slug}>
           {d.name} · {d.region}
         </option>
