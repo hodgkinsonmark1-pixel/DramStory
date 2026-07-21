@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import type { Distillery, InterestCategoryId, JournalPost, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
 import { useTrip } from "@/lib/trip-context";
 import LocationStep from "./LocationStep";
+import TodayLocationStep from "./TodayLocationStep";
 import InterestsStep from "./InterestsStep";
 import Workspace from "./Workspace";
 import { FEATURED_STAYS } from "@/lib/featured-stays";
+import { estimatedDriveMinutes, formatDuration } from "@/lib/drive-time";
+import { TODAY_EXCLUDED_DISTILLERY_SLUGS } from "@/lib/journey-options";
 
 interface JourneyFlowProps {
   timing: TripTiming;
@@ -39,7 +42,7 @@ interface JourneyFlowProps {
   resume: boolean;
 }
 
-type Step = "location" | "interests" | "workspace";
+type Step = "location" | "today-location" | "interests" | "workspace";
 
 // Q3 ("what matters most to your trip?") is skipped on desktop - the
 // walkthrough already demonstrates that every one of these categories is
@@ -59,6 +62,7 @@ function WorkspaceWithFeatures(props: {
   location: LocationAnswer;
   initialInterests: InterestCategoryId[];
   timing: TripTiming;
+  todayNotice?: string;
 }) {
   const distilleries = use(props.distilleriesPromise);
   const localFeatures = use(props.localFeaturesPromise);
@@ -71,6 +75,7 @@ function WorkspaceWithFeatures(props: {
       location={props.location}
       initialInterests={props.initialInterests}
       timing={props.timing}
+      todayNotice={props.todayNotice}
     />
   );
 }
@@ -118,10 +123,13 @@ function WorkspaceWithFeatures(props: {
  * default day started life as that exact Hub Day, so reusing its tours
  * keeps the two in sync rather than picking new ones by hand.
  *
- * "today" is deliberately left with the old default (no pre-seeded day,
- * just Distilleries active) - it needs its own considered default, not
- * this one, per 18 July 2026 conversation. Flagged as a real gap, not an
- * oversight.
+ * "today" now gets its own considered default (added 21 July 2026, see
+ * seedTodayDay below) rather than the old no-pre-seed fallback - it asks
+ * one lightweight extra question (TodayLocationStep: "which distillery are
+ * you nearest to right now?") and combines that with the device's current
+ * time to seed something realistic for the rest of the day, rather than
+ * reusing the planning/dreaming default verbatim (which assumes a full day
+ * still ahead, not true for someone asking at 4pm).
  */
 const DEFAULT_DAY_STOPS: { kind: "distillery" | "feature"; slug: string; note: string; tourName?: string }[] = [
   { kind: "distillery", slug: "laphroaig", note: "First stop of the day, starts at 10.", tourName: "Laphroaig Experience" },
@@ -131,6 +139,141 @@ const DEFAULT_DAY_STOPS: { kind: "distillery" | "feature"; slug: string; note: s
   { kind: "feature", slug: "port-ellen-beach", note: "Maybe a picnic on the beach or the pub to finish the day." },
 ];
 
+/** 4pm, agreed with Mark 21 July 2026 - conservative on purpose. Tours
+ *  aren't tracked with real start/end times in Airtable yet (Distillery.hours
+ *  is a freeform display string, not structured slots), so this can't know
+ *  whether a specific tour is actually still bookable - it only knows
+ *  roughly how much of the day is realistically left. Better to undersell
+ *  (send someone to a viewpoint who could maybe have squeezed in one more
+ *  tour) than oversell (seed a distillery whose last tour has already gone). */
+const EVENING_CUTOFF_HOUR = 16;
+
+/** Seeds today's single Day once TodayLocationStep answers "where" and the
+ *  device clock supplies "when" - see the JSDoc above DEFAULT_DAY_STOPS for
+ *  why this exists as its own function rather than reusing that default.
+ *
+ * Deliberately does NOT set a specific tour (setTourForStop) or a clock-time
+ * note the way DEFAULT_DAY_STOPS does for planning/dreaming - those come
+ * from Mark's direct, sourced input for one specific fixed route. This seed
+ * is generated fresh from whichever distillery/feature is nearest, so
+ * claiming a specific tour or time here would be inventing precision the
+ * underlying data can't back up. Notes stay honest about what's actually
+ * known: which stop is nearest, and roughly how far the next one is.
+ *
+ * Also deliberately does NOT set an accommodation default (unlike
+ * planning/dreaming's FEATURED_STAYS[0]) - inventing a place someone's
+ * staying tonight isn't ours to assume. Past the evening cutoff, the
+ * seeded stop's own note nudges toward the real "Where are you staying?"
+ * control instead.
+ *
+ * Returns the interest categories the workspace should open with, and (past
+ * the evening cutoff) an explainer notice - both computed here, alongside
+ * the actual stops, so there's exactly one place that decides what "past
+ * the evening cutoff" means. Added 21 July 2026 per Mark's direct
+ * feedback on the first pass: the workspace was opening on the
+ * "Distilleries" category even when zero distilleries were seeded (no
+ * visible reason given for why), and the "no distillery today" reasoning
+ * was buried in a stop's own note rather than stated up front. */
+function seedTodayDay(
+  trip: ReturnType<typeof useTrip>,
+  hour: number,
+  start: Distillery,
+  distilleries: Distillery[],
+  localFeatures: LocalFeature[]
+): { interests: InterestCategoryId[]; notice?: string } {
+  trip.initDays(1);
+
+  if (hour < EVENING_CUTOFF_HOUR) {
+    trip.addStop(0, start);
+    trip.setStopNote(0, start.slug, "Closest to where you are right now - worth checking what's still on today.");
+
+    // Before ~1pm there's realistically time for one more stop after this
+    // one; later than that, one distillery is a more honest suggestion
+    // than two.
+    const stopBudget = hour < 13 ? 2 : 1;
+    // TODAY_EXCLUDED_DISTILLERY_SLUGS (Jura) also excluded here - a
+    // ferry-only second stop is exactly as misleading as offering it as
+    // the starting point, and estimatedDriveMinutes has no idea a ferry
+    // is involved either way.
+    const others = distilleries
+      .filter((d) => d.slug !== start.slug && !TODAY_EXCLUDED_DISTILLERY_SLUGS.includes(d.slug))
+      .map((d) => ({ d, minutes: estimatedDriveMinutes(start, d) }))
+      .sort((a, b) => a.minutes - b.minutes);
+
+    // Based on how many second-stop slots actually got filled, not just
+    // stopBudget itself - a near-empty distilleries list (shouldn't happen
+    // with 11 real records, but keeps this honest either way) would
+    // otherwise still claim "we've added a second" when nothing was added.
+    const secondStopCount = Math.min(stopBudget - 1, others.length);
+    for (let i = 0; i < secondStopCount; i++) {
+      const { d, minutes } = others[i];
+      trip.addStop(0, d);
+      trip.setStopNote(0, d.slug, `About ${formatDuration(minutes)} on from your first stop.`);
+    }
+
+    // Per Mark's 21 July feedback: explain why one vs two stops were
+    // chosen, and point toward the other category tabs even though only
+    // Distilleries is pre-seeded for this path.
+    const daytimeNotice =
+      secondStopCount > 0
+        ? "There's a lot of today ahead, so we've added a second distillery near your first stop.\n\nFancy something different instead? Local attractions, natural features and places to eat are all worth a browse in the menu above."
+        : "There's still time for a distillery visit today, but not quite enough for a second, so we've kept it to the one nearest you.\n\nLooking for some non-whisky experiences this afternoon too? Local attractions, natural features and places to eat are all in the menu above.";
+    return { interests: ["distilleries"], notice: daytimeNotice };
+  }
+
+  // Too late in the day for a fresh distillery tour to be a fair
+  // suggestion - wind down with one nearby Local Feature instead (per
+  // Mark's 21 July feedback: one specific, warmly-framed suggestion reads
+  // better than two generic nearest-anything stops), and nudge toward
+  // sorting accommodation if that's still needed tonight. Opens on the
+  // categories that are actually relevant now (food/drink, natural
+  // features, places to stay) rather than leaving "Distilleries" active
+  // with nothing seeded under it.
+  const eveningInterests: InterestCategoryId[] = ["natural-features", "local-attractions", "places-to-eat", "places-to-stay"];
+  const eveningExplainer =
+    "It's getting late in the day for a fresh distillery tour, so instead see attractions, natural features, places to eat and drink that are local to you.";
+
+  // Tiered search, nearest first within each tier: a genuine "local gem"
+  // record if one's close, otherwise widen to the rest of the Natural
+  // Features bucket (beach/walk/bike-route), otherwise any Local Feature
+  // at all bar transport - so this always finds something to suggest
+  // rather than seeding nothing just because no literal "local gem" is
+  // nearby.
+  function nearest(categories: LocalFeature["category"][]) {
+    return localFeatures
+      .filter((f) => categories.includes(f.category))
+      .map((f) => ({ f, minutes: estimatedDriveMinutes(start, f) }))
+      .sort((a, b) => a.minutes - b.minutes)[0];
+  }
+  const chosen =
+    nearest(["local-gem"]) ??
+    nearest(["beach", "walk", "bike-route"]) ??
+    nearest(["historic-site", "attraction-gem", "pub", "cafe", "restaurant", "golf", "spa"]);
+
+  if (chosen) {
+    trip.addFeatureStop(0, chosen.f);
+    trip.setStopNote(
+      0,
+      chosen.f.id,
+      `Why don't you visit this local gem? It's about ${formatDuration(chosen.minutes)} from where you are now. If you still need somewhere to stay tonight, add it under "Where are you staying?" below.`
+    );
+    // Per Mark's 21 July feedback: the same "why don't you visit this
+    // local gem" nudge repeated in the itinerary panel's own notice box
+    // (blank line, then the question) - the stop's own note above only
+    // shows once that stop card is expanded, so this makes the same
+    // suggestion visible immediately, without needing to expand anything.
+    const eveningNotice = `${eveningExplainer}\n\nWhy don't you visit this local gem?`;
+    return { interests: eveningInterests, notice: eveningNotice };
+  }
+
+  // No Local Features resolved at all (shouldn't normally happen) - fall
+  // back to the starting distillery itself rather than seeding an empty
+  // day, and skip the "local gem" line since nothing was actually seeded.
+  trip.addStop(0, start);
+  trip.setStopNote(0, start.slug, "Worth checking if there's still time for a visit today.");
+  return { interests: eveningInterests, notice: eveningExplainer };
+}
+
 export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, resume }: JourneyFlowProps) {
   const router = useRouter();
   const trip = useTrip();
@@ -138,6 +281,9 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
   const [location, setLocation] = useState<LocationAnswer | null>(null);
   const [interests, setInterests] = useState<InterestCategoryId[]>([]);
   const [handledInitialState, setHandledInitialState] = useState(false);
+  // Only ever set by TodayLocationStep's onNext, past the evening cutoff -
+  // see seedTodayDay. Undefined for every other path/timing.
+  const [todayNotice, setTodayNotice] = useState<string | undefined>(undefined);
 
   // Runs once trip.ready flips true (localStorage hydration completes):
   // - resume=1 + a saved intake exists -> jump straight to the workspace
@@ -151,7 +297,8 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
   //   timing planning/dreaming -> seed the default Day (see above) and go
   //   straight to the workspace, skipping Q2/Q3 entirely
   // - otherwise (fresh "today" visit) -> clear any stale trip, skip
-  //   Q2/Q3, go to the workspace with the old no-pre-seed default
+  //   Q2/Q3, but ask the one lightweight TodayLocationStep question before
+  //   seeding (see seedTodayDay above) and moving to the workspace
   useEffect(() => {
     if (!trip.ready || handledInitialState) return;
     if (resume && trip.intake) {
@@ -179,10 +326,10 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
     setInterests(freshInterests);
 
     if (timing === "today") {
-      // "today" gets its own considered default later - for now, same
-      // no-pre-seed fallback the desktop skip already used.
-      trip.completeIntake({ timing, location: freshLocation, interests: freshInterests });
-      setStep("workspace");
+      // Ask TodayLocationStep's one question before seeding anything -
+      // see seedTodayDay for what "where" (this answer) and "when" (the
+      // device clock, read once the question is answered) combine into.
+      setStep("today-location");
       setHandledInitialState(true);
       return;
     }
@@ -220,11 +367,41 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
 
   // Avoids ever flashing the now-inactive Q2 (location) UI while the
   // initial-state effect above is still resolving - it always moves past
-  // "location" once handledInitialState flips true, so gating the render
-  // on that too means LocationStep/InterestsStep are retained in code but
-  // never actually shown in the current flow.
+  // the inactivated "location"/"interests" steps once handledInitialState
+  // flips true, so gating the render on that too means LocationStep/
+  // InterestsStep are retained in code but never actually shown in the
+  // current flow. "today-location" is a live exception - handledInitialState
+  // flipping true for a fresh "today" visit means "show that question now",
+  // not "skip past it".
   if (!handledInitialState) {
     return <div className="workspace-root" />;
+  }
+
+  if (step === "today-location") {
+    return (
+      <TodayLocationStep
+        distilleriesPromise={distilleriesPromise}
+        onBack={() => router.push("/")}
+        onNext={(distillerySlug) => {
+          const answer: LocationAnswer = { kind: "distillery", distillerySlug };
+          setLocation(answer);
+          Promise.all([distilleriesPromise, localFeaturesPromise]).then(([distilleries, localFeatures]) => {
+            const start = distilleries.find((d) => d.slug === distillerySlug);
+            // Fallback interests if the chosen slug somehow isn't found
+            // (shouldn't happen - it came from this same distilleries
+            // list) - matches the pre-cutoff default rather than seeding
+            // nothing and explaining nothing.
+            const seeded = start
+              ? seedTodayDay(trip, new Date().getHours(), start, distilleries, localFeatures)
+              : { interests: ["distilleries"] as InterestCategoryId[] };
+            setInterests(seeded.interests);
+            setTodayNotice(seeded.notice);
+            trip.completeIntake({ timing, location: answer, interests: seeded.interests });
+            setStep("workspace");
+          });
+        }}
+      />
+    );
   }
 
   if (step === "location") {
@@ -279,6 +456,7 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
         location={location!}
         initialInterests={interests}
         timing={trip.intake?.timing ?? timing}
+        todayNotice={todayNotice}
       />
     </Suspense>
   );

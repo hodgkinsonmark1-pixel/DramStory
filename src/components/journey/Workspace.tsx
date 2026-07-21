@@ -8,6 +8,7 @@ import { CLASSIC_JOURNEYS, getJourneyDistilleries } from "@/lib/journeys-data";
 import { roundPriceUp } from "@/lib/pricing";
 import { getMonthClimate, MONTH_NAMES } from "@/lib/islay-climate";
 import { estimatedDriveMinutes, formatDuration } from "@/lib/drive-time";
+import { nearestWeatherReference } from "@/lib/weather-links";
 import { useRouteSegments } from "@/lib/use-route-segments";
 import { useTrip } from "@/lib/trip-context";
 import { stopCoords, stopId, stopName, stopVisitMinutes, incrementVisitMinutes } from "@/lib/itinerary-stop";
@@ -26,6 +27,13 @@ interface WorkspaceProps {
   location: LocationAnswer;
   initialInterests: InterestCategoryId[];
   timing: TripTiming;
+  /** A one-off explainer shown once at the top of the itinerary panel -
+   *  currently only set by JourneyFlow's seedTodayDay, for the "today,
+   *  past the evening cutoff" case, explaining plainly why no distillery
+   *  was seeded (added 21 July 2026, per Mark's direct feedback that the
+   *  reasoning was previously buried in a stop's own note rather than
+   *  stated up front). Undefined for every other path - no banner shows. */
+  todayNotice?: string;
 }
 
 function describeLocation(location: LocationAnswer): string {
@@ -35,6 +43,19 @@ function describeLocation(location: LocationAnswer): string {
     return region?.label ?? "Your trip";
   }
   return islayLabel;
+}
+
+/** For "today" only (added 21 July 2026, per Mark's feedback): always
+ *  states the Local Events position outright - either what's on today, or
+ *  that nothing is - rather than staying silent whenever nothing's on.
+ *  Non-"today" timings keep the previous quieter behaviour (a line only
+ *  appears once events are actually found for the visit) since "no events
+ *  during your visit" reads as a premature claim before real dates are
+ *  even confirmed. */
+function describeTodayEvents(events: LocalEvent[]): string {
+  if (events.length === 0) return "No local events on today.";
+  const subject = events.length > 1 ? "These events are" : "This event is";
+  return `${subject} on today: ${events.map((e) => e.name).join(", ")}.`;
 }
 
 // Small date helpers for the Local Events drill-down UI - deliberately
@@ -80,11 +101,13 @@ export default function Workspace({
   location,
   initialInterests,
   timing,
+  todayNotice,
 }: WorkspaceProps) {
   const trip = useTrip();
   const [activeCategories, setActiveCategories] = useState<Set<InterestCategoryId>>(
     new Set(initialInterests)
   );
+  const [showTodayNotice, setShowTodayNotice] = useState(!!todayNotice);
   const [expandedCategory, setExpandedCategory] = useState<InterestCategoryId | null>(null);
   const [activeSubcats, setActiveSubcats] = useState<Set<string>>(new Set());
   // activeDayIndex is derived from the shared, persisted trip.currentDayIndex
@@ -460,6 +483,11 @@ export default function Workspace({
   // immediately; other timings need the header date control to have
   // actually been used at least once first.
   const weatherReady = isLive && (timing === "today" || trip.tripDates.confirmed);
+  // Which town's Met Office forecast to link to for "today" - nearest to
+  // the visitor's actual chosen starting distillery, not always Bowmore
+  // (21 July 2026 fix). Cheap to compute unconditionally; only rendered
+  // when timing === "today" below.
+  const weatherReference = nearestWeatherReference(location, distilleries);
 
   // Seasonal-closure / silent-season notices for any distillery currently
   // in the active day's itinerary. Reads the existing free-text
@@ -484,7 +512,17 @@ export default function Workspace({
 
   return (
     <>
-    <OnboardingOverlay timing={timing} />
+    {/* Skipped entirely for "today" (21 July 2026) - the walkthrough's
+        demo-distillery step is hardcoded to spotlight Port Ellen
+        specifically (see OnboardingOverlay's DEMO_DISTILLERY_SLUG), which
+        only makes sense when the map is centered near there. A "today"
+        visitor's starting point is whichever distillery they said they're
+        nearest to - anywhere on Islay/Jura - so that step (and the map
+        position it assumes) can't reliably generalise. Rather than patch
+        every step for an arbitrary starting location, "today" skips the
+        walkthrough outright; planning/dreaming keep it since their seeded
+        default day is always the same fixed Port Ellen-area route. */}
+    {timing !== "today" && <OnboardingOverlay timing={timing} />}
     {tourPickerDistillery && (
       <div className="tour-picker-backdrop" onClick={() => setTourPickerDistillery(null)}>
         <div className="tour-picker-modal" role="dialog" aria-label={`Choose a tour at ${tourPickerDistillery.name}`} onClick={(e) => e.stopPropagation()}>
@@ -684,6 +722,19 @@ export default function Workspace({
               </button>
               Your itinerary has {days.length} days, but your selected dates only cover {dateRangeSpan}.
               Remove the extra days, or widen your date range above.
+            </div>
+          )}
+
+          {showTodayNotice && todayNotice && (
+            <div className="today-notice">
+              <button
+                className="today-notice-close"
+                onClick={() => setShowTodayNotice(false)}
+                aria-label="Dismiss"
+              >
+                &times;
+              </button>
+              {todayNotice}
             </div>
           )}
 
@@ -1078,21 +1129,20 @@ export default function Workspace({
                   &times;
                 </button>
                 <div className="weather-popup-title">
-                  {timing === "today" ? "🌤️ Today on Islay" : `🌤️ Visiting in ${weatherMonthName}`}
+                  {timing === "today" ? "Today on Islay" : `🌤️ Visiting in ${weatherMonthName}`}
                 </div>
                 <p className="weather-popup-text">
                   {timing === "today" ? (
                     <>
-                      Check a live forecast before you head out —{" "}
                       <a
                         className="weather-inline-link"
-                        href="https://weather.metoffice.gov.uk/forecast/gcgt0ynnb"
+                        href={weatherReference.url}
                         target="_blank"
                         rel="noreferrer"
                       >
-                        Met Office forecast for Bowmore, Islay ↗
-                      </a>
-                      .
+                        Check the weather ↗
+                      </a>{" "}
+                      for the rest of your day.
                     </>
                   ) : (
                     <>
@@ -1101,11 +1151,15 @@ export default function Workspace({
                     </>
                   )}
                 </p>
-                {eventsDuringVisit.length > 0 && (
-                  <p className="weather-popup-events">
-                    📅 Worth knowing: {eventsDuringVisit.map((e) => e.name).join(", ")}{" "}
-                    {eventsDuringVisit.length > 1 ? "are" : "is"} on during your visit.
-                  </p>
+                {timing === "today" ? (
+                  <p className="weather-popup-events">📅 {describeTodayEvents(eventsDuringVisit)}</p>
+                ) : (
+                  eventsDuringVisit.length > 0 && (
+                    <p className="weather-popup-events">
+                      📅 Worth knowing: {eventsDuringVisit.map((e) => e.name).join(", ")}{" "}
+                      {eventsDuringVisit.length > 1 ? "are" : "is"} on during your visit.
+                    </p>
+                  )
                 )}
                 {closureNotices.length > 0 && (
                   <p className="weather-popup-events">
@@ -1128,16 +1182,16 @@ export default function Workspace({
             <span className="weather-banner-text">
               {timing === "today" ? (
                 <>
-                  Today on Islay — check a live forecast before you head out (
+                  Today on Islay —{" "}
                   <a
                     className="weather-inline-link"
-                    href="https://weather.metoffice.gov.uk/forecast/gcgt0ynnb"
+                    href={weatherReference.url}
                     target="_blank"
                     rel="noreferrer"
                   >
-                    Met Office ↗
-                  </a>
-                  ).
+                    Check the weather ↗
+                  </a>{" "}
+                  for the rest of your day.
                 </>
               ) : (
                 <>
@@ -1145,12 +1199,16 @@ export default function Workspace({
                   {weatherMonthClimate.avgHighC}°C — {weatherMonthClimate.summary}.
                 </>
               )}
-              {eventsDuringVisit.length > 0 && (
-                <>
-                  {" "}
-                  📅 Worth knowing: {eventsDuringVisit.map((e) => e.name).join(", ")}{" "}
-                  {eventsDuringVisit.length > 1 ? "are" : "is"} on during your visit.
-                </>
+              {timing === "today" ? (
+                <> 📅 {describeTodayEvents(eventsDuringVisit)}</>
+              ) : (
+                eventsDuringVisit.length > 0 && (
+                  <>
+                    {" "}
+                    📅 Worth knowing: {eventsDuringVisit.map((e) => e.name).join(", ")}{" "}
+                    {eventsDuringVisit.length > 1 ? "are" : "is"} on during your visit.
+                  </>
+                )
               )}
               {closureNotices.length > 0 && <> ⚠️ {closureNotices.join(" ")}</>}
             </span>

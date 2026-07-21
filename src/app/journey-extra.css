@@ -322,6 +322,40 @@ select.location-inline-input {
   cursor: pointer;
   padding: 4px;
 }
+
+/* "Today" evening-cutoff explainer (21 July 2026) - same visual treatment
+   as .day-count-mismatch-notice above (amber, dismissible), just its own
+   named class since the meaning is different - explains why no distillery
+   was seeded, not a day-count/date-range conflict. */
+.today-notice {
+  position: relative;
+  margin: 0 20px 12px;
+  padding: 10px 30px 10px 14px;
+  background: var(--amber-pale);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--peat);
+  /* Added 21 July 2026 - todayNotice can now carry a second line (the
+     "local gem" nudge) separated by a blank line in the source string;
+     pre-line renders that as a real paragraph break instead of collapsing
+     it to a single space, without needing to split the text into
+     separate JSX elements. */
+  white-space: pre-line;
+}
+.today-notice-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--slate);
+  cursor: pointer;
+  padding: 4px;
+}
 .day-count-mismatch-close:hover {
   color: var(--peat);
 }

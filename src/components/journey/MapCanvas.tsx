@@ -250,6 +250,17 @@ export default function MapCanvas({
         const bounds = L.latLngBounds(routeAtMount.map((s) => [s.lat, s.lng] as [number, number]));
         map.fitBounds(bounds.pad(0.2));
         initialRouteFitDoneRef.current = true;
+      } else if (routeAtMount.length === 1 && !savedView) {
+        // A single-stop day (added 21 July 2026 - the "today" flow's
+        // evening seed is exactly one Local Feature, no accommodation, so
+        // routeCoords only ever has this one point) has nothing to fit
+        // bounds TO - fitBounds on one point doesn't zoom in meaningfully.
+        // Center tightly on it directly instead of falling through to
+        // "every distillery on Islay", which is what previously zoomed
+        // this case out to the whole island regardless of how close the
+        // one real stop actually was.
+        map.setView([routeAtMount[0].lat, routeAtMount[0].lng], 13);
+        initialRouteFitDoneRef.current = true;
       } else if (markers.length > 0 && !savedView) {
         const group = L.featureGroup(markers);
         map.fitBounds(group.getBounds().pad(0.2));
