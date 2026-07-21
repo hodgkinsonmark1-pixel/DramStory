@@ -99,11 +99,14 @@ function WorkspaceWithFeatures(props: {
  * needs). Revisit once that's built, so this doesn't drift out of sync
  * with the real Day content by hand.
  *
- * Notes on each stop are short, practical, and deliberately not
- * time-specific (no invented tour clock times - those vary and aren't
- * something to guess at) - they're seed content, not sourced Airtable
- * facts, so held to that lighter bar rather than the Location
- * Source/official-source standard.
+ * Notes on each stop are short and practical - they're seed content, not
+ * sourced Airtable facts, so held to a lighter bar than the Location
+ * Source/official-source standard. As of 21 July 2026 two of them
+ * (Lagavulin, Ardbeg) include specific clock times per Mark's direct
+ * input - worth re-confirming against each distillery's current
+ * published tour schedule before go-live and periodically after, since
+ * tour times do shift (this is exactly the risk the original
+ * no-times version was avoiding).
  *
  * "today" is deliberately left with the old default (no pre-seeded day,
  * just Distilleries active) - it needs its own considered default, not
@@ -111,11 +114,11 @@ function WorkspaceWithFeatures(props: {
  * oversight.
  */
 const DEFAULT_DAY_STOPS: { kind: "distillery" | "feature"; slug: string; note: string }[] = [
-  { kind: "distillery", slug: "laphroaig", note: "First stop of the day." },
-  { kind: "distillery", slug: "lagavulin", note: "Just along the coast road from Laphroaig." },
+  { kind: "distillery", slug: "laphroaig", note: "First stop of the day, starts at 10." },
+  { kind: "distillery", slug: "lagavulin", note: "Just along the coast road, tour at 12." },
   { kind: "feature", slug: "old-kiln-cafe-ardbeg", note: "Right on Ardbeg's pier - a good lunch stop before the tour." },
-  { kind: "distillery", slug: "ardbeg", note: "Popular tour - worth booking ahead." },
-  { kind: "feature", slug: "port-ellen-beach", note: "A quiet way to close out the day." },
+  { kind: "distillery", slug: "ardbeg", note: "3pm: Popular tour - worth booking ahead." },
+  { kind: "feature", slug: "port-ellen-beach", note: "Maybe a picnic on the beach or the pub to finish the day." },
 ];
 
 export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, resume }: JourneyFlowProps) {
