@@ -10,7 +10,6 @@ import { getMonthClimate, MONTH_NAMES } from "@/lib/islay-climate";
 import { estimatedDriveMinutes, formatDuration } from "@/lib/drive-time";
 import { useRouteSegments } from "@/lib/use-route-segments";
 import { useTrip } from "@/lib/trip-context";
-import { buildAccommodationBookingLink, buildBookingComLink } from "@/lib/accommodation-links";
 import { stopCoords, stopId, stopName, stopVisitMinutes, incrementVisitMinutes } from "@/lib/itinerary-stop";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
@@ -130,16 +129,6 @@ export default function Workspace({
       return next;
     });
   const [justSaved, setJustSaved] = useState(false);
-  // Featured/curated accommodation partners - distinct from the generic
-  // Hotels.com/Booking.com search above. Real, sourced, official links
-  // (19 July 2026): The Machrie's room booking is a JS widget with no
-  // direct URL, so links to their official hotel page instead; Port
-  // Charlotte Hotel has a real direct booking-engine link.
-  const FEATURED_STAYS = [
-    { name: "The Machrie", url: "https://another.place/the-machrie/hotel" },
-    { name: "Port Charlotte Hotel", url: "https://bookings.hopsoftware.com/en/property/Port-Charlotte-Hotel" },
-  ];
-  const [selectedFeatured, setSelectedFeatured] = useState(FEATURED_STAYS[0].name);
 
   // There's no longer a "how long" question (Step 3 removed, July 2026) -
   // trips start at a flat default day count and grow/shrink automatically
@@ -906,62 +895,7 @@ export default function Workspace({
                   </button>
                   <span className="toolbar-divider" />
                   {expandedCategoryData.id === "places-to-stay" ? (
-                    <>
-                      <AccommodationControl dayIndex={activeDayIndex} accommodation={accommodation} />
-                      <a
-                        href={buildAccommodationBookingLink(accommodation?.name ?? "Port Ellen", trip.tripDates)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="subcat-chip"
-                        style={{ background: "var(--green-deep)", color: "white", fontWeight: 600 }}
-                      >
-                        Book Now
-                      </a>
-                      <a
-                        href={buildBookingComLink(accommodation?.name ?? "Port Ellen", trip.tripDates)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          fontSize: 12,
-                          color: "var(--slate)",
-                          textDecoration: "underline",
-                          marginLeft: 4,
-                        }}
-                      >
-                        or try Booking.com
-                      </a>
-                      <span className="toolbar-divider" />
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 600,
-                          letterSpacing: "0.06em",
-                          textTransform: "uppercase",
-                          color: "var(--copper)",
-                          marginRight: 4,
-                        }}
-                      >
-                        Featured stays
-                      </span>
-                      {FEATURED_STAYS.map((stay) => (
-                        <button
-                          key={stay.name}
-                          className={"subcat-chip" + (selectedFeatured === stay.name ? " active" : "")}
-                          onClick={() => setSelectedFeatured(stay.name)}
-                        >
-                          {stay.name}
-                        </button>
-                      ))}
-                      <a
-                        href={FEATURED_STAYS.find((s) => s.name === selectedFeatured)?.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="subcat-chip"
-                        style={{ background: "var(--copper)", color: "white", fontWeight: 600 }}
-                      >
-                        Book Now
-                      </a>
-                    </>
+                    <AccommodationControl dayIndex={activeDayIndex} accommodation={accommodation} />
                   ) : (
                     <>
                       <button
