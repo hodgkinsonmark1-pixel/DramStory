@@ -201,12 +201,25 @@ function seedTodayDay(
       .map((d) => ({ d, minutes: estimatedDriveMinutes(start, d) }))
       .sort((a, b) => a.minutes - b.minutes);
 
-    for (let i = 0; i < stopBudget - 1 && i < others.length; i++) {
+    // Based on how many second-stop slots actually got filled, not just
+    // stopBudget itself - a near-empty distilleries list (shouldn't happen
+    // with 11 real records, but keeps this honest either way) would
+    // otherwise still claim "we've added a second" when nothing was added.
+    const secondStopCount = Math.min(stopBudget - 1, others.length);
+    for (let i = 0; i < secondStopCount; i++) {
       const { d, minutes } = others[i];
       trip.addStop(0, d);
       trip.setStopNote(0, d.slug, `About ${formatDuration(minutes)} on from your first stop.`);
     }
-    return { interests: ["distilleries"] };
+
+    // Per Mark's 21 July feedback: explain why one vs two stops were
+    // chosen, and point toward the other category tabs even though only
+    // Distilleries is pre-seeded for this path.
+    const daytimeNotice =
+      secondStopCount > 0
+        ? "There's a lot of today ahead, so we've added a second distillery near your first stop. Fancy something different instead? Natural Features, Local Attractions and Places to Eat are all worth a browse in the menu above."
+        : "There's still time for a distillery visit today, but not quite enough for a second, so we've kept it to the one nearest you. Looking for some non-whisky experiences this afternoon too? Natural Features, Local Attractions and Places to Eat are all in the menu above.";
+    return { interests: ["distilleries"], notice: daytimeNotice };
   }
 
   // Too late in the day for a fresh distillery tour to be a fair
