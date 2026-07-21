@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTrip } from "@/lib/trip-context";
 import { buildAccommodationBookingLink } from "@/lib/accommodation-links";
 import type { TripAccommodation } from "@/lib/types";
@@ -44,8 +44,8 @@ export const FEATURED_STAYS: (TripAccommodation & { url: string })[] = [
  * live elsewhere in the app, rather than re-deriving anything: Port Ellen
  * and Bruichladdich from journeys-data.ts/days page, Port Askaig from the
  * Local Features "Ferry Port" record in Airtable. Not exhaustive (no
- * Portnahaven, Bridgend, Jura villages, etc. yet) - "Other place" below
- * covers anywhere not listed here via the existing free-text search.
+ * Portnahaven, Bridgend, Jura villages, etc. yet) - the "Other" group
+ * below covers anywhere not listed here via the existing free-text search.
  */
 const AREAS: TripAccommodation[] = [
   { name: "Port Ellen", lat: 55.630181, lng: -6.187415 },
@@ -63,18 +63,22 @@ function areaFor(name?: string) {
 }
 
 /**
- * One combined "staying" control (rebuilt 21 July 2026, revised same day
- * after feedback). A single dropdown: "I'll decide" (no stay chosen yet -
- * the real default, not a forced placeholder), Featured Stays (real hotels,
- * book that specific place), or Areas (general village, Hotels.com area
- * search) with an "Other place" escape hatch for anywhere not listed that
- * reveals the original free-text Nominatim search.
+ * One combined "staying" control (rebuilt 21 July 2026, revised twice same
+ * day after feedback). A single dropdown: Featured Stays (real hotels, book
+ * that specific place) or Areas (general village, Hotels.com area search),
+ * with its own "Other" group for anywhere not listed that reveals the
+ * original free-text Nominatim search.
  *
- * Whichever real place is chosen (Featured Stay, Area, or a custom "Other
- * place" search result) becomes the day's real accommodation - same as
- * before, this is what gives the day's route and drive-time totals a real
- * start/end point. "I'll decide" leaves it genuinely unset: no pin, no
- * Book Now, nothing assumed.
+ * No "I'll decide"/unset option any more (removed per feedback) - which
+ * means the select always has to show a real, actually-applied choice
+ * rather than an empty state, otherwise the dropdown could visually show
+ * one thing (the browser's fallback-to-first-option behaviour) while the
+ * day's real accommodation was still nothing behind the scenes. So this
+ * still defaults to The Machrie the instant a day has no stay set yet -
+ * same as the very first version of this control, brought back because
+ * removing the placeholder option requires it, not by choice on its own.
+ * Flagging this rather than assuming it's unwanted - easy to reintroduce
+ * an explicit unset state if that's not right.
  */
 export default function AccommodationControl({
   dayIndex,
@@ -94,6 +98,15 @@ export default function AccommodationControl({
   const isCustomPlace = !!accommodation && !activeFeatured && !activeArea;
 
   const selectValue = editingTown ? OTHER_VALUE : isCustomPlace ? OTHER_VALUE : (accommodation?.name ?? "");
+
+  useEffect(() => {
+    if (!accommodation) {
+      trip.setAccommodation(dayIndex, FEATURED_STAYS[0]);
+    }
+    // Only re-run when the day or its accommodation actually changes -
+    // trip itself is a fresh object each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accommodation, dayIndex]);
 
   async function handleSearch() {
     if (!query.trim()) return;
@@ -126,11 +139,6 @@ export default function AccommodationControl({
 
   function handleSelectChange(value: string) {
     setError(null);
-    if (value === "") {
-      setEditingTown(false);
-      trip.setAccommodation(dayIndex, undefined);
-      return;
-    }
     if (value === OTHER_VALUE) {
       setQuery(isCustomPlace && accommodation ? accommodation.name : "");
       setEditingTown(true);
@@ -160,7 +168,6 @@ export default function AccommodationControl({
         value={selectValue}
         onChange={(e) => handleSelectChange(e.target.value)}
       >
-        <option value="">I&apos;ll decide</option>
         <optgroup label="Featured stays">
           {FEATURED_STAYS.map((stay) => (
             <option key={stay.name} value={stay.name}>
@@ -174,7 +181,9 @@ export default function AccommodationControl({
               {area.name}
             </option>
           ))}
-          <option value={OTHER_VALUE}>Other place...</option>
+        </optgroup>
+        <optgroup label="Other">
+          <option value={OTHER_VALUE}>Type a place...</option>
         </optgroup>
       </select>
 
