@@ -108,16 +108,26 @@ function WorkspaceWithFeatures(props: {
  * tour times do shift (this is exactly the risk the original
  * no-times version was avoiding).
  *
+ * Each distillery stop also seeds a specific real tour (tourName below,
+ * matched against that distillery's own Tours from Airtable) so the
+ * itinerary and the Total Journey cost breakdown both show a real
+ * booked tour + price rather than "No tour selected" - 21 July 2026
+ * fix. Deliberately the same three tours already linked to the "Three
+ * Legends, One Road" Hub Day in Airtable (Laphroaig Experience £22,
+ * Classic Distillery Tour £22, Classic Ardbeg Tour £22.50) - this
+ * default day started life as that exact Hub Day, so reusing its tours
+ * keeps the two in sync rather than picking new ones by hand.
+ *
  * "today" is deliberately left with the old default (no pre-seeded day,
  * just Distilleries active) - it needs its own considered default, not
  * this one, per 18 July 2026 conversation. Flagged as a real gap, not an
  * oversight.
  */
-const DEFAULT_DAY_STOPS: { kind: "distillery" | "feature"; slug: string; note: string }[] = [
-  { kind: "distillery", slug: "laphroaig", note: "First stop of the day, starts at 10." },
-  { kind: "distillery", slug: "lagavulin", note: "Just along the coast road, tour at 12." },
+const DEFAULT_DAY_STOPS: { kind: "distillery" | "feature"; slug: string; note: string; tourName?: string }[] = [
+  { kind: "distillery", slug: "laphroaig", note: "First stop of the day, starts at 10.", tourName: "Laphroaig Experience" },
+  { kind: "distillery", slug: "lagavulin", note: "Just along the coast road, tour at 12.", tourName: "Classic Distillery Tour" },
   { kind: "feature", slug: "old-kiln-cafe-ardbeg", note: "Right on Ardbeg's pier - a good lunch stop before the tour." },
-  { kind: "distillery", slug: "ardbeg", note: "3pm: Popular tour - worth booking ahead." },
+  { kind: "distillery", slug: "ardbeg", note: "3pm: Popular tour - worth booking ahead.", tourName: "Classic Ardbeg Tour" },
   { kind: "feature", slug: "port-ellen-beach", note: "Maybe a picnic on the beach or the pub to finish the day." },
 ];
 
@@ -186,6 +196,8 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
           if (!d) continue;
           trip.addStop(0, d);
           trip.setStopNote(0, d.slug, entry.note);
+          const tour = entry.tourName ? d.tours.find((t) => t.name === entry.tourName) : undefined;
+          if (tour) trip.setTourForStop(0, d, tour);
         } else {
           const f = localFeatures.find((x) => x.slug === entry.slug);
           if (!f) continue;
