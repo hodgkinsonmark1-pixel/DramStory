@@ -102,7 +102,6 @@ export default function Workspace({
   // survives navigating away and back and is available to Local Events,
   // the weather popup, and calendar-date day labels alike.
   const todayIso = new Date().toISOString().slice(0, 10);
-  const [showCostBreakdown, setShowCostBreakdown] = useState(false);
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [weatherMinimized, setWeatherMinimized] = useState(false);
   // Shown only after pressing "Save My Dram Story", not continuously
@@ -809,33 +808,36 @@ export default function Workspace({
                     <span>{formatDuration(totalVisitMinutes)}</span>
                   </div>
 
-                  <button className="cost-toggle" onClick={() => setShowCostBreakdown((v) => !v)}>
-                    {showCostBreakdown ? "▲" : "▼"} Show estimated tour costs
-                    {toursBooked > 0 ? ` (${toursBooked} tour${toursBooked > 1 ? "s" : ""} booked)` : ""}
-                  </button>
-
-                  {showCostBreakdown && (
-                    <div className="cost-breakdown">
-                      {activeDay.stops
-                        .filter((s) => s.kind === "distillery")
-                        .map((s) => (
-                          <div key={stopId(s)} className="summary-row">
-                            <span>
-                              {s.kind === "distillery" && s.distillery.name}{" "}
-                              {s.kind === "distillery" && s.tour ? `- ${s.tour.name}` : "- No tour selected"}
-                            </span>
-                            <span>{s.kind === "distillery" && s.tour ? `£${s.tour.price}` : "-"}</span>
-                          </div>
-                        ))}
-                      <div className="summary-row" style={{ fontWeight: 600 }}>
-                        <span>Tours total</span>
-                        <span>£{toursTotal} pp</span>
-                      </div>
-                      <p style={{ fontSize: 11, color: "var(--slate)", marginTop: 8 }}>
-                        Accommodation and transport not included. Add tours from each distillery page.
-                      </p>
+                  {/* Cost breakdown now shows automatically whenever the
+                      Total Journey panel is expanded, rather than sitting
+                      behind its own separate "Show estimated tour costs"
+                      click - 21 July 2026 feedback: the day length summary
+                      should include distillery costs as part of the one
+                      expand, not a second step. */}
+                  <div className="cost-breakdown">
+                    <div className="cost-breakdown-heading">
+                      Estimated tour costs
+                      {toursBooked > 0 ? ` (${toursBooked} tour${toursBooked > 1 ? "s" : ""} booked)` : ""}
                     </div>
-                  )}
+                    {activeDay.stops
+                      .filter((s) => s.kind === "distillery")
+                      .map((s) => (
+                        <div key={stopId(s)} className="summary-row">
+                          <span>
+                            {s.kind === "distillery" && s.distillery.name}{" "}
+                            {s.kind === "distillery" && s.tour ? `- ${s.tour.name}` : "- No tour selected"}
+                          </span>
+                          <span>{s.kind === "distillery" && s.tour ? `£${s.tour.price}` : "-"}</span>
+                        </div>
+                      ))}
+                    <div className="summary-row" style={{ fontWeight: 600 }}>
+                      <span>Tours total</span>
+                      <span>£{toursTotal} pp</span>
+                    </div>
+                    <p style={{ fontSize: 11, color: "var(--slate)", marginTop: 8 }}>
+                      Accommodation and transport not included. Add tours from each distillery page.
+                    </p>
+                  </div>
                 </>
               )}
 

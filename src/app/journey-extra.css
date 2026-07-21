@@ -1451,3 +1451,15 @@ select.location-inline-input {
 .journey-day-map-label::before {
   border-top-color: var(--stone);
 }
+
+/* Heading inside .cost-breakdown (dramstory-legacy.css) now that it's
+   always shown alongside the Total Journey panel rather than sitting
+   behind its own toggle button - 21 July 2026. Plain label, not
+   interactive, so no border/cursor styling like the old .cost-toggle
+   button it replaces. */
+.cost-breakdown-heading {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--slate);
+  margin-bottom: 6px;
+}
