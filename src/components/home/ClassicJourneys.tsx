@@ -9,7 +9,7 @@ export default function ClassicJourneys({ distilleries }: { distilleries: Distil
   const [notice, setNotice] = useState<string | null>(null);
 
   return (
-    <section className="journeys-section">
+    <section className="journeys-section" id="classic-journeys">
       <div className="how-eyebrow">Curated routes</div>
       <h2 className="how-title">Classic journeys</h2>
       <div className="journeys-grid">

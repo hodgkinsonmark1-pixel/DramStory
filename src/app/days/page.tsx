@@ -15,9 +15,15 @@ import Footer from "@/components/Footer";
  * review → second-pass process, matching their Airtable records
  * (Status: Draft). This is still a layout template exercise, not the
  * final data-driven page - the remaining ~8-9 Days will be added the
- * same way before this reads from Airtable directly and goes live. Do
- * not link this route from live navigation yet. See
- * docs/deferred-features.md for related parked decisions (e.g.
+ * same way before this reads from Airtable directly and goes live.
+ *
+ * UPDATE 21 July 2026: linked from the site footer ("Day Plans") per
+ * Mark's explicit decision, ahead of the full ~15-16 Days set being
+ * finished - the previous "do not link this route from live navigation
+ * yet" note above no longer holds. Every Day rendered here is real and
+ * reviewed (isReal: true throughout, no placeholder filler content), so
+ * showing a partial-but-genuine set is a deliberate MVP tradeoff, not a
+ * gap. See docs/deferred-features.md for related parked decisions (e.g.
  * gamification).
  */
 

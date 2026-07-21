@@ -26,11 +26,18 @@ export default function FeaturedContent({
   distilleries: Distillery[];
   localEvents: LocalEvent[];
 }) {
-  // Region tabs (July 2026) - only Islay has live distillery/event data
-  // today, but the tab row is built for all 5 up front so switching in
-  // each new region as it's populated is just wiring up real data here,
-  // not redesigning this section again.
-  const [activeRegionId, setActiveRegionId] = useState(REGIONS[0].id);
+  // Region tabs (July 2026, revised 21 July 2026 for MVP scope). Only
+  // Islay has live distillery/event data today, and the MVP decision
+  // (see business plan, "Scope Decision: Islay & Jura Only Until
+  // Complete") is that no other region name is shown anywhere on the
+  // live site while that's true - so the tab row itself is inactivated
+  // (not deleted) below whenever there's only one live region to choose
+  // from, same treatment as Q2's region-picker. REGIONS still lists all
+  // 5 up front, so switching a second region on is just flipping its
+  // `live` flag - the tab row reappears automatically once there's
+  // something real to switch between.
+  const liveRegions = REGIONS.filter((r) => r.live);
+  const [activeRegionId, setActiveRegionId] = useState(liveRegions[0]?.id ?? REGIONS[0].id);
   const activeRegion = REGIONS.find((r) => r.id === activeRegionId) ?? REGIONS[0];
 
   const featuredDistilleries = Object.keys(EDITORIAL)
@@ -45,22 +52,19 @@ export default function FeaturedContent({
     <section className="featured-section">
       <h2 className="how-title">Get to know {activeRegion.label}</h2>
 
-      <div className="featured-region-tabs">
-        {REGIONS.map((r) => (
-          <button
-            key={r.id}
-            className={
-              "q-card featured-region-tab" +
-              (r.id === activeRegionId ? " selected" : "") +
-              (!r.live ? " q-card-not-live" : "")
-            }
-            disabled={!r.live}
-            onClick={() => setActiveRegionId(r.id)}
-          >
-            {r.label}
-          </button>
-        ))}
-      </div>
+      {liveRegions.length > 1 && (
+        <div className="featured-region-tabs">
+          {liveRegions.map((r) => (
+            <button
+              key={r.id}
+              className={"q-card featured-region-tab" + (r.id === activeRegionId ? " selected" : "")}
+              onClick={() => setActiveRegionId(r.id)}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {activeRegion.live ? (
         <>

@@ -1,8 +1,18 @@
 import Link from "next/link";
 import Logo from "./Logo";
+import { REGIONS } from "@/lib/journey-options";
 
 export default function Footer() {
   const year = new Date().getFullYear();
+  // MVP scope decision (21 July 2026, see business plan "Scope Decision:
+  // Islay & Jura Only Until Complete"): no other region name should show
+  // anywhere on the live site while only Islay & Jura is real. Previously
+  // this list hardcoded a stub link per region regardless of readiness -
+  // now driven off the same REGIONS/`live` data LocationStep and
+  // FeaturedContent use, so the other regions are inactivated (not
+  // deleted) here too, and each one's footer link reappears on its own
+  // the moment its `live` flag flips, with no further edits needed here.
+  const otherLiveRegions = REGIONS.filter((r) => r.live && r.id !== "islay");
 
   return (
     <footer className="site-footer">
@@ -40,10 +50,12 @@ export default function Footer() {
           <ul className="footer-links">
             <li><Link href="/">Plan a Journey</Link></li>
             <li><Link href="/distilleries">Islay Distilleries</Link></li>
-            <li><a href="#">Speyside</a></li>
-            <li><a href="#">Highland</a></li>
-            <li><a href="#">Campbeltown</a></li>
-            <li><a href="#">Lowland</a></li>
+            <li><Link href="/#classic-journeys">Classic Tours</Link></li>
+            <li><Link href="/local-features">Local Features</Link></li>
+            <li><Link href="/days">Day Plans</Link></li>
+            {otherLiveRegions.map((r) => (
+              <li key={r.id}><a href="#">{r.label}</a></li>
+            ))}
           </ul>
         </div>
 
