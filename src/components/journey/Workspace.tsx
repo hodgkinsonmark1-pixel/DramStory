@@ -885,7 +885,13 @@ export default function Workspace({
 
         <div className="map-area">
           <div className="map-toolbar">
-            <div className="map-toolbar-row" id="onboard-toolbar-row">
+            <div
+              className={
+                "map-toolbar-row" +
+                (expandedCategoryData?.id === "places-to-stay" ? " map-toolbar-row--scroll" : "")
+              }
+              id="onboard-toolbar-row"
+            >
               {expandedCategoryData &&
               (expandedCategoryData.subcategories.length > 0 || expandedCategoryData.id === "places-to-stay") ? (
                 <>

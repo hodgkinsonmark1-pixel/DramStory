@@ -82,6 +82,26 @@ select.location-inline-input {
   gap: 10px;
   align-items: center;
 }
+/* Accommodation row only (see map-toolbar-row--scroll usage in
+   Workspace.tsx): this row is genuinely too content-heavy (Staying +
+   Change/Clear + Book Now + Booking.com + Featured Stays + its own
+   Book Now) to guarantee it fits on one line at typical widths just by
+   shrinking padding - so instead of wrapping, it scrolls horizontally
+   and never breaks onto a second line. Deliberately NOT applied to
+   the base .map-toolbar-row, which other categories' subcategory
+   chips still rely on wrapping across two lines for. */
+.map-toolbar-row--scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 6px;
+}
+.map-toolbar-row--scroll > * {
+  flex-shrink: 0;
+}
+.map-toolbar-row--scroll::-webkit-scrollbar {
+  height: 6px;
+}
 .toolbar-divider {
   width: 1px;
   height: 20px;
