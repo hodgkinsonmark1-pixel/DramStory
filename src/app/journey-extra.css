@@ -71,22 +71,108 @@ select.location-inline-input {
    .popup-detail/.popup-actions/.popup-btn* — all already ported from the
    approved mockup in dramstory-legacy.css, so no styles needed here. */
 
-/* Tour picker inside a distillery pin's popup (21 July 2026) - only
-   rendered when there are 2+ tours to choose between (see
-   MapCanvas's buildTourPickerHtml); a single tour skips this and adds
-   directly, so there's never a one-option dropdown. Sits between
-   .popup-detail and .popup-actions, full width since the popup itself
-   is narrow (minWidth 240). */
-.popup-tour-select {
-  display: block;
+/* Tour picker: was an inline <select> in the popup itself (21 July
+   2026, first pass) - replaced same day with a proper on-brand modal
+   (.tour-picker-*, below) per feedback that the inline dropdown felt
+   cluttered inside the narrow Leaflet popup. Opened from a distillery
+   pin's "+ Add" when it has 2+ tours - see Workspace's
+   tourPickerDistillery state and onAddDistillery handler. */
+.tour-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  background: rgba(20, 20, 20, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.tour-picker-modal {
+  position: relative;
   width: 100%;
-  padding: 6px 8px;
-  margin-bottom: 10px;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  padding: 24px;
+}
+.tour-picker-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--slate);
+  cursor: pointer;
+}
+.tour-picker-close:hover {
+  color: var(--dark);
+}
+.tour-picker-heading {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--dark);
+  margin-bottom: 16px;
+  padding-right: 24px;
+}
+.tour-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tour-picker-option {
   border: 1px solid var(--stone);
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  padding: 12px;
+}
+.tour-picker-option-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.tour-picker-option-name {
+  font-size: 14px;
+  font-weight: 600;
   color: var(--dark);
-  background: white;
+}
+.tour-picker-option-price {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--copper, #c4862a);
+  white-space: nowrap;
+}
+.tour-picker-option-duration {
+  font-size: 12px;
+  color: var(--slate);
+  margin-top: 2px;
+}
+.tour-picker-option-desc {
+  font-size: 12px;
+  color: var(--peat);
+  line-height: 1.5;
+  margin-top: 6px;
+}
+.tour-picker-option-btn {
+  margin-top: 10px;
+  width: 100%;
+  padding: 8px;
+  background: var(--green-deep);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.tour-picker-option-btn:hover {
+  background: var(--peat);
 }
 
 /* Toolbar drill-down: clicking a category collapses the row to just

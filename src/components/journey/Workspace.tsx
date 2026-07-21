@@ -110,6 +110,14 @@ export default function Workspace({
   // flag, so it also self-hides if the mismatch gets fixed later and
   // Save is pressed again.
   const [showDayMismatchNotice, setShowDayMismatchNotice] = useState(false);
+  // Set when a distillery with 2+ tours is added from a map pin - holds
+  // the picker modal open until a tour's chosen (or it's dismissed). A
+  // distillery with exactly one tour or none skips this entirely and
+  // adds straight away, same as before - see the onAddDistillery handler
+  // passed to MapCanvas below. 21 July 2026: replaces an inline <select>
+  // that lived in the Leaflet popup itself, which felt cluttered in that
+  // narrow space - this is a proper on-brand modal instead.
+  const [tourPickerDistillery, setTourPickerDistillery] = useState<Distillery | null>(null);
   // Per-stop collapse state, scoped by stopId - a UI preference, not core
   // trip data, so it's local state rather than persisted via TripContext.
   // Opens with everything collapsed by default (19 July 2026 feedback) -
@@ -477,6 +485,38 @@ export default function Workspace({
   return (
     <>
     <OnboardingOverlay timing={timing} />
+    {tourPickerDistillery && (
+      <div className="tour-picker-backdrop" onClick={() => setTourPickerDistillery(null)}>
+        <div className="tour-picker-modal" role="dialog" aria-label={`Choose a tour at ${tourPickerDistillery.name}`} onClick={(e) => e.stopPropagation()}>
+          <button className="tour-picker-close" onClick={() => setTourPickerDistillery(null)} aria-label="Close">
+            &times;
+          </button>
+          <div className="tour-picker-heading">Choose a tour at {tourPickerDistillery.name}</div>
+          <div className="tour-picker-list">
+            {tourPickerDistillery.tours.map((tour) => (
+              <div className="tour-picker-option" key={tour.name}>
+                <div className="tour-picker-option-top">
+                  <span className="tour-picker-option-name">{tour.name}</span>
+                  <span className="tour-picker-option-price">£{tour.price}</span>
+                </div>
+                <div className="tour-picker-option-duration">{tour.duration}</div>
+                {tour.description && <p className="tour-picker-option-desc">{tour.description}</p>}
+                <button
+                  className="tour-picker-option-btn"
+                  onClick={() => {
+                    trip.addStop(activeDayIndex, tourPickerDistillery);
+                    trip.setTourForStop(activeDayIndex, tourPickerDistillery, tour);
+                    setTourPickerDistillery(null);
+                  }}
+                >
+                  + Add this tour
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )}
     <div className="workspace-root">
       <div className="map-page-header">
         <div className="map-page-header-left">
@@ -968,17 +1008,21 @@ export default function Workspace({
                 // degrades gracefully rather than breaking the whole route.
                 return [...points, ...(real ? real.points : [routeCoords[i - 1], coord])];
               }, [])}
-              onAddDistillery={(slug, tourIndex) => {
+              onAddDistillery={(slug) => {
                 const d = distilleries.find((x) => x.slug === slug);
                 if (!d) return;
+                if (d.tours.length >= 2) {
+                  // Real choice to make - hold off adding until the
+                  // visitor picks one in the modal below, rather than
+                  // adding blank and leaving it to fix up afterward.
+                  setTourPickerDistillery(d);
+                  return;
+                }
                 trip.addStop(activeDayIndex, d);
-                // tourIndex comes from the popup's own tour picker (or is
-                // implicitly 0 for a single-tour distillery) - see
-                // MapCanvas's buildTourPickerHtml/click delegate. Setting
-                // it here means a distillery added from the map arrives
-                // with a real tour already picked, not "No tour selected".
-                if (tourIndex != null && d.tours[tourIndex]) {
-                  trip.setTourForStop(activeDayIndex, d, d.tours[tourIndex]);
+                // Exactly one tour: no real choice, so no modal - use it
+                // directly. Zero tours: unchanged, adds with none set.
+                if (d.tours.length === 1) {
+                  trip.setTourForStop(activeDayIndex, d, d.tours[0]);
                 }
               }}
               onAddFeature={(id) => {

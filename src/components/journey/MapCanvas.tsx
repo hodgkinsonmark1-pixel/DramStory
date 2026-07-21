@@ -11,10 +11,7 @@ interface MapCanvasProps {
   distilleries: Distillery[];
   localFeatures: LocalFeature[];
   isLive: boolean;
-  /** tourIndex is the position within that distillery's own tours array
-   *  (set from the popup's tour picker - see buildTourPickerHtml) -
-   *  undefined when the distillery has no tours listed at all. */
-  onAddDistillery?: (slug: string, tourIndex?: number) => void;
+  onAddDistillery?: (slug: string) => void;
   onAddFeature?: (id: string) => void;
   /** Distillery slugs to render with a pulsing ring - the map's visual
    *  indicator for "there's a Local Event on here during the selected
@@ -212,25 +209,6 @@ export default function MapCanvas({
         });
       }
 
-      // Lets the visitor pick which tour they want right from the pin,
-      // rather than adding the distillery blank and having to open the
-      // itinerary stop afterward to set one (which is how "No tour
-      // selected" kept showing up - 21 July 2026 feedback). Two tours or
-      // more: a dropdown of "Name — £price — duration" plus one +Add
-      // button that adds with whichever's selected. Exactly one tour:
-      // no picker at all, since there's no real choice to make - +Add
-      // just uses it directly (handled in the click delegate below, via
-      // tours.length rather than needing a hidden select for one option).
-      // No tours listed: falls back to the plain, tour-less +Add exactly
-      // as before.
-      function buildTourPickerHtml(d: Distillery): string {
-        if (d.tours.length < 2) return "";
-        const options = d.tours
-          .map((t, i) => `<option value="${i}">${t.name} — £${t.price} — ${t.duration}</option>`)
-          .join("");
-        return `<select class="popup-tour-select" data-tour-select="${d.slug}">${options}</select>`;
-      }
-
       const markers: Leaflet.Marker[] = [];
       const slugToMarker: Record<string, Leaflet.Marker> = {};
       for (const d of distilleries) {
@@ -242,7 +220,6 @@ export default function MapCanvas({
             <div class="popup-name">${d.name}</div>
             <div class="popup-region">${d.region}${d.founded ? ` &middot; Est. ${d.founded}` : ""}</div>
             <div class="popup-detail">${d.tagline}</div>
-            ${buildTourPickerHtml(d)}
             <div class="popup-actions">
               <a class="popup-btn popup-btn-secondary" href="/distilleries/${d.slug}">View &rarr;</a>
               <button class="popup-btn popup-btn-primary" data-add-distillery="${d.slug}">+ Add</button>
@@ -285,19 +262,7 @@ export default function MapCanvas({
         const addDistillery = target.closest("[data-add-distillery]");
         if (addDistillery) {
           const slug = addDistillery.getAttribute("data-add-distillery");
-          if (slug) {
-            const d = distilleries.find((x) => x.slug === slug);
-            let tourIndex: number | undefined;
-            if (d && d.tours.length === 1) {
-              // Only one real option - no picker rendered, so there's
-              // nothing to read from the DOM, just use it directly.
-              tourIndex = 0;
-            } else if (d && d.tours.length >= 2) {
-              const select = document.querySelector<HTMLSelectElement>(`[data-tour-select="${slug}"]`);
-              tourIndex = select ? Number(select.value) : undefined;
-            }
-            onAddRef.current?.(slug, tourIndex);
-          }
+          if (slug) onAddRef.current?.(slug);
           return;
         }
         const addFeature = target.closest("[data-add-feature]");
