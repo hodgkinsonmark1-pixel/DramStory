@@ -1,16 +1,44 @@
 # Pre-Designed Day Narrative Standard
 
 Established through the first three Hub Days (Bowmore Unhurried, Three
-Distilleries One Road, Ardbeg on Foot), July 2026. This is the standard for
-every Day narrative going forward, not a one-off style choice for those
-three - future Days should be drafted to match this bar from the start,
-rather than needing the same rounds of trimming to get there.
+Distilleries One Road, Ardbeg on Foot), July 2026, then revised on 21 July
+2026 to add an emotional-hook opening (see below). This is the standard for
+every Day narrative going forward, not a one-off style choice - Days should
+be drafted to match this bar from the start, rather than needing rounds of
+trimming to get there.
 
 ## One paragraph, whole-day
 
 A single narrative paragraph per Day, whatever the Day's length or number of
 distilleries. Not a stop-by-stop bullet list, not a paragraph per
 distillery. Covers the whole day in the round.
+
+## Open with an emotional hook, then get plain
+
+*(Added 21 July 2026, applies to Days drafted from this point forward - see
+"Forward-only" note under Process.)*
+
+Every Day narrative opens with one line that answers "why this day,
+specifically" - not a mood-setter that could apply to any Day, but something
+concrete enough to only be true of this one: a genuine contrast, a build, a
+payoff, the reason it beats the other ~15 options. Once that hook has
+landed, the rest of the paragraph reverts to the plain, concrete rules
+below.
+
+A hook is not a throat-clearing opener. "Your day begins with something
+special" says nothing - discard it on sight. A hook makes a specific claim.
+Illustrative only (not a rewrite of a live Day - the three existing Days are
+staying as they are for now):
+
+Current opening, Three Distilleries One Road: *"Heading along the coast
+from Port Askaig, today you'll take in three very different distilleries —
+largest, newest, and most traditional."* - factually fine, but doesn't yet
+make you want it.
+
+With the hook applied: *"Three completely different faces of Islay whisky,
+one road, one day — from the island's biggest producer to its newest
+distillery to the one that's barely changed how it makes whisky in
+centuries."*
 
 ## Plain, not descriptive
 
@@ -21,6 +49,9 @@ language every time it crept in. Specifically avoid:
   but as a rule, be sparing)
 - Throat-clearing openers ("Your day begins...", "Give the whole day to...")
 - Explaining atmosphere instead of stating what happens
+
+This rule governs the body of the paragraph, after the opening hook (see
+above) - the hook is allowed to carry feeling; the body still shouldn't.
 
 Prefer plain, concrete statements of what the day actually involves: which
 distillery, which named tour, what it includes, in what order. Example of
@@ -73,3 +104,10 @@ Draft in chat → Mark reviews and iterates → independent second-pass review
 (brand voice, adds value, appropriate for site, consistency against live
 Airtable records - not a rubber stamp) → only then pushed to Airtable
 (Status: Draft, not Live).
+
+**Forward-only note (21 July 2026):** the emotional-hook opening above is a
+correction to this standard, not a retroactive one. It applies to Days
+drafted from this point forward. The three existing Days (Bowmore Unhurried,
+Three Distilleries One Road, Ardbeg on Foot) are not being reworked to match
+it as part of this change - revisiting them, if it happens, is a separate,
+later decision.
