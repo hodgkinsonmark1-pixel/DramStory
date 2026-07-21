@@ -217,8 +217,8 @@ function seedTodayDay(
     // Distilleries is pre-seeded for this path.
     const daytimeNotice =
       secondStopCount > 0
-        ? "There's a lot of today ahead, so we've added a second distillery near your first stop. Fancy something different instead? Natural Features, Local Attractions and Places to Eat are all worth a browse in the menu above."
-        : "There's still time for a distillery visit today, but not quite enough for a second, so we've kept it to the one nearest you. Looking for some non-whisky experiences this afternoon too? Natural Features, Local Attractions and Places to Eat are all in the menu above.";
+        ? "There's a lot of today ahead, so we've added a second distillery near your first stop.\n\nFancy something different instead? Local attractions, natural features and places to eat are all worth a browse in the menu above."
+        : "There's still time for a distillery visit today, but not quite enough for a second, so we've kept it to the one nearest you.\n\nLooking for some non-whisky experiences this afternoon too? Local attractions, natural features and places to eat are all in the menu above.";
     return { interests: ["distilleries"], notice: daytimeNotice };
   }
 
