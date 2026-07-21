@@ -10,6 +10,7 @@ import InterestsStep from "./InterestsStep";
 import Workspace from "./Workspace";
 import { FEATURED_STAYS } from "@/lib/featured-stays";
 import { estimatedDriveMinutes, formatDuration } from "@/lib/drive-time";
+import { TODAY_EXCLUDED_DISTILLERY_SLUGS } from "@/lib/journey-options";
 
 interface JourneyFlowProps {
   timing: TripTiming;
@@ -196,8 +197,12 @@ function seedTodayDay(
     // one; later than that, one distillery is a more honest suggestion
     // than two.
     const stopBudget = hour < 13 ? 2 : 1;
+    // TODAY_EXCLUDED_DISTILLERY_SLUGS (Jura) also excluded here - a
+    // ferry-only second stop is exactly as misleading as offering it as
+    // the starting point, and estimatedDriveMinutes has no idea a ferry
+    // is involved either way.
     const others = distilleries
-      .filter((d) => d.slug !== start.slug)
+      .filter((d) => d.slug !== start.slug && !TODAY_EXCLUDED_DISTILLERY_SLUGS.includes(d.slug))
       .map((d) => ({ d, minutes: estimatedDriveMinutes(start, d) }))
       .sort((a, b) => a.minutes - b.minutes);
 

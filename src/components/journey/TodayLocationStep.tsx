@@ -1,7 +1,8 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import type { Distillery } from "@/lib/types";
+import { TODAY_EXCLUDED_DISTILLERY_SLUGS } from "@/lib/journey-options";
 import SiteHeader from "@/components/SiteHeader";
 import BackgroundImage from "@/components/BackgroundImage";
 import { DistilleryPicker } from "./LocationStep";
@@ -39,6 +40,16 @@ export default function TodayLocationStep({ distilleriesPromise, onNext, onBack 
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
+  // Jura dropped from this flow's pool entirely (see
+  // TODAY_EXCLUDED_DISTILLERY_SLUGS) - memoized against the incoming
+  // promise reference (stable across renders, created once in
+  // JourneyFlow) so use() in DistilleryPicker doesn't see a new promise
+  // identity every render.
+  const todayDistilleriesPromise = useMemo(
+    () => distilleriesPromise.then((ds) => ds.filter((d) => !TODAY_EXCLUDED_DISTILLERY_SLUGS.includes(d.slug))),
+    [distilleriesPromise]
+  );
+
   function handleUseMyLocation() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setLocationError("Location isn't available in this browser - no problem, just pick from the list below.");
@@ -49,7 +60,7 @@ export default function TodayLocationStep({ distilleriesPromise, onNext, onBack 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        const distilleries = await distilleriesPromise;
+        const distilleries = await todayDistilleriesPromise;
         if (distilleries.length === 0) {
           setLocating(false);
           setLocationError("Couldn't match that to a distillery - pick from the list below instead.");
@@ -108,7 +119,7 @@ export default function TodayLocationStep({ distilleriesPromise, onNext, onBack 
 
         <Suspense fallback={<div className="q-card location-inline-input">Loading distilleries…</div>}>
           <DistilleryPicker
-            distilleriesPromise={distilleriesPromise}
+            distilleriesPromise={todayDistilleriesPromise}
             onNext={(answer) => {
               if (answer.kind === "distillery") onNext(answer.distillerySlug);
             }}

@@ -23,6 +23,17 @@ export const REGIONS: RegionOption[] = [
   { id: "lowland", label: "Lowland", live: false },
 ];
 
+/** Distilleries left out of the "today" flow's distillery pool entirely -
+ *  added 21 July 2026 per Mark's request to drop Jura from the "here
+ *  today" list. Jura needs a ferry crossing from Islay, so "which
+ *  distillery are you nearest to right now" (and the ad-hoc nearby-stop
+ *  suggestions built on straight-line/drive-time distance) would be
+ *  actively misleading for it - none of that math accounts for a ferry.
+ *  Still fully supported everywhere else on the site (its own Distillery
+ *  page, Day, footer link, etc.) - this only trims the "today" flow's
+ *  pool, not the real Airtable data or any other flow's distillery list. */
+export const TODAY_EXCLUDED_DISTILLERY_SLUGS: readonly string[] = ["isle-of-jura"];
+
 export interface InterestCategoryOption {
   id: InterestCategoryId;
   label: string;
