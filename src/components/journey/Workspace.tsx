@@ -8,6 +8,7 @@ import { CLASSIC_JOURNEYS, getJourneyDistilleries } from "@/lib/journeys-data";
 import { roundPriceUp } from "@/lib/pricing";
 import { getMonthClimate, MONTH_NAMES } from "@/lib/islay-climate";
 import { estimatedDriveMinutes, formatDuration } from "@/lib/drive-time";
+import { nearestWeatherReference } from "@/lib/weather-links";
 import { useRouteSegments } from "@/lib/use-route-segments";
 import { useTrip } from "@/lib/trip-context";
 import { stopCoords, stopId, stopName, stopVisitMinutes, incrementVisitMinutes } from "@/lib/itinerary-stop";
@@ -469,6 +470,11 @@ export default function Workspace({
   // immediately; other timings need the header date control to have
   // actually been used at least once first.
   const weatherReady = isLive && (timing === "today" || trip.tripDates.confirmed);
+  // Which town's Met Office forecast to link to for "today" - nearest to
+  // the visitor's actual chosen starting distillery, not always Bowmore
+  // (21 July 2026 fix). Cheap to compute unconditionally; only rendered
+  // when timing === "today" below.
+  const weatherReference = nearestWeatherReference(location, distilleries);
 
   // Seasonal-closure / silent-season notices for any distillery currently
   // in the active day's itinerary. Reads the existing free-text
@@ -1118,11 +1124,11 @@ export default function Workspace({
                       Check a live forecast before you head out —{" "}
                       <a
                         className="weather-inline-link"
-                        href="https://weather.metoffice.gov.uk/forecast/gcgt0ynnb"
+                        href={weatherReference.url}
                         target="_blank"
                         rel="noreferrer"
                       >
-                        Met Office forecast for Bowmore, Islay ↗
+                        Met Office forecast for {weatherReference.label} ↗
                       </a>
                       .
                     </>
@@ -1163,11 +1169,11 @@ export default function Workspace({
                   Today on Islay — check a live forecast before you head out (
                   <a
                     className="weather-inline-link"
-                    href="https://weather.metoffice.gov.uk/forecast/gcgt0ynnb"
+                    href={weatherReference.url}
                     target="_blank"
                     rel="noreferrer"
                   >
-                    Met Office ↗
+                    Met Office, {weatherReference.label} ↗
                   </a>
                   ).
                 </>
