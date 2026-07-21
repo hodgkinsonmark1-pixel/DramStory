@@ -54,21 +54,30 @@ export async function airtableFetchAll<T>(table: string): Promise<AirtableRecord
 
     const res = await fetch(url.toString(), {
       headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` },
-      // ISR, shortened 21 July 2026 (was 3600/1hr) - real incident: Port
-      // Ellen and Isle of Jura were added to the Distilleries table on 9
-      // and 11 July but stayed invisible on the live /distilleries page
-      // for 10+ days. Root cause per docs/technical-notes.md: this Data
-      // Cache entry can persist across deployments, so redeploying alone
-      // didn't force a refresh, and low pre-launch traffic meant nothing
-      // triggered the background revalidation either. 60s means any
-      // content-editing session self-heals on the live site within a
-      // minute, at the cost of one extra Airtable API call per table per
-      // minute under real traffic - fine given the Team plan headroom
-      // (see technical-notes.md, "Airtable API quota (historical,
-      // resolved)"). Worth raising again once content stabilises post-MVP,
-      // or replacing with proper on-demand revalidation (revalidateTag)
-      // tied to an Airtable webhook if this keeps needing manual chasing.
-      next: { revalidate: 60 },
+      // UPDATE 21 July 2026 (same day, later): shortening revalidate to 60s
+      // (previous comment/attempt, still visible in git history) did NOT
+      // fix the real incident it was meant to - Port Ellen and Isle of
+      // Jura stayed invisible on the live /distilleries page even 3+
+      // minutes and a fresh deploy after that change shipped. Confirmed
+      // this is the Vercel Data Cache "persists across deployments" gotcha
+      // biting harder than expected: an already-stale cached entry doesn't
+      // get bypassed just because the code now asks for a shorter window -
+      // whatever created that entry is what governs it until something
+      // actually forces a bypass. No CLI/API access available in this
+      // session to directly purge the Vercel Data Cache by tag (would need
+      // `vercel cache invalidate`, which needs an interactive login, or a
+      // revalidateTag route gated by a new secret env var).
+      //
+      // Switched to cache: "no-store" instead - every request hits
+      // Airtable live, no Data Cache involved at all, so this class of bug
+      // can't recur. Fine for now: low pre-launch traffic, and Airtable
+      // quota headroom is already resolved (Team plan - see "Airtable API
+      // quota (historical, resolved)" further down this file). Worth
+      // reintroducing real caching (with proper on-demand revalidation via
+      // revalidateTag tied to an Airtable webhook, rather than a bare
+      // time-based window) once traffic actually makes the extra Airtable
+      // calls worth optimising away.
+      cache: "no-store",
     });
 
     if (!res.ok) {

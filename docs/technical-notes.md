@@ -11,22 +11,36 @@ knowing before debugging the same issue twice. Distinct from
 coordinates (MacTaggart Leisure Centre, Round Church of Bowmore) weren't
 showing up on the live map after a fresh deployment.
 
-**UPDATE, 21 July 2026 - real recurrence, fix applied.** Mark flagged
+**UPDATE, 21 July 2026 - real recurrence, two fix attempts.** Mark flagged
 `/distilleries` showing 9 distilleries instead of 11. Confirmed directly
 in Airtable: Port Ellen and Isle of Jura were added to the Distilleries
 table on 9 and 11 July, both with real Name/Slug values, and the fetch
 code has no Status/Region filter that would exclude them - this was
-exactly the caching gotcha below, not a code or data bug. A same-day
-redeploy (for an unrelated change) did NOT fix it either, confirming
-"redeploy alone doesn't guarantee a bust" isn't just a theoretical risk.
-Fix: `next: { revalidate: 3600 }` -> `next: { revalidate: 60 }` in
-`src/lib/airtable.ts`, so any future addition/edit self-heals live within
-a minute rather than needing a manual chase. Cost is one extra Airtable
-API call per table per minute under real traffic - acceptable given the
-Team plan headroom (see the API quota note further down this file).
+exactly the caching gotcha below, not a code or data bug.
 
-**The behaviour (as originally found, now historical - see update above
-for the current `revalidate` value):** `src/lib/airtable.ts` fetches used:
+First attempt: shortened `next: { revalidate: 3600 } }` to
+`{ revalidate: 60 }`. This did NOT fix it - checked live 3+ minutes and
+one fresh production deploy after it shipped, still 9. Confirms
+"redeploy alone doesn't guarantee a bust" is worse than the original
+note implied: an *already-stale* Data Cache entry isn't bypassed just
+because the code now asks for a shorter window: whatever governed that
+entry when it was first cached keeps governing it. No CLI/API access
+was available in that session to directly purge Vercel's Data Cache by
+tag (`vercel cache invalidate` needs an interactive login; a
+`revalidateTag` route needs a new secret env var set in Vercel first).
+
+Second attempt, this is what's actually live now: switched to
+`cache: "no-store"` - every request hits Airtable live, no Data Cache
+involved, so this exact bug class can't recur. Cost is one live
+Airtable call per table per request; acceptable for now given low
+pre-launch traffic and the Team plan quota headroom (see further down
+this file). Worth reintroducing real caching - ideally with proper
+on-demand revalidation (`revalidateTag` tied to an Airtable webhook,
+not a bare time window) - once traffic actually makes the per-request
+Airtable calls worth optimising away.
+
+**The behaviour (as originally found, now historical - `src/lib/airtable.ts`
+no longer uses a cached fetch at all, see update above):** the fetches used:
 
 ```
 next: { revalidate: 3600 }
@@ -42,18 +56,20 @@ show stale data on the live site for up to an hour after the fix, even
 after a redeploy.
 
 **Practical implications:**
-- Don't assume "I redeployed, so it must be fresh" for anything reading
-  through `src/lib/airtable.ts`. If content looks stale right after a
-  redeploy, this is the first thing to check before assuming the Airtable
-  data itself is wrong.
-- If content needs to be live immediately (not "within the hour" - or now,
-  not within the minute), the options are: force a Vercel redeploy with
-  the build cache cleared, or reduce/adjust the `revalidate` window
-  further for time-sensitive fields, or add on-demand revalidation
-  (`revalidatePath`/`revalidateTag`) tied to the relevant Airtable
-  webhook/update path, if that becomes worth the engineering effort -
-  worth prioritising higher now that the 1-hour window has caused a real,
-  10+-day-long visible gap in live content once already.
+- As of 21 July 2026 this is moot for content freshness specifically -
+  `cache: "no-store"` means every request is live, nothing to wait out.
+  Still worth reading if `airtable.ts` ever moves back to a cached fetch:
+  a shortened `revalidate` window does NOT reliably bust an
+  *already-stale* entry (confirmed the hard way above) - only a genuinely
+  new cache key (different URL/tag) or an explicit `revalidateTag` call
+  does that.
+- If real caching comes back, the reliable options for instant freshness
+  are: on-demand revalidation (`revalidatePath`/`revalidateTag`) tied to
+  an Airtable webhook, or `vercel cache invalidate --tag <name>` /
+  `vercel cache dangerously-delete --tag <name> --yes` via the Vercel
+  CLI (needs an interactive login, so not usable from an unattended
+  session). Reducing the `revalidate` number alone is not reliable relief
+  for content that's already stale, only for future entries.
 - This is not a bug in the data - it's a caching layer worth knowing about
   before spending time re-checking coordinates, field values, etc. that are
   already correct.
