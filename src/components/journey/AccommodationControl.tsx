@@ -139,6 +139,13 @@ export default function AccommodationControl({
   const bookNowUrl = activeFeatured
     ? activeFeatured.url
     : buildAccommodationBookingLink(accommodation?.name ?? "Port Ellen", trip.tripDates);
+  // Label matches what the link actually does (21 July 2026 fix) - a
+  // Featured Stay is a real named property, so "Book Now" is accurate;
+  // an Area or free-text place goes to a Hotels.com SEARCH-RESULTS page
+  // for that place, not a specific booking, so calling that "Book Now"
+  // overstated it. "Search Hotels.com" reads honestly either way, named
+  // (an Area) or not (a custom free-text place).
+  const bookNowLabel = activeFeatured ? "Book Now" : "Search Hotels.com";
 
   return (
     <div className="accommodation-row">
@@ -206,7 +213,7 @@ export default function AccommodationControl({
             className="subcat-chip"
             style={{ background: "var(--green-deep)", color: "white", fontWeight: 600 }}
           >
-            Book Now
+            {bookNowLabel}
           </a>
         </>
       )}
