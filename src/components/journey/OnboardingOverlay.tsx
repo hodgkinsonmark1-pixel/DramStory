@@ -81,7 +81,10 @@ const TRIP_SO_FAR_STEP: Step = {
 const EXPAND_STOP_STEP: Step = {
   icon: "🔎",
   text: "Expand a stop to see the details.",
-  cutout: { id: "onboard-first-stop", shape: "rect" },
+  // alsoInclude unions in the "drive from accommodation" line (21 July
+  // 2026 addition, sits just above the first stop) so the walkthrough's
+  // highlight covers it too, not just the stop card itself.
+  cutout: { id: "onboard-first-stop", shape: "rect", alsoInclude: { id: "onboard-accommodation-drive" } },
   autoActionEvent: "onboarding:expand-first-stop",
   autoActionReverseEvent: "onboarding:collapse-first-stop",
 };
@@ -372,8 +375,8 @@ export default function OnboardingOverlay({ timing }: { timing: TripTiming }) {
           </div>
           <div className="onboarding-actions">
             {step > 0 && (
-              <button className="onboarding-back" onClick={() => setStep((s) => s - 1)}>
-                Back
+              <button className="onboarding-back" onClick={() => setStep((s) => s - 1)} aria-label="Back">
+                &lsaquo;
               </button>
             )}
             {!isLast && (

@@ -287,6 +287,16 @@ export default function Workspace({
       );
     }
   }
+  // driveSegments is indexed against routeCoords, which prepends the
+  // accommodation as a starting point whenever one's set (see routeCoords
+  // above) - so "stop i -> stop i+1" lives at driveSegments[i + offset],
+  // not driveSegments[i] directly, once accommodation shifts everything
+  // along by one. driveSegments[0] with an accommodation set is instead
+  // the accommodation -> first-stop leg, shown as its own line above the
+  // itinerary (21 July 2026 fix - this offset was previously missing,
+  // silently showing each stop's INCOMING leg mislabelled as its
+  // outgoing one, and never showing the last stop's real drive time).
+  const stopDriveOffset = accommodation ? 1 : 0;
   const totalDriveMinutes = driveSegments.reduce((a, b) => a + b, 0);
   const totalVisitMinutes = activeDay ? activeDay.stops.reduce((sum, s) => sum + stopVisitMinutes(s), 0) : 0;
   const toursBooked = activeDay ? activeDay.stops.filter((s) => s.kind === "distillery" && s.tour).length : 0;
@@ -658,7 +668,13 @@ export default function Workspace({
                 </p>
               </div>
             ) : (
-              activeDay.stops.map((stop, i) => {
+              <>
+                {accommodation && (
+                  <div className="drive-time-between" id="onboard-accommodation-drive">
+                    🚗 {formatDuration(driveSegments[0])} drive from {accommodation.name}
+                  </div>
+                )}
+                {activeDay.stops.map((stop, i) => {
                 const id = stopId(stop);
                 const collapsed = collapsedStops.has(id);
                 const visitLabel = `~${formatDuration(stopVisitMinutes(stop))}`;
@@ -764,12 +780,13 @@ export default function Workspace({
                     </div>
                     {i < activeDay.stops.length - 1 && (
                       <div className="drive-time-between">
-                        🚗 {formatDuration(driveSegments[i])} drive
+                        🚗 {formatDuration(driveSegments[i + stopDriveOffset])} drive
                       </div>
                     )}
                   </div>
                 );
-              })
+                })}
+              </>
             )}
 
             {isFlyingIn && activeDayIndex === days.length - 1 && (

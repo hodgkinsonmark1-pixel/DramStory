@@ -1123,15 +1123,28 @@ select.location-inline-input {
   align-items: center;
   gap: 14px;
 }
-.onboarding-skip,
-.onboarding-back {
+.onboarding-skip {
   background: none;
   border: none;
   color: var(--slate);
   font-size: 13px;
   cursor: pointer;
 }
-.onboarding-skip:hover,
+.onboarding-skip:hover {
+  color: var(--dark);
+}
+/* Chevron, not text - 21 July 2026, replacing an earlier "Back" text
+   button. Larger glyph size than .onboarding-skip since a bare ‹ reads
+   too small at 13px to register as a tappable control. */
+.onboarding-back {
+  background: none;
+  border: none;
+  color: var(--slate);
+  font-size: 20px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+}
 .onboarding-back:hover {
   color: var(--dark);
 }
