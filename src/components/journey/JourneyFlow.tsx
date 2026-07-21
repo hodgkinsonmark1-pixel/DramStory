@@ -7,7 +7,7 @@ import { useTrip } from "@/lib/trip-context";
 import LocationStep from "./LocationStep";
 import InterestsStep from "./InterestsStep";
 import Workspace from "./Workspace";
-import { FEATURED_STAYS } from "./AccommodationControl";
+import { FEATURED_STAYS } from "@/lib/featured-stays";
 
 interface JourneyFlowProps {
   timing: TripTiming;

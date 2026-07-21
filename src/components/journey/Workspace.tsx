@@ -826,6 +826,12 @@ export default function Workspace({
                   </div>
                 );
                 })}
+                {accommodation && (
+                  <div className="drive-time-between">
+                    🚗 {formatDuration(driveSegments[driveSegments.length - 1])} drive back to{" "}
+                    {accommodation.name}
+                  </div>
+                )}
               </>
             )}
 

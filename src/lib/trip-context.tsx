@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { Distillery, ItineraryDay, LocalFeature, Tour, TripAccommodation, TripDateMode, TripDates, TripIntake, TripMapView } from "@/lib/types";
 import { stopId } from "@/lib/itinerary-stop";
+import { FEATURED_STAYS } from "@/lib/featured-stays";
 
 const STORAGE_KEY = "dramstory-trip-v2";
 
@@ -214,7 +215,17 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addDay = useCallback(() => {
-    setDays((prev) => [...prev, { id: `day-${prev.length + 1}`, label: `Day ${prev.length + 1}`, stops: [] }]);
+    // Defaults every new day's accommodation to The Machrie (21 July 2026),
+    // same as the seeded default day and AccommodationControl's own
+    // no-stay-set fallback - so a day added via "+ Add day" always has a
+    // real base for its route/drive-time totals from the moment it exists,
+    // rather than only gaining one once the visitor happens to open the
+    // Places to Stay panel for it.
+    const { name, lat, lng } = FEATURED_STAYS[0];
+    setDays((prev) => [
+      ...prev,
+      { id: `day-${prev.length + 1}`, label: `Day ${prev.length + 1}`, stops: [], accommodation: { name, lat, lng } },
+    ]);
   }, []);
 
   const removeDay = useCallback((index: number) => {
