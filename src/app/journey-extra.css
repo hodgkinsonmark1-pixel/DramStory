@@ -337,6 +337,12 @@ select.location-inline-input {
   font-size: 12px;
   line-height: 1.5;
   color: var(--peat);
+  /* Added 21 July 2026 - todayNotice can now carry a second line (the
+     "local gem" nudge) separated by a blank line in the source string;
+     pre-line renders that as a real paragraph break instead of collapsing
+     it to a single space, without needing to split the text into
+     separate JSX elements. */
+  white-space: pre-line;
 }
 .today-notice-close {
   position: absolute;

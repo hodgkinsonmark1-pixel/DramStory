@@ -1129,21 +1129,20 @@ export default function Workspace({
                   &times;
                 </button>
                 <div className="weather-popup-title">
-                  {timing === "today" ? "🌤️ Today on Islay" : `🌤️ Visiting in ${weatherMonthName}`}
+                  {timing === "today" ? "Today on Islay" : `🌤️ Visiting in ${weatherMonthName}`}
                 </div>
                 <p className="weather-popup-text">
                   {timing === "today" ? (
                     <>
-                      Check a live forecast before you head out —{" "}
                       <a
                         className="weather-inline-link"
                         href={weatherReference.url}
                         target="_blank"
                         rel="noreferrer"
                       >
-                        Met Office forecast for {weatherReference.label} ↗
-                      </a>
-                      .
+                        Check the weather ↗
+                      </a>{" "}
+                      for the rest of your day.
                     </>
                   ) : (
                     <>
@@ -1183,16 +1182,16 @@ export default function Workspace({
             <span className="weather-banner-text">
               {timing === "today" ? (
                 <>
-                  Today on Islay — check a live forecast before you head out (
+                  Today on Islay —{" "}
                   <a
                     className="weather-inline-link"
                     href={weatherReference.url}
                     target="_blank"
                     rel="noreferrer"
                   >
-                    Met Office, {weatherReference.label} ↗
-                  </a>
-                  ).
+                    Check the weather ↗
+                  </a>{" "}
+                  for the rest of your day.
                 </>
               ) : (
                 <>

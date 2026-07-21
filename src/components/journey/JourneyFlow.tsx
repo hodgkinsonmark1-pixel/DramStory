@@ -212,7 +212,7 @@ function seedTodayDay(
   // features, places to stay) rather than leaving "Distilleries" active
   // with nothing seeded under it.
   const eveningInterests: InterestCategoryId[] = ["natural-features", "local-attractions", "places-to-eat", "places-to-stay"];
-  const eveningNotice =
+  const eveningExplainer =
     "It's getting late in the day for a fresh distillery tour, so instead see attractions, natural features, places to eat and drink that are local to you.";
 
   // Tiered search, nearest first within each tier: a genuine "local gem"
@@ -239,15 +239,21 @@ function seedTodayDay(
       chosen.f.id,
       `Why don't you visit this local gem? It's about ${formatDuration(chosen.minutes)} from where you are now. If you still need somewhere to stay tonight, add it under "Where are you staying?" below.`
     );
-  } else {
-    // No Local Features resolved at all (shouldn't normally happen) -
-    // fall back to the starting distillery itself rather than seeding an
-    // empty day.
-    trip.addStop(0, start);
-    trip.setStopNote(0, start.slug, "Worth checking if there's still time for a visit today.");
+    // Per Mark's 21 July feedback: the same "why don't you visit this
+    // local gem" nudge repeated in the itinerary panel's own notice box
+    // (blank line, then the question) - the stop's own note above only
+    // shows once that stop card is expanded, so this makes the same
+    // suggestion visible immediately, without needing to expand anything.
+    const eveningNotice = `${eveningExplainer}\n\nWhy don't you visit this local gem?`;
+    return { interests: eveningInterests, notice: eveningNotice };
   }
 
-  return { interests: eveningInterests, notice: eveningNotice };
+  // No Local Features resolved at all (shouldn't normally happen) - fall
+  // back to the starting distillery itself rather than seeding an empty
+  // day, and skip the "local gem" line since nothing was actually seeded.
+  trip.addStop(0, start);
+  trip.setStopNote(0, start.slug, "Worth checking if there's still time for a visit today.");
+  return { interests: eveningInterests, notice: eveningExplainer };
 }
 
 export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, resume }: JourneyFlowProps) {
