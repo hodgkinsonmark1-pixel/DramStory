@@ -71,6 +71,24 @@ select.location-inline-input {
    .popup-detail/.popup-actions/.popup-btn* — all already ported from the
    approved mockup in dramstory-legacy.css, so no styles needed here. */
 
+/* Tour picker inside a distillery pin's popup (21 July 2026) - only
+   rendered when there are 2+ tours to choose between (see
+   MapCanvas's buildTourPickerHtml); a single tour skips this and adds
+   directly, so there's never a one-option dropdown. Sits between
+   .popup-detail and .popup-actions, full width since the popup itself
+   is narrow (minWidth 240). */
+.popup-tour-select {
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  margin-bottom: 10px;
+  border: 1px solid var(--stone);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--dark);
+  background: white;
+}
+
 /* Toolbar drill-down: clicking a category collapses the row to just
    [Distilleries] + [that category, active] + [Everything] + its
    subcategory chips, all in one row (no separate row below anymore) -

@@ -968,9 +968,18 @@ export default function Workspace({
                 // degrades gracefully rather than breaking the whole route.
                 return [...points, ...(real ? real.points : [routeCoords[i - 1], coord])];
               }, [])}
-              onAddDistillery={(slug) => {
+              onAddDistillery={(slug, tourIndex) => {
                 const d = distilleries.find((x) => x.slug === slug);
-                if (d) trip.addStop(activeDayIndex, d);
+                if (!d) return;
+                trip.addStop(activeDayIndex, d);
+                // tourIndex comes from the popup's own tour picker (or is
+                // implicitly 0 for a single-tour distillery) - see
+                // MapCanvas's buildTourPickerHtml/click delegate. Setting
+                // it here means a distillery added from the map arrives
+                // with a real tour already picked, not "No tour selected".
+                if (tourIndex != null && d.tours[tourIndex]) {
+                  trip.setTourForStop(activeDayIndex, d, d.tours[tourIndex]);
+                }
               }}
               onAddFeature={(id) => {
                 const f = localFeatures.find((x) => x.id === id);
