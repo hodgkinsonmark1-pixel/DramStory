@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useState } from "react";
 import type { Distillery } from "@/lib/types";
 import { TODAY_EXCLUDED_DISTILLERY_SLUGS } from "@/lib/journey-options";
 import SiteHeader from "@/components/SiteHeader";
@@ -40,16 +40,6 @@ export default function TodayLocationStep({ distilleriesPromise, onNext, onBack 
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
-  // Jura dropped from this flow's pool entirely (see
-  // TODAY_EXCLUDED_DISTILLERY_SLUGS) - memoized against the incoming
-  // promise reference (stable across renders, created once in
-  // JourneyFlow) so use() in DistilleryPicker doesn't see a new promise
-  // identity every render.
-  const todayDistilleriesPromise = useMemo(
-    () => distilleriesPromise.then((ds) => ds.filter((d) => !TODAY_EXCLUDED_DISTILLERY_SLUGS.includes(d.slug))),
-    [distilleriesPromise]
-  );
-
   function handleUseMyLocation() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setLocationError("Location isn't available in this browser - no problem, just pick from the list below.");
@@ -60,7 +50,15 @@ export default function TodayLocationStep({ distilleriesPromise, onNext, onBack 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        const distilleries = await todayDistilleriesPromise;
+        // Plain await + array filter here, not React's use() - this runs
+        // inside an event-handler callback, not during render, so there's
+        // no restriction on filtering the resolved array directly (unlike
+        // DistilleryPicker below, which filters via its own excludeSlugs
+        // prop instead of a derived promise - see that component's
+        // comment for why).
+        const distilleries = (await distilleriesPromise).filter(
+          (d) => !TODAY_EXCLUDED_DISTILLERY_SLUGS.includes(d.slug)
+        );
         if (distilleries.length === 0) {
           setLocating(false);
           setLocationError("Couldn't match that to a distillery - pick from the list below instead.");
@@ -119,7 +117,8 @@ export default function TodayLocationStep({ distilleriesPromise, onNext, onBack 
 
         <Suspense fallback={<div className="q-card location-inline-input">Loading distilleries…</div>}>
           <DistilleryPicker
-            distilleriesPromise={todayDistilleriesPromise}
+            distilleriesPromise={distilleriesPromise}
+            excludeSlugs={TODAY_EXCLUDED_DISTILLERY_SLUGS}
             onNext={(answer) => {
               if (answer.kind === "distillery") onNext(answer.distillerySlug);
             }}

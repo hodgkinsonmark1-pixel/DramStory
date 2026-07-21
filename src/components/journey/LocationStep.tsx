@@ -27,19 +27,35 @@ type OptionId = "islay" | "speyside" | "highland" | "campbeltown" | "lowland" | 
  *  Suspense only affects this dropdown, never Q2's initial paint. Exported
  *  so TodayLocationStep (the "today" flow's lightweight location question,
  *  added 21 July 2026) can reuse the exact same dropdown instead of
- *  duplicating it. */
+ *  duplicating it.
+ *
+ *  IMPORTANT: always pass the ORIGINAL distilleriesPromise from the page
+ *  root straight through to this component's own use() call - never a
+ *  .then()-derived copy built inside a Client Component. React's use()
+ *  only accepts promises created outside Client Component render (a
+ *  Server Component/page root counts; a hook building a new promise via
+ *  .then(), even memoized, does not) - the latter throws minified React
+ *  error #438 at runtime, which tsc/eslint have no way to catch. Use
+ *  excludeSlugs below to filter after use() resolves instead. */
 export function DistilleryPicker({
   distilleriesPromise,
   onNext,
+  excludeSlugs = [],
 }: {
   distilleriesPromise: Promise<Distillery[]>;
   onNext: (answer: LocationAnswer) => void;
+  /** Slugs left out of the dropdown entirely - e.g. the "today" flow
+   *  excluding Jura (TODAY_EXCLUDED_DISTILLERY_SLUGS). Empty by default
+   *  so Q2's own planning/dreaming use of this dropdown is unaffected. */
+  excludeSlugs?: readonly string[];
 }) {
   const distilleries = use(distilleriesPromise);
   // Alphabetical, not Airtable record order - easier to scan/find a
   // specific name in a plain <select> than whatever order records
   // happen to be in.
-  const sortedDistilleries = [...distilleries].sort((a, b) => a.name.localeCompare(b.name));
+  const sortedDistilleries = distilleries
+    .filter((d) => !excludeSlugs.includes(d.slug))
+    .sort((a, b) => a.name.localeCompare(b.name));
   return (
     <select
       className="q-card location-inline-input"
