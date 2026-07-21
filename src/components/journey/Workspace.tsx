@@ -924,6 +924,37 @@ export default function Workspace({
                       >
                         or try Booking.com
                       </a>
+                      <span className="toolbar-divider" />
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                          color: "var(--copper)",
+                          marginRight: 4,
+                        }}
+                      >
+                        Featured stays
+                      </span>
+                      {FEATURED_STAYS.map((stay) => (
+                        <button
+                          key={stay.name}
+                          className={"subcat-chip" + (selectedFeatured === stay.name ? " active" : "")}
+                          onClick={() => setSelectedFeatured(stay.name)}
+                        >
+                          {stay.name}
+                        </button>
+                      ))}
+                      <a
+                        href={FEATURED_STAYS.find((s) => s.name === selectedFeatured)?.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="subcat-chip"
+                        style={{ background: "var(--copper)", color: "white", fontWeight: 600 }}
+                      >
+                        Book Now
+                      </a>
                     </>
                   ) : (
                     <>
@@ -969,41 +1000,6 @@ export default function Workspace({
                 })
               )}
             </div>
-
-            {expandedCategoryData?.id === "places-to-stay" && (
-              <div className="map-toolbar-row" style={{ marginTop: 8 }}>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    letterSpacing: "0.06em",
-                    textTransform: "uppercase",
-                    color: "var(--copper)",
-                    marginRight: 4,
-                  }}
-                >
-                  Featured stays
-                </span>
-                {FEATURED_STAYS.map((stay) => (
-                  <button
-                    key={stay.name}
-                    className={"subcat-chip" + (selectedFeatured === stay.name ? " active" : "")}
-                    onClick={() => setSelectedFeatured(stay.name)}
-                  >
-                    {stay.name}
-                  </button>
-                ))}
-                <a
-                  href={FEATURED_STAYS.find((s) => s.name === selectedFeatured)?.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="subcat-chip"
-                  style={{ background: "var(--copper)", color: "white", fontWeight: 600 }}
-                >
-                  Book Now
-                </a>
-              </div>
-            )}
           </div>
 
           <div style={{ position: "relative", flex: 1, minHeight: 0 }} id="onboard-map">
