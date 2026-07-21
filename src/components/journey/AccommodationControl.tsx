@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTrip } from "@/lib/trip-context";
 import { buildAccommodationBookingLink } from "@/lib/accommodation-links";
 import type { TripAccommodation } from "@/lib/types";
@@ -8,6 +8,8 @@ import type { TripAccommodation } from "@/lib/types";
 // Biases free-text search results toward Islay/Argyll, since that's where
 // every visitor planning here actually is - format is west,north,east,south.
 const ISLAY_VIEWBOX = "-6.7,55.95,-5.9,55.55";
+
+const OTHER_VALUE = "__other__";
 
 /**
  * Curated accommodation partners - real, sourced, official links (19 July
@@ -17,11 +19,10 @@ const ISLAY_VIEWBOX = "-6.7,55.95,-5.9,55.55";
  *
  * Coordinates (21 July 2026): postal address taken from each hotel's own
  * official site (another.place/the-machrie/contact-us; portcharlottehotel.
- * co.uk/location), postcode geocoded via postcodes.io (built on the ONS
- * Postcode Directory - same "postcode" sourcing method already used
- * elsewhere for Airtable Location Source). This is a postcode centroid,
- * not the exact building entrance - fine for map/route purposes, same
- * caveat that applies to any postcode-based pin.
+ * co.uk/location), postcode geocoded via postcodes.io (ONS Postcode
+ * Directory - same "postcode" sourcing method already used elsewhere for
+ * Airtable Location Source). Postcode centroid, not the exact building -
+ * fine for map/route purposes, same caveat as any postcode-based pin.
  */
 export const FEATURED_STAYS: (TripAccommodation & { url: string })[] = [
   {
@@ -38,23 +39,42 @@ export const FEATURED_STAYS: (TripAccommodation & { url: string })[] = [
   },
 ];
 
+/**
+ * Fixed area list (21 July 2026) - reuses coordinates already sourced and
+ * live elsewhere in the app, rather than re-deriving anything: Port Ellen
+ * and Bruichladdich from journeys-data.ts/days page, Port Askaig from the
+ * Local Features "Ferry Port" record in Airtable. Not exhaustive (no
+ * Portnahaven, Bridgend, Jura villages, etc. yet) - "Other place" below
+ * covers anywhere not listed here via the existing free-text search.
+ */
+const AREAS: TripAccommodation[] = [
+  { name: "Port Ellen", lat: 55.630181, lng: -6.187415 },
+  { name: "Bowmore", lat: 55.7557, lng: -6.2875 },
+  { name: "Port Charlotte", lat: 55.74021, lng: -6.378353 },
+  { name: "Bruichladdich", lat: 55.7638, lng: -6.3605 },
+  { name: "Port Askaig", lat: 55.8476, lng: -6.1039 },
+];
+
 function featuredStayFor(name?: string) {
   return FEATURED_STAYS.find((s) => s.name === name);
 }
+function areaFor(name?: string) {
+  return AREAS.find((a) => a.name === name);
+}
 
 /**
- * One combined "staying" control (rebuilt 21 July 2026 - was previously two
- * separate mechanisms: a free-text place search here, and an unrelated
- * "Featured Stays" chip row elsewhere that only changed which link Book Now
- * pointed to). Now a single box: pick a Featured Stay (real booking link to
- * that hotel) or type any other place (Book Now searches Hotels.com for
- * that area). Whichever is picked becomes the real accommodation for the
- * day - same as before, this is what gives the day's route and drive-time
- * totals a real start/end point, not just a booking convenience.
+ * One combined "staying" control (rebuilt 21 July 2026, revised same day
+ * after feedback). A single dropdown: "I'll decide" (no stay chosen yet -
+ * the real default, not a forced placeholder), Featured Stays (real hotels,
+ * book that specific place), or Areas (general village, Hotels.com area
+ * search) with an "Other place" escape hatch for anywhere not listed that
+ * reveals the original free-text Nominatim search.
  *
- * Defaults to the first Featured Stay (The Machrie) the moment this day has
- * no stay set yet, so there's always a Book Now link ready, and the map pin
- * / route reflect a real stay from the start rather than nothing at all.
+ * Whichever real place is chosen (Featured Stay, Area, or a custom "Other
+ * place" search result) becomes the day's real accommodation - same as
+ * before, this is what gives the day's route and drive-time totals a real
+ * start/end point. "I'll decide" leaves it genuinely unset: no pin, no
+ * Book Now, nothing assumed.
  */
 export default function AccommodationControl({
   dayIndex,
@@ -70,15 +90,10 @@ export default function AccommodationControl({
   const [error, setError] = useState<string | null>(null);
 
   const activeFeatured = featuredStayFor(accommodation?.name);
+  const activeArea = areaFor(accommodation?.name);
+  const isCustomPlace = !!accommodation && !activeFeatured && !activeArea;
 
-  useEffect(() => {
-    if (!accommodation) {
-      trip.setAccommodation(dayIndex, FEATURED_STAYS[0]);
-    }
-    // Only re-run when the day or its accommodation actually changes -
-    // trip itself is a fresh object each render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accommodation, dayIndex]);
+  const selectValue = editingTown ? OTHER_VALUE : isCustomPlace ? OTHER_VALUE : (accommodation?.name ?? "");
 
   async function handleSearch() {
     if (!query.trim()) return;
@@ -109,35 +124,61 @@ export default function AccommodationControl({
     }
   }
 
+  function handleSelectChange(value: string) {
+    setError(null);
+    if (value === "") {
+      setEditingTown(false);
+      trip.setAccommodation(dayIndex, undefined);
+      return;
+    }
+    if (value === OTHER_VALUE) {
+      setQuery(isCustomPlace && accommodation ? accommodation.name : "");
+      setEditingTown(true);
+      return;
+    }
+    const stay = featuredStayFor(value);
+    if (stay) {
+      setEditingTown(false);
+      trip.setAccommodation(dayIndex, { name: stay.name, lat: stay.lat, lng: stay.lng });
+      return;
+    }
+    const area = areaFor(value);
+    if (area) {
+      setEditingTown(false);
+      trip.setAccommodation(dayIndex, area);
+    }
+  }
+
   const bookNowUrl = activeFeatured
     ? activeFeatured.url
     : buildAccommodationBookingLink(accommodation?.name ?? "Port Ellen", trip.tripDates);
 
   return (
     <div className="accommodation-row">
-      {FEATURED_STAYS.map((stay) => (
-        <button
-          key={stay.name}
-          className={"subcat-chip" + (accommodation?.name === stay.name ? " active" : "")}
-          onClick={() => {
-            trip.setAccommodation(dayIndex, { name: stay.name, lat: stay.lat, lng: stay.lng });
-            setEditingTown(false);
-          }}
-        >
-          {stay.name}
-        </button>
-      ))}
-      <button
-        className={"subcat-chip" + (editingTown || (accommodation && !activeFeatured) ? " active" : "")}
-        onClick={() => {
-          setQuery(accommodation && !activeFeatured ? accommodation.name : "");
-          setEditingTown(true);
-        }}
+      <select
+        className="accommodation-select"
+        value={selectValue}
+        onChange={(e) => handleSelectChange(e.target.value)}
       >
-        Other place
-      </button>
+        <option value="">I&apos;ll decide</option>
+        <optgroup label="Featured stays">
+          {FEATURED_STAYS.map((stay) => (
+            <option key={stay.name} value={stay.name}>
+              {stay.name}
+            </option>
+          ))}
+        </optgroup>
+        <optgroup label="Areas">
+          {AREAS.map((area) => (
+            <option key={area.name} value={area.name}>
+              {area.name}
+            </option>
+          ))}
+          <option value={OTHER_VALUE}>Other place...</option>
+        </optgroup>
+      </select>
 
-      {editingTown ? (
+      {editingTown && (
         <>
           <input
             className="accommodation-input"
@@ -146,34 +187,40 @@ export default function AccommodationControl({
             onKeyDown={(e) => {
               if (e.key === "Enter") handleSearch();
             }}
-            placeholder="Where are you staying? e.g. Bowmore"
+            placeholder="Where are you staying? e.g. Portnahaven"
             autoFocus
           />
           <button className="accommodation-btn" onClick={handleSearch} disabled={loading}>
             {loading ? "Looking..." : "Set"}
           </button>
-          <button className="accommodation-btn" onClick={() => setEditingTown(false)}>
+          <button
+            className="accommodation-btn"
+            onClick={() => {
+              setEditingTown(false);
+              setError(null);
+            }}
+          >
             Cancel
           </button>
           {error && <div className="accommodation-error">{error}</div>}
         </>
-      ) : (
-        accommodation && (
-          <>
-            <span>
-              🏠 Staying: <strong>{accommodation.name}</strong>
-            </span>
-            <a
-              href={bookNowUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="subcat-chip"
-              style={{ background: "var(--green-deep)", color: "white", fontWeight: 600 }}
-            >
-              Book Now
-            </a>
-          </>
-        )
+      )}
+
+      {!editingTown && accommodation && (
+        <>
+          <span>
+            🏠 Staying: <strong>{accommodation.name}</strong>
+          </span>
+          <a
+            href={bookNowUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="subcat-chip"
+            style={{ background: "var(--green-deep)", color: "white", fontWeight: 600 }}
+          >
+            Book Now
+          </a>
+        </>
       )}
     </div>
   );

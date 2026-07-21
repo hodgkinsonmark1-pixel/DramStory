@@ -230,6 +230,16 @@ select.location-inline-input {
   color: var(--peat);
   flex-wrap: wrap;
 }
+.accommodation-select {
+  padding: 6px 12px;
+  border-radius: 100px;
+  border: 1.5px solid var(--stone);
+  background: white;
+  color: var(--peat);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
 .accommodation-input {
   flex: 1;
   min-width: 140px;
