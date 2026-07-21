@@ -128,6 +128,11 @@ export default function MapCanvas({
   useEffect(() => {
     onAddFeatureRef.current = onAddFeature;
   }, [onAddFeature]);
+  // Guards the initial route fit (below) so it only ever runs once, the
+  // first time a real route shows up with no saved view to respect -
+  // otherwise every later add/remove/reorder of a stop would re-fit the
+  // bounds and yank the view out from under the visitor mid-edit.
+  const initialRouteFitDoneRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -274,6 +279,18 @@ export default function MapCanvas({
 
     if (routeStops.length >= 2) {
       const latLngs: [number, number][] = routeStops.map((s) => [s.lat, s.lng]);
+
+      // First time a real route shows up with nothing saved to respect
+      // (a fresh visit seeding the default Day, most notably) - fit the
+      // map tightly to the route itself (which already includes the
+      // accommodation start/end point - see Workspace.tsx's routeCoords)
+      // rather than leaving it on the wide "every distillery on Islay"
+      // view the initial mount effect defaults to. Only ever fires once
+      // per mount, guarded by initialRouteFitDoneRef.
+      if (!initialRouteFitDoneRef.current && !initialViewRef.current) {
+        map.fitBounds(L.latLngBounds(latLngs).pad(0.2));
+        initialRouteFitDoneRef.current = true;
+      }
 
       // Casing technique (same idea Google/Citymapper use): a wider, solid
       // white/pale line drawn first so the route pops against busy map

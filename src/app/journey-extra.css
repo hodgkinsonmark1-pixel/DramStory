@@ -309,23 +309,25 @@ select.location-inline-input {
 .stop-move-col {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin-left: auto;
+  gap: 1px;
 }
+/* Deliberately subtle (21 July 2026 - was previously bordered buttons
+   with equal visual weight to .stop-number) - a secondary, low-emphasis
+   control now, not competing with the stop number for attention. Also
+   shared by the expand/collapse toggle further along the row, which
+   gets the same de-emphasis for the same reason. */
 .stop-move-btn {
   background: none;
-  border: 1px solid var(--stone);
-  border-radius: 4px;
-  color: var(--slate);
+  border: none;
+  color: var(--mist);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1;
-  padding: 2px 6px;
-  transition: color 0.15s, border-color 0.15s;
+  padding: 1px 4px;
+  transition: color 0.15s;
 }
 .stop-move-btn:hover:not(:disabled) {
   color: var(--green-deep);
-  border-color: var(--green-deep);
 }
 .stop-move-btn:disabled {
   opacity: 0.3;

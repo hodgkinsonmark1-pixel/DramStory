@@ -662,14 +662,13 @@ export default function Workspace({
               activeDay.stops.map((stop, i) => {
                 const id = stopId(stop);
                 const collapsed = collapsedStops.has(id);
-                const tourName = stop.kind === "distillery" ? stop.tour?.name : undefined;
-                const tourCost = stop.kind === "distillery" && stop.tour ? `£${stop.tour.price}pp` : undefined;
                 const visitLabel = `~${formatDuration(stopVisitMinutes(stop))}`;
 
                 return (
                   <div key={id} id={i === 0 ? "onboard-first-stop" : undefined}>
                     <div className="journey-stop">
-                      <div className="stop-move-col" style={{ marginRight: 4 }}>
+                      <div className="stop-number">{i + 1}</div>
+                      <div className="stop-move-col">
                         <button
                           className="stop-move-btn"
                           onClick={() => trip.moveStop(activeDayIndex, i, -1)}
@@ -687,18 +686,10 @@ export default function Workspace({
                           &#8964;
                         </button>
                       </div>
-                      <div className="stop-number">{i + 1}</div>
                       <div style={{ flex: 1 }}>
                         <div className="stop-name">{stopName(stop)}</div>
 
-                        {collapsed ? (
-                          // Compact plain-text summary line - no input box,
-                          // no separate rows, just the essentials at a
-                          // glance: note, tour, length, cost.
-                          <div style={{ fontSize: 12, color: "var(--peat)", marginTop: 2 }}>
-                            {[stop.note, tourName, visitLabel, tourCost].filter(Boolean).join(" · ")}
-                          </div>
-                        ) : (
+                        {collapsed ? null : (
                           <>
                             {stop.kind === "distillery" && stop.tour && (
                               <>

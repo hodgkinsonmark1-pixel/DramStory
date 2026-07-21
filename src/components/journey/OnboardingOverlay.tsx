@@ -14,20 +14,28 @@ import type { TripTiming } from "@/lib/types";
 // - The pulsing gold dot is reserved for CIRCLE targets (map pins)
 //   only - rect targets (panels, buttons, rows) rely on the border
 //   alone, no dot.
-// - For the Bowmore step, once the real popup opens, the highlight
-//   itself expands to cover pin + popup together (so the popup text is
-//   legible, not dark) - but the dot stays anchored to the pin's own
-//   center throughout, not drifting to the merged rect's center.
+// - For the demo distillery step, once the real popup opens, the
+//   highlight itself expands to cover pin + popup together (so the
+//   popup text is legible, not dark) - but the dot stays anchored to
+//   the pin's own center throughout, not drifting to the merged rect's
+//   center.
 // - The explainer box is fixed (doesn't follow the page), genuinely
 //   centered by default, moving to bottom-right from the "customise a
 //   day, or build your own" step onward.
 // - Some steps perform the real action themselves (expand the first
-//   stop, expand the journey summary, open Bowmore's popup) so the
-//   visitor watches it happen.
+//   stop, expand the journey summary, open the demo distillery's popup)
+//   so the visitor watches it happen.
+//
+// 21 July 2026: demo pin switched from Bowmore to Port Ellen distillery,
+// since the map now opens zoomed to the default day's Port Ellen-area
+// route (Laphroaig/Lagavulin/Ardbeg) rather than the island-wide view -
+// Bowmore would be off-screen at that zoom. Storage key bumped so
+// returning visitors see the corrected walkthrough at least once.
 // ─────────────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = "dramstory_onboarding_seen_v11";
-const BOWMORE_SELECTOR = '[data-distillery-slug="bowmore"]';
+const STORAGE_KEY = "dramstory_onboarding_seen_v12";
+const DEMO_DISTILLERY_SLUG = "port-ellen";
+const DEMO_DISTILLERY_SELECTOR = `[data-distillery-slug="${DEMO_DISTILLERY_SLUG}"]`;
 const PIN_SPOTLIGHT_DIAMETER = 110;
 const RECT_PADDING = 8;
 
@@ -35,10 +43,10 @@ interface CutoutTarget {
   selector?: string;
   id?: string;
   shape: "circle" | "rect";
-  /** Once Bowmore's popup is open, expand the highlight to cover both
-   *  the pin and the popup together (as one combined rect) - but the
-   *  dot itself stays pinned to the original pin position, computed
-   *  separately below. */
+  /** Once the demo distillery's popup is open, expand the highlight to
+   *  cover both the pin and the popup together (as one combined rect) -
+   *  but the dot itself stays pinned to the original pin position,
+   *  computed separately below. */
   includePopupFor?: string;
   /** Union this target's rect with another element's rect too - e.g.
    *  the "explore all distilleries and local features" step highlights
@@ -55,10 +63,10 @@ interface Step {
    *  perform the real action itself so the visitor sees it done. */
   autoActionEvent?: string;
   /** Dispatched when leaving this step - reverses the auto-action (e.g.
-   *  collapsing the stop/summary back down), mirroring how Bowmore's
-   *  popup closes again on cleanup. Per 19 July 2026 feedback: unlike
-   *  the first pass, the result should NOT stay visible into later
-   *  steps. */
+   *  collapsing the stop/summary back down), mirroring how the demo
+   *  distillery's popup closes again on cleanup. Per 19 July 2026
+   *  feedback: unlike the first pass, the result should NOT stay
+   *  visible into later steps. */
   autoActionReverseEvent?: string;
   advanceOn?: { selector?: string; id?: string };
   boxPosition?: "center" | "right";
@@ -116,9 +124,9 @@ const ACCOMMODATION_STEP: Step = {
 const DISTILLERY_STEP: Step = {
   icon: "🥃",
   text: "...to customise a day, or totally build your own — tap any distillery to see details, then add it to your trip yourself.",
-  cutout: { selector: BOWMORE_SELECTOR, shape: "circle", includePopupFor: "bowmore" },
-  openPopupSlug: "bowmore",
-  advanceOn: { selector: '[data-add-distillery="bowmore"]' },
+  cutout: { selector: DEMO_DISTILLERY_SELECTOR, shape: "circle", includePopupFor: DEMO_DISTILLERY_SLUG },
+  openPopupSlug: DEMO_DISTILLERY_SLUG,
+  advanceOn: { selector: `[data-add-distillery="${DEMO_DISTILLERY_SLUG}"]` },
   boxPosition: "right",
 };
 

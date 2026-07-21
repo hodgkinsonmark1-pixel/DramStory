@@ -86,22 +86,37 @@ function WorkspaceWithFeatures(props: {
  * question worth asking at all, on any breakpoint.
  *
  * For a fresh "planning"/"dreaming" visit (no existing trip, not a
- * resume), the workspace is seeded with the "Three Legends, One Road"
- * Hub Day (Laphroaig, Lagavulin, Ardbeg) rather than opening blank - see
- * DEFAULT_DAY_DISTILLERY_SLUGS below. This mirrors the real Airtable Day
- * of the same name, but is hardcoded here rather than read live from
- * Airtable - the itinerary data model only knows individual distillery
+ * resume), the workspace is seeded with a default Day rather than
+ * opening blank - see DEFAULT_DAY_STOPS below. Originally just the
+ * "Three Legends, One Road" three-distillery Hub Day (Laphroaig,
+ * Lagavulin, Ardbeg); extended 21 July 2026 to the fuller Laphroaig ->
+ * Lagavulin -> Old Kiln Cafe -> Ardbeg -> Port Ellen Beach route, mixing
+ * in two real Local Features stops (lunch + a closing beach) rather than
+ * distilleries only. Hardcoded here rather than read live from Airtable
+ * - the itinerary data model only knows individual distillery/feature
  * stops, not "Day" records, and building the real Day->itinerary
  * resolution is its own task (same one the Classic Journey refactor
  * needs). Revisit once that's built, so this doesn't drift out of sync
  * with the real Day content by hand.
+ *
+ * Notes on each stop are short, practical, and deliberately not
+ * time-specific (no invented tour clock times - those vary and aren't
+ * something to guess at) - they're seed content, not sourced Airtable
+ * facts, so held to that lighter bar rather than the Location
+ * Source/official-source standard.
  *
  * "today" is deliberately left with the old default (no pre-seeded day,
  * just Distilleries active) - it needs its own considered default, not
  * this one, per 18 July 2026 conversation. Flagged as a real gap, not an
  * oversight.
  */
-const DEFAULT_DAY_DISTILLERY_SLUGS = ["laphroaig", "lagavulin", "ardbeg"];
+const DEFAULT_DAY_STOPS: { kind: "distillery" | "feature"; slug: string; note: string }[] = [
+  { kind: "distillery", slug: "laphroaig", note: "First stop of the day." },
+  { kind: "distillery", slug: "lagavulin", note: "Just along the coast road from Laphroaig." },
+  { kind: "feature", slug: "old-kiln-cafe-ardbeg", note: "Right on Ardbeg's pier - a good lunch stop before the tour." },
+  { kind: "distillery", slug: "ardbeg", note: "Popular tour - worth booking ahead." },
+  { kind: "feature", slug: "port-ellen-beach", note: "A quiet way to close out the day." },
+];
 
 export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, resume }: JourneyFlowProps) {
   const router = useRouter();
@@ -160,11 +175,20 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
     }
 
     // planning/dreaming: seed the default Day rather than open blank.
-    distilleriesPromise.then((distilleries) => {
+    Promise.all([distilleriesPromise, localFeaturesPromise]).then(([distilleries, localFeatures]) => {
       trip.initDays(1);
-      for (const slug of DEFAULT_DAY_DISTILLERY_SLUGS) {
-        const d = distilleries.find((x) => x.slug === slug);
-        if (d) trip.addStop(0, d);
+      for (const entry of DEFAULT_DAY_STOPS) {
+        if (entry.kind === "distillery") {
+          const d = distilleries.find((x) => x.slug === entry.slug);
+          if (!d) continue;
+          trip.addStop(0, d);
+          trip.setStopNote(0, d.slug, entry.note);
+        } else {
+          const f = localFeatures.find((x) => x.slug === entry.slug);
+          if (!f) continue;
+          trip.addFeatureStop(0, f);
+          trip.setStopNote(0, f.id, entry.note);
+        }
       }
       // The Machrie as the default accommodation base (21 July 2026 -
       // supersedes the original Port Ellen default from 19 July). Same
