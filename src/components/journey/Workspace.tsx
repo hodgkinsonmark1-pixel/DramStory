@@ -45,6 +45,19 @@ function describeLocation(location: LocationAnswer): string {
   return islayLabel;
 }
 
+/** For "today" only (added 21 July 2026, per Mark's feedback): always
+ *  states the Local Events position outright - either what's on today, or
+ *  that nothing is - rather than staying silent whenever nothing's on.
+ *  Non-"today" timings keep the previous quieter behaviour (a line only
+ *  appears once events are actually found for the visit) since "no events
+ *  during your visit" reads as a premature claim before real dates are
+ *  even confirmed. */
+function describeTodayEvents(events: LocalEvent[]): string {
+  if (events.length === 0) return "No local events on today.";
+  const subject = events.length > 1 ? "These events are" : "This event is";
+  return `${subject} on today: ${events.map((e) => e.name).join(", ")}.`;
+}
+
 // Small date helpers for the Local Events drill-down UI - deliberately
 // plain date-string math (no date library) since these only ever handle
 // simple day-count arithmetic on ISO strings.
@@ -1139,11 +1152,15 @@ export default function Workspace({
                     </>
                   )}
                 </p>
-                {eventsDuringVisit.length > 0 && (
-                  <p className="weather-popup-events">
-                    📅 Worth knowing: {eventsDuringVisit.map((e) => e.name).join(", ")}{" "}
-                    {eventsDuringVisit.length > 1 ? "are" : "is"} on during your visit.
-                  </p>
+                {timing === "today" ? (
+                  <p className="weather-popup-events">📅 {describeTodayEvents(eventsDuringVisit)}</p>
+                ) : (
+                  eventsDuringVisit.length > 0 && (
+                    <p className="weather-popup-events">
+                      📅 Worth knowing: {eventsDuringVisit.map((e) => e.name).join(", ")}{" "}
+                      {eventsDuringVisit.length > 1 ? "are" : "is"} on during your visit.
+                    </p>
+                  )
                 )}
                 {closureNotices.length > 0 && (
                   <p className="weather-popup-events">
@@ -1183,12 +1200,16 @@ export default function Workspace({
                   {weatherMonthClimate.avgHighC}°C — {weatherMonthClimate.summary}.
                 </>
               )}
-              {eventsDuringVisit.length > 0 && (
-                <>
-                  {" "}
-                  📅 Worth knowing: {eventsDuringVisit.map((e) => e.name).join(", ")}{" "}
-                  {eventsDuringVisit.length > 1 ? "are" : "is"} on during your visit.
-                </>
+              {timing === "today" ? (
+                <> 📅 {describeTodayEvents(eventsDuringVisit)}</>
+              ) : (
+                eventsDuringVisit.length > 0 && (
+                  <>
+                    {" "}
+                    📅 Worth knowing: {eventsDuringVisit.map((e) => e.name).join(", ")}{" "}
+                    {eventsDuringVisit.length > 1 ? "are" : "is"} on during your visit.
+                  </>
+                )
               )}
               {closureNotices.length > 0 && <> ⚠️ {closureNotices.join(" ")}</>}
             </span>

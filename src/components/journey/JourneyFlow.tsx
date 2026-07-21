@@ -204,35 +204,45 @@ function seedTodayDay(
   }
 
   // Too late in the day for a fresh distillery tour to be a fair
-  // suggestion - wind down with nearby Local Features instead, and nudge
-  // toward sorting accommodation if that's still needed tonight. Opens on
-  // the categories that are actually relevant now (food/drink, natural
+  // suggestion - wind down with one nearby Local Feature instead (per
+  // Mark's 21 July feedback: one specific, warmly-framed suggestion reads
+  // better than two generic nearest-anything stops), and nudge toward
+  // sorting accommodation if that's still needed tonight. Opens on the
+  // categories that are actually relevant now (food/drink, natural
   // features, places to stay) rather than leaving "Distilleries" active
   // with nothing seeded under it.
   const eveningInterests: InterestCategoryId[] = ["natural-features", "local-attractions", "places-to-eat", "places-to-stay"];
   const eveningNotice =
-    "It's getting late in the day for a fresh distillery tour, so we've suggested a couple of nearby spots to relax instead - the categories above now show what's around you (food and drink, natural features, places to stay), not distilleries.";
+    "It's getting late in the day for a fresh distillery tour, so instead see attractions, natural features, places to eat and drink that are local to you.";
 
-  const nearbyFeatures = localFeatures
-    .filter((f) => f.category !== "transport")
-    .map((f) => ({ f, minutes: estimatedDriveMinutes(start, f) }))
-    .sort((a, b) => a.minutes - b.minutes)
-    .slice(0, 2);
+  // Tiered search, nearest first within each tier: a genuine "local gem"
+  // record if one's close, otherwise widen to the rest of the Natural
+  // Features bucket (beach/walk/bike-route), otherwise any Local Feature
+  // at all bar transport - so this always finds something to suggest
+  // rather than seeding nothing just because no literal "local gem" is
+  // nearby.
+  function nearest(categories: LocalFeature["category"][]) {
+    return localFeatures
+      .filter((f) => categories.includes(f.category))
+      .map((f) => ({ f, minutes: estimatedDriveMinutes(start, f) }))
+      .sort((a, b) => a.minutes - b.minutes)[0];
+  }
+  const chosen =
+    nearest(["local-gem"]) ??
+    nearest(["beach", "walk", "bike-route"]) ??
+    nearest(["historic-site", "attraction-gem", "pub", "cafe", "restaurant", "golf", "spa"]);
 
-  nearbyFeatures.forEach(({ f, minutes }, i) => {
-    trip.addFeatureStop(0, f);
+  if (chosen) {
+    trip.addFeatureStop(0, chosen.f);
     trip.setStopNote(
       0,
-      f.id,
-      i === 0
-        ? `A good way to close out the day, about ${formatDuration(minutes)} from where you are now. If you still need somewhere to stay tonight, add it under "Where are you staying?" below.`
-        : "Another option nearby if you've still got time."
+      chosen.f.id,
+      `Why don't you visit this local gem? It's about ${formatDuration(chosen.minutes)} from where you are now. If you still need somewhere to stay tonight, add it under "Where are you staying?" below.`
     );
-  });
-
-  if (nearbyFeatures.length === 0) {
-    // No Local Features resolved (shouldn't normally happen) - fall back
-    // to the starting distillery itself rather than seeding an empty day.
+  } else {
+    // No Local Features resolved at all (shouldn't normally happen) -
+    // fall back to the starting distillery itself rather than seeding an
+    // empty day.
     trip.addStop(0, start);
     trip.setStopNote(0, start.slug, "Worth checking if there's still time for a visit today.");
   }
