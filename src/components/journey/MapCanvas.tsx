@@ -44,7 +44,7 @@ interface MapCanvasProps {
 // Rough center of Scotland, used when a region has no pins yet so the map
 // doesn't default to (0,0) in the Atlantic.
 const SCOTLAND_CENTER: [number, number] = [56.8, -4.2];
-const ISLAY_CENTER: [number, number] = [55.75, -6.2];
+const ISLAY_CENTER: [number, number] = [55.63, -6.188]; // Port Ellen - the standard default location, per 18 July 2026 conversation (was a generic island-center point, roughly at Bowmore)
 
 // Distinct color per Natural Feature category, so pins read at a glance
 // without needing to open a popup - kept apart from the navy distillery
@@ -98,6 +98,18 @@ export default function MapCanvas({
   // only ever meant to seed the map's starting position, not fight with
   // the visitor's own panning on every re-render.
   const initialViewRef = useRef(initialView);
+  // Also read once at mount, same reasoning as initialViewRef - if a real
+  // route (accommodation + stops) is already known the moment this map
+  // first mounts (true for the seeded default day - see JourneyFlow.tsx,
+  // which seeds the whole trip before Workspace/MapCanvas ever renders),
+  // the mount effect below fits to THAT directly instead of first fitting
+  // to every distillery on Islay and relying on a second, later effect to
+  // override it. 21 July 2026 - the previous two-step "fit wide, then
+  // override" approach was reported as sometimes sticking on the wide
+  // view in fresh incognito testing; deciding once, at mount, removes the
+  // two-fitBounds-calls-in-quick-succession race entirely rather than
+  // relying on effect/animation timing to resolve it correctly.
+  const routeStopsAtMountRef = useRef(routeStops);
   const onViewChangeRef = useRef(onViewChange);
   useEffect(() => {
     onViewChangeRef.current = onViewChange;
@@ -128,6 +140,11 @@ export default function MapCanvas({
   useEffect(() => {
     onAddFeatureRef.current = onAddFeature;
   }, [onAddFeature]);
+  // Guards the initial route fit (below) so it only ever runs once, the
+  // first time a real route shows up with no saved view to respect -
+  // otherwise every later add/remove/reorder of a stop would re-fit the
+  // bounds and yank the view out from under the visitor mid-edit.
+  const initialRouteFitDoneRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -222,7 +239,18 @@ export default function MapCanvas({
       }
       distilleryMarkersBySlugRef.current = slugToMarker;
 
-      if (markers.length > 0 && !savedView) {
+      // Decided once, here, rather than fitting wide first and hoping a
+      // later effect overrides it (see routeStopsAtMountRef above) - if a
+      // real route is already known, fit tight to it directly and mark
+      // the one-shot route-fit guard as done so the routeStops effect
+      // below doesn't also try. Otherwise, fall back to fitting every
+      // distillery on Islay, same as before.
+      const routeAtMount = routeStopsAtMountRef.current;
+      if (routeAtMount.length >= 2 && !savedView) {
+        const bounds = L.latLngBounds(routeAtMount.map((s) => [s.lat, s.lng] as [number, number]));
+        map.fitBounds(bounds.pad(0.2));
+        initialRouteFitDoneRef.current = true;
+      } else if (markers.length > 0 && !savedView) {
         const group = L.featureGroup(markers);
         map.fitBounds(group.getBounds().pad(0.2));
       }
@@ -274,6 +302,18 @@ export default function MapCanvas({
 
     if (routeStops.length >= 2) {
       const latLngs: [number, number][] = routeStops.map((s) => [s.lat, s.lng]);
+
+      // First time a real route shows up with nothing saved to respect
+      // (a fresh visit seeding the default Day, most notably) - fit the
+      // map tightly to the route itself (which already includes the
+      // accommodation start/end point - see Workspace.tsx's routeCoords)
+      // rather than leaving it on the wide "every distillery on Islay"
+      // view the initial mount effect defaults to. Only ever fires once
+      // per mount, guarded by initialRouteFitDoneRef.
+      if (!initialRouteFitDoneRef.current && !initialViewRef.current) {
+        map.fitBounds(L.latLngBounds(latLngs).pad(0.2));
+        initialRouteFitDoneRef.current = true;
+      }
 
       // Casing technique (same idea Google/Citymapper use): a wider, solid
       // white/pale line drawn first so the route pops against busy map

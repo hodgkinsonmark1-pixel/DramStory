@@ -94,6 +94,7 @@ interface TripContextValue {
   /** Sets a visitor-adjusted visit duration for a stop (the +/- toggle
    *  next to "~X visit"). */
   setStopMinutes: (dayIndex: number, id: string, minutes: number) => void;
+  setStopNote: (dayIndex: number, id: string, note: string) => void;
   /** Sets (or clears, if tour is undefined) the specific tour booked for a
    *  distillery on a given day - this is what "+ Add to Journey" on a
    *  distillery's own tour cards writes to. If the distillery isn't on
@@ -293,6 +294,14 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
+  const setStopNote = useCallback((dayIndex: number, id: string, note: string) => {
+    setDays((prev) =>
+      prev.map((day, i) =>
+        i === dayIndex ? { ...day, stops: day.stops.map((s) => (stopId(s) === id ? { ...s, note } : s)) } : day
+      )
+    );
+  }, []);
+
   const setTourForStop = useCallback((dayIndex: number, distillery: Distillery, tour: Tour | undefined) => {
     setDays((prev) =>
       prev.map((day, i) => {
@@ -349,6 +358,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         removeStop,
         moveStop,
         setStopMinutes,
+        setStopNote,
         setTourForStop,
         findStopDays,
         setAccommodation,

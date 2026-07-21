@@ -15,6 +15,7 @@ import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MapCanvas from "./MapCanvas";
 import AccommodationControl from "./AccommodationControl";
+import DateRangePicker from "./DateRangePicker";
 import TripEssentials from "./TripEssentials";
 import OnboardingOverlay from "./OnboardingOverlay";
 
@@ -101,7 +102,6 @@ export default function Workspace({
   // survives navigating away and back and is available to Local Events,
   // the weather popup, and calendar-date day labels alike.
   const todayIso = new Date().toISOString().slice(0, 10);
-  const [showCostBreakdown, setShowCostBreakdown] = useState(false);
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [weatherMinimized, setWeatherMinimized] = useState(false);
   // Shown only after pressing "Save My Dram Story", not continuously
@@ -110,6 +110,31 @@ export default function Workspace({
   // flag, so it also self-hides if the mismatch gets fixed later and
   // Save is pressed again.
   const [showDayMismatchNotice, setShowDayMismatchNotice] = useState(false);
+  // Set when a distillery with 2+ tours is added from a map pin - holds
+  // the picker modal open until a tour's chosen (or it's dismissed). A
+  // distillery with exactly one tour or none skips this entirely and
+  // adds straight away, same as before - see the onAddDistillery handler
+  // passed to MapCanvas below. 21 July 2026: replaces an inline <select>
+  // that lived in the Leaflet popup itself, which felt cluttered in that
+  // narrow space - this is a proper on-brand modal instead.
+  const [tourPickerDistillery, setTourPickerDistillery] = useState<Distillery | null>(null);
+  // Per-stop collapse state, scoped by stopId - a UI preference, not core
+  // trip data, so it's local state rather than persisted via TripContext.
+  // Opens with everything collapsed by default (19 July 2026 feedback) -
+  // lazy initializer reads whatever stops are already in the current day
+  // at mount time (e.g. the seeded default Day), rather than a separate
+  // effect calling setState.
+  const [collapsedStops, setCollapsedStops] = useState<Set<string>>(() => {
+    const initialDay = trip.days[trip.currentDayIndex] ?? trip.days[0];
+    return new Set(initialDay ? initialDay.stops.map((s) => stopId(s)) : []);
+  });
+  const toggleStopCollapsed = (id: string) =>
+    setCollapsedStops((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   const [justSaved, setJustSaved] = useState(false);
 
   // There's no longer a "how long" question (Step 3 removed, July 2026) -
@@ -189,6 +214,58 @@ export default function Workspace({
 
   const days = trip.days;
   const activeDay = days[activeDayIndex];
+  // Lets the onboarding walkthrough actually perform the "expand a stop"
+  // action itself, rather than just pointing at it - the visitor watches
+  // it happen, and it deliberately stays expanded afterward (not
+  // re-collapsed), so the following "total journey time" step still
+  // shows it expanded. Per 19 July 2026 conversation.
+  useEffect(() => {
+    function handleExpandFirstStop() {
+      const first = activeDay?.stops[0];
+      if (!first) return;
+      const id = stopId(first);
+      setCollapsedStops((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+    function handleCollapseFirstStop() {
+      const first = activeDay?.stops[0];
+      if (!first) return;
+      const id = stopId(first);
+      setCollapsedStops((prev) => {
+        if (prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      });
+    }
+    window.addEventListener("onboarding:expand-first-stop", handleExpandFirstStop);
+    window.addEventListener("onboarding:collapse-first-stop", handleCollapseFirstStop);
+    return () => {
+      window.removeEventListener("onboarding:expand-first-stop", handleExpandFirstStop);
+      window.removeEventListener("onboarding:collapse-first-stop", handleCollapseFirstStop);
+    };
+  }, [activeDay]);
+  // Same pattern for the "total journey time" walkthrough step - auto-
+  // expands/collapses the real summary panel so the visitor sees it done,
+  // then folds it back once the step is over (19 July 2026 feedback).
+  useEffect(() => {
+    function handleExpandSummary() {
+      setSummaryExpanded(true);
+    }
+    function handleCollapseSummary() {
+      setSummaryExpanded(false);
+    }
+    window.addEventListener("onboarding:expand-journey-summary", handleExpandSummary);
+    window.addEventListener("onboarding:collapse-journey-summary", handleCollapseSummary);
+    return () => {
+      window.removeEventListener("onboarding:expand-journey-summary", handleExpandSummary);
+      window.removeEventListener("onboarding:collapse-journey-summary", handleCollapseSummary);
+    };
+  }, []);
   // Distinguishes "the whole trip is empty" (first-time visitor, show the
   // welcoming onboarding message) from "this specific day is empty but
   // other days have stops" (show the more specific per-day message).
@@ -218,6 +295,16 @@ export default function Workspace({
       );
     }
   }
+  // driveSegments is indexed against routeCoords, which prepends the
+  // accommodation as a starting point whenever one's set (see routeCoords
+  // above) - so "stop i -> stop i+1" lives at driveSegments[i + offset],
+  // not driveSegments[i] directly, once accommodation shifts everything
+  // along by one. driveSegments[0] with an accommodation set is instead
+  // the accommodation -> first-stop leg, shown as its own line above the
+  // itinerary (21 July 2026 fix - this offset was previously missing,
+  // silently showing each stop's INCOMING leg mislabelled as its
+  // outgoing one, and never showing the last stop's real drive time).
+  const stopDriveOffset = accommodation ? 1 : 0;
   const totalDriveMinutes = driveSegments.reduce((a, b) => a + b, 0);
   const totalVisitMinutes = activeDay ? activeDay.stops.reduce((sum, s) => sum + stopVisitMinutes(s), 0) : 0;
   const toursBooked = activeDay ? activeDay.stops.filter((s) => s.kind === "distillery" && s.tour).length : 0;
@@ -398,6 +485,38 @@ export default function Workspace({
   return (
     <>
     <OnboardingOverlay timing={timing} />
+    {tourPickerDistillery && (
+      <div className="tour-picker-backdrop" onClick={() => setTourPickerDistillery(null)}>
+        <div className="tour-picker-modal" role="dialog" aria-label={`Choose a tour at ${tourPickerDistillery.name}`} onClick={(e) => e.stopPropagation()}>
+          <button className="tour-picker-close" onClick={() => setTourPickerDistillery(null)} aria-label="Close">
+            &times;
+          </button>
+          <div className="tour-picker-heading">Choose a tour at {tourPickerDistillery.name}</div>
+          <div className="tour-picker-list">
+            {tourPickerDistillery.tours.map((tour) => (
+              <div className="tour-picker-option" key={tour.name}>
+                <div className="tour-picker-option-top">
+                  <span className="tour-picker-option-name">{tour.name}</span>
+                  <span className="tour-picker-option-price">£{tour.price}</span>
+                </div>
+                <div className="tour-picker-option-duration">{tour.duration}</div>
+                {tour.description && <p className="tour-picker-option-desc">{tour.description}</p>}
+                <button
+                  className="tour-picker-option-btn"
+                  onClick={() => {
+                    trip.addStop(activeDayIndex, tourPickerDistillery);
+                    trip.setTourForStop(activeDayIndex, tourPickerDistillery, tour);
+                    setTourPickerDistillery(null);
+                  }}
+                >
+                  + Add this tour
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )}
     <div className="workspace-root">
       <div className="map-page-header">
         <div className="map-page-header-left">
@@ -424,37 +543,11 @@ export default function Workspace({
                 </button>
               </div>
               {trip.tripDates.mode === "range" ? (
-                <>
-                  <input
-                    type="date"
-                    className="event-date-input"
-                    value={trip.tripDates.startDate}
-                    onClick={(e) => e.currentTarget.showPicker?.()}
-                    onChange={(e) => {
-                      const newStart = e.target.value;
-                      // No previous start yet (still blank on first use) -
-                      // just seed a single-day range rather than computing a
-                      // span from an empty/invalid previous value.
-                      if (!trip.tripDates.startDate) {
-                        trip.setDateRange(newStart, newStart);
-                        return;
-                      }
-                      const span = daysBetween(trip.tripDates.startDate, trip.tripDates.endDate);
-                      const newEnd = span > 14 || span < 0 ? addDays(newStart, 7) : addDays(newStart, span);
-                      trip.setDateRange(newStart, newEnd);
-                    }}
-                  />
-                  <span className="event-date-sep">to</span>
-                  <input
-                    type="date"
-                    className="event-date-input"
-                    value={trip.tripDates.endDate}
-                    min={trip.tripDates.startDate || undefined}
-                    max={trip.tripDates.startDate ? addDays(trip.tripDates.startDate, 14) : undefined}
-                    onClick={(e) => e.currentTarget.showPicker?.()}
-                    onChange={(e) => trip.setDateRange(trip.tripDates.startDate || e.target.value, e.target.value)}
-                  />
-                </>
+                <DateRangePicker
+                  startDate={trip.tripDates.startDate}
+                  endDate={trip.tripDates.endDate}
+                  onChange={(start, end) => trip.setDateRange(start, end)}
+                />
               ) : (
                 <input
                   type="month"
@@ -469,7 +562,6 @@ export default function Workspace({
         </div>
 
         <div className="map-page-header-links">
-          <span className="map-page-header-badge">{title}</span>
           {timing === "today" && <span className="header-date-today">📅 Today</span>}
 
           <Link
@@ -487,6 +579,14 @@ export default function Workspace({
             rel="noopener noreferrer"
           >
             Local Features
+          </Link>
+          <Link
+            href="/days"
+            id="onboard-nav-days-hub"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Day Plans
           </Link>
           <Link href="/" onClick={() => trip.resetTrip()}>
             Start over
@@ -544,6 +644,27 @@ export default function Workspace({
               <button className="day-nav-add" onClick={trip.addDay}>
                 + Add day
               </button>
+              {activeDay.stops.length > 0 && (
+                <button
+                  className="day-nav-reorder"
+                  onClick={() => {
+                    const allIds = activeDay.stops.map((s) => stopId(s));
+                    const allCollapsed = allIds.every((id) => collapsedStops.has(id));
+                    setCollapsedStops((prev) => {
+                      const next = new Set(prev);
+                      for (const id of allIds) {
+                        if (allCollapsed) next.delete(id);
+                        else next.add(id);
+                      }
+                      return next;
+                    });
+                  }}
+                >
+                  {activeDay.stops.map((s) => stopId(s)).every((id) => collapsedStops.has(id))
+                    ? "Expand all"
+                    : "Collapse all"}
+                </button>
+              )}
               {days.length > 1 && (
                 <button className="day-nav-remove" onClick={() => trip.removeDay(activeDayIndex)}>
                   Remove
@@ -587,82 +708,125 @@ export default function Workspace({
                 </p>
               </div>
             ) : (
-              activeDay.stops.map((stop, i) => (
-                <div key={stopId(stop)}>
-                  <div className="journey-stop">
-                    <div className="stop-number">{i + 1}</div>
-                    <div style={{ flex: 1 }}>
-                      <div className="stop-name">{stopName(stop)}</div>
-                      {stop.kind === "distillery" ? (
-                        <>
-                          <div className="stop-region">{stop.distillery.region}</div>
-                          {stop.tour && (
-                            <>
-                              <div className="stop-tour">🎟 {stop.tour.name}</div>
-                              <div className="stop-cost">£{stop.tour.price} per person</div>
-                            </>
-                          )}
-                        </>
-                      ) : (
-                        <div className="stop-region">
-                          {stop.feature.icon} {stop.feature.category.replace("-", " ")}
-                        </div>
-                      )}
-                      <div className="stop-time-row">
-                        <span className="stop-time">~{formatDuration(stopVisitMinutes(stop))} visit</span>
+              <>
+                {accommodation && (
+                  <div className="drive-time-between" id="onboard-accommodation-drive">
+                    🚗 {formatDuration(driveSegments[0])} drive from {accommodation.name}
+                  </div>
+                )}
+                {activeDay.stops.map((stop, i) => {
+                const id = stopId(stop);
+                const collapsed = collapsedStops.has(id);
+                const visitLabel = `~${formatDuration(stopVisitMinutes(stop))}`;
+
+                return (
+                  <div key={id} id={i === 0 ? "onboard-first-stop" : undefined}>
+                    <div className="journey-stop">
+                      <div className="stop-number">{i + 1}</div>
+                      <div className="stop-move-col">
                         <button
-                          className="stop-time-btn"
-                          onClick={() =>
-                            trip.setStopMinutes(activeDayIndex, stopId(stop), incrementVisitMinutes(stop, -1))
-                          }
-                          aria-label="Decrease visit time"
+                          className="stop-move-btn"
+                          onClick={() => trip.moveStop(activeDayIndex, i, -1)}
+                          disabled={i === 0}
+                          aria-label={`Move ${stopName(stop)} earlier`}
                         >
-                          &minus;
+                          &#8963;
                         </button>
                         <button
-                          className="stop-time-btn"
-                          onClick={() =>
-                            trip.setStopMinutes(activeDayIndex, stopId(stop), incrementVisitMinutes(stop, 1))
-                          }
-                          aria-label="Increase visit time"
+                          className="stop-move-btn"
+                          onClick={() => trip.moveStop(activeDayIndex, i, 1)}
+                          disabled={i === activeDay.stops.length - 1}
+                          aria-label={`Move ${stopName(stop)} later`}
                         >
-                          +
+                          &#8964;
                         </button>
                       </div>
-                    </div>
-                    <div className="stop-move-col">
+                      <div style={{ flex: 1 }}>
+                        <div className="stop-name">{stopName(stop)}</div>
+
+                        {collapsed ? null : (
+                          <>
+                            {stop.kind === "distillery" && stop.tour && (
+                              <>
+                                <div className="stop-tour">🎟 {stop.tour.name}</div>
+                                <div className="stop-cost">£{stop.tour.price} per person</div>
+                              </>
+                            )}
+                            {stop.kind === "feature" && (
+                              <div className="stop-region">
+                                {stop.feature.icon} {stop.feature.category.replace("-", " ")}
+                              </div>
+                            )}
+
+                            <input
+                              type="text"
+                              value={stop.note ?? ""}
+                              onChange={(e) => trip.setStopNote(activeDayIndex, id, e.target.value)}
+                              placeholder="Add a note (e.g. tour at 12)"
+                              style={{
+                                display: "block",
+                                width: "100%",
+                                marginTop: 6,
+                                padding: "4px 8px",
+                                fontSize: 12,
+                                fontStyle: stop.note ? "normal" : "italic",
+                                color: stop.note ? "var(--dark)" : "var(--slate)",
+                                border: "1px solid var(--stone)",
+                                borderRadius: "var(--radius-sm)",
+                                background: "var(--off-white)",
+                              }}
+                            />
+
+                            <div className="stop-time-row">
+                              <span className="stop-time">{visitLabel} visit</span>
+                              <button
+                                className="stop-time-btn"
+                                onClick={() =>
+                                  trip.setStopMinutes(activeDayIndex, id, incrementVisitMinutes(stop, -1))
+                                }
+                                aria-label="Decrease visit time"
+                              >
+                                &minus;
+                              </button>
+                              <button
+                                className="stop-time-btn"
+                                onClick={() =>
+                                  trip.setStopMinutes(activeDayIndex, id, incrementVisitMinutes(stop, 1))
+                                }
+                                aria-label="Increase visit time"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
                       <button
                         className="stop-move-btn"
-                        onClick={() => trip.moveStop(activeDayIndex, i, -1)}
-                        disabled={i === 0}
-                        aria-label={`Move ${stopName(stop)} earlier`}
+                        id={i === 0 ? "onboard-first-stop-collapse" : undefined}
+                        onClick={() => toggleStopCollapsed(id)}
+                        aria-label={collapsed ? `Expand ${stopName(stop)}` : `Collapse ${stopName(stop)}`}
+                        title={collapsed ? "Expand" : "Collapse"}
                       >
-                        &#8963;
+                        {collapsed ? "▸" : "▾"}
                       </button>
                       <button
-                        className="stop-move-btn"
-                        onClick={() => trip.moveStop(activeDayIndex, i, 1)}
-                        disabled={i === activeDay.stops.length - 1}
-                        aria-label={`Move ${stopName(stop)} later`}
+                        className="stop-remove"
+                        onClick={() => trip.removeStop(activeDayIndex, id)}
+                        aria-label={`Remove ${stopName(stop)}`}
                       >
-                        &#8964;
+                        &times;
                       </button>
                     </div>
-                    <button
-                      className="stop-remove"
-                      onClick={() => trip.removeStop(activeDayIndex, stopId(stop))}
-                      aria-label={`Remove ${stopName(stop)}`}
-                    >
-                      &times;
-                    </button>
+                    {i < activeDay.stops.length - 1 && (
+                      <div className="drive-time-between">
+                        🚗 {formatDuration(driveSegments[i + stopDriveOffset])} drive
+                      </div>
+                    )}
                   </div>
-                  {i < activeDay.stops.length - 1 && (
-                    <div className="drive-time-between">
-                      🚗 {formatDuration(driveSegments[i])} drive
-                    </div>
-                  )}
-                </div>
-              ))
+                );
+                })}
+              </>
             )}
 
             {isFlyingIn && activeDayIndex === days.length - 1 && (
@@ -677,8 +841,12 @@ export default function Workspace({
           </div>
 
           {activeDay.stops.length > 0 && (
-            <div className="journey-summary">
-              <button className="summary-total summary-total-toggle" onClick={() => setSummaryExpanded((v) => !v)}>
+            <div className="journey-summary" id="onboard-journey-summary-panel">
+              <button
+                id="onboard-journey-summary"
+                className="summary-total summary-total-toggle"
+                onClick={() => setSummaryExpanded((v) => !v)}
+              >
                 <span>Total journey</span>
                 <span>
                   {formatDuration(totalDriveMinutes + totalVisitMinutes)}
@@ -697,33 +865,36 @@ export default function Workspace({
                     <span>{formatDuration(totalVisitMinutes)}</span>
                   </div>
 
-                  <button className="cost-toggle" onClick={() => setShowCostBreakdown((v) => !v)}>
-                    {showCostBreakdown ? "▲" : "▼"} Show estimated tour costs
-                    {toursBooked > 0 ? ` (${toursBooked} tour${toursBooked > 1 ? "s" : ""} booked)` : ""}
-                  </button>
-
-                  {showCostBreakdown && (
-                    <div className="cost-breakdown">
-                      {activeDay.stops
-                        .filter((s) => s.kind === "distillery")
-                        .map((s) => (
-                          <div key={stopId(s)} className="summary-row">
-                            <span>
-                              {s.kind === "distillery" && s.distillery.name}{" "}
-                              {s.kind === "distillery" && s.tour ? `- ${s.tour.name}` : "- No tour selected"}
-                            </span>
-                            <span>{s.kind === "distillery" && s.tour ? `£${s.tour.price}` : "-"}</span>
-                          </div>
-                        ))}
-                      <div className="summary-row" style={{ fontWeight: 600 }}>
-                        <span>Tours total</span>
-                        <span>£{toursTotal} pp</span>
-                      </div>
-                      <p style={{ fontSize: 11, color: "var(--slate)", marginTop: 8 }}>
-                        Accommodation and transport not included. Add tours from each distillery page.
-                      </p>
+                  {/* Cost breakdown now shows automatically whenever the
+                      Total Journey panel is expanded, rather than sitting
+                      behind its own separate "Show estimated tour costs"
+                      click - 21 July 2026 feedback: the day length summary
+                      should include distillery costs as part of the one
+                      expand, not a second step. */}
+                  <div className="cost-breakdown">
+                    <div className="cost-breakdown-heading">
+                      Estimated tour costs
+                      {toursBooked > 0 ? ` (${toursBooked} tour${toursBooked > 1 ? "s" : ""} booked)` : ""}
                     </div>
-                  )}
+                    {activeDay.stops
+                      .filter((s) => s.kind === "distillery")
+                      .map((s) => (
+                        <div key={stopId(s)} className="summary-row">
+                          <span>
+                            {s.kind === "distillery" && s.distillery.name}{" "}
+                            {s.kind === "distillery" && s.tour ? `- ${s.tour.name}` : "- No tour selected"}
+                          </span>
+                          <span>{s.kind === "distillery" && s.tour ? `£${s.tour.price}` : "-"}</span>
+                        </div>
+                      ))}
+                    <div className="summary-row" style={{ fontWeight: 600 }}>
+                      <span>Tours total</span>
+                      <span>£{toursTotal} pp</span>
+                    </div>
+                    <p style={{ fontSize: 11, color: "var(--slate)", marginTop: 8 }}>
+                      Accommodation and transport not included. Add tours from each distillery page.
+                    </p>
+                  </div>
                 </>
               )}
 
@@ -752,8 +923,15 @@ export default function Workspace({
 
         <div className="map-area">
           <div className="map-toolbar">
-            <div className="map-toolbar-row" id="onboard-toolbar-row">
-              {expandedCategoryData && expandedCategoryData.subcategories.length > 0 ? (
+            <div
+              className={
+                "map-toolbar-row" +
+                (expandedCategoryData?.id === "places-to-stay" ? " map-toolbar-row--scroll" : "")
+              }
+              id="onboard-toolbar-row"
+            >
+              {expandedCategoryData &&
+              (expandedCategoryData.subcategories.length > 0 || expandedCategoryData.id === "places-to-stay") ? (
                 <>
                   <button className="filter-btn active" data-category-id="distilleries" onClick={() => toggleCategory("distilleries", true)}>
                     <span>🥃</span> Distilleries
@@ -765,32 +943,34 @@ export default function Workspace({
                     <span>{expandedCategoryData.icon}</span> {expandedCategoryData.label}
                   </button>
                   <span className="toolbar-divider" />
-                  <button
-                    className={
-                      "subcat-chip" +
-                      (Array.from(activeSubcats).every((k) => !k.startsWith(`${expandedCategoryData.id}:`))
-                        ? " active"
-                        : "")
-                    }
-                    onClick={() => clearSubcatsForCategory(expandedCategoryData.id)}
-                  >
-                    Everything
-                  </button>
-                  {expandedCategoryData.subcategories.map((sub) => {
-                    const key = `${expandedCategoryData.id}:${sub}`;
-                    return (
-                      <button
-                        key={key}
-                        className={"subcat-chip" + (activeSubcats.has(key) ? " active" : "")}
-                        onClick={() => toggleSubcat(key)}
-                      >
-                        {sub}
-                      </button>
-                    );
-                  })}
-
-                  {expandedCategoryData.id === "places-to-stay" && (
+                  {expandedCategoryData.id === "places-to-stay" ? (
                     <AccommodationControl dayIndex={activeDayIndex} accommodation={accommodation} />
+                  ) : (
+                    <>
+                      <button
+                        className={
+                          "subcat-chip" +
+                          (Array.from(activeSubcats).every((k) => !k.startsWith(`${expandedCategoryData.id}:`))
+                            ? " active"
+                            : "")
+                        }
+                        onClick={() => clearSubcatsForCategory(expandedCategoryData.id)}
+                      >
+                        Everything
+                      </button>
+                      {expandedCategoryData.subcategories.map((sub) => {
+                        const key = `${expandedCategoryData.id}:${sub}`;
+                        return (
+                          <button
+                            key={key}
+                            className={"subcat-chip" + (activeSubcats.has(key) ? " active" : "")}
+                            onClick={() => toggleSubcat(key)}
+                          >
+                            {sub}
+                          </button>
+                        );
+                      })}
+                    </>
                   )}
                 </>
               ) : (
@@ -830,7 +1010,20 @@ export default function Workspace({
               }, [])}
               onAddDistillery={(slug) => {
                 const d = distilleries.find((x) => x.slug === slug);
-                if (d) trip.addStop(activeDayIndex, d);
+                if (!d) return;
+                if (d.tours.length >= 2) {
+                  // Real choice to make - hold off adding until the
+                  // visitor picks one in the modal below, rather than
+                  // adding blank and leaving it to fix up afterward.
+                  setTourPickerDistillery(d);
+                  return;
+                }
+                trip.addStop(activeDayIndex, d);
+                // Exactly one tour: no real choice, so no modal - use it
+                // directly. Zero tours: unchanged, adds with none set.
+                if (d.tours.length === 1) {
+                  trip.setTourForStop(activeDayIndex, d, d.tours[0]);
+                }
               }}
               onAddFeature={(id) => {
                 const f = localFeatures.find((x) => x.id === id);

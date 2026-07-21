@@ -70,8 +70,14 @@ export const INTEREST_CATEGORIES: InterestCategoryOption[] = [
   },
   {
     id: "places-to-stay",
-    label: "Places to Stay",
+    label: "Accommodation",
     icon: "🛏️",
-    subcategories: ["Hotels", "B&Bs", "Self-Catering"],
+    // Subcategories deliberately empty as of 19 July 2026 - was Hotels/
+    // B&Bs/Self-Catering, dropped since neither Hotels.com, Vrbo, nor
+    // Booking.com's simple deep-link format can guarantee a hard type
+    // filter anyway. Workspace.tsx special-cases "places-to-stay" to
+    // render a single Book Now action instead of the generic
+    // Everything+subcategory chips every other category gets.
+    subcategories: [],
   },
 ];

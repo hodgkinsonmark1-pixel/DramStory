@@ -71,6 +71,110 @@ select.location-inline-input {
    .popup-detail/.popup-actions/.popup-btn* — all already ported from the
    approved mockup in dramstory-legacy.css, so no styles needed here. */
 
+/* Tour picker: was an inline <select> in the popup itself (21 July
+   2026, first pass) - replaced same day with a proper on-brand modal
+   (.tour-picker-*, below) per feedback that the inline dropdown felt
+   cluttered inside the narrow Leaflet popup. Opened from a distillery
+   pin's "+ Add" when it has 2+ tours - see Workspace's
+   tourPickerDistillery state and onAddDistillery handler. */
+.tour-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  background: rgba(20, 20, 20, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.tour-picker-modal {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  padding: 24px;
+}
+.tour-picker-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--slate);
+  cursor: pointer;
+}
+.tour-picker-close:hover {
+  color: var(--dark);
+}
+.tour-picker-heading {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--dark);
+  margin-bottom: 16px;
+  padding-right: 24px;
+}
+.tour-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tour-picker-option {
+  border: 1px solid var(--stone);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+.tour-picker-option-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.tour-picker-option-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dark);
+}
+.tour-picker-option-price {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--copper, #c4862a);
+  white-space: nowrap;
+}
+.tour-picker-option-duration {
+  font-size: 12px;
+  color: var(--slate);
+  margin-top: 2px;
+}
+.tour-picker-option-desc {
+  font-size: 12px;
+  color: var(--peat);
+  line-height: 1.5;
+  margin-top: 6px;
+}
+.tour-picker-option-btn {
+  margin-top: 10px;
+  width: 100%;
+  padding: 8px;
+  background: var(--green-deep);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.tour-picker-option-btn:hover {
+  background: var(--peat);
+}
+
 /* Toolbar drill-down: clicking a category collapses the row to just
    [Distilleries] + [that category, active] + [Everything] + its
    subcategory chips, all in one row (no separate row below anymore) -
@@ -81,6 +185,26 @@ select.location-inline-input {
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
+}
+/* Accommodation row only (see map-toolbar-row--scroll usage in
+   Workspace.tsx): this row is genuinely too content-heavy (Staying +
+   Change/Clear + Book Now + Booking.com + Featured Stays + its own
+   Book Now) to guarantee it fits on one line at typical widths just by
+   shrinking padding - so instead of wrapping, it scrolls horizontally
+   and never breaks onto a second line. Deliberately NOT applied to
+   the base .map-toolbar-row, which other categories' subcategory
+   chips still rely on wrapping across two lines for. */
+.map-toolbar-row--scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 6px;
+}
+.map-toolbar-row--scroll > * {
+  flex-shrink: 0;
+}
+.map-toolbar-row--scroll::-webkit-scrollbar {
+  height: 6px;
 }
 .toolbar-divider {
   width: 1px;
@@ -210,6 +334,16 @@ select.location-inline-input {
   color: var(--peat);
   flex-wrap: wrap;
 }
+.accommodation-select {
+  padding: 6px 12px;
+  border-radius: 100px;
+  border: 1.5px solid var(--stone);
+  background: white;
+  color: var(--peat);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
 .accommodation-input {
   flex: 1;
   min-width: 140px;
@@ -279,23 +413,25 @@ select.location-inline-input {
 .stop-move-col {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin-left: auto;
+  gap: 1px;
 }
+/* Deliberately subtle (21 July 2026 - was previously bordered buttons
+   with equal visual weight to .stop-number) - a secondary, low-emphasis
+   control now, not competing with the stop number for attention. Also
+   shared by the expand/collapse toggle further along the row, which
+   gets the same de-emphasis for the same reason. */
 .stop-move-btn {
   background: none;
-  border: 1px solid var(--stone);
-  border-radius: 4px;
-  color: var(--slate);
+  border: none;
+  color: var(--mist);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1;
-  padding: 2px 6px;
-  transition: color 0.15s, border-color 0.15s;
+  padding: 1px 4px;
+  transition: color 0.15s;
 }
 .stop-move-btn:hover:not(:disabled) {
   color: var(--green-deep);
-  border-color: var(--green-deep);
 }
 .stop-move-btn:disabled {
   opacity: 0.3;
@@ -935,28 +1071,34 @@ select.location-inline-input {
   color: var(--green-deep);
 }
 
-/* Onboarding spotlight walkthrough - darkened layer + cutout + marker are
-   all pointer-events: none, so nothing here can ever block a real click
-   on the page underneath. Only the caption card's own buttons interact. */
+/* Third onboarding pass, 19 July 2026: back to a "reveal" cutout (the
+   highlighted area shows through at full brightness via a box-shadow
+   trick, rather than staying dark with a tinted fill) - but now with a
+   gold border wrapped around the revealed area too. The pulsing gold
+   dot is reserved for circle (map pin) targets only - rect targets
+   (panels, buttons, rows) rely on the border alone. */
 .onboarding-dark-layer {
   position: fixed;
   inset: 0;
   z-index: 490;
+  background: rgba(20, 20, 20, 0.62);
   pointer-events: none;
 }
-.onboarding-cutout {
+.onboarding-highlight {
   position: fixed;
+  z-index: 490;
   border-radius: 14px;
-  box-shadow: 0 0 0 9999px rgba(20, 20, 20, 0.62);
+  border: 3px solid var(--amber, #d4a574);
+  box-shadow: 0 0 0 9999px rgba(20, 20, 20, 0.62), 0 0 18px rgba(212, 165, 116, 0.5);
   transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
   pointer-events: none;
 }
-.onboarding-cutout-circle {
+.onboarding-highlight-circle {
   border-radius: 50%;
 }
 .onboarding-marker {
   position: fixed;
-  z-index: 491;
+  z-index: 492;
   width: 0;
   height: 0;
   pointer-events: none;
@@ -1006,6 +1148,27 @@ select.location-inline-input {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
   padding: 20px;
   border: 1px solid var(--stone);
+}
+/* Two fixed positions (19 July 2026 rebuild): genuinely centered on
+   screen is the default for most of the walkthrough; bottom-right takes
+   over from the "customise a day, or build your own" step onward.
+   Neither dynamically follows the cutout around the page - only the
+   darkened spotlight and gold dot move now. */
+.onboarding-card-center {
+  top: 50%;
+  left: 50%;
+  right: auto;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+  transition: top 0.3s ease, left 0.3s ease, right 0.3s ease, bottom 0.3s ease, transform 0.3s ease;
+}
+.onboarding-card-right {
+  top: auto;
+  left: auto;
+  right: 24px;
+  bottom: 24px;
+  transform: none;
+  transition: top 0.3s ease, left 0.3s ease, right 0.3s ease, bottom 0.3s ease, transform 0.3s ease;
 }
 .onboarding-dismiss {
   position: absolute;
@@ -1072,6 +1235,21 @@ select.location-inline-input {
   cursor: pointer;
 }
 .onboarding-skip:hover {
+  color: var(--dark);
+}
+/* Chevron, not text - 21 July 2026, replacing an earlier "Back" text
+   button. Larger glyph size than .onboarding-skip since a bare ‹ reads
+   too small at 13px to register as a tappable control. */
+.onboarding-back {
+  background: none;
+  border: none;
+  color: var(--slate);
+  font-size: 20px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+}
+.onboarding-back:hover {
   color: var(--dark);
 }
 .onboarding-next {
@@ -1391,4 +1569,16 @@ select.location-inline-input {
 }
 .journey-day-map-label::before {
   border-top-color: var(--stone);
+}
+
+/* Heading inside .cost-breakdown (dramstory-legacy.css) now that it's
+   always shown alongside the Total Journey panel rather than sitting
+   behind its own toggle button - 21 July 2026. Plain label, not
+   interactive, so no border/cursor styling like the old .cost-toggle
+   button it replaces. */
+.cost-breakdown-heading {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--slate);
+  margin-bottom: 6px;
 }

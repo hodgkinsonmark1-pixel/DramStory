@@ -7,6 +7,7 @@ import { useTrip } from "@/lib/trip-context";
 import LocationStep from "./LocationStep";
 import InterestsStep from "./InterestsStep";
 import Workspace from "./Workspace";
+import { FEATURED_STAYS } from "./AccommodationControl";
 
 interface JourneyFlowProps {
   timing: TripTiming;
@@ -75,20 +76,61 @@ function WorkspaceWithFeatures(props: {
 }
 
 /**
- * Orchestrates the intake: Q1 (When, already happened on the homepage
- * Hero) -> Q2 (Where) -> Q3 (What matters) -> workspace (map + itinerary).
- * `timing` arrives here as the ?mode= query param from the homepage.
+ * Orchestrates the intake. As of 18 July 2026: Q1 (When, already happened
+ * on the homepage Hero) goes straight to the workspace - Q2 (Where) and Q3
+ * (What matters) are no longer shown to visitors. Q2's region-picker code
+ * (LocationStep) is INACTIVATED, not deleted - it's retained for when a
+ * second region launches and picking "where" becomes a real question
+ * again. Q3 (InterestsStep) is fully skipped now too, same as it already
+ * was on desktop; "select your preference" is no longer treated as a
+ * question worth asking at all, on any breakpoint.
  *
- * Q3 is skipped on desktop as of July 2026 - see DESKTOP_BREAKPOINT above
- * for the reasoning. Still shown on tablet/mobile widths for now.
+ * For a fresh "planning"/"dreaming" visit (no existing trip, not a
+ * resume), the workspace is seeded with a default Day rather than
+ * opening blank - see DEFAULT_DAY_STOPS below. Originally just the
+ * "Three Legends, One Road" three-distillery Hub Day (Laphroaig,
+ * Lagavulin, Ardbeg); extended 21 July 2026 to the fuller Laphroaig ->
+ * Lagavulin -> Old Kiln Cafe -> Ardbeg -> Port Ellen Beach route, mixing
+ * in two real Local Features stops (lunch + a closing beach) rather than
+ * distilleries only. Hardcoded here rather than read live from Airtable
+ * - the itinerary data model only knows individual distillery/feature
+ * stops, not "Day" records, and building the real Day->itinerary
+ * resolution is its own task (same one the Classic Journey refactor
+ * needs). Revisit once that's built, so this doesn't drift out of sync
+ * with the real Day content by hand.
  *
- * There used to be a "How long will your adventure last?" step (Step 3 of
- * 4) between Q2 and Q3 - removed (July 2026) since trip length no longer
- * needs asking upfront: it becomes evident once the visitor sets specific
- * dates in the workspace header (the itinerary day count then follows the
- * date range - see Workspace's date-range sync effect), or simply from
- * however many days they build for themselves via +Add day/Remove.
+ * Notes on each stop are short and practical - they're seed content, not
+ * sourced Airtable facts, so held to a lighter bar than the Location
+ * Source/official-source standard. As of 21 July 2026 two of them
+ * (Lagavulin, Ardbeg) include specific clock times per Mark's direct
+ * input - worth re-confirming against each distillery's current
+ * published tour schedule before go-live and periodically after, since
+ * tour times do shift (this is exactly the risk the original
+ * no-times version was avoiding).
+ *
+ * Each distillery stop also seeds a specific real tour (tourName below,
+ * matched against that distillery's own Tours from Airtable) so the
+ * itinerary and the Total Journey cost breakdown both show a real
+ * booked tour + price rather than "No tour selected" - 21 July 2026
+ * fix. Deliberately the same three tours already linked to the "Three
+ * Legends, One Road" Hub Day in Airtable (Laphroaig Experience £22,
+ * Classic Distillery Tour £22, Classic Ardbeg Tour £22.50) - this
+ * default day started life as that exact Hub Day, so reusing its tours
+ * keeps the two in sync rather than picking new ones by hand.
+ *
+ * "today" is deliberately left with the old default (no pre-seeded day,
+ * just Distilleries active) - it needs its own considered default, not
+ * this one, per 18 July 2026 conversation. Flagged as a real gap, not an
+ * oversight.
  */
+const DEFAULT_DAY_STOPS: { kind: "distillery" | "feature"; slug: string; note: string; tourName?: string }[] = [
+  { kind: "distillery", slug: "laphroaig", note: "First stop of the day, starts at 10.", tourName: "Laphroaig Experience" },
+  { kind: "distillery", slug: "lagavulin", note: "Just along the coast road, tour at 12.", tourName: "Classic Distillery Tour" },
+  { kind: "feature", slug: "old-kiln-cafe-ardbeg", note: "Right on Ardbeg's pier - a good lunch stop before the tour." },
+  { kind: "distillery", slug: "ardbeg", note: "3pm: Popular tour - worth booking ahead.", tourName: "Classic Ardbeg Tour" },
+  { kind: "feature", slug: "port-ellen-beach", note: "Maybe a picnic on the beach or the pub to finish the day." },
+];
+
 export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, resume }: JourneyFlowProps) {
   const router = useRouter();
   const trip = useTrip();
@@ -105,8 +147,11 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
   //   never goes through Q1-Q3 and so never sets intake. Jump to the
   //   workspace anyway with sensible defaults, rather than stranding the
   //   visitor back at Q1 despite having a real trip with real stops.
-  // - otherwise -> clear any stale trip so a fresh Q1 visit always starts
-  //   clean, never silently continuing an old session
+  // - a genuinely fresh visit (no resume, no existing intake/days) with
+  //   timing planning/dreaming -> seed the default Day (see above) and go
+  //   straight to the workspace, skipping Q2/Q3 entirely
+  // - otherwise (fresh "today" visit) -> clear any stale trip, skip
+  //   Q2/Q3, go to the workspace with the old no-pre-seed default
   useEffect(() => {
     if (!trip.ready || handledInitialState) return;
     if (resume && trip.intake) {
@@ -114,16 +159,73 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
       setLocation(trip.intake.location);
       setInterests(trip.intake.interests);
       setStep("workspace");
-    } else if (resume && !trip.intake && trip.days.length > 0) {
+      setHandledInitialState(true);
+      return;
+    }
+    if (resume && !trip.intake && trip.days.length > 0) {
       setLocation({ kind: "region", region: "islay" });
       setInterests(["distilleries"]);
       setStep("workspace");
-    } else if (!resume && (trip.intake || trip.days.length > 0)) {
-      trip.resetTrip();
+      setHandledInitialState(true);
+      return;
     }
-    setHandledInitialState(true);
+    // Genuinely fresh visit past this point - always clear any stale trip
+    // first so this never silently continues an old session.
+    if (trip.intake || trip.days.length > 0) trip.resetTrip();
+
+    const freshLocation: LocationAnswer = { kind: "region", region: "islay" };
+    const freshInterests: InterestCategoryId[] = ["distilleries"];
+    setLocation(freshLocation);
+    setInterests(freshInterests);
+
+    if (timing === "today") {
+      // "today" gets its own considered default later - for now, same
+      // no-pre-seed fallback the desktop skip already used.
+      trip.completeIntake({ timing, location: freshLocation, interests: freshInterests });
+      setStep("workspace");
+      setHandledInitialState(true);
+      return;
+    }
+
+    // planning/dreaming: seed the default Day rather than open blank.
+    Promise.all([distilleriesPromise, localFeaturesPromise]).then(([distilleries, localFeatures]) => {
+      trip.initDays(1);
+      for (const entry of DEFAULT_DAY_STOPS) {
+        if (entry.kind === "distillery") {
+          const d = distilleries.find((x) => x.slug === entry.slug);
+          if (!d) continue;
+          trip.addStop(0, d);
+          trip.setStopNote(0, d.slug, entry.note);
+          const tour = entry.tourName ? d.tours.find((t) => t.name === entry.tourName) : undefined;
+          if (tour) trip.setTourForStop(0, d, tour);
+        } else {
+          const f = localFeatures.find((x) => x.slug === entry.slug);
+          if (!f) continue;
+          trip.addFeatureStop(0, f);
+          trip.setStopNote(0, f.id, entry.note);
+        }
+      }
+      // The Machrie as the default accommodation base (21 July 2026 -
+      // supersedes the original Port Ellen default from 19 July). Same
+      // Featured Stay AccommodationControl now defaults to whenever a day
+      // has no stay set - kept in sync via the shared FEATURED_STAYS
+      // export rather than a second hardcoded value here.
+      trip.setAccommodation(0, FEATURED_STAYS[0]);
+      trip.completeIntake({ timing, location: freshLocation, interests: freshInterests });
+      setStep("workspace");
+      setHandledInitialState(true);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip.ready, handledInitialState]);
+
+  // Avoids ever flashing the now-inactive Q2 (location) UI while the
+  // initial-state effect above is still resolving - it always moves past
+  // "location" once handledInitialState flips true, so gating the render
+  // on that too means LocationStep/InterestsStep are retained in code but
+  // never actually shown in the current flow.
+  if (!handledInitialState) {
+    return <div className="workspace-root" />;
+  }
 
   if (step === "location") {
     return (
