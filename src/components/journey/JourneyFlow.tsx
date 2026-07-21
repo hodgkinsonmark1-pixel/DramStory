@@ -40,12 +40,6 @@ interface JourneyFlowProps {
    *  option looked like it "skipped" Q2/Q3 straight to the map, because
    *  ANY saved intake was silently resumed regardless of intent. */
   resume: boolean;
-  /** Temporary QA aid (see journey/page.tsx's parseDebugHour) - overrides
-   *  the real device clock in seedTodayDay when set, so the before/after
-   *  4pm branches can be previewed on demand via ?debugHour=13 rather than
-   *  waiting for the actual hour. Remove alongside that parsing function
-   *  once this is merged to main. */
-  debugHour?: number;
 }
 
 type Step = "location" | "today-location" | "interests" | "workspace";
@@ -280,7 +274,7 @@ function seedTodayDay(
   return { interests: eveningInterests, notice: eveningExplainer };
 }
 
-export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, resume, debugHour }: JourneyFlowProps) {
+export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, resume }: JourneyFlowProps) {
   const router = useRouter();
   const trip = useTrip();
   const [step, setStep] = useState<Step>("location");
@@ -398,7 +392,7 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
             // list) - matches the pre-cutoff default rather than seeding
             // nothing and explaining nothing.
             const seeded = start
-              ? seedTodayDay(trip, debugHour ?? new Date().getHours(), start, distilleries, localFeatures)
+              ? seedTodayDay(trip, new Date().getHours(), start, distilleries, localFeatures)
               : { interests: ["distilleries"] as InterestCategoryId[] };
             setInterests(seeded.interests);
             setTodayNotice(seeded.notice);
