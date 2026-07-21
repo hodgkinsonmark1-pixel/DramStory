@@ -24,8 +24,11 @@ interface LocationStepProps {
 type OptionId = "islay" | "speyside" | "highland" | "campbeltown" | "lowland" | "airport" | "distillery";
 
 /** Resolves the distilleries promise - isolated to its own component so
- *  Suspense only affects this dropdown, never Q2's initial paint. */
-function DistilleryPicker({
+ *  Suspense only affects this dropdown, never Q2's initial paint. Exported
+ *  so TodayLocationStep (the "today" flow's lightweight location question,
+ *  added 21 July 2026) can reuse the exact same dropdown instead of
+ *  duplicating it. */
+export function DistilleryPicker({
   distilleriesPromise,
   onNext,
 }: {
