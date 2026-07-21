@@ -61,6 +61,7 @@ function WorkspaceWithFeatures(props: {
   location: LocationAnswer;
   initialInterests: InterestCategoryId[];
   timing: TripTiming;
+  todayNotice?: string;
 }) {
   const distilleries = use(props.distilleriesPromise);
   const localFeatures = use(props.localFeaturesPromise);
@@ -73,6 +74,7 @@ function WorkspaceWithFeatures(props: {
       location={props.location}
       initialInterests={props.initialInterests}
       timing={props.timing}
+      todayNotice={props.todayNotice}
     />
   );
 }
@@ -161,14 +163,23 @@ const EVENING_CUTOFF_HOUR = 16;
  * planning/dreaming's FEATURED_STAYS[0]) - inventing a place someone's
  * staying tonight isn't ours to assume. Past the evening cutoff, the
  * seeded stop's own note nudges toward the real "Where are you staying?"
- * control instead. */
+ * control instead.
+ *
+ * Returns the interest categories the workspace should open with, and (past
+ * the evening cutoff) an explainer notice - both computed here, alongside
+ * the actual stops, so there's exactly one place that decides what "past
+ * the evening cutoff" means. Added 21 July 2026 per Mark's direct
+ * feedback on the first pass: the workspace was opening on the
+ * "Distilleries" category even when zero distilleries were seeded (no
+ * visible reason given for why), and the "no distillery today" reasoning
+ * was buried in a stop's own note rather than stated up front. */
 function seedTodayDay(
   trip: ReturnType<typeof useTrip>,
   hour: number,
   start: Distillery,
   distilleries: Distillery[],
   localFeatures: LocalFeature[]
-) {
+): { interests: InterestCategoryId[]; notice?: string } {
   trip.initDays(1);
 
   if (hour < EVENING_CUTOFF_HOUR) {
@@ -189,12 +200,19 @@ function seedTodayDay(
       trip.addStop(0, d);
       trip.setStopNote(0, d.slug, `About ${formatDuration(minutes)} on from your first stop.`);
     }
-    return;
+    return { interests: ["distilleries"] };
   }
 
   // Too late in the day for a fresh distillery tour to be a fair
   // suggestion - wind down with nearby Local Features instead, and nudge
-  // toward sorting accommodation if that's still needed tonight.
+  // toward sorting accommodation if that's still needed tonight. Opens on
+  // the categories that are actually relevant now (food/drink, natural
+  // features, places to stay) rather than leaving "Distilleries" active
+  // with nothing seeded under it.
+  const eveningInterests: InterestCategoryId[] = ["natural-features", "local-attractions", "places-to-eat", "places-to-stay"];
+  const eveningNotice =
+    "It's getting late in the day for a fresh distillery tour, so we've suggested a couple of nearby spots to relax instead - the categories above now show what's around you (food and drink, natural features, places to stay), not distilleries.";
+
   const nearbyFeatures = localFeatures
     .filter((f) => f.category !== "transport")
     .map((f) => ({ f, minutes: estimatedDriveMinutes(start, f) }))
@@ -218,6 +236,8 @@ function seedTodayDay(
     trip.addStop(0, start);
     trip.setStopNote(0, start.slug, "Worth checking if there's still time for a visit today.");
   }
+
+  return { interests: eveningInterests, notice: eveningNotice };
 }
 
 export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, resume }: JourneyFlowProps) {
@@ -227,6 +247,9 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
   const [location, setLocation] = useState<LocationAnswer | null>(null);
   const [interests, setInterests] = useState<InterestCategoryId[]>([]);
   const [handledInitialState, setHandledInitialState] = useState(false);
+  // Only ever set by TodayLocationStep's onNext, past the evening cutoff -
+  // see seedTodayDay. Undefined for every other path/timing.
+  const [todayNotice, setTodayNotice] = useState<string | undefined>(undefined);
 
   // Runs once trip.ready flips true (localStorage hydration completes):
   // - resume=1 + a saved intake exists -> jump straight to the workspace
@@ -327,15 +350,19 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
         onBack={() => router.push("/")}
         onNext={(distillerySlug) => {
           const answer: LocationAnswer = { kind: "distillery", distillerySlug };
-          const todayInterests: InterestCategoryId[] = ["distilleries"];
           setLocation(answer);
-          setInterests(todayInterests);
           Promise.all([distilleriesPromise, localFeaturesPromise]).then(([distilleries, localFeatures]) => {
             const start = distilleries.find((d) => d.slug === distillerySlug);
-            if (start) {
-              seedTodayDay(trip, new Date().getHours(), start, distilleries, localFeatures);
-            }
-            trip.completeIntake({ timing, location: answer, interests: todayInterests });
+            // Fallback interests if the chosen slug somehow isn't found
+            // (shouldn't happen - it came from this same distilleries
+            // list) - matches the pre-cutoff default rather than seeding
+            // nothing and explaining nothing.
+            const seeded = start
+              ? seedTodayDay(trip, new Date().getHours(), start, distilleries, localFeatures)
+              : { interests: ["distilleries"] as InterestCategoryId[] };
+            setInterests(seeded.interests);
+            setTodayNotice(seeded.notice);
+            trip.completeIntake({ timing, location: answer, interests: seeded.interests });
             setStep("workspace");
           });
         }}
@@ -395,6 +422,7 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
         location={location!}
         initialInterests={interests}
         timing={trip.intake?.timing ?? timing}
+        todayNotice={todayNotice}
       />
     </Suspense>
   );

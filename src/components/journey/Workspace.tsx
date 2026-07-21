@@ -26,6 +26,13 @@ interface WorkspaceProps {
   location: LocationAnswer;
   initialInterests: InterestCategoryId[];
   timing: TripTiming;
+  /** A one-off explainer shown once at the top of the itinerary panel -
+   *  currently only set by JourneyFlow's seedTodayDay, for the "today,
+   *  past the evening cutoff" case, explaining plainly why no distillery
+   *  was seeded (added 21 July 2026, per Mark's direct feedback that the
+   *  reasoning was previously buried in a stop's own note rather than
+   *  stated up front). Undefined for every other path - no banner shows. */
+  todayNotice?: string;
 }
 
 function describeLocation(location: LocationAnswer): string {
@@ -80,11 +87,13 @@ export default function Workspace({
   location,
   initialInterests,
   timing,
+  todayNotice,
 }: WorkspaceProps) {
   const trip = useTrip();
   const [activeCategories, setActiveCategories] = useState<Set<InterestCategoryId>>(
     new Set(initialInterests)
   );
+  const [showTodayNotice, setShowTodayNotice] = useState(!!todayNotice);
   const [expandedCategory, setExpandedCategory] = useState<InterestCategoryId | null>(null);
   const [activeSubcats, setActiveSubcats] = useState<Set<string>>(new Set());
   // activeDayIndex is derived from the shared, persisted trip.currentDayIndex
@@ -484,7 +493,17 @@ export default function Workspace({
 
   return (
     <>
-    <OnboardingOverlay timing={timing} />
+    {/* Skipped entirely for "today" (21 July 2026) - the walkthrough's
+        demo-distillery step is hardcoded to spotlight Port Ellen
+        specifically (see OnboardingOverlay's DEMO_DISTILLERY_SLUG), which
+        only makes sense when the map is centered near there. A "today"
+        visitor's starting point is whichever distillery they said they're
+        nearest to - anywhere on Islay/Jura - so that step (and the map
+        position it assumes) can't reliably generalise. Rather than patch
+        every step for an arbitrary starting location, "today" skips the
+        walkthrough outright; planning/dreaming keep it since their seeded
+        default day is always the same fixed Port Ellen-area route. */}
+    {timing !== "today" && <OnboardingOverlay timing={timing} />}
     {tourPickerDistillery && (
       <div className="tour-picker-backdrop" onClick={() => setTourPickerDistillery(null)}>
         <div className="tour-picker-modal" role="dialog" aria-label={`Choose a tour at ${tourPickerDistillery.name}`} onClick={(e) => e.stopPropagation()}>
@@ -684,6 +703,19 @@ export default function Workspace({
               </button>
               Your itinerary has {days.length} days, but your selected dates only cover {dateRangeSpan}.
               Remove the extra days, or widen your date range above.
+            </div>
+          )}
+
+          {showTodayNotice && todayNotice && (
+            <div className="today-notice">
+              <button
+                className="today-notice-close"
+                onClick={() => setShowTodayNotice(false)}
+                aria-label="Dismiss"
+              >
+                &times;
+              </button>
+              {todayNotice}
             </div>
           )}
 
