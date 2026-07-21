@@ -5,8 +5,8 @@ import { getDistilleries, getLocalFeatures } from "@/lib/data";
 import { CLASSIC_JOURNEYS } from "@/lib/journeys-data";
 import type { JourneyStop } from "@/lib/journeys-data";
 import type { Distillery, LocalFeature } from "@/lib/types";
-import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
+import PageHeader from "@/components/PageHeader";
 import JourneyDayMap from "@/components/journeys/JourneyDayMap";
 import AddJourneyToTripButton from "@/components/journeys/AddJourneyToTripButton";
 import AddDayToTripButton from "@/components/journeys/AddDayToTripButton";
@@ -87,11 +87,7 @@ export default async function JourneyDetailPage({
 
   return (
     <>
-      <div style={{ padding: "32px 48px", borderBottom: "1px solid var(--stone)" }}>
-        <Link href="/" style={{ textDecoration: "none" }}>
-          <Logo size={32} withWordmark />
-        </Link>
-      </div>
+      <PageHeader />
 
       {journey.heroImage ? (
         <div className="journey-hero">

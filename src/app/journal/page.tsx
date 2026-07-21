@@ -2,8 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { getJournalPosts } from "@/lib/data";
 import { estimateReadMinutes } from "@/lib/journal-render";
-import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
+import PageHeader from "@/components/PageHeader";
 import ComingSoon from "@/components/ComingSoon";
 
 function formatDate(iso: string): string {
@@ -33,11 +33,7 @@ export default async function JournalPage() {
 
   return (
     <>
-      <div style={{ padding: "32px 48px", borderBottom: "1px solid var(--stone)" }}>
-        <Link href="/" style={{ textDecoration: "none" }}>
-          <Logo size={32} withWordmark />
-        </Link>
-      </div>
+      <PageHeader />
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px" }}>
         <h1

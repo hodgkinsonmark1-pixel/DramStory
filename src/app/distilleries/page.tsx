@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { getDistilleries } from "@/lib/data";
-import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
+import PageHeader from "@/components/PageHeader";
 import DistilleriesGrid from "@/components/DistilleriesGrid";
 
 // Forced dynamic 21 July 2026 - this page was silently prerendered as
@@ -18,11 +17,7 @@ export default async function DistilleriesIndexPage() {
 
   return (
     <>
-      <div style={{ padding: "32px 48px", borderBottom: "1px solid var(--stone)" }}>
-        <Link href="/" style={{ textDecoration: "none" }}>
-          <Logo size={32} withWordmark />
-        </Link>
-      </div>
+      <PageHeader />
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px" }}>
         <h1

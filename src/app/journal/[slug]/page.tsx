@@ -3,8 +3,8 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getJournalPosts, getJournalPostBySlug } from "@/lib/data";
 import { renderJournalBody, estimateReadMinutes } from "@/lib/journal-render";
-import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
+import PageHeader from "@/components/PageHeader";
 
 export async function generateStaticParams() {
   const posts = await getJournalPosts();
@@ -36,11 +36,7 @@ export default async function JournalPostPage({ params }: { params: Promise<{ sl
 
   return (
     <>
-      <div style={{ padding: "32px 48px", borderBottom: "1px solid var(--stone)" }}>
-        <Link href="/" style={{ textDecoration: "none" }}>
-          <Logo size={32} withWordmark />
-        </Link>
-      </div>
+      <PageHeader />
 
       <article className="journal-post">
         {post.heroImage && (

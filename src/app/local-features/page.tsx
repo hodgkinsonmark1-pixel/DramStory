@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { getLocalFeatures } from "@/lib/data";
-import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
+import PageHeader from "@/components/PageHeader";
 import LocalFeaturesGrid from "@/components/LocalFeaturesGrid";
 
 const HUB_CATEGORIES = new Set(["beach", "walk", "bike-route", "local-gem", "historic-site", "transport"]);
@@ -19,11 +18,7 @@ export default async function LocalFeaturesHubPage() {
 
   return (
     <>
-      <div style={{ padding: "32px 48px", borderBottom: "1px solid var(--stone)" }}>
-        <Link href="/" style={{ textDecoration: "none" }}>
-          <Logo size={32} withWordmark />
-        </Link>
-      </div>
+      <PageHeader />
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px" }}>
         <h1

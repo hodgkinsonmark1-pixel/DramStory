@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
+import PageHeader from "@/components/PageHeader";
 
 /**
  * BOOK YOUR STAY — UI SHELL, PLACEHOLDER TRACKING CODES
@@ -125,19 +124,7 @@ export default function AccommodationShellPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--off-white)" }}>
-      <div
-        style={{
-          height: 64,
-          display: "flex",
-          alignItems: "center",
-          padding: "0 32px",
-          borderBottom: "1px solid var(--stone)",
-        }}
-      >
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Logo size={32} withWordmark />
-        </Link>
-      </div>
+      <PageHeader />
 
       <div style={{ maxWidth: 640, margin: "0 auto", padding: "56px 24px 24px" }}>
         <div

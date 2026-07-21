@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
+import PageHeader from "@/components/PageHeader";
 
 /**
  * PRE-DESIGNED DAYS HUB — LAYOUT TEMPLATE, 7 REAL DAYS SO FAR
@@ -461,21 +461,7 @@ export default function PreDesignedDaysHubPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--off-white)" }}>
-      <div
-        style={{
-          height: 64,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 32px",
-          borderBottom: "1px solid var(--stone)",
-          background: "var(--off-white)",
-        }}
-      >
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Logo size={32} withWordmark />
-        </Link>
-      </div>
+      <PageHeader />
 
       <div
         style={{

@@ -213,7 +213,10 @@ html,body{min-height:100%;font-family:var(--font-body);background:var(--off-whit
 
 /* DISTILLERY PAGE */
 .distillery-page{height:100vh;overflow-y:auto;background:var(--off-white)}
-.dist-back-bar{display:flex;align-items:center;gap:10px;padding:14px 24px;background:var(--dark);color:white;cursor:pointer;transition:background 0.2s;position:sticky;top:0;z-index:50}
+.dist-page-bar{display:flex;align-items:center;background:var(--dark);position:sticky;top:0;z-index:50}
+.dist-home-link{display:flex;align-items:center;padding:14px 20px;opacity:0.85;transition:opacity 0.2s;border-right:1px solid rgba(255,255,255,0.15)}
+.dist-home-link:hover{opacity:1}
+.dist-back-bar{display:flex;align-items:center;gap:10px;padding:14px 24px;color:white;cursor:pointer;transition:background 0.2s;flex:1}
 .dist-back-bar:hover{background:var(--peat)}
 .dist-back-bar span{font-size:13px;font-weight:500}
 .dist-back-stops{font-size:11px;background:var(--amber);padding:2px 8px;border-radius:100px}

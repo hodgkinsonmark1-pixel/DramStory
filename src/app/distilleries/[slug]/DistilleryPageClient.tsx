@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTrip } from "@/lib/trip-context";
 import type { Distillery } from "@/lib/types";
+import DetailPageBar from "@/components/DetailPageBar";
 
 /** Renders plain text containing [label](/path) markdown-style links as
  *  real internal <Link>s - keeps Airtable content authorable as simple
@@ -82,10 +83,11 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
 
   return (
     <div className="distillery-page page">
-      <Link href={hasActiveJourney ? "/journey?resume=1" : "/distilleries"} className="dist-back-bar">
-        <span>&larr; {hasActiveJourney ? "Back to your journey" : "Back to distilleries"}</span>
-        {hasActiveJourney && totalStops > 0 && <span className="dist-back-stops">{totalStops} stop{totalStops > 1 ? "s" : ""}</span>}
-      </Link>
+      <DetailPageBar
+        backHref={hasActiveJourney ? "/journey?resume=1" : "/distilleries"}
+        backLabel={hasActiveJourney ? "Back to your journey" : "Back to distilleries"}
+        stopCount={hasActiveJourney ? totalStops : undefined}
+      />
 
       <div className="distillery-hero">
         <Image className="distillery-hero-img" src={d.image} alt={d.name} fill unoptimized />

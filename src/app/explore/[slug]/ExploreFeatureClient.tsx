@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTrip } from "@/lib/trip-context";
 import type { LocalFeature } from "@/lib/types";
+import DetailPageBar from "@/components/DetailPageBar";
 
 // Simple line-style icons for the Quick Facts strip - pick up the brand
 // copper colour via currentColor/CSS `color`, unlike emoji which render
@@ -443,14 +444,7 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
 
   return (
     <div className="distillery-page page">
-      <Link href={backHref} className="dist-back-bar">
-        <span>&larr; {backLabel}</span>
-        {totalStops > 0 && (
-          <span className="dist-back-stops">
-            {totalStops} stop{totalStops > 1 ? "s" : ""}
-          </span>
-        )}
-      </Link>
+      <DetailPageBar backHref={backHref} backLabel={backLabel} stopCount={totalStops} />
 
       <div className="distillery-hero">
         {f.heroImageUrl ? (

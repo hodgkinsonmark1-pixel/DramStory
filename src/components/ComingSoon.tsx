@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Logo from "./Logo";
 import Footer from "./Footer";
+import PageHeader from "./PageHeader";
 
 export default function ComingSoon({
   eyebrow,
@@ -13,6 +13,7 @@ export default function ComingSoon({
 }) {
   return (
     <>
+      <PageHeader />
       <div
         style={{
           minHeight: "60vh",
@@ -25,9 +26,6 @@ export default function ComingSoon({
           background: "var(--off-white)",
         }}
       >
-        <Link href="/" style={{ marginBottom: 32, textDecoration: "none" }}>
-          <Logo size={40} withWordmark />
-        </Link>
         <div
           style={{
             fontFamily: "var(--font-body)",
