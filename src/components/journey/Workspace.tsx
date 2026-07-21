@@ -513,7 +513,6 @@ export default function Workspace({
         </div>
 
         <div className="map-page-header-links">
-          <span className="map-page-header-badge">{title}</span>
           {timing === "today" && <span className="header-date-today">📅 Today</span>}
 
           <Link
