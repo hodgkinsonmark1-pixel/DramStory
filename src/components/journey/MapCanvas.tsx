@@ -98,6 +98,18 @@ export default function MapCanvas({
   // only ever meant to seed the map's starting position, not fight with
   // the visitor's own panning on every re-render.
   const initialViewRef = useRef(initialView);
+  // Also read once at mount, same reasoning as initialViewRef - if a real
+  // route (accommodation + stops) is already known the moment this map
+  // first mounts (true for the seeded default day - see JourneyFlow.tsx,
+  // which seeds the whole trip before Workspace/MapCanvas ever renders),
+  // the mount effect below fits to THAT directly instead of first fitting
+  // to every distillery on Islay and relying on a second, later effect to
+  // override it. 21 July 2026 - the previous two-step "fit wide, then
+  // override" approach was reported as sometimes sticking on the wide
+  // view in fresh incognito testing; deciding once, at mount, removes the
+  // two-fitBounds-calls-in-quick-succession race entirely rather than
+  // relying on effect/animation timing to resolve it correctly.
+  const routeStopsAtMountRef = useRef(routeStops);
   const onViewChangeRef = useRef(onViewChange);
   useEffect(() => {
     onViewChangeRef.current = onViewChange;
@@ -227,7 +239,18 @@ export default function MapCanvas({
       }
       distilleryMarkersBySlugRef.current = slugToMarker;
 
-      if (markers.length > 0 && !savedView) {
+      // Decided once, here, rather than fitting wide first and hoping a
+      // later effect overrides it (see routeStopsAtMountRef above) - if a
+      // real route is already known, fit tight to it directly and mark
+      // the one-shot route-fit guard as done so the routeStops effect
+      // below doesn't also try. Otherwise, fall back to fitting every
+      // distillery on Islay, same as before.
+      const routeAtMount = routeStopsAtMountRef.current;
+      if (routeAtMount.length >= 2 && !savedView) {
+        const bounds = L.latLngBounds(routeAtMount.map((s) => [s.lat, s.lng] as [number, number]));
+        map.fitBounds(bounds.pad(0.2));
+        initialRouteFitDoneRef.current = true;
+      } else if (markers.length > 0 && !savedView) {
         const group = L.featureGroup(markers);
         map.fitBounds(group.getBounds().pad(0.2));
       }
