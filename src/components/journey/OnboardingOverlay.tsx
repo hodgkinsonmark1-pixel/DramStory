@@ -120,10 +120,19 @@ const ACCOMMODATION_STEP: Step = {
   advanceOn: { selector: '[data-category-id="places-to-stay"]' },
 };
 
-// Transition line + explainer box moves to bottom-right from here on.
+// Split into two steps 21 July 2026 (per feedback - was one bubble
+// doing two jobs). Transition line + explainer box moves to
+// bottom-right from here on; no cutout of its own, just narration
+// ahead of the real pointer-at-a-distillery step that follows.
+const CUSTOMISE_STEP: Step = {
+  icon: "🥃",
+  text: "...to customise a day, or totally build your own.",
+  boxPosition: "right",
+};
+
 const DISTILLERY_STEP: Step = {
   icon: "🥃",
-  text: "...to customise a day, or totally build your own — tap any distillery to see details, then add it to your trip yourself.",
+  text: "...tap any distillery to see details, then add it to your trip yourself.",
   cutout: { selector: DEMO_DISTILLERY_SELECTOR, shape: "circle", includePopupFor: DEMO_DISTILLERY_SLUG },
   openPopupSlug: DEMO_DISTILLERY_SLUG,
   advanceOn: { selector: `[data-add-distillery="${DEMO_DISTILLERY_SLUG}"]` },
@@ -151,7 +160,7 @@ function buildSteps(timing: TripTiming): Step[] {
   if (timing !== "today") steps.push(TRIP_SO_FAR_STEP);
   steps.push(EXPAND_STOP_STEP, JOURNEY_TIME_STEP, ADD_DAYS_STEP);
   if (timing !== "today") steps.push(DATES_STEP);
-  steps.push(ACCOMMODATION_STEP, DISTILLERY_STEP, LOCAL_FEATURES_HUB_STEP, LOCAL_FEATURES_OVERLAY_STEP);
+  steps.push(ACCOMMODATION_STEP, CUSTOMISE_STEP, DISTILLERY_STEP, LOCAL_FEATURES_HUB_STEP, LOCAL_FEATURES_OVERLAY_STEP);
   return steps;
 }
 
@@ -362,6 +371,11 @@ export default function OnboardingOverlay({ timing }: { timing: TripTiming }) {
             ))}
           </div>
           <div className="onboarding-actions">
+            {step > 0 && (
+              <button className="onboarding-back" onClick={() => setStep((s) => s - 1)}>
+                Back
+              </button>
+            )}
             {!isLast && (
               <button className="onboarding-skip" onClick={dismiss}>
                 Skip

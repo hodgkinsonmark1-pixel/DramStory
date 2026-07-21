@@ -1123,14 +1123,16 @@ select.location-inline-input {
   align-items: center;
   gap: 14px;
 }
-.onboarding-skip {
+.onboarding-skip,
+.onboarding-back {
   background: none;
   border: none;
   color: var(--slate);
   font-size: 13px;
   cursor: pointer;
 }
-.onboarding-skip:hover {
+.onboarding-skip:hover,
+.onboarding-back:hover {
   color: var(--dark);
 }
 .onboarding-next {
