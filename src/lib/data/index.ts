@@ -18,9 +18,6 @@ import {
   type AirtableTourFields,
 } from "./airtable-mappers";
 
-const DISTILLERIES_TABLE_ID = "tblSPRTIf1sFK3UDL";
-const DISTILLERY_HERO_FIELD_ID = "fldbYJ8xNSPCLwG0h";
-
 // Matches the [label](/path) inline links already used in Day narratives
 // (same renderWithLinks pattern as the Distillery/Explore pages) - reused
 // here to resolve which real Local Features a Day's map should pin,
@@ -237,19 +234,14 @@ async function fetchDaysFromAirtable(): Promise<HubDay[]> {
       durationPortEllen: f["Duration from Port Ellen"] ?? "",
       durationBowmore: f["Duration from Bowmore"] ?? "",
       cost: totalCost > 0 ? `£${totalCost}pp` : "",
-      // Visual priority matches the previous hardcoded page: a single
-      // hero image for a one-stop Day, a split image for a two-stop
-      // Multi Day, otherwise the real map.
-      heroImageUrl:
-        stops.length === 1 && stops[0].distillery.image
-          ? `/api/attachment?t=${DISTILLERIES_TABLE_ID}&r=${stops[0].distillery.id}&f=${DISTILLERY_HERO_FIELD_ID}&i=0`
-          : undefined,
-      heroImageUrls:
-        stops.length === 2 && stops.every((s) => s.distillery.image)
-          ? stops.map(
-              (s) => `/api/attachment?t=${DISTILLERIES_TABLE_ID}&r=${s.distillery.id}&f=${DISTILLERY_HERO_FIELD_ID}&i=0`
-            )
-          : undefined,
+      // UPDATE 23 July 2026: every Day card now shows the real route map,
+      // regardless of stop count - previously a 1-stop Day showed that
+      // distillery's own Hero Image and a 2-stop Day showed both
+      // distilleries' Hero Images side by side, only falling back to the
+      // map at 3+ stops. Mark didn't want a Day card reusing a
+      // distillery's own page photo - dropped in favour of one
+      // consistent map treatment across every card until genuine
+      // Day-specific photography exists.
       mapDistilleries,
       mapFeatures: mapFeatures.length > 0 ? mapFeatures : undefined,
       stops: stops.map((s) => ({ distillery: s.distillery, tour: s.tour })),

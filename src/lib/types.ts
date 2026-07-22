@@ -116,9 +116,6 @@ export interface HubDay {
   /** Indicative distillery cost - sum of the Day's stop tours' prices,
    *  formatted e.g. "£60pp". Empty string if no priced tours resolved. */
   cost: string;
-  heroImageUrl?: string;
-  /** Exactly two, for a 2-distillery Multi Day shown as a split image. */
-  heroImageUrls?: string[];
   mapDistilleries?: { name: string; slug: string; lat: number; lng: number }[];
   mapFeatures?: { name: string; slug: string; lat: number; lng: number }[];
   /** Resolved stops in visiting order - the real Distillery record plus

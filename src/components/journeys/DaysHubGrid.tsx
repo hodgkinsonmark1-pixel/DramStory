@@ -122,8 +122,13 @@ function DayCard({ day, onAdded }: { day: HubDay; onAdded: () => void }) {
       }}
     >
       <div style={{ display: "flex", flexWrap: "wrap" }}>
-        {/* Visual: split hero images for 2-stop Multi Days, single hero for
-            Solo Days, else real map, else placeholder */}
+        {/* Visual (23 July 2026): every card shows the real route map,
+            regardless of stop count - previously a 1-stop Day reused that
+            distillery's own Hero Image and a 2-stop Day showed both
+            distilleries' Hero Images as a split image, which Mark didn't
+            want (a Day card borrowing the distillery page's own photo).
+            One consistent map treatment across every card now, until
+            genuine Day-specific photography exists. */}
         <div
           style={{
             width: 280,
@@ -132,8 +137,7 @@ function DayCard({ day, onAdded }: { day: HubDay; onAdded: () => void }) {
             minHeight: 200,
             position: "relative",
             overflow: "hidden",
-            display: day.heroImageUrls ? "flex" : undefined,
-            ...(day.heroImageUrl || day.heroImageUrls || day.mapDistilleries
+            ...(day.mapDistilleries && day.mapDistilleries.length > 0
               ? {}
               : {
                   background:
@@ -144,24 +148,7 @@ function DayCard({ day, onAdded }: { day: HubDay; onAdded: () => void }) {
                 }),
           }}
         >
-          {day.heroImageUrls ? (
-            day.heroImageUrls.map((url, i) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={url}
-                src={url}
-                alt={day.distilleries[i] ?? day.name}
-                style={{ width: "50%", height: "100%", objectFit: "cover", display: "block" }}
-              />
-            ))
-          ) : day.heroImageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={day.heroImageUrl}
-              alt={day.distilleries[0] ?? day.name}
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-            />
-          ) : day.mapDistilleries && day.mapDistilleries.length > 0 ? (
+          {day.mapDistilleries && day.mapDistilleries.length > 0 ? (
             <HubDayMap distilleries={day.mapDistilleries} featureStops={day.mapFeatures} />
           ) : (
             <span style={{ fontSize: 12, color: "var(--slate)", fontWeight: 500 }}>
