@@ -454,20 +454,32 @@ select.location-inline-input {
   font-size: 12px;
   color: #c0392b;
 }
-/* Scope toggle for a visitor changing where they're staying (22 July
-   2026) - default (unchecked) applies the change to the whole trip;
-   checking this scopes it to just this day and the days after it. See
-   trip-context.tsx's setAccommodationFromDay. */
-.accommodation-scope-toggle {
+/* Scope confirm for a visitor changing where they're staying (23 July
+   2026, replacing a pre-set "Only from this day on" checkbox that had to
+   be ticked BEFORE picking a place - order-sensitive and confirmed live
+   to silently do nothing when ticked after instead). Shown only once a
+   place has actually been picked and there's an earlier day in the trip
+   for the choice to matter for - see AccommodationControl's
+   stageOrApply/pendingAccommodation. */
+.accommodation-scope-confirm {
   display: flex;
   align-items: center;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 6px 10px;
   font-size: 12px;
   color: var(--slate);
-  cursor: pointer;
+  background: var(--off-white);
+  border: 1px solid var(--stone);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  flex-basis: 100%;
 }
-.accommodation-scope-toggle input {
-  cursor: pointer;
+.accommodation-btn-quiet {
+  color: var(--slate);
+  opacity: 0.7;
+}
+.accommodation-btn-quiet:hover {
+  opacity: 1;
 }
 
 /* Panel header is now just the "YOUR ITINERARY" eyebrow (title/subtitle

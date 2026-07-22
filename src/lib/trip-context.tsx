@@ -115,13 +115,15 @@ interface TripContextValue {
    *  staying - see setAccommodationFromDay for that. */
   setAccommodation: (dayIndex: number, accommodation: TripAccommodation | undefined) => void;
   /** What AccommodationControl's dropdown/search actually calls when a
-   *  visitor picks somewhere to stay (22 July 2026). Most trips use one
-   *  base for the whole stay, so scope defaults to "all" - every day in
-   *  the trip gets this accommodation, not just the one being edited.
-   *  "fromHere" is the explicit opt-in (a small checkbox in
-   *  AccommodationControl) for a visitor who's deliberately splitting
-   *  their stay across two bases - updates dayIndex and every day AFTER
-   *  it, leaving earlier days untouched. */
+   *  visitor picks somewhere to stay (22 July 2026, scope-confirm prompt
+   *  reworked 23 July 2026). Most trips use one base for the whole stay,
+   *  so scope defaults to "all" - every day in the trip gets this
+   *  accommodation, not just the one being edited. "fromHere" is the
+   *  explicit opt-in - a two-button prompt AccommodationControl shows
+   *  right after a place is picked (only when there's an earlier day for
+   *  it to matter for) - for a visitor who's deliberately splitting their
+   *  stay across two bases - updates dayIndex and every day AFTER it,
+   *  leaving earlier days untouched. */
   setAccommodationFromDay: (dayIndex: number, accommodation: TripAccommodation, scope: "all" | "fromHere") => void;
 }
 

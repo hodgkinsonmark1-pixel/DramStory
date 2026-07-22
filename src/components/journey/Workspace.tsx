@@ -1044,7 +1044,11 @@ export default function Workspace({
                   </button>
                   <span className="toolbar-divider" />
                   {expandedCategoryData.id === "places-to-stay" ? (
-                    <AccommodationControl dayIndex={activeDayIndex} accommodation={accommodation} />
+                    <AccommodationControl
+                      dayIndex={activeDayIndex}
+                      dayLabel={useCalendarDayLabels ? calendarDayLabel(activeDayIndex) : activeDay.label}
+                      accommodation={accommodation}
+                    />
                   ) : (
                     <>
                       <button

@@ -61,9 +61,15 @@ function areaFor(name?: string) {
  */
 export default function AccommodationControl({
   dayIndex,
+  dayLabel,
   accommodation,
 }: {
   dayIndex: number;
+  /** Whatever this day is called in the itinerary panel ("Day 3", or a
+   *  real calendar date once dates are confirmed) - only used to word the
+   *  scope-confirm prompt below ("...Tue 4 Aug onward" reads better than
+   *  a bare index). */
+  dayLabel: string;
   accommodation?: TripAccommodation;
 }) {
   const trip = useTrip();
@@ -71,19 +77,46 @@ export default function AccommodationControl({
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Unchecked by default (22 July 2026, per Mark: most trips use one base
-  // for the whole stay) - picking somewhere new applies it to every day
-  // in the trip. Checking this is the explicit opt-in for a visitor who's
-  // deliberately splitting their stay across two bases: it scopes the
-  // change to this day and every day AFTER it, leaving earlier days as
-  // they were. See setAccommodationFromDay in trip-context.tsx.
-  const [changeFromHereOnly, setChangeFromHereOnly] = useState(false);
+  // A newly-picked place waits here for a scope decision rather than
+  // applying straight away (23 July 2026, replacing a "changeFromHereOnly"
+  // checkbox that had to be ticked BEFORE picking a place to have any
+  // effect - confirmed live by Mark: ticking it AFTER picking silently
+  // did nothing, because the pick had already committed with whatever the
+  // checkbox said at that instant. A pre-set toggle governing a later,
+  // unrelated click is inherently order-sensitive; asking the scope
+  // question immediately after the pick removes the ordering entirely -
+  // there's no longer a "wrong order" available. See stageOrApply below.
+  const [pendingAccommodation, setPendingAccommodation] = useState<TripAccommodation | null>(null);
 
-  const activeFeatured = featuredStayFor(accommodation?.name);
-  const activeArea = areaFor(accommodation?.name);
-  const isCustomPlace = !!accommodation && !activeFeatured && !activeArea;
+  // With no earlier day in the trip, "the whole trip" and "from here
+  // onward" are the exact same set of days - nothing to ask, so day 1
+  // (and any single-day trip) commits immediately, same one-click feel
+  // as before this fix.
+  const hasEarlierDays = dayIndex > 0;
 
-  const selectValue = editingTown ? OTHER_VALUE : isCustomPlace ? OTHER_VALUE : (accommodation?.name ?? "");
+  function commitAccommodation(next: TripAccommodation, scope: "all" | "fromHere") {
+    trip.setAccommodationFromDay(dayIndex, next, scope);
+    setPendingAccommodation(null);
+  }
+
+  function stageOrApply(next: TripAccommodation) {
+    if (hasEarlierDays) {
+      setPendingAccommodation(next);
+    } else {
+      commitAccommodation(next, "all");
+    }
+  }
+
+  // While a pick is awaiting its scope decision, the dropdown and "Staying"
+  // label reflect that pick immediately (feels responsive - nothing about
+  // the click looks rejected) rather than the still-current accommodation,
+  // which only the confirm prompt below replaces.
+  const displayedAccommodation = pendingAccommodation ?? accommodation;
+  const activeFeatured = featuredStayFor(displayedAccommodation?.name);
+  const activeArea = areaFor(displayedAccommodation?.name);
+  const isCustomPlace = !!displayedAccommodation && !activeFeatured && !activeArea;
+
+  const selectValue = editingTown ? OTHER_VALUE : isCustomPlace ? OTHER_VALUE : (displayedAccommodation?.name ?? "");
 
   useEffect(() => {
     if (!accommodation) {
@@ -126,15 +159,11 @@ export default function AccommodationControl({
         setLoading(false);
         return;
       }
-      trip.setAccommodationFromDay(
-        dayIndex,
-        {
-          name: (first.display_name as string).split(",")[0] || query,
-          lat: parseFloat(first.lat),
-          lng: parseFloat(first.lon),
-        },
-        changeFromHereOnly ? "fromHere" : "all"
-      );
+      stageOrApply({
+        name: (first.display_name as string).split(",")[0] || query,
+        lat: parseFloat(first.lat),
+        lng: parseFloat(first.lon),
+      });
       setEditingTown(false);
       setQuery("");
     } catch {
@@ -147,30 +176,27 @@ export default function AccommodationControl({
   function handleSelectChange(value: string) {
     setError(null);
     if (value === OTHER_VALUE) {
-      setQuery(isCustomPlace && accommodation ? accommodation.name : "");
+      setPendingAccommodation(null);
+      setQuery(isCustomPlace && displayedAccommodation ? displayedAccommodation.name : "");
       setEditingTown(true);
       return;
     }
     const stay = featuredStayFor(value);
     if (stay) {
       setEditingTown(false);
-      trip.setAccommodationFromDay(
-        dayIndex,
-        { name: stay.name, lat: stay.lat, lng: stay.lng },
-        changeFromHereOnly ? "fromHere" : "all"
-      );
+      stageOrApply({ name: stay.name, lat: stay.lat, lng: stay.lng });
       return;
     }
     const area = areaFor(value);
     if (area) {
       setEditingTown(false);
-      trip.setAccommodationFromDay(dayIndex, area, changeFromHereOnly ? "fromHere" : "all");
+      stageOrApply(area);
     }
   }
 
   const bookNowUrl = activeFeatured
     ? activeFeatured.url
-    : buildAccommodationBookingLink(accommodation?.name ?? "Port Ellen", trip.tripDates);
+    : buildAccommodationBookingLink(displayedAccommodation?.name ?? "Port Ellen", trip.tripDates);
   // Label matches what the link actually does (21 July 2026 fix) - a
   // Featured Stay is a real named property, so "Book Now" is accurate;
   // an Area or free-text place goes to a Hotels.com SEARCH-RESULTS page
@@ -205,18 +231,6 @@ export default function AccommodationControl({
         </optgroup>
       </select>
 
-      <label
-        className="accommodation-scope-toggle"
-        title="Off: picking a new place here updates every day in the trip, not just this one. On: only this day and the days after it change - earlier days keep what they already had."
-      >
-        <input
-          type="checkbox"
-          checked={changeFromHereOnly}
-          onChange={(e) => setChangeFromHereOnly(e.target.checked)}
-        />
-        Only from this day on
-      </label>
-
       {editingTown && (
         <>
           <input
@@ -245,7 +259,40 @@ export default function AccommodationControl({
         </>
       )}
 
-      {!editingTown && accommodation && (
+      {/* Scope confirm - only reachable via stageOrApply, which only stages
+          (rather than committing immediately) when there's an earlier day
+          for the choice to actually matter for. Asking right after the
+          pick, rather than via a toggle set beforehand, means there's no
+          "wrong order" left for a visitor to get caught by (23 July
+          2026 - see the pendingAccommodation comment above for the bug
+          this replaces). */}
+      {!editingTown && pendingAccommodation && (
+        <div className="accommodation-scope-confirm">
+          <span>
+            Stay at <strong>{pendingAccommodation.name}</strong> for:
+          </span>
+          <button
+            className="accommodation-btn"
+            onClick={() => commitAccommodation(pendingAccommodation, "all")}
+          >
+            Your whole trip
+          </button>
+          <button
+            className="accommodation-btn"
+            onClick={() => commitAccommodation(pendingAccommodation, "fromHere")}
+          >
+            Just {dayLabel} onward
+          </button>
+          <button
+            className="accommodation-btn accommodation-btn-quiet"
+            onClick={() => setPendingAccommodation(null)}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {!editingTown && !pendingAccommodation && accommodation && (
         <>
           <span>
             🏠 Staying: <strong>{accommodation.name}</strong>
