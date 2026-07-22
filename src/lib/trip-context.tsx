@@ -125,17 +125,23 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   // showed the stored trip, that would be a server/client hydration
   // mismatch. Updating state from an effect after mount is the standard,
   // safe way to hydrate this kind of client-only persisted data.
+  /** Applies a parsed StoredTrip into state - shared by the initial-load
+   *  hydration below and the cross-tab sync effect further down, so both
+   *  read the same five fields the same way. */
+  function applyStoredTrip(parsed: StoredTrip) {
+    setDays(parsed.days ?? []);
+    setIntake(parsed.intake ?? null);
+    setCurrentDayIndex(parsed.currentDayIndex ?? 0);
+    setMapView(parsed.mapView ?? null);
+    setTripDates(parsed.tripDates ?? defaultTripDates());
+  }
+
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed: StoredTrip = JSON.parse(raw);
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        setDays(parsed.days ?? []);
-        setIntake(parsed.intake ?? null);
-        setCurrentDayIndex(parsed.currentDayIndex ?? 0);
-        setMapView(parsed.mapView ?? null);
-        setTripDates(parsed.tripDates ?? defaultTripDates());
+        applyStoredTrip(JSON.parse(raw));
       }
     } catch {
       // Corrupt or inaccessible storage - just start fresh.
@@ -154,6 +160,36 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
       // session, it just won't survive a reload.
     }
   }, [days, intake, currentDayIndex, mapView, tripDates, ready]);
+
+  // Cross-tab live sync (22 July 2026) - added for the Days Hub's
+  // "+ Add this day to my trip", which a visitor might reasonably have
+  // open in one tab while their actual itinerary/map sits open in
+  // another (e.g. opened from the homepage, or via the onboarding
+  // walkthrough's "open in new tab" links). Without this, adding a Day
+  // in the Days Hub tab only updated that tab's own in-memory state and
+  // localStorage - a separately-open itinerary tab had no way to know
+  // anything changed, and stayed stale until manually reloaded.
+  //
+  // The browser's `storage` event fires in every OTHER same-origin tab
+  // when localStorage changes (never in the tab that made the change),
+  // which is exactly the shape needed here - no polling, no custom
+  // messaging channel. Deliberately a blunt "whatever's in storage now
+  // wins" sync, same logic as the initial-load hydration above: fine for
+  // this app's actual usage pattern (one tab actively edits at a time),
+  // not attempting to merge concurrent edits across two simultaneously
+  // active tabs.
+  useEffect(() => {
+    function handleStorage(event: StorageEvent) {
+      if (event.key !== STORAGE_KEY || !event.newValue) return;
+      try {
+        applyStoredTrip(JSON.parse(event.newValue));
+      } catch {
+        // Malformed write from elsewhere - ignore rather than crash.
+      }
+    }
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   const initDays = useCallback((count: number) => {
     setDays((prev) => {

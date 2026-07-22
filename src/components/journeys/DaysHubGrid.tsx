@@ -2,10 +2,21 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import type { HubDay } from "@/lib/types";
 import HubDayMap from "@/components/journeys/HubDayMap";
 import { useTrip } from "@/lib/trip-context";
+
+/** Opens (or, if already open, refocuses) a single dedicated tab for the
+ *  trip workspace - a fixed window target name is the browser-native way
+ *  to get "reuse the same tab on repeat calls, or open a fresh one if the
+ *  visitor closed it" without any custom messaging. Deliberately NOT
+ *  called on every "+ Add this day" click (see handleAddToTrip below) -
+ *  a visitor building a trip Day-by-Day from this page should be able to
+ *  stay right here; this is only for the explicit "View your trip" link
+ *  that appears once something's actually been added. */
+function openTripTab() {
+  window.open("/journey?resume=1", "dramstory-journey");
+}
 
 /** Renders plain text containing [label](/path) markdown-style links as
  *  real internal <Link>s - same helper used on Distillery/Explore pages. */
@@ -50,11 +61,11 @@ function PacingTag({ pacing }: { pacing: HubDay["pacing"] }) {
   );
 }
 
-function DayCard({ day }: { day: HubDay }) {
+function DayCard({ day, onAdded }: { day: HubDay; onAdded: () => void }) {
   const [expanded, setExpanded] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
   const isLong = day.narrative.length > 380;
   const trip = useTrip();
-  const router = useRouter();
 
   /** Adds this Day as a brand-new day in the visitor's trip (never merged
    *  into whatever day they currently have open - a Hub Day is a complete
@@ -64,7 +75,20 @@ function DayCard({ day }: { day: HubDay }) {
    *  BEFORE addDay() is called, since addDay always appends exactly one
    *  day at the end - reading it after would risk a stale value, since
    *  React doesn't apply the state update synchronously within this same
-   *  handler. */
+   *  handler.
+   *
+   *  Deliberately does NOT navigate this tab away (22 July 2026 fix) - it
+   *  used to router.push to /journey, which was fine for a visitor who'd
+   *  opened the Days Hub as their only tab, but broke the "keep Days Hub
+   *  open, add several Days in a row" flow: a visitor with the workspace
+   *  already open in another tab (e.g. from the homepage, or via the
+   *  onboarding walkthrough's "open in new tab" links) would click Add,
+   *  get yanked out of the Days Hub into a second, redundant workspace
+   *  tab, and lose the one they came from entirely. The write to
+   *  localStorage (via TripProvider's existing persist effect) plus the
+   *  cross-tab `storage` event listener added to trip-context.tsx now
+   *  updates any already-open workspace tab live, in the background,
+   *  without touching this tab at all. */
   function handleAddToTrip() {
     const newDayIndex = trip.days.length;
     trip.addDay();
@@ -73,7 +97,9 @@ function DayCard({ day }: { day: HubDay }) {
       if (stop.tour) trip.setTourForStop(newDayIndex, stop.distillery, stop.tour);
     }
     trip.setCurrentDayIndex(newDayIndex);
-    router.push("/journey?resume=1");
+    onAdded();
+    setJustAdded(true);
+    setTimeout(() => setJustAdded(false), 2000);
   }
 
   return (
@@ -254,9 +280,9 @@ function DayCard({ day }: { day: HubDay }) {
               style={{
                 marginLeft: "auto",
                 padding: "9px 18px",
-                background: "white",
-                color: "var(--copper)",
-                border: "1px solid var(--copper)",
+                background: justAdded ? "var(--green-light)" : "white",
+                color: justAdded ? "var(--green-deep)" : "var(--copper)",
+                border: `1px solid ${justAdded ? "var(--green-deep)" : "var(--copper)"}`,
                 borderRadius: "var(--radius-sm)",
                 fontFamily: "var(--font-body)",
                 fontSize: 13,
@@ -266,7 +292,7 @@ function DayCard({ day }: { day: HubDay }) {
               }}
               onClick={handleAddToTrip}
             >
-              + Add this day to my trip
+              {justAdded ? "✓ Added to your trip" : "+ Add this day to my trip"}
             </button>
           </div>
         </div>
@@ -277,6 +303,7 @@ function DayCard({ day }: { day: HubDay }) {
 
 export default function DaysHubGrid({ days }: { days: HubDay[] }) {
   const [selectedDistillery, setSelectedDistillery] = useState<string>("all");
+  const [addedCount, setAddedCount] = useState(0);
 
   const distilleryOptions = useMemo(
     () => [...new Set(days.flatMap((d) => d.distilleries))].sort(),
@@ -290,6 +317,34 @@ export default function DaysHubGrid({ days }: { days: HubDay[] }) {
 
   return (
     <>
+      {/* Appears once at least one Day's been added this visit - a
+          deliberately quiet, non-blocking way to go see the trip
+          building up, rather than forcing a tab switch on every single
+          "+ Add this day" click (see openTripTab/handleAddToTrip above
+          for why). Reuses the same named tab on repeat clicks. */}
+      {addedCount > 0 && (
+        <button
+          onClick={openTripTab}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            marginBottom: 20,
+            padding: "8px 16px",
+            background: "var(--green-light)",
+            color: "var(--green-deep)",
+            border: "none",
+            borderRadius: 100,
+            fontFamily: "var(--font-body)",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          View your trip ({addedCount} {addedCount === 1 ? "day" : "days"} added) →
+        </button>
+      )}
+
       {/* Distillery dropdown */}
       <div style={{ marginBottom: 40 }}>
         <label
@@ -331,7 +386,7 @@ export default function DaysHubGrid({ days }: { days: HubDay[] }) {
       {/* Vertical stacked day list */}
       <div style={{ display: "flex", flexDirection: "column", gap: 28, paddingBottom: 64 }}>
         {filteredDays.map((day) => (
-          <DayCard key={day.id} day={day} />
+          <DayCard key={day.id} day={day} onAdded={() => setAddedCount((c) => c + 1)} />
         ))}
         {filteredDays.length === 0 && (
           <div style={{ fontSize: 14, color: "var(--slate)", padding: "40px 0" }}>
