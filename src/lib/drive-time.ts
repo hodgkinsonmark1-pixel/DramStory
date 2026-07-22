@@ -44,3 +44,46 @@ export function parseAvgVisitMinutes(avgVisit: string): number {
   if (minMatch) return Math.round(parseFloat(minMatch[1]));
   return 90;
 }
+
+const DURATION_UNIT_RE = "(hours?|hrs?|h|mins?|minutes?|m)";
+
+function durationUnitToMinutes(value: number, unit: string): number {
+  return /^h/i.test(unit) ? value * 60 : value;
+}
+
+/** Parses a Local Feature's "duration" string (walks/bike routes only -
+ *  e.g. "30-45 min", "45 min - 1 hour", "1.5-2 hours", "1 hour") into the
+ *  UPPER end of the range, in minutes. Used so a walk's default itinerary
+ *  visit length matches what its own narrative/Explore page already say
+ *  (22 July 2026 - "Rubha Mor Headland" showed a flat 25-minute default
+ *  in the itinerary while its own duration field, and the Bunnahabhain Day
+ *  narrative, both say "30-45 min"). Returns null if duration is missing
+ *  or doesn't match a recognizable format - callers should fall back to a
+ *  flat default, same as before this existed. */
+export function parseFeatureDurationMinutes(duration: string | undefined): number | null {
+  if (!duration) return null;
+
+  // Two explicit units either side of the range, e.g. "45 min - 1 hour".
+  const twoUnits = duration.match(
+    new RegExp(`([\\d.]+)\\s*${DURATION_UNIT_RE}\\b\\s*-\\s*([\\d.]+)\\s*${DURATION_UNIT_RE}\\b`, "i")
+  );
+  if (twoUnits) {
+    const a = durationUnitToMinutes(parseFloat(twoUnits[1]), twoUnits[2]);
+    const b = durationUnitToMinutes(parseFloat(twoUnits[3]), twoUnits[4]);
+    return Math.round(Math.max(a, b));
+  }
+
+  // A range sharing one trailing unit, e.g. "30-45 min", "1.5-2 hours".
+  const sharedUnit = duration.match(new RegExp(`([\\d.]+)\\s*-\\s*([\\d.]+)\\s*${DURATION_UNIT_RE}\\b`, "i"));
+  if (sharedUnit) {
+    return Math.round(durationUnitToMinutes(parseFloat(sharedUnit[2]), sharedUnit[3]));
+  }
+
+  // A single value, e.g. "1 hour".
+  const single = duration.match(new RegExp(`([\\d.]+)\\s*${DURATION_UNIT_RE}\\b`, "i"));
+  if (single) {
+    return Math.round(durationUnitToMinutes(parseFloat(single[1]), single[2]));
+  }
+
+  return null;
+}

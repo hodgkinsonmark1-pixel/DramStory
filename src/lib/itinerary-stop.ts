@@ -1,5 +1,5 @@
 import type { ItineraryStop } from "@/lib/types";
-import { parseAvgVisitMinutes } from "@/lib/drive-time";
+import { parseAvgVisitMinutes, parseFeatureDurationMinutes } from "@/lib/drive-time";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Small helpers so the rest of the app doesn't need an if/else on
@@ -33,10 +33,14 @@ export function stopName(stop: ItineraryStop): string {
 
 /** The visit duration to use for this stop in minutes - the visitor's
  *  custom override if they've adjusted it via +/-, otherwise the default
- *  estimate (distillery avgVisit, or the flat feature estimate). */
+ *  estimate: distillery avgVisit, the feature's own duration field (walks/
+ *  bike routes - see parseFeatureDurationMinutes) if it has one, or the
+ *  flat feature estimate as a last resort (beaches, pubs, viewpoints etc.
+ *  don't have a duration field of their own). */
 export function stopVisitMinutes(stop: ItineraryStop): number {
   if (stop.customMinutes != null) return stop.customMinutes;
-  return stop.kind === "distillery" ? parseAvgVisitMinutes(stop.distillery.avgVisit) : DEFAULT_FEATURE_VISIT_MINUTES;
+  if (stop.kind === "distillery") return parseAvgVisitMinutes(stop.distillery.avgVisit);
+  return parseFeatureDurationMinutes(stop.feature.duration) ?? DEFAULT_FEATURE_VISIT_MINUTES;
 }
 
 export function incrementVisitMinutes(stop: ItineraryStop, direction: 1 | -1): number {
