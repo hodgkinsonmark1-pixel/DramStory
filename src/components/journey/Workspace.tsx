@@ -673,18 +673,22 @@ export default function Workspace({
           </div>
 
           <div className="day-nav">
-            {/* Day-level actions (reorder/add/remove the day ITSELF) grouped
-                together and worded to say "day" explicitly (22 July 2026 -
-                "Move earlier"/"Move later" read as ambiguous next to the
-                separate ‹ Day 3 › browse-days arrows just above, which use
-                similar earlier/later-flavoured language for a completely
-                different action: viewing a different day vs. reordering
-                this one's position in the trip). Expand/Collapse all is a
-                STOPS-level action, not a day-level one, so it's kept out of
-                this group and pushed to the far end of the row via
-                justify-content: space-between on .day-nav below - it used
-                to sit flat in the same list as these and get lost among
-                them. */}
+            {/* Day-level actions (reorder/add/remove the day ITSELF), kept
+                apart from the STOPS-level Expand/Collapse action via
+                justify-content: space-between on .day-nav (see below).
+                Reorder/remove are icon buttons (22 July 2026, second pass -
+                the earlier text-label version ("Move day earlier"/"Move day
+                later"/"Remove day") fixed the ambiguity/clipping bugs but
+                cost 2-3 extra vertical lines in a narrow panel, which Mark
+                flagged as now taking up too much room). Clarity is kept via
+                title tooltips + aria-label rather than visible words, and
+                the icons themselves are deliberately vertical arrows
+                (↑ / ↓) rather than the horizontal ‹ › used by the
+                day-browse arrows just above, so the two controls still
+                can't be visually confused for one another even without
+                text. "+ Add day" stays as text - it's the one action here
+                used often enough to warrant a visible label, and it was
+                never part of the ambiguity/clipping complaints. */}
             <div className="day-nav-actions">
               {days.length > 1 && (
                 <>
@@ -693,16 +697,18 @@ export default function Workspace({
                     onClick={() => trip.moveDay(activeDayIndex, -1)}
                     disabled={activeDayIndex === 0}
                     title="Move this whole day earlier in your trip"
+                    aria-label="Move this day earlier in your trip"
                   >
-                    Move day earlier
+                    &#8593;
                   </button>
                   <button
                     className="day-nav-reorder"
                     onClick={() => trip.moveDay(activeDayIndex, 1)}
                     disabled={activeDayIndex === days.length - 1}
                     title="Move this whole day later in your trip"
+                    aria-label="Move this day later in your trip"
                   >
-                    Move day later
+                    &#8595;
                   </button>
                 </>
               )}
@@ -714,8 +720,9 @@ export default function Workspace({
                   className="day-nav-remove"
                   onClick={() => trip.removeDay(activeDayIndex)}
                   title="Remove this whole day from your trip"
+                  aria-label="Remove this day from your trip"
                 >
-                  Remove day
+                  &#10005;
                 </button>
               )}
             </div>
@@ -734,10 +741,15 @@ export default function Workspace({
                     return next;
                   });
                 }}
+                title={
+                  activeDay.stops.map((s) => stopId(s)).every((id) => collapsedStops.has(id))
+                    ? "Expand all stops in this day"
+                    : "Collapse all stops in this day"
+                }
               >
                 {activeDay.stops.map((s) => stopId(s)).every((id) => collapsedStops.has(id))
-                  ? "Expand all stops"
-                  : "Collapse all stops"}
+                  ? "Expand all"
+                  : "Collapse all"}
               </button>
             )}
           </div>

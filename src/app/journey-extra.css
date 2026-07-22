@@ -274,9 +274,7 @@ select.location-inline-input {
   row-gap: 6px;
   flex-wrap: wrap;
 }
-.day-nav-add,
-.day-nav-remove,
-.day-nav-reorder {
+.day-nav-add {
   background: none;
   border: none;
   font-size: 12px;
@@ -287,22 +285,46 @@ select.location-inline-input {
   white-space: nowrap;
   padding: 0;
 }
-.day-nav-add:hover,
-.day-nav-remove:hover,
+.day-nav-add:hover {
+  color: var(--green-deep);
+}
+/* Reorder/remove are compact icon buttons (22 July 2026, second pass) -
+   same small round shape as .day-nav-arrow just above in the panel header,
+   so the two rows of controls read as visually related without needing
+   full text labels. Clarity comes from title/aria-label, not visible
+   words - see the comment above these buttons in Workspace.tsx. */
+.day-nav-reorder,
+.day-nav-remove {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--stone);
+  background: white;
+  color: var(--slate);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
 .day-nav-reorder:hover:not(:disabled) {
+  border-color: var(--green-mid);
   color: var(--green-deep);
 }
 .day-nav-reorder:disabled {
-  opacity: 0.35;
+  opacity: 0.3;
   cursor: default;
-  text-decoration: none;
 }
 .day-nav-remove {
   color: #c0392b;
-  opacity: 0.7;
+  border-color: #e0b4ac;
 }
 .day-nav-remove:hover {
-  opacity: 1;
+  border-color: #c0392b;
   color: #c0392b;
 }
 /* Stops-level action, deliberately separate from .day-nav-actions (the
