@@ -99,6 +99,31 @@ export interface JournalPost {
   category?: string;
 }
 
+/** A Pre-Designed Days Hub entry - a ready-made day itinerary built from
+ *  the Airtable Days + Day Stops tables. Named "HubDay" (not "Day") to
+ *  avoid colliding with the unrelated ItineraryDay used by the trip
+ *  planner further down this file. */
+export interface HubDay {
+  id: string;
+  slug: string;
+  name: string;
+  type: "Solo" | "Multi";
+  distilleries: string[];
+  narrative: string;
+  pacing: "Relaxed" | "Moderate" | "Packed" | string;
+  durationPortEllen: string;
+  durationBowmore: string;
+  /** Indicative distillery cost - sum of the Day's stop tours' prices,
+   *  formatted e.g. "£60pp". Empty string if no priced tours resolved. */
+  cost: string;
+  heroImageUrl?: string;
+  /** Exactly two, for a 2-distillery Multi Day shown as a split image. */
+  heroImageUrls?: string[];
+  mapDistilleries?: { name: string; slug: string; lat: number; lng: number }[];
+  mapFeatures?: { name: string; slug: string; lat: number; lng: number }[];
+  source: DataSource;
+}
+
 export interface Distillery {
   id: string;
   slug: string;

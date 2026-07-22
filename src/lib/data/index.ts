@@ -1,5 +1,5 @@
 import { cache } from "react";
-import type { Distillery, JournalPost, LocalEvent, LocalFeature, PlaceListing } from "@/lib/types";
+import type { Distillery, HubDay, JournalPost, LocalEvent, LocalFeature, PlaceListing } from "@/lib/types";
 import { airtableFetchAll } from "@/lib/airtable";
 import { searchAccommodation, searchNearbyByCategory } from "@/lib/google-places";
 import {
@@ -9,12 +9,25 @@ import {
   mapToJournalPost,
   mapToLocalEvent,
   mapToLocalFeature,
+  type AirtableDayFields,
+  type AirtableDayStopFields,
   type AirtableDistilleryFields,
   type AirtableEventFields,
   type AirtableJournalFields,
   type AirtableLocalFeatureFields,
   type AirtableTourFields,
 } from "./airtable-mappers";
+
+const DISTILLERIES_TABLE_ID = "tblSPRTIf1sFK3UDL";
+const DISTILLERY_HERO_FIELD_ID = "fldbYJ8xNSPCLwG0h";
+
+// Matches the [label](/path) inline links already used in Day narratives
+// (same renderWithLinks pattern as the Distillery/Explore pages) - reused
+// here to resolve which real Local Features a Day's map should pin,
+// since Day Stops only links Day -> Distillery -> Tour, not Day -> Local
+// Feature. Whatever the narrative actually links to under /explore/ is
+// exactly the set of Local Features that Day cares about.
+const EXPLORE_LINK_RE = /\[([^\]]+)\]\(\/explore\/([a-z0-9-]+)\)/g;
 
 // ─────────────────────────────────────────────────────────────────────────
 // DATA LAYER — every page/component reads through these functions, never
@@ -137,6 +150,104 @@ async function fetchLocalFeaturesFromAirtable(): Promise<LocalFeature[]> {
 export async function getLocalFeatureBySlug(slug: string): Promise<LocalFeature | undefined> {
   const features = await getLocalFeatures();
   return features.find((f) => f.slug === slug);
+}
+
+/** Pre-Designed Days Hub entries. Only Status: Live Days are returned -
+ *  same "never leak a draft onto the live site" gate as getJournalPosts'
+ *  Published filter above. React's cache() again (see getDistilleries),
+ *  so this can't persist stale data across separate serverless requests. */
+export const getDays = cache(async (): Promise<HubDay[]> => {
+  return fetchDaysFromAirtable();
+});
+
+async function fetchDaysFromAirtable(): Promise<HubDay[]> {
+  const [dayRecords, dayStopRecords, tourRecords, distilleries, localFeatures] = await Promise.all([
+    airtableFetchAll<AirtableDayFields>("Days"),
+    airtableFetchAll<AirtableDayStopFields>("Day Stops"),
+    airtableFetchAll<AirtableTourFields>("Tours"),
+    getDistilleries(),
+    getLocalFeatures(),
+  ]);
+
+  const dayStopById = new Map(dayStopRecords.map((r) => [r.id, r.fields]));
+  const tourPriceById = new Map(tourRecords.map((r) => [r.id, r.fields.Price]));
+  const distilleryById = new Map(distilleries.map((d) => [d.id, d]));
+  const localFeatureBySlug = new Map(localFeatures.map((f) => [f.slug, f]));
+
+  const days: HubDay[] = [];
+
+  for (const record of dayRecords) {
+    const f = record.fields;
+    // Airtable has a few blank placeholder rows mixed into the table
+    // (same pattern as Distilleries) - skip anything not a real record,
+    // and gate on Status: Live so drafts never show on the live site.
+    if (!f.Name || !f.Slug || f.Status !== "Live") continue;
+
+    const stopIds = f["Day Stops"] ?? [];
+    const stops = stopIds
+      .map((id) => dayStopById.get(id))
+      .filter((s): s is AirtableDayStopFields => !!s)
+      .map((s) => ({
+        distillery: s.Distillery?.[0] ? distilleryById.get(s.Distillery[0]) : undefined,
+        tourPrice: s.Tour?.[0] ? tourPriceById.get(s.Tour[0]) : undefined,
+        order: s.Order ?? 0,
+      }))
+      .filter((s): s is { distillery: Distillery; tourPrice: number | undefined; order: number } => !!s.distillery)
+      .sort((a, b) => a.order - b.order);
+
+    if (stops.length === 0) continue; // no resolvable stops - not ready to show
+
+    const totalCost = stops.reduce((sum, s) => sum + (s.tourPrice ?? 0), 0);
+
+    // Local Feature map pins: resolved from the narrative's own
+    // [label](/explore/slug) links against the live Local Features list -
+    // see EXPLORE_LINK_RE above for why (Day Stops has no Day -> Local
+    // Feature link field).
+    const mapFeatures: HubDay["mapFeatures"] = [];
+    const narrative = f.Narrative ?? "";
+    for (const match of narrative.matchAll(EXPLORE_LINK_RE)) {
+      const feature = localFeatureBySlug.get(match[2]);
+      if (feature) mapFeatures.push({ name: feature.name, slug: feature.slug, lat: feature.lat, lng: feature.lng });
+    }
+
+    const mapDistilleries: HubDay["mapDistilleries"] = stops.map((s) => ({
+      name: s.distillery.name,
+      slug: s.distillery.slug,
+      lat: s.distillery.lat,
+      lng: s.distillery.lng,
+    }));
+
+    days.push({
+      id: record.id,
+      slug: f.Slug,
+      name: f.Name,
+      type: f.Type === "Multi" ? "Multi" : "Solo",
+      distilleries: stops.map((s) => s.distillery.name),
+      narrative,
+      pacing: f.Pacing ?? "",
+      durationPortEllen: f["Duration from Port Ellen"] ?? "",
+      durationBowmore: f["Duration from Bowmore"] ?? "",
+      cost: totalCost > 0 ? `£${totalCost}pp` : "",
+      // Visual priority matches the previous hardcoded page: a single
+      // hero image for a one-stop Day, a split image for a two-stop
+      // Multi Day, otherwise the real map.
+      heroImageUrl:
+        stops.length === 1 && stops[0].distillery.image
+          ? `/api/attachment?t=${DISTILLERIES_TABLE_ID}&r=${stops[0].distillery.id}&f=${DISTILLERY_HERO_FIELD_ID}&i=0`
+          : undefined,
+      heroImageUrls:
+        stops.length === 2 && stops.every((s) => s.distillery.image)
+          ? stops.map(
+              (s) => `/api/attachment?t=${DISTILLERIES_TABLE_ID}&r=${s.distillery.id}&f=${DISTILLERY_HERO_FIELD_ID}&i=0`
+            )
+          : undefined,
+      mapDistilleries,
+      mapFeatures: mapFeatures.length > 0 ? mapFeatures : undefined,
+      source: "airtable",
+    });
+  }
+
+  return days;
 }
 
 /** Journal blog posts - filters out drafts (Published unchecked) so

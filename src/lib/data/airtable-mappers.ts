@@ -260,6 +260,27 @@ export function deriveNextStops(target: Distillery, all: Distillery[]): string[]
     .map((d) => d.slug);
 }
 
+export interface AirtableDayFields {
+  Name?: string;
+  Slug?: string;
+  Type?: string;
+  Narrative?: string;
+  Status?: string;
+  Pacing?: string;
+  "Duration from Port Ellen"?: string;
+  "Duration from Bowmore"?: string;
+  "Transport Note"?: string;
+  "Day Stops"?: string[]; // linked record IDs -> Day Stops table
+}
+
+export interface AirtableDayStopFields {
+  Name?: string;
+  Day?: string[];
+  Distillery?: string[]; // linked record ID -> Distilleries table
+  Tour?: string[]; // linked record ID -> Tours table
+  Order?: number;
+}
+
 export interface AirtableEventFields {
   Name?: string;
   Date?: string;
