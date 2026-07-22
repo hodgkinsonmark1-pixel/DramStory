@@ -300,8 +300,14 @@ export default function Workspace({
   // not distilleries) - passed to MapCanvas so it can render them as
   // individually visible pins instead of folding them into the shared
   // cluster group with every other feature on the island (22 July 2026).
-  const activeDayFeatureIds = activeDay
-    ? activeDay.stops.filter((s) => s.kind === "feature").map((s) => s.feature.id)
+  // Full records, not ids: MapCanvas's own `localFeatures` prop is
+  // filtered down to whichever map category tab is toggled on (see
+  // visibleLocalFeatures below), so a day's own stop needs its full data
+  // passed independently to stay visible regardless of that filter -
+  // ids alone would have nothing to resolve against if its category
+  // wasn't toggled on.
+  const activeDayFeatures = activeDay
+    ? activeDay.stops.filter((s) => s.kind === "feature").map((s) => s.feature)
     : [];
   // When a base is set, the day's route becomes a loop: base -> stops -> base,
   // so drive-time/cost totals reflect the actual journey, not just
@@ -1062,7 +1068,7 @@ export default function Workspace({
               highlightedDistillerySlugs={isLive ? highlightedDistillerySlugs : []}
               isLive={isLive}
               activeDayId={activeDay.id}
-              activeDayFeatureIds={isLive ? activeDayFeatureIds : []}
+              activeDayFeatures={isLive ? activeDayFeatures : []}
               accommodation={isLive ? accommodation : undefined}
               initialView={trip.mapView ?? undefined}
               onViewChange={trip.setMapView}

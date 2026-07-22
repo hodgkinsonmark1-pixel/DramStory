@@ -41,15 +41,21 @@ interface MapCanvasProps {
    *  day should move the camera, so a visitor flicking through days
    *  actually sees each one's route rather than the previous day's view. */
   activeDayId?: string;
-  /** Local Feature ids that are stops on the currently active day (e.g.
-   *  Machir Bay Beach on a day that has it in the itinerary) - rendered
-   *  as their own individual pin directly on the map, same as distillery
-   *  markers, rather than going into the shared cluster group with every
-   *  other Natural Feature/Local Attraction/etc on the island (22 July
-   *  2026: a day's own walk/beach/pub stop could otherwise be fully
-   *  invisible, folded into a cluster badge with unrelated nearby
-   *  features until zoomed in close enough to spiderfy it out). */
-  activeDayFeatureIds?: string[];
+  /** The current day's own Local Feature stops (e.g. Machir Bay Beach on
+   *  a day that has it in the itinerary) - rendered as their own
+   *  individual pin directly on the map, same as distillery markers,
+   *  rather than going into the shared cluster group with every other
+   *  Natural Feature/Local Attraction/etc on the island (22 July 2026: a
+   *  day's own walk/beach/pub stop could otherwise be fully invisible,
+   *  folded into a cluster badge until zoomed in close enough to
+   *  spiderfy it out). Deliberately full records passed independently of
+   *  the `localFeatures` prop, not just ids cross-referenced against it -
+   *  `localFeatures` is filtered down to whichever map category tab the
+   *  visitor has toggled on (see Workspace.tsx's visibleLocalFeatures),
+   *  so a stop wouldn't show at all if that category happened not to be
+   *  toggled. A day's own stop should always be visible regardless of
+   *  the browse filter, the same way distilleries always are. */
+  activeDayFeatures?: LocalFeature[];
   /** Where the current day starts/ends, if the visitor has set one - a
    *  distinct pin from the distillery markers, matching the "home" style
    *  already used for ferry-port pins elsewhere on the site. */
@@ -111,7 +117,7 @@ export default function MapCanvas({
   highlightedDistillerySlugs = [],
   routeStops = [],
   activeDayId,
-  activeDayFeatureIds = [],
+  activeDayFeatures = [],
   accommodation,
   initialView,
   onViewChange,
@@ -149,7 +155,7 @@ export default function MapCanvas({
   const featureMarkersRef = useRef<Leaflet.Marker[]>([]);
   // Local Feature markers that are today's day stops - added directly to
   // the map (like distillery markers), NOT to clusterGroupRef, so they
-  // stay individually visible - see activeDayFeatureIds' own comment.
+  // stay individually visible - see activeDayFeatures' own comment.
   const activeDayFeatureMarkersRef = useRef<Leaflet.Marker[]>([]);
   const highlightMarkersRef = useRef<Leaflet.Marker[]>([]);
   // Keyed by distillery slug - lets the onboarding walkthrough open a
@@ -456,9 +462,16 @@ export default function MapCanvas({
     }
     activeDayFeatureMarkersRef.current = [];
 
-    if (localFeatures.length === 0) return;
+    // Today's own day stops are drawn from activeDayFeatures directly,
+    // independent of whatever's in localFeatures (the filtered, "which
+    // map category tab is toggled on" browse set - see activeDayFeatures'
+    // own prop comment for why). Excluded from the filtered/clustered
+    // list here so a stop that ALSO happens to match the current filter
+    // isn't drawn twice.
+    const activeDayFeatureIdSet = new Set(activeDayFeatures.map((f) => f.id));
+    const clusteredFeatures = localFeatures.filter((f) => !activeDayFeatureIdSet.has(f.id));
 
-    const activeDayFeatureIdSet = new Set(activeDayFeatureIds);
+    if (clusteredFeatures.length === 0 && activeDayFeatures.length === 0) return;
 
     // Distillery markers are always added individually, on top of
     // everything else (never clustered) - a feature pin (or a whole
@@ -524,27 +537,26 @@ export default function MapCanvas({
       return { lat, lng };
     }
 
-    const markers: Leaflet.Marker[] = [];
-    const activeDayMarkers: Leaflet.Marker[] = [];
-
-    for (const f of localFeatures) {
-      const isActiveDayStop = activeDayFeatureIdSet.has(f.id);
+    // Shared between both lists below so the icon/popup markup only lives
+    // in one place. `standalone` is true only for today's own day stops -
+    // see the size/border/shadow bump and the addTo(map)-vs-cluster split
+    // where this is called.
+    function buildFeatureMarker(f: LocalFeature, standalone: boolean): Leaflet.Marker {
       const pos = offsetIfCollidingWithDistillery(f.lat, f.lng);
       const color = FEATURE_COLORS[f.category];
       // A day's own stop gets the same 32px size as a distillery marker
       // (up from the usual 26px) and a heavier border/shadow - both to
       // stand out as clearly "part of today's route" and because, unlike
       // the rest, it's never behind a cluster badge competing for
-      // attention (see activeDayFeatureIds' own comment on why it's
-      // pulled out of the cluster group at all).
-      const size = isActiveDayStop ? 32 : 26;
+      // attention.
+      const size = standalone ? 32 : 26;
       const icon = L.divIcon({
         className: "feature-marker",
         html: `<div style="background:${color};color:white;width:${size}px;height:${size}px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:${
-          isActiveDayStop ? 3 : 2
-        }px solid white;box-shadow:0 2px ${isActiveDayStop ? 6 : 5}px rgba(0,0,0,${
-          isActiveDayStop ? 0.4 : 0.3
-        });font-size:${isActiveDayStop ? 15 : 13}px">${f.icon}</div>`,
+          standalone ? 3 : 2
+        }px solid white;box-shadow:0 2px ${standalone ? 6 : 5}px rgba(0,0,0,${
+          standalone ? 0.4 : 0.3
+        });font-size:${standalone ? 15 : 13}px">${f.icon}</div>`,
         iconSize: [size, size],
         iconAnchor: [size / 2, size / 2],
         popupAnchor: [0, -size / 2],
@@ -574,22 +586,27 @@ export default function MapCanvas({
         </div>`,
         { minWidth: 240 }
       );
-      if (isActiveDayStop) {
-        // Bypasses clustering entirely - added straight to the map, same
-        // as distillery markers, so it's always individually visible
-        // rather than folded into a cluster badge with unrelated nearby
-        // features.
-        marker.addTo(map);
-        activeDayMarkers.push(marker);
-      } else {
-        clusterGroup.addLayer(marker);
-        markers.push(marker);
-      }
+      return marker;
     }
+
+    const markers = clusteredFeatures.map((f) => {
+      const marker = buildFeatureMarker(f, false);
+      clusterGroup.addLayer(marker);
+      return marker;
+    });
+    // Bypasses clustering entirely - added straight to the map, same as
+    // distillery markers, so a day's own stop is always individually
+    // visible rather than folded into a cluster badge, or missing
+    // altogether if its category filter tab isn't toggled on.
+    const activeDayMarkers = activeDayFeatures.map((f) => {
+      const marker = buildFeatureMarker(f, true);
+      marker.addTo(map);
+      return marker;
+    });
 
     featureMarkersRef.current = markers;
     activeDayFeatureMarkersRef.current = activeDayMarkers;
-  }, [mapReady, localFeatures, distilleries, currentZoom, activeDayFeatureIds]);
+  }, [mapReady, localFeatures, distilleries, currentZoom, activeDayFeatures]);
 
   // Pulsing ring behind any distillery hosting a Local Event within the
   // currently-selected date range - redrawn whenever that set changes
