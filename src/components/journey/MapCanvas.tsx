@@ -21,11 +21,15 @@ interface MapCanvasProps {
    *  with the rest of the pin-based map). */
   highlightedDistillerySlugs?: string[];
   /** Ordered lat/lng points along the current day's real route (from OSRM,
-   *  or straight-line fallback per segment) - drawn as a route line with a
-   *  white casing for visibility against busy map tiles. Styling was
-   *  originally an exact match to the mockup (#C4862A, weight 3, dashArray
-   *  "1,8") but that was tuned for a short straight demo line; a real,
-   *  winding road route needed a bolder treatment to stay legible. */
+   *  or straight-line fallback per segment) - drawn as a solid route line
+   *  with a white casing for visibility against busy map tiles. Styling
+   *  was originally an exact match to the mockup (#C4862A, weight 3,
+   *  dashArray "1,8") but that was tuned for a short straight demo line;
+   *  a real, winding road route needed a bolder treatment to stay
+   *  legible, and later (22 July 2026) dropped the dash entirely - a
+   *  fixed dash pattern read inconsistently (sparse on short straight
+   *  legs, near-solid on winding stretches) once real routes were always
+   *  drawing correctly. */
   routeStops?: { lat: number; lng: number }[];
   /** The current day's own stable id (ItineraryDay.id - unaffected by
    *  Move earlier/later, see trip-context.tsx's moveDay), used ONLY to
@@ -356,18 +360,24 @@ export default function MapCanvas({
 
       // Casing technique (same idea Google/Citymapper use): a wider, solid
       // white/pale line drawn first so the route pops against busy map
-      // tiles (roads, water, labels) regardless of what's underneath -
-      // the thin dotted line on its own was hard to spot on a real,
-      // winding road route rather than a short straight demo line.
+      // tiles (roads, water, labels) regardless of what's underneath.
       const casing = L.polyline(latLngs, {
         color: "#FFFFFF",
         weight: 7,
         opacity: 0.9,
       });
+      // Solid, not dashed (22 July 2026 - was dashArray "10,8") - a fixed
+      // dash pattern applied along the real road path length reads very
+      // differently depending on how winding a given stretch is: sparse,
+      // clearly dotted on a short straight leg (e.g. hotel -> first stop),
+      // but so many dash cycles packed into a winding stretch (e.g.
+      // through Port Ellen) that it looked almost solid there instead -
+      // an inconsistent, confusing look Mark flagged after the route
+      // itself started drawing reliably. A solid line sidesteps this
+      // entirely and is what most trip-planning apps use for driving legs.
       const routeLine = L.polyline(latLngs, {
         color: "#C4862A",
         weight: 4,
-        dashArray: "10,8",
         opacity: 1,
         lineCap: "round",
       });
