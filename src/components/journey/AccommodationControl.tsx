@@ -80,7 +80,24 @@ export default function AccommodationControl({
 
   useEffect(() => {
     if (!accommodation) {
-      trip.setAccommodation(dayIndex, FEATURED_STAYS[0]);
+      // Carries forward the nearest EARLIER day's already-chosen
+      // accommodation, same reasoning as trip-context.tsx's addDay/
+      // syncDayCount (22 July 2026) - only actually falls back to The
+      // Machrie if no earlier day has one set either (a brand-new trip's
+      // very first day, most notably). Without this, a day that somehow
+      // reaches this control with no accommodation yet (e.g. one of
+      // initDays' seeded days, before either of those other two code
+      // paths get a chance to set one) would silently default back to
+      // The Machrie regardless of what the visitor had already chosen
+      // elsewhere in the trip.
+      let carried: TripAccommodation | undefined;
+      for (let i = dayIndex - 1; i >= 0; i--) {
+        if (trip.days[i]?.accommodation) {
+          carried = trip.days[i].accommodation;
+          break;
+        }
+      }
+      trip.setAccommodation(dayIndex, carried ?? FEATURED_STAYS[0]);
     }
     // Only re-run when the day or its accommodation actually changes -
     // trip itself is a fresh object each render.

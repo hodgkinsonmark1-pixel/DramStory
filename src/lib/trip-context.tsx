@@ -213,10 +213,19 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
       // existing "Remove" button, which the visitor can already see and
       // undo their way out of.
       if (targetCount <= prev.length) return prev;
+      // Carries the last existing day's accommodation forward, same
+      // reasoning as addDay above (22 July 2026) - without this, these
+      // extra days were left with no accommodation at all and only
+      // picked one up once AccommodationControl's own no-stay-set
+      // fallback ran (which - now also fixed - carries forward too, but
+      // setting it here directly avoids that dependency and any render
+      // where it's briefly unset).
+      const carriedAccommodation = prev[prev.length - 1]?.accommodation;
       const extra = Array.from({ length: targetCount - prev.length }, (_, i) => ({
         id: `day-${prev.length + i + 1}`,
         label: `Day ${prev.length + i + 1}`,
         stops: [] as ItineraryDay["stops"],
+        ...(carriedAccommodation ? { accommodation: carriedAccommodation } : {}),
       }));
       return [...prev, ...extra];
     });
@@ -254,23 +263,30 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addDay = useCallback((sourceHubDaySlug?: string) => {
-    // Defaults every new day's accommodation to The Machrie (21 July 2026),
-    // same as the seeded default day and AccommodationControl's own
-    // no-stay-set fallback - so a day added via "+ Add day" always has a
-    // real base for its route/drive-time totals from the moment it exists,
-    // rather than only gaining one once the visitor happens to open the
-    // Places to Stay panel for it.
-    const { name, lat, lng } = FEATURED_STAYS[0];
-    setDays((prev) => [
-      ...prev,
-      {
-        id: `day-${prev.length + 1}`,
-        label: `Day ${prev.length + 1}`,
-        stops: [],
-        accommodation: { name, lat, lng },
-        ...(sourceHubDaySlug ? { sourceHubDaySlug } : {}),
-      },
-    ]);
+    // Every new day needs a real accommodation from the moment it exists
+    // (so its route/drive-time totals aren't blank), but it should default
+    // to wherever the visitor's ALREADY staying, not reset back to The
+    // Machrie every time (22 July 2026 fix - previously always used
+    // FEATURED_STAYS[0] regardless of what any existing day already had,
+    // so changing Day 1's hotel and then adding Day 2 silently reverted
+    // back to The Machrie instead of carrying the change forward). Carries
+    // the LAST existing day's accommodation forward; only actually falls
+    // back to The Machrie for the very first day of a brand-new trip,
+    // when there's nothing yet to carry forward from.
+    setDays((prev) => {
+      const carriedAccommodation = prev.length > 0 ? prev[prev.length - 1].accommodation : undefined;
+      const { name, lat, lng } = carriedAccommodation ?? FEATURED_STAYS[0];
+      return [
+        ...prev,
+        {
+          id: `day-${prev.length + 1}`,
+          label: `Day ${prev.length + 1}`,
+          stops: [],
+          accommodation: { name, lat, lng },
+          ...(sourceHubDaySlug ? { sourceHubDaySlug } : {}),
+        },
+      ];
+    });
   }, []);
 
   const removeDay = useCallback((index: number) => {
