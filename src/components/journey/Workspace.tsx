@@ -1054,6 +1054,7 @@ export default function Workspace({
               localFeatures={isLive ? visibleLocalFeatures : []}
               highlightedDistillerySlugs={isLive ? highlightedDistillerySlugs : []}
               isLive={isLive}
+              activeDayId={activeDay.id}
               accommodation={isLive ? accommodation : undefined}
               initialView={trip.mapView ?? undefined}
               onViewChange={trip.setMapView}

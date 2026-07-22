@@ -27,6 +27,16 @@ interface MapCanvasProps {
    *  "1,8") but that was tuned for a short straight demo line; a real,
    *  winding road route needed a bolder treatment to stay legible. */
   routeStops?: { lat: number; lng: number }[];
+  /** The current day's own stable id (ItineraryDay.id - unaffected by
+   *  Move earlier/later, see trip-context.tsx's moveDay), used ONLY to
+   *  detect an actual day switch so the view can re-fit to it (22 July
+   *  2026). Deliberately separate from routeStops itself: editing the
+   *  SAME day (add/remove/reorder a stop) must NOT re-fit the view - that
+   *  would yank it out from under the visitor mid-edit (see
+   *  initialRouteFitDoneRef in this file) - only switching to a different
+   *  day should move the camera, so a visitor flicking through days
+   *  actually sees each one's route rather than the previous day's view. */
+  activeDayId?: string;
   /** Where the current day starts/ends, if the visitor has set one - a
    *  distinct pin from the distillery markers, matching the "home" style
    *  already used for ferry-port pins elsewhere on the site. */
@@ -87,6 +97,7 @@ export default function MapCanvas({
   onAddFeature,
   highlightedDistillerySlugs = [],
   routeStops = [],
+  activeDayId,
   accommodation,
   initialView,
   onViewChange,
@@ -145,6 +156,13 @@ export default function MapCanvas({
   // otherwise every later add/remove/reorder of a stop would re-fit the
   // bounds and yank the view out from under the visitor mid-edit.
   const initialRouteFitDoneRef = useRef(false);
+  // Last day id the route-drawing effect below actually saw - compared
+  // against the current activeDayId prop each run to tell "the visitor
+  // switched to a different day" apart from "the same day's stops were
+  // edited". Starts at the initial value so mounting on a day that
+  // already has a route doesn't itself count as a "switch" (the mount
+  // effect above already handles that first-ever fit).
+  const activeDayIdRef = useRef(activeDayId);
 
   useEffect(() => {
     let cancelled = false;
@@ -311,17 +329,27 @@ export default function MapCanvas({
       routeLineRef.current = null;
     }
 
+    // A genuine day switch (activeDayId changed since this effect last
+    // ran) vs. the same day's stops being edited - see activeDayIdRef's
+    // own comment for why these need different view behaviour. Checked
+    // before the length>=2 draw block below so it also applies when the
+    // new day has fewer than 2 stops (single-stop or empty days should
+    // still recentre, not keep showing wherever the last day's route was).
+    const dayChanged = activeDayId !== undefined && activeDayId !== activeDayIdRef.current;
+    activeDayIdRef.current = activeDayId;
+
     if (routeStops.length >= 2) {
       const latLngs: [number, number][] = routeStops.map((s) => [s.lat, s.lng]);
 
-      // First time a real route shows up with nothing saved to respect
-      // (a fresh visit seeding the default Day, most notably) - fit the
-      // map tightly to the route itself (which already includes the
-      // accommodation start/end point - see Workspace.tsx's routeCoords)
-      // rather than leaving it on the wide "every distillery on Islay"
-      // view the initial mount effect defaults to. Only ever fires once
-      // per mount, guarded by initialRouteFitDoneRef.
-      if (!initialRouteFitDoneRef.current && !initialViewRef.current) {
+      // Fits the view to this route when either (a) this is the first
+      // real route to show up with nothing saved to respect (a fresh
+      // visit seeding the default Day, most notably - only ever fires
+      // once per mount, guarded by initialRouteFitDoneRef), or (b) the
+      // visitor just switched to a different day (22 July 2026) - without
+      // this, flicking through days left the view stuck whenever it last
+      // was, so a day whose stops sit somewhere else on the island either
+      // wasn't visible at all or barely peeked into a corner of the view.
+      if ((!initialRouteFitDoneRef.current && !initialViewRef.current) || dayChanged) {
         map.fitBounds(L.latLngBounds(latLngs).pad(0.2));
         initialRouteFitDoneRef.current = true;
       }
@@ -345,8 +373,15 @@ export default function MapCanvas({
       });
 
       routeLineRef.current = L.layerGroup([casing, routeLine]).addTo(map);
+    } else if (routeStops.length === 1 && dayChanged) {
+      // A single-stop day (e.g. one Local Feature with no accommodation
+      // set) has nothing to fitBounds to - same reasoning as the mount
+      // effect's own single-stop case above, just re-triggered on a day
+      // switch instead of only at mount.
+      map.setView([routeStops[0].lat, routeStops[0].lng], 13);
+      initialRouteFitDoneRef.current = true;
     }
-  }, [mapReady, routeStops]);
+  }, [mapReady, routeStops, activeDayId]);
 
   // Draws/updates/clears the accommodation ("home base") pin - deliberately
   // a distinct marker style from distillery pins (a plain circle, not the
