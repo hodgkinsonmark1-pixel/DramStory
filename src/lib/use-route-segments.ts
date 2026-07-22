@@ -23,6 +23,18 @@ export function useRouteSegments(stops: LatLng[]) {
       return;
     }
     let cancelled = false;
+    // Clear out whatever was fetched for the PREVIOUS stop list immediately,
+    // rather than leaving it in place until this fetch resolves (22 July
+    // 2026 fix). Without this, MapCanvas's routeStops builder (which pairs
+    // each new coordinate with `segments[i]`'s real road geometry) kept
+    // reusing the old day's real route shape - visibly wrong once the new
+    // day's endpoints don't match it, and stuck that way for as long as
+    // OSRM's request takes (or forever, if it fails - it's a public demo
+    // server with no uptime guarantee, see route-geometry.ts). Resetting
+    // here makes MapCanvas fall back to a straight line between the
+    // CURRENT day's actual stops right away, then upgrade to the real
+    // route once this fetch comes back.
+    setSegments([]);
     setLoading(true);
     fetchRouteSegments(stops).then((result) => {
       if (!cancelled) {
