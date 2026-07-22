@@ -673,6 +673,18 @@ export default function Workspace({
           </div>
 
           <div className="day-nav">
+            {/* Day-level actions (reorder/add/remove the day ITSELF) grouped
+                together and worded to say "day" explicitly (22 July 2026 -
+                "Move earlier"/"Move later" read as ambiguous next to the
+                separate ‹ Day 3 › browse-days arrows just above, which use
+                similar earlier/later-flavoured language for a completely
+                different action: viewing a different day vs. reordering
+                this one's position in the trip). Expand/Collapse all is a
+                STOPS-level action, not a day-level one, so it's kept out of
+                this group and pushed to the far end of the row via
+                justify-content: space-between on .day-nav below - it used
+                to sit flat in the same list as these and get lost among
+                them. */}
             <div className="day-nav-actions">
               {days.length > 1 && (
                 <>
@@ -680,48 +692,54 @@ export default function Workspace({
                     className="day-nav-reorder"
                     onClick={() => trip.moveDay(activeDayIndex, -1)}
                     disabled={activeDayIndex === 0}
+                    title="Move this whole day earlier in your trip"
                   >
-                    Move earlier
+                    Move day earlier
                   </button>
                   <button
                     className="day-nav-reorder"
                     onClick={() => trip.moveDay(activeDayIndex, 1)}
                     disabled={activeDayIndex === days.length - 1}
+                    title="Move this whole day later in your trip"
                   >
-                    Move later
+                    Move day later
                   </button>
                 </>
               )}
               <button className="day-nav-add" onClick={() => trip.addDay()}>
                 + Add day
               </button>
-              {activeDay.stops.length > 0 && (
-                <button
-                  className="day-nav-reorder"
-                  onClick={() => {
-                    const allIds = activeDay.stops.map((s) => stopId(s));
-                    const allCollapsed = allIds.every((id) => collapsedStops.has(id));
-                    setCollapsedStops((prev) => {
-                      const next = new Set(prev);
-                      for (const id of allIds) {
-                        if (allCollapsed) next.delete(id);
-                        else next.add(id);
-                      }
-                      return next;
-                    });
-                  }}
-                >
-                  {activeDay.stops.map((s) => stopId(s)).every((id) => collapsedStops.has(id))
-                    ? "Expand all"
-                    : "Collapse all"}
-                </button>
-              )}
               {days.length > 1 && (
-                <button className="day-nav-remove" onClick={() => trip.removeDay(activeDayIndex)}>
-                  Remove
+                <button
+                  className="day-nav-remove"
+                  onClick={() => trip.removeDay(activeDayIndex)}
+                  title="Remove this whole day from your trip"
+                >
+                  Remove day
                 </button>
               )}
             </div>
+            {activeDay.stops.length > 0 && (
+              <button
+                className="day-nav-expand-all"
+                onClick={() => {
+                  const allIds = activeDay.stops.map((s) => stopId(s));
+                  const allCollapsed = allIds.every((id) => collapsedStops.has(id));
+                  setCollapsedStops((prev) => {
+                    const next = new Set(prev);
+                    for (const id of allIds) {
+                      if (allCollapsed) next.delete(id);
+                      else next.add(id);
+                    }
+                    return next;
+                  });
+                }}
+              >
+                {activeDay.stops.map((s) => stopId(s)).every((id) => collapsedStops.has(id))
+                  ? "Expand all stops"
+                  : "Collapse all stops"}
+              </button>
+            )}
           </div>
 
           {showDayMismatchNotice && dayCountExceedsRange && (

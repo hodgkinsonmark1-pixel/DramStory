@@ -219,7 +219,8 @@ select.location-inline-input {
 .day-nav {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 8px 16px;
   padding: 10px 20px;
   flex-wrap: wrap;
 }
@@ -260,12 +261,18 @@ select.location-inline-input {
   font-size: 12px;
   color: var(--slate);
 }
-/* "+ Add day" and "Remove" sit right next to the day arrows. */
+/* "+ Add day"/"Remove day"/"Move day earlier"/"Move day later" - the
+   day-level actions, grouped together and kept apart from the
+   stops-level .day-nav-expand-all button (see Workspace.tsx's own
+   comment on this split). flex-wrap so a narrow panel wraps onto more
+   lines instead of clipping the last button off-screen (22 July 2026 -
+   "Remove" used to get cut off at the panel edge on a narrow trip). */
 .day-nav-actions {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-shrink: 0;
+  row-gap: 6px;
+  flex-wrap: wrap;
 }
 .day-nav-add,
 .day-nav-remove,
@@ -297,6 +304,27 @@ select.location-inline-input {
 .day-nav-remove:hover {
   opacity: 1;
   color: #c0392b;
+}
+/* Stops-level action, deliberately separate from .day-nav-actions (the
+   day-level group) - pushed to the far end of .day-nav via that
+   container's justify-content: space-between, so it reads as its own
+   thing rather than blending into the day actions list next to it
+   (22 July 2026 fix - "Expand all" used to sit flat in that same list
+   and get lost among the day-level buttons). */
+.day-nav-expand-all {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: var(--slate);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+  padding: 0;
+  flex-shrink: 0;
+}
+.day-nav-expand-all:hover {
+  color: var(--green-deep);
 }
 
 .day-count-mismatch-notice {
