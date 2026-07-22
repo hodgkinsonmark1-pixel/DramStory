@@ -195,35 +195,29 @@ function DayCard({ day, onAdded }: { day: HubDay; onAdded: () => void }) {
             <PacingTag pacing={day.pacing} />
           </div>
 
-          {/* Quick-scan distillery list */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: day.featureStops.length > 0 ? 8 : 14 }}>
-            {day.distilleries.map((d, i) => (
-              <span
-                key={`${d}-${i}`}
-                style={{
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: "var(--dark)",
-                  background: "var(--green-light)",
-                  padding: "4px 12px",
-                  borderRadius: 100,
-                }}
-              >
-                {d}
-              </span>
-            ))}
-          </div>
-
-          {/* Quick-scan feature-stop icons (22 July 2026) - surfaces the
-              non-distillery stops (a beach, a walk, a historic site) a
-              Day's narrative links to, at a glance, using each Local
-              Feature's own Icon field. Previously this was invisible
-              unless you read the full narrative, which made every card
-              read as "just a distillery" regardless of what else was in
-              the day - this is also what was making cards look uniform
-              when several sat in the page's vertical flow. */}
-          {day.featureStops.length > 0 && (
+          {/* Quick-scan distillery + feature-stop row (23 July 2026: merged
+              onto one wrapping row, per Mark's feedback - distilleries and
+              feature-stop chips previously sat on two separate lines and
+              read as disconnected. Both pill styles are unchanged; only
+              the layout is now a single flex-wrap container so they sit
+              together and wrap together as a card narrows. */}
+          {(day.distilleries.length > 0 || day.featureStops.length > 0) && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+              {day.distilleries.map((d, i) => (
+                <span
+                  key={`${d}-${i}`}
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: "var(--dark)",
+                    background: "var(--green-light)",
+                    padding: "4px 12px",
+                    borderRadius: 100,
+                  }}
+                >
+                  {d}
+                </span>
+              ))}
               {day.featureStops.map((f) => (
                 <span
                   key={f.id}
