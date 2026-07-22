@@ -211,7 +211,7 @@ async function fetchDaysFromAirtable(): Promise<HubDay[]> {
     for (const match of narrative.matchAll(EXPLORE_LINK_RE)) {
       const feature = localFeatureBySlug.get(match[2]);
       if (feature) {
-        mapFeatures.push({ name: feature.name, slug: feature.slug, lat: feature.lat, lng: feature.lng });
+        mapFeatures.push({ name: feature.name, slug: feature.slug, lat: feature.lat, lng: feature.lng, icon: feature.icon });
         featureStops.push(feature);
       }
     }

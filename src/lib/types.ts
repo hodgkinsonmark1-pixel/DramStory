@@ -117,7 +117,7 @@ export interface HubDay {
    *  formatted e.g. "£60pp". Empty string if no priced tours resolved. */
   cost: string;
   mapDistilleries?: { name: string; slug: string; lat: number; lng: number }[];
-  mapFeatures?: { name: string; slug: string; lat: number; lng: number }[];
+  mapFeatures?: { name: string; slug: string; lat: number; lng: number; icon: string }[];
   /** Resolved stops in visiting order - the real Distillery record plus
    *  whichever Tour this Day's Day Stop links (if any). This is what
    *  "+ Add this day to my trip" writes into TripContext via
