@@ -13,6 +13,18 @@ import type { TripAccommodation } from "@/lib/types";
  * Airtable Location Source). Postcode centroid, not the exact building -
  * fine for map/route purposes, same caveat as any postcode-based pin.
  *
+ * Ardbeg House and Bridgend Hotel added 22 July 2026, same sourcing
+ * method. One correction worth flagging: the booking link Mark passed
+ * for Ardbeg House (/pages/stay-with-us) turned out to be an
+ * informational page, not the real booking flow - the site's actual
+ * "Book A Room" button goes to a Mews distributor URL, used below
+ * instead. Bridgend Hotel's link matched exactly what the site's own
+ * nav uses, no correction needed there. Postcodes: Ardbeg House PA42
+ * 7DU (from the site's own privacy policy, which lists it as the
+ * registered address - the site has no address on its contact/about
+ * pages themselves); Bridgend Hotel PA44 7PQ (site's own /front-desk
+ * page).
+ *
  * Lives in its own module (moved out of AccommodationControl.tsx on 21
  * July 2026) so trip-context.tsx can default a new day's accommodation to
  * FEATURED_STAYS[0] without importing a "use client" component into the
@@ -32,5 +44,17 @@ export const FEATURED_STAYS: (TripAccommodation & { url: string })[] = [
     lat: 55.74021,
     lng: -6.378353,
     url: "https://bookings.hopsoftware.com/en/property/Port-Charlotte-Hotel",
+  },
+  {
+    name: "Ardbeg House",
+    lat: 55.629847,
+    lng: -6.153463,
+    url: "https://app.mews.com/distributor/6d4a3b9d-d591-42e5-93a2-b259009afe58",
+  },
+  {
+    name: "Bridgend Hotel",
+    lat: 55.785858,
+    lng: -6.258693,
+    url: "https://www.bridgend-hotel.com/book-now",
   },
 ];
