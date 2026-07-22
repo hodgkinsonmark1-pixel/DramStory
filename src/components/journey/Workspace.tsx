@@ -296,6 +296,13 @@ export default function Workspace({
 
   const accommodation = activeDay?.accommodation;
   const stopCoordsForDay = activeDay ? activeDay.stops.map(stopCoords) : [];
+  // The current day's own Local Feature stops (walks/beaches/pubs etc,
+  // not distilleries) - passed to MapCanvas so it can render them as
+  // individually visible pins instead of folding them into the shared
+  // cluster group with every other feature on the island (22 July 2026).
+  const activeDayFeatureIds = activeDay
+    ? activeDay.stops.filter((s) => s.kind === "feature").map((s) => s.feature.id)
+    : [];
   // When a base is set, the day's route becomes a loop: base -> stops -> base,
   // so drive-time/cost totals reflect the actual journey, not just
   // stop-to-stop hops with the trip to/from home left out.
@@ -1055,6 +1062,7 @@ export default function Workspace({
               highlightedDistillerySlugs={isLive ? highlightedDistillerySlugs : []}
               isLive={isLive}
               activeDayId={activeDay.id}
+              activeDayFeatureIds={isLive ? activeDayFeatureIds : []}
               accommodation={isLive ? accommodation : undefined}
               initialView={trip.mapView ?? undefined}
               onViewChange={trip.setMapView}
