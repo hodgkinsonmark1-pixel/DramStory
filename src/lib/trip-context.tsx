@@ -108,8 +108,21 @@ interface TripContextValue {
    *  distillery page to show "already in your journey" state. */
   findStopDays: (distillerySlug: string) => number[];
   /** Sets (or clears, if undefined) where a day starts/ends - see
-   *  TripAccommodation for why this is a place, not a booking. */
+   *  TripAccommodation for why this is a place, not a booking. Only ever
+   *  touches the one day it's given - used internally to seed a sensible
+   *  default (addDay/syncDayCount/AccommodationControl's own no-stay-set
+   *  fallback), NOT for a visitor actually changing where they're
+   *  staying - see setAccommodationFromDay for that. */
   setAccommodation: (dayIndex: number, accommodation: TripAccommodation | undefined) => void;
+  /** What AccommodationControl's dropdown/search actually calls when a
+   *  visitor picks somewhere to stay (22 July 2026). Most trips use one
+   *  base for the whole stay, so scope defaults to "all" - every day in
+   *  the trip gets this accommodation, not just the one being edited.
+   *  "fromHere" is the explicit opt-in (a small checkbox in
+   *  AccommodationControl) for a visitor who's deliberately splitting
+   *  their stay across two bases - updates dayIndex and every day AFTER
+   *  it, leaving earlier days untouched. */
+  setAccommodationFromDay: (dayIndex: number, accommodation: TripAccommodation, scope: "all" | "fromHere") => void;
 }
 
 const TripContext = createContext<TripContextValue | null>(null);
@@ -404,6 +417,15 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     setDays((prev) => prev.map((day, i) => (i === dayIndex ? { ...day, accommodation } : day)));
   }, []);
 
+  const setAccommodationFromDay = useCallback(
+    (dayIndex: number, accommodation: TripAccommodation, scope: "all" | "fromHere") => {
+      setDays((prev) =>
+        prev.map((day, i) => ((scope === "all" || i >= dayIndex) ? { ...day, accommodation } : day))
+      );
+    },
+    []
+  );
+
   return (
     <TripContext.Provider
       value={{
@@ -434,6 +456,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         setTourForStop,
         findStopDays,
         setAccommodation,
+        setAccommodationFromDay,
       }}
     >
       {children}

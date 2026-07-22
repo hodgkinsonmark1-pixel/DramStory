@@ -404,6 +404,21 @@ select.location-inline-input {
   font-size: 12px;
   color: #c0392b;
 }
+/* Scope toggle for a visitor changing where they're staying (22 July
+   2026) - default (unchecked) applies the change to the whole trip;
+   checking this scopes it to just this day and the days after it. See
+   trip-context.tsx's setAccommodationFromDay. */
+.accommodation-scope-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--slate);
+  cursor: pointer;
+}
+.accommodation-scope-toggle input {
+  cursor: pointer;
+}
 
 /* Panel header is now just the "YOUR ITINERARY" eyebrow (title/subtitle
    removed - they duplicated info already shown in the top nav badge, and
