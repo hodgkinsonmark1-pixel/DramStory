@@ -6,16 +6,19 @@ import Footer from "@/components/Footer";
 import PageHeader from "@/components/PageHeader";
 
 /**
- * PRE-DESIGNED DAYS HUB — LAYOUT TEMPLATE, 7 REAL DAYS SO FAR
+ * PRE-DESIGNED DAYS HUB — LAYOUT TEMPLATE, 10 REAL DAYS SO FAR
  * ---------------------------------------------------------------
- * All seven Days currently on this page (Bowmore Unhurried, Three
+ * All ten Days currently on this page (Bowmore Unhurried, Three
  * Distilleries One Road, Ardbeg on Foot, Lagavulin Unhurried, Farm to
  * Bottle Rhinns Peninsula, Bruichladdich by the Loch, Kilchoman and
- * Machir Bay) are real, sourced, and have been through the draft →
- * review → second-pass process, matching their Airtable records
- * (Status: Draft). This is still a layout template exercise, not the
- * final data-driven page - the remaining ~8-9 Days will be added the
- * same way before this reads from Airtable directly and goes live.
+ * Machir Bay, Caol Ila Hiding in Plain Sight, Laphroaig and the Mull of
+ * Oa, Ardnahoe Worth the Wait) are real, sourced, and have been through
+ * the draft → review → second-pass process, matching their Airtable
+ * records (Status: Live as of 22 July 2026 for the last three; Draft for
+ * the rest, pending the same review cycle). This is still a layout
+ * template exercise, not the final data-driven page - the remaining
+ * ~5-6 Days will be added the same way before this reads from Airtable
+ * directly and goes live.
  *
  * UPDATE 21 July 2026: linked from the site footer ("Day Plans") per
  * Mark's explicit decision, ahead of the full ~15-16 Days set being
@@ -25,6 +28,12 @@ import PageHeader from "@/components/PageHeader";
  * showing a partial-but-genuine set is a deliberate MVP tradeoff, not a
  * gap. See docs/deferred-features.md for related parked decisions (e.g.
  * gamification).
+ *
+ * UPDATE 22 July 2026: added Caol Ila, Laphroaig, and Ardnahoe. Note this
+ * page still doesn't read Airtable directly (see above) - these three
+ * were flipped to Status: Live in Airtable, but that alone does nothing
+ * here; this hardcoded array is what actually controls what's on the
+ * live site until the real data-driven rebuild happens.
  */
 
 import HubDayMap, { type HubDayMapStop } from "@/components/journeys/HubDayMap";
@@ -217,6 +226,61 @@ const DUMMY_DAYS: DummyDay[] = [
     heroImageUrl: "/api/attachment?t=tblSPRTIf1sFK3UDL&r=recU2G0zFAF44YGWO&f=fldbYJ8xNSPCLwG0h&i=0",
     mapDistilleries: [{ name: "Kilchoman", slug: "kilchoman", lat: 55.7919, lng: -6.4419 }],
     mapFeatures: [{ name: "Machir Bay Beach", slug: "machir-bay", lat: 55.78333, lng: -6.46667 }],
+  },
+  {
+    id: "caol-ila-hiding-in-plain-sight",
+    name: "Caol Ila, Hiding in Plain Sight",
+    type: "Solo",
+    distilleries: ["Caol Ila"],
+    narrative:
+      "The largest distillery on Islay spent a hundred and fifty-six years as a blender's best-kept secret, filling casks bound mostly for Johnnie Walker while barely bottling a drop under its own name — [Caol Ila](/distilleries/caol_ila) only released its first single malt in 2002. Spirit of Smoke gets you close to exactly what it was hiding: ninety minutes in the Maturation Warehouse (dress warm, it's chilly), where your guide draws five 15ml cask-strength drams straight from the barrel in front of you, from a youthful 15 Year Old up to a mature 21 — poured nowhere else but here. From the car park, pick up the [Caol Ila Walk](/explore/caol-ila-coastal-walk), a two-mile coastal path with the same view stretched out properly — Jura across the water the whole way. Finish at the [Port Askaig Hotel (Old Port Bar)](/explore/port-askaig-hotel-old-port-bar), right beside the ferry pier — the oldest continually licensed premises on Islay, pulling pints since the sixteenth century.",
+    pacing: "Relaxed",
+    durationPortEllen: "≈4.5 hrs",
+    durationBowmore: "≈4 hrs",
+    cost: "£60pp",
+    isReal: true,
+    heroImageUrl: "/api/attachment?t=tblSPRTIf1sFK3UDL&r=recDd0IpDci0ueVLP&f=fldbYJ8xNSPCLwG0h&i=0",
+    mapDistilleries: [{ name: "Caol Ila", slug: "caol_ila", lat: 55.8544, lng: -6.1092 }],
+    mapFeatures: [
+      { name: "Caol Ila Walk", slug: "caol-ila-coastal-walk", lat: 55.8544, lng: -6.1092 },
+      { name: "Port Askaig Hotel (Old Port Bar)", slug: "port-askaig-hotel-old-port-bar", lat: 55.847666, lng: -6.105441 },
+    ],
+  },
+  {
+    id: "laphroaig-and-the-mull-of-oa",
+    name: "Laphroaig and the Mull of Oa",
+    type: "Solo",
+    distilleries: ["Laphroaig"],
+    narrative:
+      "In 1934, a young secretary named Bessie Williamson stepped off the boat for what was meant to be a three-month summer job — she ended up running [Laphroaig](/distilleries/laphroaig), then owning it outright, the first woman in Scotland to own and run a whisky distillery in the 20th century. The Grain to Glass Experience (18+ only) follows her thread through the place itself: two and a half hours through the malting floor, where barley is traditionally hand-smoked on site (adapted during Laphroaig's Silent Season), into the warehouse for a cask tasting comparing oak, cask type and size, finishing with a glass, lanyard, and your own 100ml sample hand-filled from your favourite cask. From here it's a drive out to the Oa peninsula for the [American Monument & Mull of Oa Circular](/explore/american-monument-mull-of-oa): a two-and-a-bit mile loop from the RSPB car park, boardwalk through the wetter ground before the path climbs the clifftop to the memorial itself, Atlantic dropping away on both sides, golden eagles overhead if you're lucky and Ireland visible on a clear day.",
+    pacing: "Moderate",
+    durationPortEllen: "≈5 hrs",
+    durationBowmore: "≈5.5 hrs",
+    cost: "£90pp",
+    isReal: true,
+    heroImageUrl: "/api/attachment?t=tblSPRTIf1sFK3UDL&r=recHOxbSetGpVBHxH&f=fldbYJ8xNSPCLwG0h&i=0",
+    mapDistilleries: [{ name: "Laphroaig", slug: "laphroaig", lat: 55.6278, lng: -6.1495 }],
+    mapFeatures: [
+      { name: "American Monument & Mull of Oa Circular", slug: "american-monument-mull-of-oa", lat: 55.5908, lng: -6.3336 },
+    ],
+  },
+  {
+    id: "ardnahoe-worth-the-wait",
+    name: "Ardnahoe, Worth the Wait",
+    type: "Solo",
+    distilleries: ["Ardnahoe"],
+    narrative:
+      "Hunter Laing spent decades bottling other people's whisky before finally building a distillery of their own — [Ardnahoe](/distilleries/ardnahoe) opened its doors in 2019, then made everyone wait five more years before its first single malt was bottled in May 2024. Today, you get to taste exactly what that wait was for. The Ultimate Ardnahoe Experience (about three hours) starts in the production area, past the worm tubs and up into the stillhouse to see the lyne arms, with water drawn from Islay's own \"infinite loch\" — then into Warehouse No.1 for a tasting drawn from four individual casks, exclusive to this experience. Afterwards, it's a level walk from the car park to the [Paps of Jura Panorama](/explore/paps-of-jura-panorama-ardnahoe) for open views across to Jura, then back to the café for a coffee before moving on.",
+    pacing: "Moderate",
+    durationPortEllen: "≈5 hrs",
+    durationBowmore: "≈4.5 hrs",
+    cost: "£60pp",
+    isReal: true,
+    heroImageUrl: "/api/attachment?t=tblSPRTIf1sFK3UDL&r=recj9XckTNfkQugyx&f=fldbYJ8xNSPCLwG0h&i=0",
+    mapDistilleries: [{ name: "Ardnahoe", slug: "ardnahoe", lat: 55.8697, lng: -6.1189 }],
+    mapFeatures: [
+      { name: "Paps of Jura Panorama", slug: "paps-of-jura-panorama-ardnahoe", lat: 55.8708, lng: -6.1167 },
+    ],
   },
 ];
 
