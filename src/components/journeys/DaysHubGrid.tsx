@@ -63,9 +63,15 @@ function PacingTag({ pacing }: { pacing: HubDay["pacing"] }) {
 
 function DayCard({ day, onAdded }: { day: HubDay; onAdded: () => void }) {
   const [expanded, setExpanded] = useState(false);
-  const [justAdded, setJustAdded] = useState(false);
   const isLong = day.narrative.length > 380;
   const trip = useTrip();
+
+  /** Derived from the actual trip, not a local timer - so the "Added"
+   *  state (22 July 2026 fix) stays true for as long as this Hub Day
+   *  really is in the trip, and only reverts if the visitor removes that
+   *  day. addDay() tags the new day with day.slug via sourceHubDaySlug
+   *  specifically so this can be checked here. */
+  const isAdded = trip.days.some((d) => d.sourceHubDaySlug === day.slug);
 
   /** Adds this Day as a brand-new day in the visitor's trip (never merged
    *  into whatever day they currently have open - a Hub Day is a complete
@@ -91,7 +97,7 @@ function DayCard({ day, onAdded }: { day: HubDay; onAdded: () => void }) {
    *  without touching this tab at all. */
   function handleAddToTrip() {
     const newDayIndex = trip.days.length;
-    trip.addDay();
+    trip.addDay(day.slug);
     for (const stop of day.stops) {
       trip.addStop(newDayIndex, stop.distillery);
       if (stop.tour) trip.setTourForStop(newDayIndex, stop.distillery, stop.tour);
@@ -101,8 +107,6 @@ function DayCard({ day, onAdded }: { day: HubDay; onAdded: () => void }) {
     }
     trip.setCurrentDayIndex(newDayIndex);
     onAdded();
-    setJustAdded(true);
-    setTimeout(() => setJustAdded(false), 2000);
   }
 
   return (
@@ -283,9 +287,9 @@ function DayCard({ day, onAdded }: { day: HubDay; onAdded: () => void }) {
               style={{
                 marginLeft: "auto",
                 padding: "9px 18px",
-                background: justAdded ? "var(--green-light)" : "white",
-                color: justAdded ? "var(--green-deep)" : "var(--copper)",
-                border: `1px solid ${justAdded ? "var(--green-deep)" : "var(--copper)"}`,
+                background: isAdded ? "var(--green-light)" : "white",
+                color: isAdded ? "var(--green-deep)" : "var(--copper)",
+                border: `1px solid ${isAdded ? "var(--green-deep)" : "var(--copper)"}`,
                 borderRadius: "var(--radius-sm)",
                 fontFamily: "var(--font-body)",
                 fontSize: 13,
@@ -294,8 +298,9 @@ function DayCard({ day, onAdded }: { day: HubDay; onAdded: () => void }) {
                 whiteSpace: "nowrap",
               }}
               onClick={handleAddToTrip}
+              title={isAdded ? "Already in your trip - click to add another copy of this day" : undefined}
             >
-              {justAdded ? "✓ Added to your trip" : "+ Add this day to my trip"}
+              {isAdded ? "✓ Added to your trip" : "+ Add this day to my trip"}
             </button>
           </div>
         </div>

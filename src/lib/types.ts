@@ -369,4 +369,13 @@ export interface ItineraryDay {
   label: string;
   stops: ItineraryStop[];
   accommodation?: TripAccommodation;
+  /** Set when this day was created via the Days Hub's "+ Add this day to
+   *  my trip" (see DaysHubGrid.tsx) - the slug of the HubDay it came from.
+   *  Lets that button show a persistent "already added" state driven by
+   *  real trip data instead of a timed flash, and it naturally clears if
+   *  the visitor removes the day (removeDay just drops it from the array).
+   *  Editing the day's stops afterwards does NOT clear it - "already
+   *  added" tracks "this Hub Day still has a day here", not "still
+   *  exactly matches what was originally added". */
+  sourceHubDaySlug?: string;
 }

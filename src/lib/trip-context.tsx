@@ -74,7 +74,10 @@ interface TripContextValue {
   completeIntake: (intake: TripIntake) => void;
   /** Clears the saved trip and intake entirely - used by "Start over". */
   resetTrip: () => void;
-  addDay: () => void;
+  /** sourceHubDaySlug tags the new day as having come from a specific
+   *  Days Hub day - see ItineraryDay.sourceHubDaySlug for why. Omit for
+   *  an ordinary "+ Add day" from the workspace toolbar. */
+  addDay: (sourceHubDaySlug?: string) => void;
   removeDay: (index: number) => void;
   /** Moves a day earlier/later in the trip without touching what's inside
    *  it - re-labels every day by its new position afterwards (labels are
@@ -250,7 +253,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     setTripDates((prev) => ({ ...prev, mode: "month", month, confirmed: true }));
   }, []);
 
-  const addDay = useCallback(() => {
+  const addDay = useCallback((sourceHubDaySlug?: string) => {
     // Defaults every new day's accommodation to The Machrie (21 July 2026),
     // same as the seeded default day and AccommodationControl's own
     // no-stay-set fallback - so a day added via "+ Add day" always has a
@@ -260,7 +263,13 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     const { name, lat, lng } = FEATURED_STAYS[0];
     setDays((prev) => [
       ...prev,
-      { id: `day-${prev.length + 1}`, label: `Day ${prev.length + 1}`, stops: [], accommodation: { name, lat, lng } },
+      {
+        id: `day-${prev.length + 1}`,
+        label: `Day ${prev.length + 1}`,
+        stops: [],
+        accommodation: { name, lat, lng },
+        ...(sourceHubDaySlug ? { sourceHubDaySlug } : {}),
+      },
     ]);
   }, []);
 

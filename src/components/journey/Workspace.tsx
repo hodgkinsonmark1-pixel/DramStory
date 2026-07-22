@@ -679,7 +679,7 @@ export default function Workspace({
                   </button>
                 </>
               )}
-              <button className="day-nav-add" onClick={trip.addDay}>
+              <button className="day-nav-add" onClick={() => trip.addDay()}>
                 + Add day
               </button>
               {activeDay.stops.length > 0 && (
