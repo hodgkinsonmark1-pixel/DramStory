@@ -127,6 +127,12 @@ export interface HubDay {
    *  addDay/addStop/setTourForStop, so it needs the real objects those
    *  functions expect, not just names. */
   stops: { distillery: Distillery; tour?: Tour }[];
+  /** The real Local Feature records behind mapFeatures above (walks,
+   *  viewpoints, pubs the narrative links to) - same "+ Add this day"
+   *  flow also adds these via addFeatureStop, so a Day's trip stops match
+   *  what its own narrative actually describes, not just the
+   *  distillery/tour part of it. */
+  featureStops: LocalFeature[];
   source: DataSource;
 }
 

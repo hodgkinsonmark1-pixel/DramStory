@@ -96,6 +96,9 @@ function DayCard({ day, onAdded }: { day: HubDay; onAdded: () => void }) {
       trip.addStop(newDayIndex, stop.distillery);
       if (stop.tour) trip.setTourForStop(newDayIndex, stop.distillery, stop.tour);
     }
+    for (const feature of day.featureStops) {
+      trip.addFeatureStop(newDayIndex, feature);
+    }
     trip.setCurrentDayIndex(newDayIndex);
     onAdded();
     setJustAdded(true);
