@@ -196,7 +196,7 @@ function DayCard({ day, onAdded }: { day: HubDay; onAdded: () => void }) {
           </div>
 
           {/* Quick-scan distillery list */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: day.featureStops.length > 0 ? 8 : 14 }}>
             {day.distilleries.map((d, i) => (
               <span
                 key={`${d}-${i}`}
@@ -213,6 +213,39 @@ function DayCard({ day, onAdded }: { day: HubDay; onAdded: () => void }) {
               </span>
             ))}
           </div>
+
+          {/* Quick-scan feature-stop icons (22 July 2026) - surfaces the
+              non-distillery stops (a beach, a walk, a historic site) a
+              Day's narrative links to, at a glance, using each Local
+              Feature's own Icon field. Previously this was invisible
+              unless you read the full narrative, which made every card
+              read as "just a distillery" regardless of what else was in
+              the day - this is also what was making cards look uniform
+              when several sat in the page's vertical flow. */}
+          {day.featureStops.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+              {day.featureStops.map((f) => (
+                <span
+                  key={f.id}
+                  title={f.name}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: "var(--copper)",
+                    background: "var(--amber-pale)",
+                    padding: "4px 10px 4px 8px",
+                    borderRadius: 100,
+                  }}
+                >
+                  <span style={{ fontSize: 13, lineHeight: 1 }}>{f.icon}</span>
+                  {f.name}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Narrative */}
           <p

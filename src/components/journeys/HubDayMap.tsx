@@ -106,10 +106,16 @@ export default function HubDayMap({ distilleries, featureStops = [] }: HubDayMap
         if (cancelled) return;
         for (const seg of segments) {
           if (!seg) continue;
-          L.polyline(
-            seg.points.map((p) => [p.lat, p.lng] as [number, number]),
-            { color: "#C4862A", weight: 4, opacity: 0.85 }
-          ).addTo(map);
+          const latlngs = seg.points.map((p) => [p.lat, p.lng] as [number, number]);
+          // Casing + line (22 July 2026): a wider pale line underneath the
+          // route makes it read clearly against the muted basemap instead
+          // of blending into it. At card size, the route was previously
+          // the only real per-day visual signal on a multi-stop Day and it
+          // wasn't prominent enough - cards looked too uniform when
+          // several sat in the page's vertical flow. Standard cartography
+          // trick, not a basemap change (CartoDB Positron stays as-is).
+          L.polyline(latlngs, { color: "#FFFFFF", weight: 8, opacity: 0.9 }).addTo(map);
+          L.polyline(latlngs, { color: "#C4862A", weight: 4, opacity: 0.95 }).addTo(map);
         }
       }
     }
