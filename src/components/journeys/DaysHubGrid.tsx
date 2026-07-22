@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { HubDay } from "@/lib/types";
 import HubDayMap from "@/components/journeys/HubDayMap";
+import { useTrip } from "@/lib/trip-context";
 
 /** Renders plain text containing [label](/path) markdown-style links as
  *  real internal <Link>s - same helper used on Distillery/Explore pages. */
@@ -51,6 +53,28 @@ function PacingTag({ pacing }: { pacing: HubDay["pacing"] }) {
 function DayCard({ day }: { day: HubDay }) {
   const [expanded, setExpanded] = useState(false);
   const isLong = day.narrative.length > 380;
+  const trip = useTrip();
+  const router = useRouter();
+
+  /** Adds this Day as a brand-new day in the visitor's trip (never merged
+   *  into whatever day they currently have open - a Hub Day is a complete
+   *  curated day in its own right), using the same addDay/addStop/
+   *  setTourForStop functions every other "add to trip" action in the app
+   *  already writes through. newDayIndex is captured from trip.days.length
+   *  BEFORE addDay() is called, since addDay always appends exactly one
+   *  day at the end - reading it after would risk a stale value, since
+   *  React doesn't apply the state update synchronously within this same
+   *  handler. */
+  function handleAddToTrip() {
+    const newDayIndex = trip.days.length;
+    trip.addDay();
+    for (const stop of day.stops) {
+      trip.addStop(newDayIndex, stop.distillery);
+      if (stop.tour) trip.setTourForStop(newDayIndex, stop.distillery, stop.tour);
+    }
+    trip.setCurrentDayIndex(newDayIndex);
+    router.push("/journey?resume=1");
+  }
 
   return (
     <div
@@ -240,8 +264,7 @@ function DayCard({ day }: { day: HubDay }) {
                 cursor: "pointer",
                 whiteSpace: "nowrap",
               }}
-              disabled
-              title="Placeholder — not wired to TripContext yet"
+              onClick={handleAddToTrip}
             >
               + Add this day to my trip
             </button>

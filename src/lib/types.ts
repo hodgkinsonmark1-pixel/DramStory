@@ -121,6 +121,12 @@ export interface HubDay {
   heroImageUrls?: string[];
   mapDistilleries?: { name: string; slug: string; lat: number; lng: number }[];
   mapFeatures?: { name: string; slug: string; lat: number; lng: number }[];
+  /** Resolved stops in visiting order - the real Distillery record plus
+   *  whichever Tour this Day's Day Stop links (if any). This is what
+   *  "+ Add this day to my trip" writes into TripContext via
+   *  addDay/addStop/setTourForStop, so it needs the real objects those
+   *  functions expect, not just names. */
+  stops: { distillery: Distillery; tour?: Tour }[];
   source: DataSource;
 }
 
