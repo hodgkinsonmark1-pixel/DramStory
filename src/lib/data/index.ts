@@ -1,5 +1,5 @@
 import { cache } from "react";
-import type { Distillery, HubDay, JournalPost, LocalEvent, LocalFeature, PlaceListing } from "@/lib/types";
+import type { Distillery, HubDay, JournalPost, LocalEvent, LocalFeature, PlaceListing, Tour } from "@/lib/types";
 import { airtableFetchAll } from "@/lib/airtable";
 import { searchAccommodation, searchNearbyByCategory } from "@/lib/google-places";
 import {
@@ -170,7 +170,7 @@ async function fetchDaysFromAirtable(): Promise<HubDay[]> {
   ]);
 
   const dayStopById = new Map(dayStopRecords.map((r) => [r.id, r.fields]));
-  const tourPriceById = new Map(tourRecords.map((r) => [r.id, r.fields.Price]));
+  const tourById = new Map(tourRecords.map((r) => [r.id, mapTour(r.fields)]));
   const distilleryById = new Map(distilleries.map((d) => [d.id, d]));
   const localFeatureBySlug = new Map(localFeatures.map((f) => [f.slug, f]));
 
@@ -189,25 +189,34 @@ async function fetchDaysFromAirtable(): Promise<HubDay[]> {
       .filter((s): s is AirtableDayStopFields => !!s)
       .map((s) => ({
         distillery: s.Distillery?.[0] ? distilleryById.get(s.Distillery[0]) : undefined,
-        tourPrice: s.Tour?.[0] ? tourPriceById.get(s.Tour[0]) : undefined,
+        tour: s.Tour?.[0] ? tourById.get(s.Tour[0]) : undefined,
         order: s.Order ?? 0,
       }))
-      .filter((s): s is { distillery: Distillery; tourPrice: number | undefined; order: number } => !!s.distillery)
+      .filter((s): s is { distillery: Distillery; tour: Tour | undefined; order: number } => !!s.distillery)
       .sort((a, b) => a.order - b.order);
 
     if (stops.length === 0) continue; // no resolvable stops - not ready to show
 
-    const totalCost = stops.reduce((sum, s) => sum + (s.tourPrice ?? 0), 0);
+    const totalCost = stops.reduce((sum, s) => sum + (s.tour?.price ?? 0), 0);
 
-    // Local Feature map pins: resolved from the narrative's own
-    // [label](/explore/slug) links against the live Local Features list -
-    // see EXPLORE_LINK_RE above for why (Day Stops has no Day -> Local
-    // Feature link field).
+    // Local Feature map pins + trip stops: resolved from the narrative's
+    // own [label](/explore/slug) links against the live Local Features
+    // list - see EXPLORE_LINK_RE above for why (Day Stops has no Day ->
+    // Local Feature link field). featureStops carries the full records
+    // (not just the map-pin subset) so "+ Add this day to my trip" can
+    // add them as real stops via addFeatureStop, not just plot them -
+    // otherwise a Day like Ardnahoe's, whose narrative walks the visitor
+    // out to the Paps of Jura Panorama afterward, would only ever add the
+    // distillery and silently drop the walk every time.
     const mapFeatures: HubDay["mapFeatures"] = [];
+    const featureStops: HubDay["featureStops"] = [];
     const narrative = f.Narrative ?? "";
     for (const match of narrative.matchAll(EXPLORE_LINK_RE)) {
       const feature = localFeatureBySlug.get(match[2]);
-      if (feature) mapFeatures.push({ name: feature.name, slug: feature.slug, lat: feature.lat, lng: feature.lng });
+      if (feature) {
+        mapFeatures.push({ name: feature.name, slug: feature.slug, lat: feature.lat, lng: feature.lng });
+        featureStops.push(feature);
+      }
     }
 
     const mapDistilleries: HubDay["mapDistilleries"] = stops.map((s) => ({
@@ -243,6 +252,8 @@ async function fetchDaysFromAirtable(): Promise<HubDay[]> {
           : undefined,
       mapDistilleries,
       mapFeatures: mapFeatures.length > 0 ? mapFeatures : undefined,
+      stops: stops.map((s) => ({ distillery: s.distillery, tour: s.tour })),
+      featureStops,
       source: "airtable",
     });
   }

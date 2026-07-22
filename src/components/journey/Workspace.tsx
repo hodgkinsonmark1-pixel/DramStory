@@ -296,6 +296,19 @@ export default function Workspace({
 
   const accommodation = activeDay?.accommodation;
   const stopCoordsForDay = activeDay ? activeDay.stops.map(stopCoords) : [];
+  // The current day's own Local Feature stops (walks/beaches/pubs etc,
+  // not distilleries) - passed to MapCanvas so it can render them as
+  // individually visible pins instead of folding them into the shared
+  // cluster group with every other feature on the island (22 July 2026).
+  // Full records, not ids: MapCanvas's own `localFeatures` prop is
+  // filtered down to whichever map category tab is toggled on (see
+  // visibleLocalFeatures below), so a day's own stop needs its full data
+  // passed independently to stay visible regardless of that filter -
+  // ids alone would have nothing to resolve against if its category
+  // wasn't toggled on.
+  const activeDayFeatures = activeDay
+    ? activeDay.stops.filter((s) => s.kind === "feature").map((s) => s.feature)
+    : [];
   // When a base is set, the day's route becomes a loop: base -> stops -> base,
   // so drive-time/cost totals reflect the actual journey, not just
   // stop-to-stop hops with the trip to/from home left out.
@@ -660,6 +673,22 @@ export default function Workspace({
           </div>
 
           <div className="day-nav">
+            {/* Day-level actions (reorder/add/remove the day ITSELF), kept
+                apart from the STOPS-level Expand/Collapse action via
+                justify-content: space-between on .day-nav (see below).
+                Reorder/remove are icon buttons (22 July 2026, second pass -
+                the earlier text-label version ("Move day earlier"/"Move day
+                later"/"Remove day") fixed the ambiguity/clipping bugs but
+                cost 2-3 extra vertical lines in a narrow panel, which Mark
+                flagged as now taking up too much room). Clarity is kept via
+                title tooltips + aria-label rather than visible words, and
+                the icons themselves are deliberately vertical arrows
+                (↑ / ↓) rather than the horizontal ‹ › used by the
+                day-browse arrows just above, so the two controls still
+                can't be visually confused for one another even without
+                text. "+ Add day" stays as text - it's the one action here
+                used often enough to warrant a visible label, and it was
+                never part of the ambiguity/clipping complaints. */}
             <div className="day-nav-actions">
               {days.length > 1 && (
                 <>
@@ -667,48 +696,62 @@ export default function Workspace({
                     className="day-nav-reorder"
                     onClick={() => trip.moveDay(activeDayIndex, -1)}
                     disabled={activeDayIndex === 0}
+                    title="Move this whole day earlier in your trip"
+                    aria-label="Move this day earlier in your trip"
                   >
-                    Move earlier
+                    &#8593;
                   </button>
                   <button
                     className="day-nav-reorder"
                     onClick={() => trip.moveDay(activeDayIndex, 1)}
                     disabled={activeDayIndex === days.length - 1}
+                    title="Move this whole day later in your trip"
+                    aria-label="Move this day later in your trip"
                   >
-                    Move later
+                    &#8595;
                   </button>
                 </>
               )}
-              <button className="day-nav-add" onClick={trip.addDay}>
+              <button className="day-nav-add" onClick={() => trip.addDay()}>
                 + Add day
               </button>
-              {activeDay.stops.length > 0 && (
-                <button
-                  className="day-nav-reorder"
-                  onClick={() => {
-                    const allIds = activeDay.stops.map((s) => stopId(s));
-                    const allCollapsed = allIds.every((id) => collapsedStops.has(id));
-                    setCollapsedStops((prev) => {
-                      const next = new Set(prev);
-                      for (const id of allIds) {
-                        if (allCollapsed) next.delete(id);
-                        else next.add(id);
-                      }
-                      return next;
-                    });
-                  }}
-                >
-                  {activeDay.stops.map((s) => stopId(s)).every((id) => collapsedStops.has(id))
-                    ? "Expand all"
-                    : "Collapse all"}
-                </button>
-              )}
               {days.length > 1 && (
-                <button className="day-nav-remove" onClick={() => trip.removeDay(activeDayIndex)}>
-                  Remove
+                <button
+                  className="day-nav-remove"
+                  onClick={() => trip.removeDay(activeDayIndex)}
+                  title="Remove this whole day from your trip"
+                  aria-label="Remove this day from your trip"
+                >
+                  &#10005;
                 </button>
               )}
             </div>
+            {activeDay.stops.length > 0 && (
+              <button
+                className="day-nav-expand-all"
+                onClick={() => {
+                  const allIds = activeDay.stops.map((s) => stopId(s));
+                  const allCollapsed = allIds.every((id) => collapsedStops.has(id));
+                  setCollapsedStops((prev) => {
+                    const next = new Set(prev);
+                    for (const id of allIds) {
+                      if (allCollapsed) next.delete(id);
+                      else next.add(id);
+                    }
+                    return next;
+                  });
+                }}
+                title={
+                  activeDay.stops.map((s) => stopId(s)).every((id) => collapsedStops.has(id))
+                    ? "Expand all stops in this day"
+                    : "Collapse all stops in this day"
+                }
+              >
+                {activeDay.stops.map((s) => stopId(s)).every((id) => collapsedStops.has(id))
+                  ? "Expand all"
+                  : "Collapse all"}
+              </button>
+            )}
           </div>
 
           {showDayMismatchNotice && dayCountExceedsRange && (
@@ -1054,6 +1097,8 @@ export default function Workspace({
               localFeatures={isLive ? visibleLocalFeatures : []}
               highlightedDistillerySlugs={isLive ? highlightedDistillerySlugs : []}
               isLive={isLive}
+              activeDayId={activeDay.id}
+              activeDayFeatures={isLive ? activeDayFeatures : []}
               accommodation={isLive ? accommodation : undefined}
               initialView={trip.mapView ?? undefined}
               onViewChange={trip.setMapView}

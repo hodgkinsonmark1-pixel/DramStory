@@ -121,6 +121,18 @@ export interface HubDay {
   heroImageUrls?: string[];
   mapDistilleries?: { name: string; slug: string; lat: number; lng: number }[];
   mapFeatures?: { name: string; slug: string; lat: number; lng: number }[];
+  /** Resolved stops in visiting order - the real Distillery record plus
+   *  whichever Tour this Day's Day Stop links (if any). This is what
+   *  "+ Add this day to my trip" writes into TripContext via
+   *  addDay/addStop/setTourForStop, so it needs the real objects those
+   *  functions expect, not just names. */
+  stops: { distillery: Distillery; tour?: Tour }[];
+  /** The real Local Feature records behind mapFeatures above (walks,
+   *  viewpoints, pubs the narrative links to) - same "+ Add this day"
+   *  flow also adds these via addFeatureStop, so a Day's trip stops match
+   *  what its own narrative actually describes, not just the
+   *  distillery/tour part of it. */
+  featureStops: LocalFeature[];
   source: DataSource;
 }
 
@@ -357,4 +369,13 @@ export interface ItineraryDay {
   label: string;
   stops: ItineraryStop[];
   accommodation?: TripAccommodation;
+  /** Set when this day was created via the Days Hub's "+ Add this day to
+   *  my trip" (see DaysHubGrid.tsx) - the slug of the HubDay it came from.
+   *  Lets that button show a persistent "already added" state driven by
+   *  real trip data instead of a timed flash, and it naturally clears if
+   *  the visitor removes the day (removeDay just drops it from the array).
+   *  Editing the day's stops afterwards does NOT clear it - "already
+   *  added" tracks "this Hub Day still has a day here", not "still
+   *  exactly matches what was originally added". */
+  sourceHubDaySlug?: string;
 }

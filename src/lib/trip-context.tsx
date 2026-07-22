@@ -74,7 +74,10 @@ interface TripContextValue {
   completeIntake: (intake: TripIntake) => void;
   /** Clears the saved trip and intake entirely - used by "Start over". */
   resetTrip: () => void;
-  addDay: () => void;
+  /** sourceHubDaySlug tags the new day as having come from a specific
+   *  Days Hub day - see ItineraryDay.sourceHubDaySlug for why. Omit for
+   *  an ordinary "+ Add day" from the workspace toolbar. */
+  addDay: (sourceHubDaySlug?: string) => void;
   removeDay: (index: number) => void;
   /** Moves a day earlier/later in the trip without touching what's inside
    *  it - re-labels every day by its new position afterwards (labels are
@@ -105,8 +108,21 @@ interface TripContextValue {
    *  distillery page to show "already in your journey" state. */
   findStopDays: (distillerySlug: string) => number[];
   /** Sets (or clears, if undefined) where a day starts/ends - see
-   *  TripAccommodation for why this is a place, not a booking. */
+   *  TripAccommodation for why this is a place, not a booking. Only ever
+   *  touches the one day it's given - used internally to seed a sensible
+   *  default (addDay/syncDayCount/AccommodationControl's own no-stay-set
+   *  fallback), NOT for a visitor actually changing where they're
+   *  staying - see setAccommodationFromDay for that. */
   setAccommodation: (dayIndex: number, accommodation: TripAccommodation | undefined) => void;
+  /** What AccommodationControl's dropdown/search actually calls when a
+   *  visitor picks somewhere to stay (22 July 2026). Most trips use one
+   *  base for the whole stay, so scope defaults to "all" - every day in
+   *  the trip gets this accommodation, not just the one being edited.
+   *  "fromHere" is the explicit opt-in (a small checkbox in
+   *  AccommodationControl) for a visitor who's deliberately splitting
+   *  their stay across two bases - updates dayIndex and every day AFTER
+   *  it, leaving earlier days untouched. */
+  setAccommodationFromDay: (dayIndex: number, accommodation: TripAccommodation, scope: "all" | "fromHere") => void;
 }
 
 const TripContext = createContext<TripContextValue | null>(null);
@@ -125,17 +141,23 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   // showed the stored trip, that would be a server/client hydration
   // mismatch. Updating state from an effect after mount is the standard,
   // safe way to hydrate this kind of client-only persisted data.
+  /** Applies a parsed StoredTrip into state - shared by the initial-load
+   *  hydration below and the cross-tab sync effect further down, so both
+   *  read the same five fields the same way. */
+  function applyStoredTrip(parsed: StoredTrip) {
+    setDays(parsed.days ?? []);
+    setIntake(parsed.intake ?? null);
+    setCurrentDayIndex(parsed.currentDayIndex ?? 0);
+    setMapView(parsed.mapView ?? null);
+    setTripDates(parsed.tripDates ?? defaultTripDates());
+  }
+
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed: StoredTrip = JSON.parse(raw);
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        setDays(parsed.days ?? []);
-        setIntake(parsed.intake ?? null);
-        setCurrentDayIndex(parsed.currentDayIndex ?? 0);
-        setMapView(parsed.mapView ?? null);
-        setTripDates(parsed.tripDates ?? defaultTripDates());
+        applyStoredTrip(JSON.parse(raw));
       }
     } catch {
       // Corrupt or inaccessible storage - just start fresh.
@@ -154,6 +176,36 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
       // session, it just won't survive a reload.
     }
   }, [days, intake, currentDayIndex, mapView, tripDates, ready]);
+
+  // Cross-tab live sync (22 July 2026) - added for the Days Hub's
+  // "+ Add this day to my trip", which a visitor might reasonably have
+  // open in one tab while their actual itinerary/map sits open in
+  // another (e.g. opened from the homepage, or via the onboarding
+  // walkthrough's "open in new tab" links). Without this, adding a Day
+  // in the Days Hub tab only updated that tab's own in-memory state and
+  // localStorage - a separately-open itinerary tab had no way to know
+  // anything changed, and stayed stale until manually reloaded.
+  //
+  // The browser's `storage` event fires in every OTHER same-origin tab
+  // when localStorage changes (never in the tab that made the change),
+  // which is exactly the shape needed here - no polling, no custom
+  // messaging channel. Deliberately a blunt "whatever's in storage now
+  // wins" sync, same logic as the initial-load hydration above: fine for
+  // this app's actual usage pattern (one tab actively edits at a time),
+  // not attempting to merge concurrent edits across two simultaneously
+  // active tabs.
+  useEffect(() => {
+    function handleStorage(event: StorageEvent) {
+      if (event.key !== STORAGE_KEY || !event.newValue) return;
+      try {
+        applyStoredTrip(JSON.parse(event.newValue));
+      } catch {
+        // Malformed write from elsewhere - ignore rather than crash.
+      }
+    }
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   const initDays = useCallback((count: number) => {
     setDays((prev) => {
@@ -174,10 +226,19 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
       // existing "Remove" button, which the visitor can already see and
       // undo their way out of.
       if (targetCount <= prev.length) return prev;
+      // Carries the last existing day's accommodation forward, same
+      // reasoning as addDay above (22 July 2026) - without this, these
+      // extra days were left with no accommodation at all and only
+      // picked one up once AccommodationControl's own no-stay-set
+      // fallback ran (which - now also fixed - carries forward too, but
+      // setting it here directly avoids that dependency and any render
+      // where it's briefly unset).
+      const carriedAccommodation = prev[prev.length - 1]?.accommodation;
       const extra = Array.from({ length: targetCount - prev.length }, (_, i) => ({
         id: `day-${prev.length + i + 1}`,
         label: `Day ${prev.length + i + 1}`,
         stops: [] as ItineraryDay["stops"],
+        ...(carriedAccommodation ? { accommodation: carriedAccommodation } : {}),
       }));
       return [...prev, ...extra];
     });
@@ -214,18 +275,31 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     setTripDates((prev) => ({ ...prev, mode: "month", month, confirmed: true }));
   }, []);
 
-  const addDay = useCallback(() => {
-    // Defaults every new day's accommodation to The Machrie (21 July 2026),
-    // same as the seeded default day and AccommodationControl's own
-    // no-stay-set fallback - so a day added via "+ Add day" always has a
-    // real base for its route/drive-time totals from the moment it exists,
-    // rather than only gaining one once the visitor happens to open the
-    // Places to Stay panel for it.
-    const { name, lat, lng } = FEATURED_STAYS[0];
-    setDays((prev) => [
-      ...prev,
-      { id: `day-${prev.length + 1}`, label: `Day ${prev.length + 1}`, stops: [], accommodation: { name, lat, lng } },
-    ]);
+  const addDay = useCallback((sourceHubDaySlug?: string) => {
+    // Every new day needs a real accommodation from the moment it exists
+    // (so its route/drive-time totals aren't blank), but it should default
+    // to wherever the visitor's ALREADY staying, not reset back to The
+    // Machrie every time (22 July 2026 fix - previously always used
+    // FEATURED_STAYS[0] regardless of what any existing day already had,
+    // so changing Day 1's hotel and then adding Day 2 silently reverted
+    // back to The Machrie instead of carrying the change forward). Carries
+    // the LAST existing day's accommodation forward; only actually falls
+    // back to The Machrie for the very first day of a brand-new trip,
+    // when there's nothing yet to carry forward from.
+    setDays((prev) => {
+      const carriedAccommodation = prev.length > 0 ? prev[prev.length - 1].accommodation : undefined;
+      const { name, lat, lng } = carriedAccommodation ?? FEATURED_STAYS[0];
+      return [
+        ...prev,
+        {
+          id: `day-${prev.length + 1}`,
+          label: `Day ${prev.length + 1}`,
+          stops: [],
+          accommodation: { name, lat, lng },
+          ...(sourceHubDaySlug ? { sourceHubDaySlug } : {}),
+        },
+      ];
+    });
   }, []);
 
   const removeDay = useCallback((index: number) => {
@@ -343,6 +417,15 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     setDays((prev) => prev.map((day, i) => (i === dayIndex ? { ...day, accommodation } : day)));
   }, []);
 
+  const setAccommodationFromDay = useCallback(
+    (dayIndex: number, accommodation: TripAccommodation, scope: "all" | "fromHere") => {
+      setDays((prev) =>
+        prev.map((day, i) => ((scope === "all" || i >= dayIndex) ? { ...day, accommodation } : day))
+      );
+    },
+    []
+  );
+
   return (
     <TripContext.Provider
       value={{
@@ -373,6 +456,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         setTourForStop,
         findStopDays,
         setAccommodation,
+        setAccommodationFromDay,
       }}
     >
       {children}

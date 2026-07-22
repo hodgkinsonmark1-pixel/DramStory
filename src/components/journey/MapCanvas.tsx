@@ -21,12 +21,41 @@ interface MapCanvasProps {
    *  with the rest of the pin-based map). */
   highlightedDistillerySlugs?: string[];
   /** Ordered lat/lng points along the current day's real route (from OSRM,
-   *  or straight-line fallback per segment) - drawn as a route line with a
-   *  white casing for visibility against busy map tiles. Styling was
-   *  originally an exact match to the mockup (#C4862A, weight 3, dashArray
-   *  "1,8") but that was tuned for a short straight demo line; a real,
-   *  winding road route needed a bolder treatment to stay legible. */
+   *  or straight-line fallback per segment) - drawn as a solid route line
+   *  with a white casing for visibility against busy map tiles. Styling
+   *  was originally an exact match to the mockup (#C4862A, weight 3,
+   *  dashArray "1,8") but that was tuned for a short straight demo line;
+   *  a real, winding road route needed a bolder treatment to stay
+   *  legible, and later (22 July 2026) dropped the dash entirely - a
+   *  fixed dash pattern read inconsistently (sparse on short straight
+   *  legs, near-solid on winding stretches) once real routes were always
+   *  drawing correctly. */
   routeStops?: { lat: number; lng: number }[];
+  /** The current day's own stable id (ItineraryDay.id - unaffected by
+   *  Move earlier/later, see trip-context.tsx's moveDay), used ONLY to
+   *  detect an actual day switch so the view can re-fit to it (22 July
+   *  2026). Deliberately separate from routeStops itself: editing the
+   *  SAME day (add/remove/reorder a stop) must NOT re-fit the view - that
+   *  would yank it out from under the visitor mid-edit (see
+   *  initialRouteFitDoneRef in this file) - only switching to a different
+   *  day should move the camera, so a visitor flicking through days
+   *  actually sees each one's route rather than the previous day's view. */
+  activeDayId?: string;
+  /** The current day's own Local Feature stops (e.g. Machir Bay Beach on
+   *  a day that has it in the itinerary) - rendered as their own
+   *  individual pin directly on the map, same as distillery markers,
+   *  rather than going into the shared cluster group with every other
+   *  Natural Feature/Local Attraction/etc on the island (22 July 2026: a
+   *  day's own walk/beach/pub stop could otherwise be fully invisible,
+   *  folded into a cluster badge until zoomed in close enough to
+   *  spiderfy it out). Deliberately full records passed independently of
+   *  the `localFeatures` prop, not just ids cross-referenced against it -
+   *  `localFeatures` is filtered down to whichever map category tab the
+   *  visitor has toggled on (see Workspace.tsx's visibleLocalFeatures),
+   *  so a stop wouldn't show at all if that category happened not to be
+   *  toggled. A day's own stop should always be visible regardless of
+   *  the browse filter, the same way distilleries always are. */
+  activeDayFeatures?: LocalFeature[];
   /** Where the current day starts/ends, if the visitor has set one - a
    *  distinct pin from the distillery markers, matching the "home" style
    *  already used for ferry-port pins elsewhere on the site. */
@@ -87,6 +116,8 @@ export default function MapCanvas({
   onAddFeature,
   highlightedDistillerySlugs = [],
   routeStops = [],
+  activeDayId,
+  activeDayFeatures = [],
   accommodation,
   initialView,
   onViewChange,
@@ -122,6 +153,10 @@ export default function MapCanvas({
   // per-type clusters.
   const clusterGroupRef = useRef<Leaflet.MarkerClusterGroup | null>(null);
   const featureMarkersRef = useRef<Leaflet.Marker[]>([]);
+  // Local Feature markers that are today's day stops - added directly to
+  // the map (like distillery markers), NOT to clusterGroupRef, so they
+  // stay individually visible - see activeDayFeatures' own comment.
+  const activeDayFeatureMarkersRef = useRef<Leaflet.Marker[]>([]);
   const highlightMarkersRef = useRef<Leaflet.Marker[]>([]);
   // Keyed by distillery slug - lets the onboarding walkthrough open a
   // specific real marker's popup (e.g. Bowmore) programmatically, rather
@@ -145,6 +180,13 @@ export default function MapCanvas({
   // otherwise every later add/remove/reorder of a stop would re-fit the
   // bounds and yank the view out from under the visitor mid-edit.
   const initialRouteFitDoneRef = useRef(false);
+  // Last day id the route-drawing effect below actually saw - compared
+  // against the current activeDayId prop each run to tell "the visitor
+  // switched to a different day" apart from "the same day's stops were
+  // edited". Starts at the initial value so mounting on a day that
+  // already has a route doesn't itself count as a "switch" (the mount
+  // effect above already handles that first-ever fit).
+  const activeDayIdRef = useRef(activeDayId);
 
   useEffect(() => {
     let cancelled = false;
@@ -311,42 +353,65 @@ export default function MapCanvas({
       routeLineRef.current = null;
     }
 
+    // A genuine day switch (activeDayId changed since this effect last
+    // ran) vs. the same day's stops being edited - see activeDayIdRef's
+    // own comment for why these need different view behaviour. Checked
+    // before the length>=2 draw block below so it also applies when the
+    // new day has fewer than 2 stops (single-stop or empty days should
+    // still recentre, not keep showing wherever the last day's route was).
+    const dayChanged = activeDayId !== undefined && activeDayId !== activeDayIdRef.current;
+    activeDayIdRef.current = activeDayId;
+
     if (routeStops.length >= 2) {
       const latLngs: [number, number][] = routeStops.map((s) => [s.lat, s.lng]);
 
-      // First time a real route shows up with nothing saved to respect
-      // (a fresh visit seeding the default Day, most notably) - fit the
-      // map tightly to the route itself (which already includes the
-      // accommodation start/end point - see Workspace.tsx's routeCoords)
-      // rather than leaving it on the wide "every distillery on Islay"
-      // view the initial mount effect defaults to. Only ever fires once
-      // per mount, guarded by initialRouteFitDoneRef.
-      if (!initialRouteFitDoneRef.current && !initialViewRef.current) {
+      // Fits the view to this route when either (a) this is the first
+      // real route to show up with nothing saved to respect (a fresh
+      // visit seeding the default Day, most notably - only ever fires
+      // once per mount, guarded by initialRouteFitDoneRef), or (b) the
+      // visitor just switched to a different day (22 July 2026) - without
+      // this, flicking through days left the view stuck whenever it last
+      // was, so a day whose stops sit somewhere else on the island either
+      // wasn't visible at all or barely peeked into a corner of the view.
+      if ((!initialRouteFitDoneRef.current && !initialViewRef.current) || dayChanged) {
         map.fitBounds(L.latLngBounds(latLngs).pad(0.2));
         initialRouteFitDoneRef.current = true;
       }
 
       // Casing technique (same idea Google/Citymapper use): a wider, solid
       // white/pale line drawn first so the route pops against busy map
-      // tiles (roads, water, labels) regardless of what's underneath -
-      // the thin dotted line on its own was hard to spot on a real,
-      // winding road route rather than a short straight demo line.
+      // tiles (roads, water, labels) regardless of what's underneath.
       const casing = L.polyline(latLngs, {
         color: "#FFFFFF",
         weight: 7,
         opacity: 0.9,
       });
+      // Solid, not dashed (22 July 2026 - was dashArray "10,8") - a fixed
+      // dash pattern applied along the real road path length reads very
+      // differently depending on how winding a given stretch is: sparse,
+      // clearly dotted on a short straight leg (e.g. hotel -> first stop),
+      // but so many dash cycles packed into a winding stretch (e.g.
+      // through Port Ellen) that it looked almost solid there instead -
+      // an inconsistent, confusing look Mark flagged after the route
+      // itself started drawing reliably. A solid line sidesteps this
+      // entirely and is what most trip-planning apps use for driving legs.
       const routeLine = L.polyline(latLngs, {
         color: "#C4862A",
         weight: 4,
-        dashArray: "10,8",
         opacity: 1,
         lineCap: "round",
       });
 
       routeLineRef.current = L.layerGroup([casing, routeLine]).addTo(map);
+    } else if (routeStops.length === 1 && dayChanged) {
+      // A single-stop day (e.g. one Local Feature with no accommodation
+      // set) has nothing to fitBounds to - same reasoning as the mount
+      // effect's own single-stop case above, just re-triggered on a day
+      // switch instead of only at mount.
+      map.setView([routeStops[0].lat, routeStops[0].lng], 13);
+      initialRouteFitDoneRef.current = true;
     }
-  }, [mapReady, routeStops]);
+  }, [mapReady, routeStops, activeDayId]);
 
   // Draws/updates/clears the accommodation ("home base") pin - deliberately
   // a distinct marker style from distillery pins (a plain circle, not the
@@ -377,21 +442,36 @@ export default function MapCanvas({
     }
   }, [mapReady, accommodation]);
 
-  // Redraws Natural Feature pins whenever the visible list changes (a
-  // filter toggle in the map toolbar, not a one-time mount). Adds/removes
-  // just the feature markers from the shared cluster group - the
-  // distillery markers already in that same group are left untouched.
+  // Redraws Natural Feature pins whenever the visible list (or which of
+  // them are today's own day stops) changes - a filter toggle in the map
+  // toolbar, or switching days/editing stops, not a one-time mount.
+  // Adds/removes just the feature markers from the shared cluster group -
+  // the distillery markers already in that same group are left untouched.
   useEffect(() => {
     if (!mapReady || !mapRef.current || !leafletRef.current || !clusterGroupRef.current) return;
     const L = leafletRef.current;
+    const map = mapRef.current;
     const clusterGroup = clusterGroupRef.current;
 
     for (const m of featureMarkersRef.current) {
       clusterGroup.removeLayer(m);
     }
     featureMarkersRef.current = [];
+    for (const m of activeDayFeatureMarkersRef.current) {
+      m.remove();
+    }
+    activeDayFeatureMarkersRef.current = [];
 
-    if (localFeatures.length === 0) return;
+    // Today's own day stops are drawn from activeDayFeatures directly,
+    // independent of whatever's in localFeatures (the filtered, "which
+    // map category tab is toggled on" browse set - see activeDayFeatures'
+    // own prop comment for why). Excluded from the filtered/clustered
+    // list here so a stop that ALSO happens to match the current filter
+    // isn't drawn twice.
+    const activeDayFeatureIdSet = new Set(activeDayFeatures.map((f) => f.id));
+    const clusteredFeatures = localFeatures.filter((f) => !activeDayFeatureIdSet.has(f.id));
+
+    if (clusteredFeatures.length === 0 && activeDayFeatures.length === 0) return;
 
     // Distillery markers are always added individually, on top of
     // everything else (never clustered) - a feature pin (or a whole
@@ -457,15 +537,29 @@ export default function MapCanvas({
       return { lat, lng };
     }
 
-    const markers = localFeatures.map((f) => {
+    // Shared between both lists below so the icon/popup markup only lives
+    // in one place. `standalone` is true only for today's own day stops -
+    // see the size/border/shadow bump and the addTo(map)-vs-cluster split
+    // where this is called.
+    function buildFeatureMarker(f: LocalFeature, standalone: boolean): Leaflet.Marker {
       const pos = offsetIfCollidingWithDistillery(f.lat, f.lng);
       const color = FEATURE_COLORS[f.category];
+      // A day's own stop gets the same 32px size as a distillery marker
+      // (up from the usual 26px) and a heavier border/shadow - both to
+      // stand out as clearly "part of today's route" and because, unlike
+      // the rest, it's never behind a cluster badge competing for
+      // attention.
+      const size = standalone ? 32 : 26;
       const icon = L.divIcon({
         className: "feature-marker",
-        html: `<div style="background:${color};color:white;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 5px rgba(0,0,0,0.3);font-size:13px">${f.icon}</div>`,
-        iconSize: [26, 26],
-        iconAnchor: [13, 13],
-        popupAnchor: [0, -13],
+        html: `<div style="background:${color};color:white;width:${size}px;height:${size}px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:${
+          standalone ? 3 : 2
+        }px solid white;box-shadow:0 2px ${standalone ? 6 : 5}px rgba(0,0,0,${
+          standalone ? 0.4 : 0.3
+        });font-size:${standalone ? 15 : 13}px">${f.icon}</div>`,
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+        popupAnchor: [0, -size / 2],
       });
       const marker = L.marker([pos.lat, pos.lng], { icon });
       const categoryLabel = f.category.replace("-", " ");
@@ -492,12 +586,27 @@ export default function MapCanvas({
         </div>`,
         { minWidth: 240 }
       );
+      return marker;
+    }
+
+    const markers = clusteredFeatures.map((f) => {
+      const marker = buildFeatureMarker(f, false);
       clusterGroup.addLayer(marker);
+      return marker;
+    });
+    // Bypasses clustering entirely - added straight to the map, same as
+    // distillery markers, so a day's own stop is always individually
+    // visible rather than folded into a cluster badge, or missing
+    // altogether if its category filter tab isn't toggled on.
+    const activeDayMarkers = activeDayFeatures.map((f) => {
+      const marker = buildFeatureMarker(f, true);
+      marker.addTo(map);
       return marker;
     });
 
     featureMarkersRef.current = markers;
-  }, [mapReady, localFeatures, distilleries, currentZoom]);
+    activeDayFeatureMarkersRef.current = activeDayMarkers;
+  }, [mapReady, localFeatures, distilleries, currentZoom, activeDayFeatures]);
 
   // Pulsing ring behind any distillery hosting a Local Event within the
   // currently-selected date range - redrawn whenever that set changes

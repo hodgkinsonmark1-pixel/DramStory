@@ -71,6 +71,13 @@ export default function AccommodationControl({
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Unchecked by default (22 July 2026, per Mark: most trips use one base
+  // for the whole stay) - picking somewhere new applies it to every day
+  // in the trip. Checking this is the explicit opt-in for a visitor who's
+  // deliberately splitting their stay across two bases: it scopes the
+  // change to this day and every day AFTER it, leaving earlier days as
+  // they were. See setAccommodationFromDay in trip-context.tsx.
+  const [changeFromHereOnly, setChangeFromHereOnly] = useState(false);
 
   const activeFeatured = featuredStayFor(accommodation?.name);
   const activeArea = areaFor(accommodation?.name);
@@ -80,7 +87,24 @@ export default function AccommodationControl({
 
   useEffect(() => {
     if (!accommodation) {
-      trip.setAccommodation(dayIndex, FEATURED_STAYS[0]);
+      // Carries forward the nearest EARLIER day's already-chosen
+      // accommodation, same reasoning as trip-context.tsx's addDay/
+      // syncDayCount (22 July 2026) - only actually falls back to The
+      // Machrie if no earlier day has one set either (a brand-new trip's
+      // very first day, most notably). Without this, a day that somehow
+      // reaches this control with no accommodation yet (e.g. one of
+      // initDays' seeded days, before either of those other two code
+      // paths get a chance to set one) would silently default back to
+      // The Machrie regardless of what the visitor had already chosen
+      // elsewhere in the trip.
+      let carried: TripAccommodation | undefined;
+      for (let i = dayIndex - 1; i >= 0; i--) {
+        if (trip.days[i]?.accommodation) {
+          carried = trip.days[i].accommodation;
+          break;
+        }
+      }
+      trip.setAccommodation(dayIndex, carried ?? FEATURED_STAYS[0]);
     }
     // Only re-run when the day or its accommodation actually changes -
     // trip itself is a fresh object each render.
@@ -102,11 +126,15 @@ export default function AccommodationControl({
         setLoading(false);
         return;
       }
-      trip.setAccommodation(dayIndex, {
-        name: (first.display_name as string).split(",")[0] || query,
-        lat: parseFloat(first.lat),
-        lng: parseFloat(first.lon),
-      });
+      trip.setAccommodationFromDay(
+        dayIndex,
+        {
+          name: (first.display_name as string).split(",")[0] || query,
+          lat: parseFloat(first.lat),
+          lng: parseFloat(first.lon),
+        },
+        changeFromHereOnly ? "fromHere" : "all"
+      );
       setEditingTown(false);
       setQuery("");
     } catch {
@@ -126,13 +154,17 @@ export default function AccommodationControl({
     const stay = featuredStayFor(value);
     if (stay) {
       setEditingTown(false);
-      trip.setAccommodation(dayIndex, { name: stay.name, lat: stay.lat, lng: stay.lng });
+      trip.setAccommodationFromDay(
+        dayIndex,
+        { name: stay.name, lat: stay.lat, lng: stay.lng },
+        changeFromHereOnly ? "fromHere" : "all"
+      );
       return;
     }
     const area = areaFor(value);
     if (area) {
       setEditingTown(false);
-      trip.setAccommodation(dayIndex, area);
+      trip.setAccommodationFromDay(dayIndex, area, changeFromHereOnly ? "fromHere" : "all");
     }
   }
 
@@ -172,6 +204,18 @@ export default function AccommodationControl({
           <option value={OTHER_VALUE}>Type a place...</option>
         </optgroup>
       </select>
+
+      <label
+        className="accommodation-scope-toggle"
+        title="Off: picking a new place here updates every day in the trip, not just this one. On: only this day and the days after it change - earlier days keep what they already had."
+      >
+        <input
+          type="checkbox"
+          checked={changeFromHereOnly}
+          onChange={(e) => setChangeFromHereOnly(e.target.checked)}
+        />
+        Only from this day on
+      </label>
 
       {editingTown && (
         <>

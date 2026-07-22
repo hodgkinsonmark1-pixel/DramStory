@@ -219,7 +219,8 @@ select.location-inline-input {
 .day-nav {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 8px 16px;
   padding: 10px 20px;
   flex-wrap: wrap;
 }
@@ -260,16 +261,20 @@ select.location-inline-input {
   font-size: 12px;
   color: var(--slate);
 }
-/* "+ Add day" and "Remove" sit right next to the day arrows. */
+/* "+ Add day"/"Remove day"/"Move day earlier"/"Move day later" - the
+   day-level actions, grouped together and kept apart from the
+   stops-level .day-nav-expand-all button (see Workspace.tsx's own
+   comment on this split). flex-wrap so a narrow panel wraps onto more
+   lines instead of clipping the last button off-screen (22 July 2026 -
+   "Remove" used to get cut off at the panel edge on a narrow trip). */
 .day-nav-actions {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-shrink: 0;
+  row-gap: 6px;
+  flex-wrap: wrap;
 }
-.day-nav-add,
-.day-nav-remove,
-.day-nav-reorder {
+.day-nav-add {
   background: none;
   border: none;
   font-size: 12px;
@@ -280,23 +285,68 @@ select.location-inline-input {
   white-space: nowrap;
   padding: 0;
 }
-.day-nav-add:hover,
-.day-nav-remove:hover,
+.day-nav-add:hover {
+  color: var(--green-deep);
+}
+/* Reorder/remove are compact icon buttons (22 July 2026, second pass) -
+   same small round shape as .day-nav-arrow just above in the panel header,
+   so the two rows of controls read as visually related without needing
+   full text labels. Clarity comes from title/aria-label, not visible
+   words - see the comment above these buttons in Workspace.tsx. */
+.day-nav-reorder,
+.day-nav-remove {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--stone);
+  background: white;
+  color: var(--slate);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
 .day-nav-reorder:hover:not(:disabled) {
+  border-color: var(--green-mid);
   color: var(--green-deep);
 }
 .day-nav-reorder:disabled {
-  opacity: 0.35;
+  opacity: 0.3;
   cursor: default;
-  text-decoration: none;
 }
 .day-nav-remove {
   color: #c0392b;
-  opacity: 0.7;
+  border-color: #e0b4ac;
 }
 .day-nav-remove:hover {
-  opacity: 1;
+  border-color: #c0392b;
   color: #c0392b;
+}
+/* Stops-level action, deliberately separate from .day-nav-actions (the
+   day-level group) - pushed to the far end of .day-nav via that
+   container's justify-content: space-between, so it reads as its own
+   thing rather than blending into the day actions list next to it
+   (22 July 2026 fix - "Expand all" used to sit flat in that same list
+   and get lost among the day-level buttons). */
+.day-nav-expand-all {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: var(--slate);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+  padding: 0;
+  flex-shrink: 0;
+}
+.day-nav-expand-all:hover {
+  color: var(--green-deep);
 }
 
 .day-count-mismatch-notice {
@@ -403,6 +453,21 @@ select.location-inline-input {
   flex-basis: 100%;
   font-size: 12px;
   color: #c0392b;
+}
+/* Scope toggle for a visitor changing where they're staying (22 July
+   2026) - default (unchecked) applies the change to the whole trip;
+   checking this scopes it to just this day and the days after it. See
+   trip-context.tsx's setAccommodationFromDay. */
+.accommodation-scope-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--slate);
+  cursor: pointer;
+}
+.accommodation-scope-toggle input {
+  cursor: pointer;
 }
 
 /* Panel header is now just the "YOUR ITINERARY" eyebrow (title/subtitle
