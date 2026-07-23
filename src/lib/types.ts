@@ -81,6 +81,18 @@ export interface LocalFeature {
   heroFocalY?: number;
   /** Full-size photo URLs for the gallery lightbox. */
   gallery?: string[];
+  /** Photo credit for heroImageUrl - shown as a small corner tag. Plain
+   *  text, or a "[label](url)" markdown-style link to the source/license
+   *  page. Undefined/blank means no credit is required (own photography,
+   *  CC0/public domain) - required whenever the photo is CC BY or CC
+   *  BY-SA licensed (e.g. sourced from Wikimedia Commons). */
+  heroImageCredit?: string;
+  /** Photo credits for `gallery`, index-aligned (galleryCredits[i] is the
+   *  credit for gallery[i]) - an empty string at an index means that
+   *  photo needs no credit. Shown in the lightbox for whichever photo is
+   *  currently enlarged. Same plain-text-or-markdown-link format as
+   *  heroImageCredit. */
+  galleryCredits?: string[];
 }
 
 export interface JournalPost {

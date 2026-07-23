@@ -114,8 +114,10 @@ export interface AirtableLocalFeatureFields {
   "Pairs Well With"?: string;
   "Wildlife & Seasonal Highlights"?: string;
   "Hero Image"?: AirtableAttachment[];
+  "Hero Image Credit"?: string;
   "Hero Focal Y"?: number;
   Gallery?: AirtableAttachment[];
+  "Gallery Credits"?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -225,10 +227,16 @@ export function mapToLocalFeature(id: string, fields: AirtableLocalFeatureFields
     heroImageUrl: fields["Hero Image"]?.[0]
       ? `/api/attachment?t=tblwMce8jhsX9rYu9&r=${id}&f=fldsX3VuFuEFdIo3A&i=0`
       : undefined,
+    heroImageCredit: fields["Hero Image Credit"] || undefined,
     heroFocalY: fields["Hero Focal Y"],
     gallery: (fields.Gallery ?? []).map(
       (_, i) => `/api/attachment?t=tblwMce8jhsX9rYu9&r=${id}&f=fld3U3Zq1Y8NbxPht&i=${i}`
     ),
+    // Index-aligned with `gallery` above (line 1 -> gallery[0], etc.) -
+    // see the "Gallery Credits" field description in Airtable. Left
+    // unset entirely when the field is blank, rather than an array of
+    // empty strings, so callers can cheaply check `galleryCredits?.[i]`.
+    galleryCredits: fields["Gallery Credits"] ? fields["Gallery Credits"].split("\n") : undefined,
   };
 }
 
