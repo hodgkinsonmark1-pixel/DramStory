@@ -6,6 +6,15 @@ import { renderJournalBody, estimateReadMinutes } from "@/lib/journal-render";
 import Footer from "@/components/Footer";
 import PageHeader from "@/components/PageHeader";
 
+// Forced dynamic 24 July 2026 - same fix as /explore/[slug] and
+// /distilleries/[slug], same day, same root cause: generateStaticParams
+// below made this page fully static (built once, frozen until the next
+// deploy), already found and fixed on the /journal index but never
+// extended to individual posts. An edit to a post's body, or flipping
+// Published on, stayed invisible on the post's own page until the next
+// deploy. See docs/technical-notes.md.
+export const dynamic = "force-dynamic";
+
 export async function generateStaticParams() {
   const posts = await getJournalPosts();
   return posts.map((p) => ({ slug: p.slug }));

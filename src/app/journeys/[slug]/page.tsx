@@ -11,6 +11,14 @@ import JourneyDayMap from "@/components/journeys/JourneyDayMap";
 import AddJourneyToTripButton from "@/components/journeys/AddJourneyToTripButton";
 import AddDayToTripButton from "@/components/journeys/AddDayToTripButton";
 
+// Forced dynamic 24 July 2026 - same fix as the other detail routes,
+// same day, same root cause. The journey content itself is static
+// (CLASSIC_JOURNEYS, in-code), but this page also pulls live
+// Airtable-backed getDistilleries()/getLocalFeatures() for stop names
+// and map coordinates - generateStaticParams below meant those were
+// also frozen at build time. See docs/technical-notes.md.
+export const dynamic = "force-dynamic";
+
 function JourneyStopsRow({
   label,
   stops,

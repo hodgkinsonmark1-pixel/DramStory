@@ -98,11 +98,55 @@ const CATEGORY_COLORS: Record<LocalFeature["category"], string> = {
   transport: "#5C7A99",
 };
 
-// Beach/Walk/Bike Route/Local Gem get the single-column editorial
-// treatment built for Natural Features. Every other category still
-// uses the two-column Distillery-derived layout below, until each of
-// those gets its own pass (Transport is next).
-const NATURAL_FEATURE_CATEGORIES: LocalFeature["category"][] = ["beach", "walk", "bike-route", "local-gem"];
+// Beach/Walk/Bike Route/Local Gem/Historic Site get the single-column
+// editorial treatment built for Natural Features (Historic Site joined
+// 24 July 2026, matching Machir Bay's page as the reference standard).
+// Every other category still uses the two-column Distillery-derived
+// layout below, until each of those gets its own pass (Attraction Gem
+// is reviewed separately next; Transport after).
+const NATURAL_FEATURE_CATEGORIES: LocalFeature["category"][] = ["beach", "walk", "bike-route", "local-gem", "historic-site"];
+
+/** Small top-right corner tag for photo attribution - shown on a hero
+ *  image or in the lightbox whenever that photo has a credit set. Top
+ *  corner deliberately, not bottom - both hero layouts already put the
+ *  "Get Directions"/"Add to Journey" buttons bottom-right, and only the
+ *  "← Back" link occupies the top, which sits top-LEFT. Credit text is
+ *  either plain ("Photo: Jane Doe") or a "[label](url)" markdown-style
+ *  link to the source/license page (e.g. a Wikimedia Commons file page)
+ *  - CC BY/CC BY-SA images require this attribution, CC0/public-domain/
+ *  own photography don't, hence credit being optional per-photo rather
+ *  than a fixed caption. External link, so a real <a> tag (not the
+ *  internal-only renderWithLinks/Link pattern). */
+function PhotoCredit({ credit }: { credit?: string }) {
+  if (!credit) return null;
+  const match = credit.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+  const label = match ? match[1] : credit;
+  const href = match ? match[2] : null;
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 8,
+        right: 8,
+        zIndex: 3,
+        background: "rgba(0,0,0,0.55)",
+        color: "rgba(255,255,255,0.9)",
+        fontSize: 10,
+        lineHeight: 1.4,
+        padding: "3px 8px",
+        borderRadius: 4,
+      }}
+    >
+      {href ? (
+        <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>
+          {label}
+        </a>
+      ) : (
+        label
+      )}
+    </div>
+  );
+}
 
 /** Renders plain text containing [label](/path) markdown-style links as
  *  real internal <Link>s. */
@@ -172,6 +216,7 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
             unoptimized
             style={{ objectFit: "contain" }}
           />
+          <PhotoCredit credit={f.galleryCredits?.[lightboxIndex]} />
         </div>
         {f.gallery.length > 1 && (
           <button
@@ -223,6 +268,7 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
               }}
             />
           )}
+          <PhotoCredit credit={f.heroImageCredit} />
           <div className="nf-hero-overlay" />
           <Link href={backHref} style={{ position: "absolute", top: 16, left: 20, color: "white", fontSize: 12, opacity: 0.85 }}>
             &larr; {backLabel}
@@ -434,9 +480,9 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // Everything else (Food & Drink, Golf & Spa, Transport, Historic
-  // Site, Attraction Gem): unchanged two-column layout for now, each
-  // gets its own pass next.
+  // Everything else (Food & Drink, Golf & Spa, Transport, Attraction
+  // Gem, Ferry Port, Airport): unchanged two-column layout for now,
+  // each gets its own pass next.
   // ─────────────────────────────────────────────────────────────────
   const isWalkOrRide = f.category === "walk" || f.category === "bike-route";
   const isFoodDrink = f.category === "pub" || f.category === "cafe" || f.category === "restaurant";
@@ -464,6 +510,7 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
             {f.icon}
           </div>
         )}
+        <PhotoCredit credit={f.heroImageCredit} />
         <div className="distillery-hero-overlay" />
         <div className="distillery-hero-content">
           <div>
