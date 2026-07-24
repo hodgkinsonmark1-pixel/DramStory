@@ -54,6 +54,13 @@ export interface LocalFeature {
   // ─── Natural Features content model (Beach/Walk/Bike Route/Local Gem) ───
   /** Punchy 1-2 sentence hook shown as a callout under the hero. */
   whyVisit?: string;
+  /** One tight sentence written specifically for the map pin popup - NOT
+   *  a trimmed whyVisit. whyVisit has grown into full-paragraph blockquote
+   *  copy for the page itself, so it's no longer reliably popup-length.
+   *  See MapCanvas.tsx's buildFeatureMarker for the truncated-fallback
+   *  chain used when this is blank (mirrors the Tours "Short Summary"
+   *  precedent in docs/deferred-features.md). */
+  pinSummary?: string;
   /** Past-tense narrative - founding/notable events. Below the line. */
   history?: string;
   /** Shown as its own amber callout box, same treatment as the

@@ -103,6 +103,7 @@ export interface AirtableLocalFeatureFields {
   Website?: string;
   "Food Hygiene Rating"?: string;
   "Why Visit"?: string;
+  "Pin Summary"?: string;
   History?: string;
   "Safety & Tide Notes"?: string;
   "Tide Times URL"?: string;
@@ -209,6 +210,7 @@ export function mapToLocalFeature(id: string, fields: AirtableLocalFeatureFields
     websiteUrl: fields.Website,
     hygieneRating: fields["Food Hygiene Rating"],
     whyVisit: fields["Why Visit"],
+    pinSummary: fields["Pin Summary"],
     history: fields.History,
     safetyNotes: fields["Safety & Tide Notes"],
     tideTimesUrl: fields["Tide Times URL"],

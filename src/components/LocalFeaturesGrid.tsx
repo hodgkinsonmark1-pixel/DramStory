@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { LocalFeature } from "@/lib/types";
+import { truncateSummary } from "@/lib/text";
 
 interface LocalFeaturesGridProps {
   features: LocalFeature[];
@@ -118,7 +119,9 @@ export default function LocalFeaturesGrid({ features }: LocalFeaturesGridProps) 
                   {f.icon} {CATEGORY_LABEL[f.category] ?? f.category}
                 </div>
                 <h2 className="dist-card-name">{f.name}</h2>
-                <p className="dist-card-tagline">{f.whyVisit ?? f.description}</p>
+                <p className="dist-card-tagline">
+                  {f.pinSummary ?? truncateSummary(f.whyVisit ?? f.description)}
+                </p>
               </div>
             </Link>
           ))}
