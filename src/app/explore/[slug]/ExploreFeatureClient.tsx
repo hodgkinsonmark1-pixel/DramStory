@@ -98,11 +98,13 @@ const CATEGORY_COLORS: Record<LocalFeature["category"], string> = {
   transport: "#5C7A99",
 };
 
-// Beach/Walk/Bike Route/Local Gem get the single-column editorial
-// treatment built for Natural Features. Every other category still
-// uses the two-column Distillery-derived layout below, until each of
-// those gets its own pass (Transport is next).
-const NATURAL_FEATURE_CATEGORIES: LocalFeature["category"][] = ["beach", "walk", "bike-route", "local-gem"];
+// Beach/Walk/Bike Route/Local Gem/Historic Site get the single-column
+// editorial treatment built for Natural Features (Historic Site joined
+// 24 July 2026, matching Machir Bay's page as the reference standard).
+// Every other category still uses the two-column Distillery-derived
+// layout below, until each of those gets its own pass (Attraction Gem
+// is reviewed separately next; Transport after).
+const NATURAL_FEATURE_CATEGORIES: LocalFeature["category"][] = ["beach", "walk", "bike-route", "local-gem", "historic-site"];
 
 /** Small top-right corner tag for photo attribution - shown on a hero
  *  image or in the lightbox whenever that photo has a credit set. Top
@@ -478,9 +480,9 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // Everything else (Food & Drink, Golf & Spa, Transport, Historic
-  // Site, Attraction Gem): unchanged two-column layout for now, each
-  // gets its own pass next.
+  // Everything else (Food & Drink, Golf & Spa, Transport, Attraction
+  // Gem, Ferry Port, Airport): unchanged two-column layout for now,
+  // each gets its own pass next.
   // ─────────────────────────────────────────────────────────────────
   const isWalkOrRide = f.category === "walk" || f.category === "bike-route";
   const isFoodDrink = f.category === "pub" || f.category === "cafe" || f.category === "restaurant";
