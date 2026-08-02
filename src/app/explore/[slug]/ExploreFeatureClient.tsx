@@ -505,7 +505,14 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
 
       <div className="distillery-hero">
         {f.heroImageUrl ? (
-          <Image className="distillery-hero-img" src={f.heroImageUrl} alt={f.name} fill unoptimized style={{ objectFit: "cover" }} />
+          <Image
+            className="distillery-hero-img"
+            src={f.heroImageUrl}
+            alt={f.name}
+            fill
+            unoptimized
+            style={{ objectFit: "cover", objectPosition: `center ${f.heroFocalY ?? 30}%` }}
+          />
         ) : (
           <div
             style={{
