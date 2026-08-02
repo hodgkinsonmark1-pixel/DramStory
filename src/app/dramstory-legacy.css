@@ -297,6 +297,10 @@ html,body{min-height:100%;font-family:var(--font-body);background:var(--off-whit
 .dist-sidebar{position:sticky;top:0;display:flex;flex-direction:column;gap:16px}
 .sidebar-card{background:white;border:1px solid var(--stone);border-radius:var(--radius);padding:20px}
 .sidebar-card-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--slate);margin-bottom:14px}
+.horizontal-info-bar{margin-top:32px}
+.horizontal-info-bar .info-grid{display:flex;flex-wrap:wrap;gap:20px 40px}
+.horizontal-info-bar .info-item{flex:1 1 200px;min-width:180px}
+.horizontal-info-bar .dist-website-link{display:block;margin-top:16px}
 .facilities-grid{display:flex;flex-wrap:wrap;gap:8px}
 .facility-badge{padding:5px 12px;border-radius:100px;background:var(--green-light);color:var(--green-deep);font-size:11px;font-weight:500}
 .next-stop-card{display:flex;align-items:center;gap:12px;padding:12px;background:var(--off-white);border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s;border:1px solid transparent;margin-bottom:8px}

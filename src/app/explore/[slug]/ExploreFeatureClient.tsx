@@ -498,6 +498,90 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
   const isWalkOrRide = f.category === "walk" || f.category === "bike-route";
   const isFoodDrink = f.category === "pub" || f.category === "cafe" || f.category === "restaurant";
   const hasTripTips = f.bestTimeToVisit || f.nearestFacilities || f.whatToBring || f.mobileSignalNote || f.pairsWellWith;
+  // Golf and spa Visit Info fields tend to be full sentences rather than
+  // short facts, so the narrow sidebar card wraps awkwardly for them.
+  // These two categories get the card rendered as a full-width horizontal
+  // bar above the two-column layout instead. Other "dist-" categories
+  // (pub/cafe/restaurant/transport) keep the original sidebar placement
+  // for now.
+  const isHorizontalVisitInfo = f.category === "golf" || f.category === "spa";
+
+  const tripTipsContent = (
+    <div className="info-grid">
+      {f.bestTimeToVisit && (
+        <div className="info-item">
+          <div className="info-label">Best time to visit</div>
+          <div className="info-value">{f.bestTimeToVisit}</div>
+        </div>
+      )}
+      {f.nearestFacilities && (
+        <div className="info-item">
+          <div className="info-label">Nearest facilities</div>
+          <div className="info-value">{f.nearestFacilities}</div>
+        </div>
+      )}
+      {f.whatToBring && (
+        <div className="info-item">
+          <div className="info-label">What to bring</div>
+          <div className="info-value">{f.whatToBring}</div>
+        </div>
+      )}
+      {f.mobileSignalNote && (
+        <div className="info-item">
+          <div className="info-label">Mobile signal</div>
+          <div className="info-value">{f.mobileSignalNote}</div>
+        </div>
+      )}
+      {f.pairsWellWith && (
+        <div className="info-item">
+          <div className="info-label">Pairs well with</div>
+          <div className="info-value">{renderWithLinks(f.pairsWellWith)}</div>
+        </div>
+      )}
+    </div>
+  );
+
+  const visitInfoContent = (
+    <>
+      <div className="info-grid">
+        {isWalkOrRide && f.length && (
+          <div className="info-item">
+            <div className="info-label">Length</div>
+            <div className="info-value">{f.length}</div>
+          </div>
+        )}
+        {isWalkOrRide && f.duration && (
+          <div className="info-item">
+            <div className="info-label">Duration</div>
+            <div className="info-value">{f.duration}</div>
+          </div>
+        )}
+        {isWalkOrRide && f.difficulty && (
+          <div className="info-item">
+            <div className="info-label">Difficulty</div>
+            <div className="info-value">{f.difficulty}</div>
+          </div>
+        )}
+        <div className="info-item">
+          <div className="info-label">Opening hours</div>
+          <div className="info-value">{f.openingHours}</div>
+        </div>
+        <div className="info-item">
+          <div className="info-label">Parking</div>
+          <div className="info-value">{f.parking}</div>
+        </div>
+        <div className="info-item">
+          <div className="info-label">Accessibility</div>
+          <div className="info-value">{f.accessibility}</div>
+        </div>
+      </div>
+      {f.websiteUrl && (
+        <a href={f.websiteUrl} target="_blank" rel="noopener noreferrer" className="dist-website-link">
+          Visit {f.name}&apos;s official website ↗
+        </a>
+      )}
+    </>
+  );
 
   return (
     <div className="distillery-page page">
@@ -505,7 +589,14 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
 
       <div className="distillery-hero">
         {f.heroImageUrl ? (
-          <Image className="distillery-hero-img" src={f.heroImageUrl} alt={f.name} fill unoptimized style={{ objectFit: "cover" }} />
+          <Image
+            className="distillery-hero-img"
+            src={f.heroImageUrl}
+            alt={f.name}
+            fill
+            unoptimized
+            style={{ objectFit: "cover", objectPosition: `center ${f.heroFocalY ?? 30}%` }}
+          />
         ) : (
           <div
             style={{
@@ -558,8 +649,8 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
       )}
 
       <div className="distillery-body">
-        <div className="dist-detail-grid">
-          <div>
+        {isHorizontalVisitInfo ? (
+          <>
             <div className="dist-section">
               <div className="dist-section-title">About</div>
               {f.description.split("\n\n").map((para, i) => (
@@ -598,89 +689,81 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
                 </div>
               </div>
             )}
-          </div>
 
-          <div className="dist-sidebar">
-            <div className="sidebar-card">
+            {/* Visit info and Trip tips render as full-width horizontal bars
+                below the About/Highlights/Gallery content (and its photos),
+                rather than as a narrow sidebar - golf/spa fields tend to be
+                long-form text that wrapped awkwardly in the 320px column. */}
+            <div className="sidebar-card horizontal-info-bar">
               <div className="sidebar-card-title">Visit info</div>
-              <div className="info-grid">
-                {isWalkOrRide && f.length && (
-                  <div className="info-item">
-                    <div className="info-label">Length</div>
-                    <div className="info-value">{f.length}</div>
-                  </div>
-                )}
-                {isWalkOrRide && f.duration && (
-                  <div className="info-item">
-                    <div className="info-label">Duration</div>
-                    <div className="info-value">{f.duration}</div>
-                  </div>
-                )}
-                {isWalkOrRide && f.difficulty && (
-                  <div className="info-item">
-                    <div className="info-label">Difficulty</div>
-                    <div className="info-value">{f.difficulty}</div>
-                  </div>
-                )}
-                <div className="info-item">
-                  <div className="info-label">Opening hours</div>
-                  <div className="info-value">{f.openingHours}</div>
-                </div>
-                <div className="info-item">
-                  <div className="info-label">Parking</div>
-                  <div className="info-value">{f.parking}</div>
-                </div>
-                <div className="info-item">
-                  <div className="info-label">Accessibility</div>
-                  <div className="info-value">{f.accessibility}</div>
-                </div>
-              </div>
-              {f.websiteUrl && (
-                <a href={f.websiteUrl} target="_blank" rel="noopener noreferrer" className="dist-website-link">
-                  Visit {f.name}&apos;s official website ↗
-                </a>
-              )}
+              {visitInfoContent}
             </div>
 
             {hasTripTips && (
-              <div className="sidebar-card">
+              <div className="sidebar-card horizontal-info-bar">
                 <div className="sidebar-card-title">Trip tips</div>
-                <div className="info-grid">
-                  {f.bestTimeToVisit && (
-                    <div className="info-item">
-                      <div className="info-label">Best time to visit</div>
-                      <div className="info-value">{f.bestTimeToVisit}</div>
-                    </div>
-                  )}
-                  {f.nearestFacilities && (
-                    <div className="info-item">
-                      <div className="info-label">Nearest facilities</div>
-                      <div className="info-value">{f.nearestFacilities}</div>
-                    </div>
-                  )}
-                  {f.whatToBring && (
-                    <div className="info-item">
-                      <div className="info-label">What to bring</div>
-                      <div className="info-value">{f.whatToBring}</div>
-                    </div>
-                  )}
-                  {f.mobileSignalNote && (
-                    <div className="info-item">
-                      <div className="info-label">Mobile signal</div>
-                      <div className="info-value">{f.mobileSignalNote}</div>
-                    </div>
-                  )}
-                  {f.pairsWellWith && (
-                    <div className="info-item">
-                      <div className="info-label">Pairs well with</div>
-                      <div className="info-value">{renderWithLinks(f.pairsWellWith)}</div>
-                    </div>
-                  )}
-                </div>
+                {tripTipsContent}
               </div>
             )}
+          </>
+        ) : (
+          <div className="dist-detail-grid">
+            <div>
+              <div className="dist-section">
+                <div className="dist-section-title">About</div>
+                {f.description.split("\n\n").map((para, i) => (
+                  <p className="dist-p" key={i} style={{ marginBottom: 12 }}>
+                    {renderWithLinks(para)}
+                  </p>
+                ))}
+              </div>
+
+              {f.highlights.length > 0 && (
+                <div className="dist-section">
+                  <div className="dist-section-title">Highlights</div>
+                  <ul className="fun-facts-list">
+                    {f.highlights.map((h) => (
+                      <li key={h}>{renderWithLinks(h)}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {f.gallery && f.gallery.length > 0 && (
+                <div className="dist-section">
+                  <div className="dist-section-title">Gallery</div>
+                  <div className="dist-gallery-grid">
+                    {f.gallery.map((url, i) => (
+                      <button
+                        type="button"
+                        className="dist-gallery-img"
+                        key={i}
+                        onClick={() => setLightboxIndex(i)}
+                        aria-label={`View larger photo ${i + 1} of ${f.name}`}
+                      >
+                        <Image src={url} alt={`${f.name} photo ${i + 1}`} fill unoptimized style={{ objectFit: "cover" }} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="dist-sidebar">
+              <div className="sidebar-card">
+                <div className="sidebar-card-title">Visit info</div>
+                {visitInfoContent}
+              </div>
+
+              {hasTripTips && (
+                <div className="sidebar-card">
+                  <div className="sidebar-card-title">Trip tips</div>
+                  {tripTipsContent}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {lightbox}
