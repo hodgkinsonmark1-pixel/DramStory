@@ -498,6 +498,55 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
   const isWalkOrRide = f.category === "walk" || f.category === "bike-route";
   const isFoodDrink = f.category === "pub" || f.category === "cafe" || f.category === "restaurant";
   const hasTripTips = f.bestTimeToVisit || f.nearestFacilities || f.whatToBring || f.mobileSignalNote || f.pairsWellWith;
+  // Golf and spa Visit Info fields tend to be full sentences rather than
+  // short facts, so the narrow sidebar card wraps awkwardly for them.
+  // These two categories get the card rendered as a full-width horizontal
+  // bar above the two-column layout instead. Other "dist-" categories
+  // (pub/cafe/restaurant/transport) keep the original sidebar placement
+  // for now.
+  const isHorizontalVisitInfo = f.category === "golf" || f.category === "spa";
+
+  const visitInfoContent = (
+    <>
+      <div className="info-grid">
+        {isWalkOrRide && f.length && (
+          <div className="info-item">
+            <div className="info-label">Length</div>
+            <div className="info-value">{f.length}</div>
+          </div>
+        )}
+        {isWalkOrRide && f.duration && (
+          <div className="info-item">
+            <div className="info-label">Duration</div>
+            <div className="info-value">{f.duration}</div>
+          </div>
+        )}
+        {isWalkOrRide && f.difficulty && (
+          <div className="info-item">
+            <div className="info-label">Difficulty</div>
+            <div className="info-value">{f.difficulty}</div>
+          </div>
+        )}
+        <div className="info-item">
+          <div className="info-label">Opening hours</div>
+          <div className="info-value">{f.openingHours}</div>
+        </div>
+        <div className="info-item">
+          <div className="info-label">Parking</div>
+          <div className="info-value">{f.parking}</div>
+        </div>
+        <div className="info-item">
+          <div className="info-label">Accessibility</div>
+          <div className="info-value">{f.accessibility}</div>
+        </div>
+      </div>
+      {f.websiteUrl && (
+        <a href={f.websiteUrl} target="_blank" rel="noopener noreferrer" className="dist-website-link">
+          Visit {f.name}&apos;s official website ↗
+        </a>
+      )}
+    </>
+  );
 
   return (
     <div className="distillery-page page">
@@ -565,6 +614,12 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
       )}
 
       <div className="distillery-body">
+        {isHorizontalVisitInfo && (
+          <div className="sidebar-card visit-info-bar">
+            <div className="sidebar-card-title">Visit info</div>
+            {visitInfoContent}
+          </div>
+        )}
         <div className="dist-detail-grid">
           <div>
             <div className="dist-section">
@@ -608,46 +663,12 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
           </div>
 
           <div className="dist-sidebar">
-            <div className="sidebar-card">
-              <div className="sidebar-card-title">Visit info</div>
-              <div className="info-grid">
-                {isWalkOrRide && f.length && (
-                  <div className="info-item">
-                    <div className="info-label">Length</div>
-                    <div className="info-value">{f.length}</div>
-                  </div>
-                )}
-                {isWalkOrRide && f.duration && (
-                  <div className="info-item">
-                    <div className="info-label">Duration</div>
-                    <div className="info-value">{f.duration}</div>
-                  </div>
-                )}
-                {isWalkOrRide && f.difficulty && (
-                  <div className="info-item">
-                    <div className="info-label">Difficulty</div>
-                    <div className="info-value">{f.difficulty}</div>
-                  </div>
-                )}
-                <div className="info-item">
-                  <div className="info-label">Opening hours</div>
-                  <div className="info-value">{f.openingHours}</div>
-                </div>
-                <div className="info-item">
-                  <div className="info-label">Parking</div>
-                  <div className="info-value">{f.parking}</div>
-                </div>
-                <div className="info-item">
-                  <div className="info-label">Accessibility</div>
-                  <div className="info-value">{f.accessibility}</div>
-                </div>
+            {!isHorizontalVisitInfo && (
+              <div className="sidebar-card">
+                <div className="sidebar-card-title">Visit info</div>
+                {visitInfoContent}
               </div>
-              {f.websiteUrl && (
-                <a href={f.websiteUrl} target="_blank" rel="noopener noreferrer" className="dist-website-link">
-                  Visit {f.name}&apos;s official website ↗
-                </a>
-              )}
-            </div>
+            )}
 
             {hasTripTips && (
               <div className="sidebar-card">
