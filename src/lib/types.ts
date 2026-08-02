@@ -38,6 +38,10 @@ export interface LocalFeature {
   parking: string;
   accessibility: string;
   openingHours: string;
+  /** Postcode for satnav/directions - currently populated for transport
+   *  listings (ferry terminals, the airport) where visitors are actually
+   *  driving to a specific building, not general Local Feature content. */
+  postcode?: string;
   /** "Best features" - one per line in Airtable, split into an array. */
   highlights: string[];
   /** Walks/bike routes only - undefined for beaches and local gems. */

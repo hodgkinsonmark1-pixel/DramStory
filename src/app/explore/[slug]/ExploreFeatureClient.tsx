@@ -562,6 +562,12 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
             <div className="info-value">{f.difficulty}</div>
           </div>
         )}
+        {f.postcode && (
+          <div className="info-item">
+            <div className="info-label">Postcode</div>
+            <div className="info-value">{f.postcode}</div>
+          </div>
+        )}
         <div className="info-item">
           <div className="info-label">Opening hours</div>
           <div className="info-value">{f.openingHours}</div>

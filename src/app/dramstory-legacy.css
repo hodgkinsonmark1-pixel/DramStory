@@ -247,6 +247,9 @@ html,body{min-height:100%;font-family:var(--font-body);background:var(--off-whit
 .dist-p{font-size:14px;color:var(--peat);line-height:1.75}
 .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .info-item{background:white;border-radius:var(--radius-sm);padding:14px 16px;border:1px solid var(--stone)}
+/* When a card list has an odd number of items, the last one lands alone in
+   the final row with dead space beside it - span it full width instead. */
+.info-item:last-child:nth-child(odd){grid-column:1 / -1}
 .info-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--slate);margin-bottom:4px}
 .info-value{font-size:14px;color:var(--dark);font-weight:500}
 .tour-card{background:white;border:1px solid var(--stone);border-radius:var(--radius);padding:20px;margin-bottom:12px}
@@ -300,6 +303,8 @@ html,body{min-height:100%;font-family:var(--font-body);background:var(--off-whit
 .horizontal-info-bar{margin-top:32px}
 .horizontal-info-bar .info-grid{display:flex;flex-wrap:wrap;gap:20px 40px}
 .horizontal-info-bar .info-item{flex:1 1 200px;min-width:180px}
+/* Same odd-one-out fix as the base .info-grid, for the flex-wrap variant. */
+.horizontal-info-bar .info-item:last-child:nth-child(odd){flex-basis:100%}
 .horizontal-info-bar .dist-website-link{display:block;margin-top:16px}
 .facilities-grid{display:flex;flex-wrap:wrap;gap:8px}
 .facility-badge{padding:5px 12px;border-radius:100px;background:var(--green-light);color:var(--green-deep);font-size:11px;font-weight:500}

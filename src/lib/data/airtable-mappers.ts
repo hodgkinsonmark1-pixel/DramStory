@@ -96,6 +96,7 @@ export interface AirtableLocalFeatureFields {
   Parking?: string;
   Accessibility?: string;
   "Opening Hours"?: string;
+  Postcode?: string;
   Highlights?: string;
   Length?: string;
   Duration?: string;
@@ -203,6 +204,7 @@ export function mapToLocalFeature(id: string, fields: AirtableLocalFeatureFields
     parking: fields.Parking ?? "",
     accessibility: fields.Accessibility ?? "",
     openingHours: fields["Opening Hours"] ?? "",
+    postcode: fields.Postcode,
     highlights: (fields.Highlights ?? "").split("\n").filter((line) => line.trim().length > 0),
     length: fields.Length,
     duration: fields.Duration,
