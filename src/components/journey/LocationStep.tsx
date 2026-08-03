@@ -4,7 +4,7 @@ import { Suspense, use, useState } from "react";
 import type { Distillery, JournalPost, LocalEvent, LocationAnswer } from "@/lib/types";
 import { REGIONS } from "@/lib/journey-options";
 import SiteHeader from "@/components/SiteHeader";
-import BackgroundImage from "@/components/BackgroundImage";
+import { useBackgroundVideoVisible } from "@/lib/background-video-context";
 import HomeSectionsBelowFold from "@/components/home/HomeSectionsBelowFold";
 
 interface LocationStepProps {
@@ -83,6 +83,11 @@ export function DistilleryPicker({
  * on selecting a dropdown value instead of on the initial card click.
  */
 export default function LocationStep({ distilleriesPromise, localEventsPromise, journalPostsPromise, onNext, onBack }: LocationStepProps) {
+  // Claims the shared background video (see SiteBackgroundVideo) while
+  // this question is showing. Currently inactivated in JourneyFlow (see
+  // that file's header comment) but kept wired up and ready for when a
+  // second region brings this question back.
+  useBackgroundVideoVisible(true);
   const [selected, setSelected] = useState<OptionId | null>(null);
   const [airportName, setAirportName] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
@@ -98,7 +103,6 @@ export default function LocationStep({ distilleriesPromise, localEventsPromise, 
   return (
     <>
     <div className="journey-screen">
-      <BackgroundImage />
       <div className="hero-overlay" />
       <SiteHeader transparent logoSize={48} />
 

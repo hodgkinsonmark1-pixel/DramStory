@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import type { Distillery, InterestCategoryId, JournalPost, LocalEvent } from "@/lib/types";
 import { INTEREST_CATEGORIES } from "@/lib/journey-options";
 import SiteHeader from "@/components/SiteHeader";
-import BackgroundImage from "@/components/BackgroundImage";
+import { useBackgroundVideoVisible } from "@/lib/background-video-context";
 import HomeSectionsBelowFold from "@/components/home/HomeSectionsBelowFold";
 
 interface InterestsStepProps {
@@ -27,6 +27,11 @@ const SELECTABLE_CATEGORIES = INTEREST_CATEGORIES.filter((c) => !c.alwaysOn);
  * combine interests rather than picking just one.
  */
 export default function InterestsStep({ distilleriesPromise, localEventsPromise, journalPostsPromise, onNext, onBack }: InterestsStepProps) {
+  // Claims the shared background video (see SiteBackgroundVideo) while
+  // this question is showing. Currently inactivated in JourneyFlow (see
+  // that file's header comment) but kept wired up and ready for when a
+  // second region brings this question back.
+  useBackgroundVideoVisible(true);
   const [selected, setSelected] = useState<Set<InterestCategoryId>>(new Set());
 
   function toggle(id: InterestCategoryId) {
@@ -41,7 +46,6 @@ export default function InterestsStep({ distilleriesPromise, localEventsPromise,
   return (
     <>
     <div className="journey-screen">
-      <BackgroundImage />
       <div className="hero-overlay" />
       <SiteHeader transparent logoSize={48} />
 

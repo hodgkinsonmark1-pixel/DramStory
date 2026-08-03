@@ -19,6 +19,7 @@ import AccommodationControl from "./AccommodationControl";
 import DateRangePicker from "./DateRangePicker";
 import TripEssentials from "./TripEssentials";
 import OnboardingOverlay from "./OnboardingOverlay";
+import { useBackgroundVideoVisible } from "@/lib/background-video-context";
 
 interface WorkspaceProps {
   distilleries: Distillery[];
@@ -103,6 +104,11 @@ export default function Workspace({
   timing,
   todayNotice,
 }: WorkspaceProps) {
+  // The itinerary/map workspace is the one intake-adjacent screen that
+  // should NOT show the shared background video (see SiteBackgroundVideo)
+  // - reaching here means the question screens are done and the actual
+  // planning tool is what matters now.
+  useBackgroundVideoVisible(false);
   const trip = useTrip();
   const [activeCategories, setActiveCategories] = useState<Set<InterestCategoryId>>(
     new Set(initialInterests)
