@@ -501,10 +501,17 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
   // Golf, spa and transport Visit Info fields tend to be full sentences
   // rather than short facts, so the narrow sidebar card wraps awkwardly for
   // them. These categories get the card rendered as a full-width horizontal
-  // bar below the About/Highlights/Gallery content instead. Other "dist-"
-  // categories (pub/cafe/restaurant) keep the original sidebar placement
-  // for now.
-  const isHorizontalVisitInfo = f.category === "golf" || f.category === "spa" || f.category === "transport";
+  // bar instead of the 320px sidebar. Other "dist-" categories (pub/cafe/
+  // restaurant) keep the original sidebar placement for now.
+  const isTransport = f.category === "transport";
+  const isHorizontalVisitInfo = f.category === "golf" || f.category === "spa" || isTransport;
+  // Golf/spa are aspirational listings - the photos/story do the selling,
+  // so both cards sit below all photo content. Transport pages are the
+  // opposite: visitors land on them needing practical facts (is it open,
+  // where do I park) right away, so Visit Info goes back to the top for
+  // transport specifically, while Trip Tips (supplementary "nice to know"
+  // content) still sits at the bottom for all three.
+  const visitInfoAtTop = isTransport;
 
   const tripTipsContent = (
     <div className="info-grid">
@@ -589,6 +596,59 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
     </>
   );
 
+  // About/Highlights/Gallery - the shared "story" content, reused by both
+  // horizontal-bar positions (Visit Info can sit above or below this block
+  // depending on category, see visitInfoAtTop).
+  const mainContent = (
+    <>
+      <div className="dist-section">
+        <div className="dist-section-title">About</div>
+        {f.description.split("\n\n").map((para, i) => (
+          <p className="dist-p" key={i} style={{ marginBottom: 12 }}>
+            {renderWithLinks(para)}
+          </p>
+        ))}
+      </div>
+
+      {f.highlights.length > 0 && (
+        <div className="dist-section">
+          <div className="dist-section-title">Highlights</div>
+          <ul className="fun-facts-list">
+            {f.highlights.map((h) => (
+              <li key={h}>{renderWithLinks(h)}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {f.gallery && f.gallery.length > 0 && (
+        <div className="dist-section">
+          <div className="dist-section-title">Gallery</div>
+          <div className="dist-gallery-grid">
+            {f.gallery.map((url, i) => (
+              <button
+                type="button"
+                className="dist-gallery-img"
+                key={i}
+                onClick={() => setLightboxIndex(i)}
+                aria-label={`View larger photo ${i + 1} of ${f.name}`}
+              >
+                <Image src={url} alt={`${f.name} photo ${i + 1}`} fill unoptimized style={{ objectFit: "cover" }} />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+
+  const visitInfoBar = (
+    <div className="sidebar-card horizontal-info-bar" style={visitInfoAtTop ? { marginTop: 0, marginBottom: 32 } : undefined}>
+      <div className="sidebar-card-title">Visit info</div>
+      {visitInfoContent}
+    </div>
+  );
+
   return (
     <div className="distillery-page page">
       <DetailPageBar backHref={backHref} backLabel={backLabel} stopCount={totalStops} />
@@ -657,53 +717,20 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
       <div className="distillery-body">
         {isHorizontalVisitInfo ? (
           <>
-            <div className="dist-section">
-              <div className="dist-section-title">About</div>
-              {f.description.split("\n\n").map((para, i) => (
-                <p className="dist-p" key={i} style={{ marginBottom: 12 }}>
-                  {renderWithLinks(para)}
-                </p>
-              ))}
-            </div>
-
-            {f.highlights.length > 0 && (
-              <div className="dist-section">
-                <div className="dist-section-title">Highlights</div>
-                <ul className="fun-facts-list">
-                  {f.highlights.map((h) => (
-                    <li key={h}>{renderWithLinks(h)}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {f.gallery && f.gallery.length > 0 && (
-              <div className="dist-section">
-                <div className="dist-section-title">Gallery</div>
-                <div className="dist-gallery-grid">
-                  {f.gallery.map((url, i) => (
-                    <button
-                      type="button"
-                      className="dist-gallery-img"
-                      key={i}
-                      onClick={() => setLightboxIndex(i)}
-                      aria-label={`View larger photo ${i + 1} of ${f.name}`}
-                    >
-                      <Image src={url} alt={`${f.name} photo ${i + 1}`} fill unoptimized style={{ objectFit: "cover" }} />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Visit info and Trip tips render as full-width horizontal bars
-                below the About/Highlights/Gallery content (and its photos),
-                rather than as a narrow sidebar - golf/spa fields tend to be
-                long-form text that wrapped awkwardly in the 320px column. */}
-            <div className="sidebar-card horizontal-info-bar">
-              <div className="sidebar-card-title">Visit info</div>
-              {visitInfoContent}
-            </div>
+                rather than a narrow sidebar - golf/spa/transport fields tend
+                to be long-form text that wrapped awkwardly in the 320px
+                column. Golf/spa are aspirational - Visit Info sits below all
+                photo content so it doesn't compete with the story. Transport
+                is the opposite - visitors need the practical facts first, so
+                Visit Info sits above the About/Highlights/Gallery content
+                instead. Trip Tips (supplementary content) stays at the
+                bottom either way. */}
+            {visitInfoAtTop && visitInfoBar}
+
+            {mainContent}
+
+            {!visitInfoAtTop && visitInfoBar}
 
             {hasTripTips && (
               <div className="sidebar-card horizontal-info-bar">
