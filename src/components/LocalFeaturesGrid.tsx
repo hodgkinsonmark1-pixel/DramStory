@@ -4,23 +4,30 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { LocalFeature } from "@/lib/types";
+import { truncateSummary } from "@/lib/text";
 
 interface LocalFeaturesGridProps {
   features: LocalFeature[];
 }
 
 // The Hub's own scope, per how it was specced: the static, non-retail
-// content types - natural features plus historic sites and transport.
-// Deliberately excludes attraction-gem/golf/spa (Local Attractions'
-// retail-adjacent bucket) and pub/cafe/restaurant (Places to Eat) - those
-// stay pin-only on the map, no hub listing, per the site's USP.
-const HUB_CATEGORIES: { label: string; value: LocalFeature["category"] }[] = [
-  { label: "Beaches", value: "beach" },
-  { label: "Walks", value: "walk" },
-  { label: "Bike Rides", value: "bike-route" },
-  { label: "Local Gems", value: "local-gem" },
-  { label: "Historic Sites", value: "historic-site" },
-  { label: "Transport", value: "transport" },
+// content types - natural features, historic sites, leisure and transport.
+// Deliberately excludes pub/cafe/restaurant (Places to Eat) - those stay
+// pin-only on the map, no hub listing, per the site's USP.
+// Each tab maps to one or more underlying Local Feature categories, same
+// multi-category-per-tab pattern already used for "Golf & Spa" in the trip
+// planner (src/lib/journey-options.ts) - added 3 August 2026 to combine
+// Walks/Bike Rides (2 bike routes felt thin as their own tab) and to add a
+// Leisure tab (Golf/Spa/Attraction Gem were previously excluded entirely -
+// only Mactaggart Leisure Centre, Machrie Golf Links and Bothan Jura Wild
+// Sauna live there today, one record each).
+const HUB_TABS: { label: string; values: LocalFeature["category"][] }[] = [
+  { label: "Beaches", values: ["beach"] },
+  { label: "Hike & Bike", values: ["walk", "bike-route"] },
+  { label: "Local Gems", values: ["local-gem"] },
+  { label: "Historic Sites", values: ["historic-site"] },
+  { label: "Leisure", values: ["golf", "spa", "attraction-gem"] },
+  { label: "Transport", values: ["transport"] },
 ];
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -30,26 +37,34 @@ const CATEGORY_LABEL: Record<string, string> = {
   "local-gem": "Local Gem",
   "historic-site": "Historic Site",
   transport: "Transport",
+  golf: "Golf",
+  spa: "Spa",
+  "attraction-gem": "Leisure",
 };
 
 export default function LocalFeaturesGrid({ features }: LocalFeaturesGridProps) {
-  const [activeCategory, setActiveCategory] = useState<LocalFeature["category"] | null>(null);
+  const [activeTab, setActiveTab] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
+  const activeValues = useMemo(
+    () => (activeTab ? HUB_TABS.find((t) => t.label === activeTab)?.values ?? null : null),
+    [activeTab]
+  );
+
   const inScope = useMemo(
-    () => features.filter((f) => HUB_CATEGORIES.some((c) => c.value === f.category)),
+    () => features.filter((f) => HUB_TABS.some((t) => t.values.includes(f.category))),
     [features]
   );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return inScope.filter((f) => {
-      const categoryMatch = !activeCategory || f.category === activeCategory;
+      const categoryMatch = !activeValues || activeValues.includes(f.category);
       const queryMatch =
         !q || f.name.toLowerCase().includes(q) || (f.description ?? "").toLowerCase().includes(q);
       return categoryMatch && queryMatch;
     });
-  }, [inScope, activeCategory, query]);
+  }, [inScope, activeValues, query]);
 
   const sorted = useMemo(() => [...filtered].sort((a, b) => a.name.localeCompare(b.name)), [filtered]);
 
@@ -69,16 +84,16 @@ export default function LocalFeaturesGrid({ features }: LocalFeaturesGridProps) 
 
         <div className="dist-filter-group">
           <span className="dist-filter-label">Type</span>
-          <button className={"filter-btn" + (activeCategory === null ? " active" : "")} onClick={() => setActiveCategory(null)}>
+          <button className={"filter-btn" + (activeTab === null ? " active" : "")} onClick={() => setActiveTab(null)}>
             All
           </button>
-          {HUB_CATEGORIES.map((c) => (
+          {HUB_TABS.map((t) => (
             <button
-              key={c.value}
-              className={"filter-btn" + (activeCategory === c.value ? " active" : "")}
-              onClick={() => setActiveCategory(activeCategory === c.value ? null : c.value)}
+              key={t.label}
+              className={"filter-btn" + (activeTab === t.label ? " active" : "")}
+              onClick={() => setActiveTab(activeTab === t.label ? null : t.label)}
             >
-              {c.label}
+              {t.label}
             </button>
           ))}
         </div>
@@ -86,7 +101,7 @@ export default function LocalFeaturesGrid({ features }: LocalFeaturesGridProps) 
 
       <div className="dist-result-count">
         {sorted.length} feature{sorted.length === 1 ? "" : "s"}
-        {(activeCategory || query) && " matching your search"}
+        {(activeTab || query) && " matching your search"}
       </div>
 
       {sorted.length === 0 ? (
@@ -95,7 +110,7 @@ export default function LocalFeaturesGrid({ features }: LocalFeaturesGridProps) 
           <button
             className="dist-clear-link"
             onClick={() => {
-              setActiveCategory(null);
+              setActiveTab(null);
               setQuery("");
             }}
           >
@@ -118,7 +133,9 @@ export default function LocalFeaturesGrid({ features }: LocalFeaturesGridProps) 
                   {f.icon} {CATEGORY_LABEL[f.category] ?? f.category}
                 </div>
                 <h2 className="dist-card-name">{f.name}</h2>
-                <p className="dist-card-tagline">{f.whyVisit ?? f.description}</p>
+                <p className="dist-card-tagline">
+                  {f.pinSummary ?? truncateSummary(f.whyVisit ?? f.description)}
+                </p>
               </div>
             </Link>
           ))}

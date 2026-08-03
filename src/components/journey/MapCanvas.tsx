@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type Leaflet from "leaflet";
 import type { Distillery, LocalFeature } from "@/lib/types";
+import { truncateSummary } from "@/lib/text";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
@@ -564,12 +565,13 @@ export default function MapCanvas({
       const marker = L.marker([pos.lat, pos.lng], { icon });
       const categoryLabel = f.category.replace("-", " ");
       // Popups need a short hook, not the full page copy - "More info"
-      // is right there for anyone who wants the rest. Why Visit is
-      // written to be exactly this length; only fall back to a trimmed
-      // Description for categories that don't have one yet.
-      const popupSummary =
-        f.whyVisit ??
-        (f.description.length > 140 ? f.description.slice(0, 140).replace(/\s+\S*$/, "") + "…" : f.description);
+      // is right there for anyone who wants the rest. Pin Summary is
+      // written specifically for this popup (one tight sentence); Why
+      // Visit has grown into full-paragraph blockquote copy for the page
+      // itself, so it's no longer reliably short enough to use as-is and
+      // gets truncated the same way Description does. Same fallback-chain
+      // pattern as the Tours "Short Summary" field (docs/deferred-features.md).
+      const popupSummary = f.pinSummary ?? truncateSummary(f.whyVisit ?? f.description);
       // "More info" now links to a real DramStory detail page (parking,
       // accessibility, hours, highlights, length/difficulty for walks and
       // rides) - deliberately keeping visitors on-site rather than sending

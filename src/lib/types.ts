@@ -38,6 +38,10 @@ export interface LocalFeature {
   parking: string;
   accessibility: string;
   openingHours: string;
+  /** Postcode for satnav/directions - currently populated for transport
+   *  listings (ferry terminals, the airport) where visitors are actually
+   *  driving to a specific building, not general Local Feature content. */
+  postcode?: string;
   /** "Best features" - one per line in Airtable, split into an array. */
   highlights: string[];
   /** Walks/bike routes only - undefined for beaches and local gems. */
@@ -54,6 +58,13 @@ export interface LocalFeature {
   // ─── Natural Features content model (Beach/Walk/Bike Route/Local Gem) ───
   /** Punchy 1-2 sentence hook shown as a callout under the hero. */
   whyVisit?: string;
+  /** One tight sentence written specifically for the map pin popup - NOT
+   *  a trimmed whyVisit. whyVisit has grown into full-paragraph blockquote
+   *  copy for the page itself, so it's no longer reliably popup-length.
+   *  See MapCanvas.tsx's buildFeatureMarker for the truncated-fallback
+   *  chain used when this is blank (mirrors the Tours "Short Summary"
+   *  precedent in docs/deferred-features.md). */
+  pinSummary?: string;
   /** Past-tense narrative - founding/notable events. Below the line. */
   history?: string;
   /** Shown as its own amber callout box, same treatment as the
@@ -81,6 +92,18 @@ export interface LocalFeature {
   heroFocalY?: number;
   /** Full-size photo URLs for the gallery lightbox. */
   gallery?: string[];
+  /** Photo credit for heroImageUrl - shown as a small corner tag. Plain
+   *  text, or a "[label](url)" markdown-style link to the source/license
+   *  page. Undefined/blank means no credit is required (own photography,
+   *  CC0/public domain) - required whenever the photo is CC BY or CC
+   *  BY-SA licensed (e.g. sourced from Wikimedia Commons). */
+  heroImageCredit?: string;
+  /** Photo credits for `gallery`, index-aligned (galleryCredits[i] is the
+   *  credit for gallery[i]) - an empty string at an index means that
+   *  photo needs no credit. Shown in the lightbox for whichever photo is
+   *  currently enlarged. Same plain-text-or-markdown-link format as
+   *  heroImageCredit. */
+  galleryCredits?: string[];
 }
 
 export interface JournalPost {
