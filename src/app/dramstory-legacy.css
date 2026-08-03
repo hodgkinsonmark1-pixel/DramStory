@@ -24,15 +24,26 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
 
 /* SHARED BACKGROUND VIDEO - one persistent instance in the root layout,
    behind Hero and the /journey question screens. See
-   SiteBackgroundVideo.tsx for why this is fixed/global rather than a
-   per-screen element (kills the old restart-on-navigation bug). Sits at
-   z-index -1: above the plain body background, below every normal page
+   SiteBackgroundVideo.tsx for why this lives once at the root rather than
+   a per-screen element (kills the old restart-on-navigation bug). Sits at
+   z-index -1: above the plain html background, below every normal page
    section (which all paint above a negative-z-index sibling regardless
-   of DOM order) - so pages that never touch it (distillery pages,
-   journal, footer, etc.) simply cover it with their own content, no
-   extra opt-out needed there. Its own opacity is still the primary
-   on/off switch (see that component), this is just correct layering. */
-.site-background-video{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1;transition:opacity 0.4s ease}
+   of DOM order) - so pages/sections that never touch it simply cover it
+   with their own content, no extra opt-out needed there. Its own opacity
+   is still the primary on/off switch (see that component), this is just
+   correct layering.
+
+   Deliberately position:absolute + height:100vh, NOT position:fixed - it
+   needs to sit behind Hero's own 100vh box specifically (which is exactly
+   where it's document-positioned, top:0 of the page), not stay pinned to
+   the viewport as you scroll. Fixed would keep it visible behind every
+   section all the way down the page (how-section, journeys-section,
+   footer, etc.) since those don't all carry their own opaque background
+   in every full-width gutter - caught when Mark noticed the video
+   trailing down the homepage past Hero, well past where it should have
+   scrolled away. Absolute + a real height scrolls it off naturally with
+   the rest of the top-of-page content, same as Hero itself. */
+.site-background-video{position:absolute;top:0;left:0;width:100%;height:100vh;object-fit:cover;z-index:-1;transition:opacity 0.4s ease}
 
 /* HERO */
 .hero{position:relative;height:100vh;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center}
