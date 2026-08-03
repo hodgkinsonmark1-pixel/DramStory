@@ -3,7 +3,20 @@ import Footer from "@/components/Footer";
 import PageHeader from "@/components/PageHeader";
 import LocalFeaturesGrid from "@/components/LocalFeaturesGrid";
 
-const HUB_CATEGORIES = new Set(["beach", "walk", "bike-route", "local-gem", "historic-site", "transport"]);
+// Kept in sync with HUB_TABS in LocalFeaturesGrid.tsx - see that file's
+// comment for why golf/spa/attraction-gem (Leisure) joined the hub 3 August
+// 2026, alongside combining walk/bike-route into one Hike & Bike tab.
+const HUB_CATEGORIES = new Set([
+  "beach",
+  "walk",
+  "bike-route",
+  "local-gem",
+  "historic-site",
+  "golf",
+  "spa",
+  "attraction-gem",
+  "transport",
+]);
 
 // Forced dynamic 21 July 2026 - same fix as /distilleries (see
 // docs/technical-notes.md): this was silently prerendered fully static,
@@ -41,8 +54,9 @@ export default async function LocalFeaturesHubPage() {
             marginBottom: 32,
           }}
         >
-          Beaches, walks, bike rides, historic sites and more, in one scannable list - the same way
-          you&rsquo;d browse distilleries, without needing to hunt across the map pin by pin.
+          Beaches, walks, bike rides, historic sites, leisure and more, in one scannable list - the
+          same way you&rsquo;d browse distilleries, without needing to hunt across the map pin by
+          pin.
         </p>
 
         <LocalFeaturesGrid features={hubFeatures} />
