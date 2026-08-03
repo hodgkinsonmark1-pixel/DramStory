@@ -13,13 +13,48 @@
   --shadow-card:0 2px 12px rgba(26,58,74,0.10);
   --radius:12px;--radius-sm:8px;
 }
-html,body{min-height:100%;font-family:var(--font-body);background:var(--off-white);color:var(--dark);overflow-x:hidden}
+/* background lives on html only, not body - see the matching comment
+   in globals.css for why: body is a normal in-flow box, so a background
+   here would paint on top of the fixed, z-index:-1 site-background-video
+   rather than behind it. */
+html{background:var(--off-white)}
+html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflow-x:hidden}
 #root{min-height:100%;display:flex;flex-direction:column}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--mist);border-radius:3px}
 
+/* SHARED BACKGROUND VIDEO - one persistent instance in the root layout,
+   behind Hero and the /journey question screens. See
+   SiteBackgroundVideo.tsx for why this lives once at the root rather than
+   a per-screen element (kills the old restart-on-navigation bug). Sits at
+   z-index -1: above the plain html background, below every normal page
+   section (which all paint above a negative-z-index sibling regardless
+   of DOM order) - so pages/sections that never touch it simply cover it
+   with their own content, no extra opt-out needed there. Its own opacity
+   is still the primary on/off switch (see that component), this is just
+   correct layering.
+
+   Deliberately position:absolute + height:100vh, NOT position:fixed - it
+   needs to sit behind Hero's own 100vh box specifically (which is exactly
+   where it's document-positioned, top:0 of the page), not stay pinned to
+   the viewport as you scroll. Fixed would keep it visible behind every
+   section all the way down the page (how-section, journeys-section,
+   footer, etc.) since those don't all carry their own opaque background
+   in every full-width gutter - caught when Mark noticed the video
+   trailing down the homepage past Hero, well past where it should have
+   scrolled away. Absolute + a real height scrolls it off naturally with
+   the rest of the top-of-page content, same as Hero itself. */
+.site-background-video{position:absolute;top:0;left:0;width:100%;height:100vh;object-fit:cover;z-index:-1;transition:opacity 0.4s ease}
+
+/* CC BY credit for the background video's source footage. Positioned the
+   same way as .journey-hero-credit (small, bottom-right, low-emphasis) -
+   z-index high enough to clear .hero-overlay (1) and .hero-content (2)
+   regardless of which screen it's rendered over, but out of the way of
+   .hero-nav/.scroll-hint (both z-index:10, opposite corners/centre). */
+.site-background-video-credit{position:absolute;z-index:5;bottom:14px;right:16px;font-size:11px;color:rgba(255,255,255,0.65);text-decoration:none}
+.site-background-video-credit:hover{color:rgba(255,255,255,0.85)}
+
 /* HERO */
 .hero{position:relative;height:100vh;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
 .hero-overlay{position:absolute;inset:0;z-index:1;background:linear-gradient(to bottom,rgba(28,26,24,0.2) 0%,rgba(28,26,24,0.45) 50%,rgba(28,26,24,0.65) 100%)}
 .hero-nav{position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:0 48px;height:80px;background:transparent}
 .hero-nav-links{display:flex;gap:32px}
@@ -43,7 +78,13 @@ html,body{min-height:100%;font-family:var(--font-body);background:var(--off-whit
 @keyframes bounce{0%,100%{transform:rotate(45deg) translateY(0);opacity:0.5}50%{transform:rotate(45deg) translateY(4px);opacity:1}}
 
 /* JOURNEY MODE */
-.journey-screen{min-height:100vh;background:var(--off-white);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 24px 48px;position:relative;overflow:hidden}
+/* No background colour here (deliberately, as of the shared background
+   video change) - transparent so the persistent site-background-video
+   shows through underneath, same as .hero. All three screens using this
+   class (TodayLocationStep, LocationStep, InterestsStep) always render
+   their own .hero-overlay gradient on top regardless, same visual result
+   as before. */
+.journey-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 24px 48px;position:relative;overflow:hidden}
 .journey-screen-bg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0.57;z-index:0;transition:background-image 0.4s ease}
 .journey-screen-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(248,247,244,0.55) 0%,rgba(248,247,244,0.88) 55%,var(--off-white) 100%)}
 .journey-nav,.journey-header,.progress-dots,.q-cards,.journey-next-btn,.journey-back{position:relative;z-index:1}

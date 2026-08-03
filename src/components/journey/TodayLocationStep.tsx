@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import type { Distillery } from "@/lib/types";
 import { TODAY_EXCLUDED_DISTILLERY_SLUGS } from "@/lib/journey-options";
 import SiteHeader from "@/components/SiteHeader";
-import BackgroundImage from "@/components/BackgroundImage";
+import { useBackgroundVideoVisible } from "@/lib/background-video-context";
 import { DistilleryPicker } from "./LocationStep";
 
 interface TodayLocationStepProps {
@@ -37,6 +37,9 @@ interface TodayLocationStepProps {
  * silently to the dropdown - it's never the only way to answer.
  */
 export default function TodayLocationStep({ distilleriesPromise, onNext, onBack }: TodayLocationStepProps) {
+  // Claims the shared background video (see SiteBackgroundVideo) while
+  // this question is showing.
+  useBackgroundVideoVisible(true);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
@@ -90,7 +93,6 @@ export default function TodayLocationStep({ distilleriesPromise, onNext, onBack 
 
   return (
     <div className="journey-screen">
-      <BackgroundImage />
       <div className="hero-overlay" />
       <SiteHeader transparent logoSize={48} />
 

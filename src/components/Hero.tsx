@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import SiteHeader from "./SiteHeader";
-import BackgroundImage from "./BackgroundImage";
+import { useBackgroundVideoVisible } from "@/lib/background-video-context";
 
 /**
  * The homepage hero — ported from the mockup's HomePage/hero sequence:
@@ -13,6 +13,10 @@ import BackgroundImage from "./BackgroundImage";
  */
 export default function Hero() {
   const router = useRouter();
+  // Claims the shared background video (see SiteBackgroundVideo) for as
+  // long as the homepage Hero is mounted - the actual <video> element
+  // lives once in the root layout, not here.
+  useBackgroundVideoVisible(true);
   const [tagVis, setTagVis] = useState(false);
   const [chevVis, setChevVis] = useState(false);
   const [qVis, setQVis] = useState(false);
@@ -48,7 +52,6 @@ export default function Hero() {
 
   return (
     <div className="hero">
-      <BackgroundImage />
       <div className="hero-overlay" />
 
       <SiteHeader transparent logoSize={48} />
