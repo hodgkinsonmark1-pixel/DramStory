@@ -43,18 +43,42 @@ export default function SiteBackgroundVideo() {
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
-    if (visible) {
-      // play() returns a Promise that rejects if interrupted by a fast
-      // subsequent pause (e.g. rapid step changes right after
-      // navigation) - safe to ignore, the pause/play calls themselves
-      // are what matters, not this promise settling.
-      el.play().catch(() => {});
-    } else {
+    if (!visible) {
       el.pause();
+      return;
     }
+    // play() returns a Promise that rejects if interrupted by a fast
+    // subsequent pause (e.g. rapid step changes right after
+    // navigation) - safe to ignore, the pause/play calls themselves
+    // are what matters, not this promise settling.
+    const tryPlay = () => el.play().catch(() => {});
+    tryPlay();
+    // Belt-and-braces retries for the cases where that first attempt
+    // can't actually start playback and nothing else would ever retry:
+    // - Chrome defers the media fetch entirely while the page is hidden
+    //   (background tab / hidden window), so a load that began hidden
+    //   only progresses once the page becomes visible.
+    // - Some environments (e.g. iOS Low Power Mode, battery savers)
+    //   block even muted programmatic autoplay until a user gesture.
+    const onVisibility = () => {
+      if (!document.hidden && el.paused) tryPlay();
+    };
+    const onFirstPointer = () => {
+      if (el.paused) tryPlay();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pointerdown", onFirstPointer, { once: true });
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pointerdown", onFirstPointer);
+    };
   }, [visible]);
 
   return (
+    // autoPlay lets the browser start the (muted, inline) loop as soon as
+    // enough data arrives, without waiting for hydration + the play()
+    // effect above - the effect remains the authority for pausing/resuming
+    // on step and route changes.
     <video
       ref={videoRef}
       className="site-background-video"
@@ -63,6 +87,7 @@ export default function SiteBackgroundVideo() {
       tabIndex={-1}
       muted
       loop
+      autoPlay
       playsInline
       preload="auto"
       poster="https://images.pexels.com/videos/13610011/alcohol-bar-drink-drinks-13610011.jpeg?auto=compress&cs=tinysrgb&w=1920"
