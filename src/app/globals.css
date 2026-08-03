@@ -5,10 +5,21 @@
 @import "./home-extra.css";
 
 /* Base site chrome (from mockup) */
+html {
+  background: var(--off-white);
+}
+
+/* No background on body deliberately: body is a normal (non-stacked)
+   in-flow box, so its own background paints AFTER (on top of) any
+   negative z-index descendant - including the fixed, z-index:-1
+   site-background-video. html's background above still shows through
+   everywhere as the page canvas colour; this just stops body's own box
+   from re-painting an opaque layer directly over the video. See
+   SiteBackgroundVideo.tsx / the "SHARED BACKGROUND VIDEO" comment in
+   dramstory-legacy.css for the full picture. */
 html, body {
   min-height: 100%;
   font-family: var(--font-body);
-  background: var(--off-white);
   color: var(--dark);
   overflow-x: hidden;
 }

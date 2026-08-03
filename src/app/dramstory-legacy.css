@@ -13,7 +13,12 @@
   --shadow-card:0 2px 12px rgba(26,58,74,0.10);
   --radius:12px;--radius-sm:8px;
 }
-html,body{min-height:100%;font-family:var(--font-body);background:var(--off-white);color:var(--dark);overflow-x:hidden}
+/* background lives on html only, not body - see the matching comment
+   in globals.css for why: body is a normal in-flow box, so a background
+   here would paint on top of the fixed, z-index:-1 site-background-video
+   rather than behind it. */
+html{background:var(--off-white)}
+html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflow-x:hidden}
 #root{min-height:100%;display:flex;flex-direction:column}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--mist);border-radius:3px}
 
