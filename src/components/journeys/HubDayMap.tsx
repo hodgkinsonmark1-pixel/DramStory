@@ -10,6 +10,11 @@ export interface HubDayMapStop {
   slug: string;
   lat: number;
   lng: number;
+  /** Feature stops only - the Local Feature's own Icon field from
+   *  Airtable (the same icon shown in the card's chip row), used on the
+   *  map pin instead of a generic marker. Distillery stops ignore this
+   *  and always use the fixed dram-glass pin below. */
+  icon?: string;
 }
 
 interface HubDayMapProps {
@@ -72,10 +77,16 @@ export default function HubDayMap({ distilleries, featureStops = [] }: HubDayMap
 
       for (const f of featureStops) {
         if (!f.lat || !f.lng) continue;
+        // 23 July 2026: uses the feature's own Icon field (same icon as
+        // the card's chip row) instead of a generic pin, so the map and
+        // the chip row read as the same information twice, not two
+        // different visual languages - falls back to a plain pin marker
+        // only if a record genuinely has no icon set.
+        const pinGlyph = f.icon || "📍";
         const marker = L.marker([f.lat, f.lng], {
           icon: L.divIcon({
             className: "",
-            html: `<div style="background:#6F7F62;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;cursor:pointer;font-size:12px">📍</div>`,
+            html: `<div style="background:#6F7F62;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;cursor:pointer;font-size:12px">${pinGlyph}</div>`,
             iconSize: [24, 24],
             iconAnchor: [12, 12],
           }),
@@ -106,10 +117,16 @@ export default function HubDayMap({ distilleries, featureStops = [] }: HubDayMap
         if (cancelled) return;
         for (const seg of segments) {
           if (!seg) continue;
-          L.polyline(
-            seg.points.map((p) => [p.lat, p.lng] as [number, number]),
-            { color: "#C4862A", weight: 4, opacity: 0.85 }
-          ).addTo(map);
+          const latlngs = seg.points.map((p) => [p.lat, p.lng] as [number, number]);
+          // Casing + line (22 July 2026): a wider pale line underneath the
+          // route makes it read clearly against the muted basemap instead
+          // of blending into it. At card size, the route was previously
+          // the only real per-day visual signal on a multi-stop Day and it
+          // wasn't prominent enough - cards looked too uniform when
+          // several sat in the page's vertical flow. Standard cartography
+          // trick, not a basemap change (CartoDB Positron stays as-is).
+          L.polyline(latlngs, { color: "#FFFFFF", weight: 8, opacity: 0.9 }).addTo(map);
+          L.polyline(latlngs, { color: "#C4862A", weight: 4, opacity: 0.95 }).addTo(map);
         }
       }
     }

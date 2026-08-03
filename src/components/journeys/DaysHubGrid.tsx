@@ -122,8 +122,13 @@ function DayCard({ day, onAdded }: { day: HubDay; onAdded: () => void }) {
       }}
     >
       <div style={{ display: "flex", flexWrap: "wrap" }}>
-        {/* Visual: split hero images for 2-stop Multi Days, single hero for
-            Solo Days, else real map, else placeholder */}
+        {/* Visual (23 July 2026): every card shows the real route map,
+            regardless of stop count - previously a 1-stop Day reused that
+            distillery's own Hero Image and a 2-stop Day showed both
+            distilleries' Hero Images as a split image, which Mark didn't
+            want (a Day card borrowing the distillery page's own photo).
+            One consistent map treatment across every card now, until
+            genuine Day-specific photography exists. */}
         <div
           style={{
             width: 280,
@@ -132,8 +137,7 @@ function DayCard({ day, onAdded }: { day: HubDay; onAdded: () => void }) {
             minHeight: 200,
             position: "relative",
             overflow: "hidden",
-            display: day.heroImageUrls ? "flex" : undefined,
-            ...(day.heroImageUrl || day.heroImageUrls || day.mapDistilleries
+            ...(day.mapDistilleries && day.mapDistilleries.length > 0
               ? {}
               : {
                   background:
@@ -144,24 +148,7 @@ function DayCard({ day, onAdded }: { day: HubDay; onAdded: () => void }) {
                 }),
           }}
         >
-          {day.heroImageUrls ? (
-            day.heroImageUrls.map((url, i) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={url}
-                src={url}
-                alt={day.distilleries[i] ?? day.name}
-                style={{ width: "50%", height: "100%", objectFit: "cover", display: "block" }}
-              />
-            ))
-          ) : day.heroImageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={day.heroImageUrl}
-              alt={day.distilleries[0] ?? day.name}
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-            />
-          ) : day.mapDistilleries && day.mapDistilleries.length > 0 ? (
+          {day.mapDistilleries && day.mapDistilleries.length > 0 ? (
             <HubDayMap distilleries={day.mapDistilleries} featureStops={day.mapFeatures} />
           ) : (
             <span style={{ fontSize: 12, color: "var(--slate)", fontWeight: 500 }}>
@@ -195,24 +182,51 @@ function DayCard({ day, onAdded }: { day: HubDay; onAdded: () => void }) {
             <PacingTag pacing={day.pacing} />
           </div>
 
-          {/* Quick-scan distillery list */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-            {day.distilleries.map((d, i) => (
-              <span
-                key={`${d}-${i}`}
-                style={{
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: "var(--dark)",
-                  background: "var(--green-light)",
-                  padding: "4px 12px",
-                  borderRadius: 100,
-                }}
-              >
-                {d}
-              </span>
-            ))}
-          </div>
+          {/* Quick-scan distillery + feature-stop row (23 July 2026: merged
+              onto one wrapping row, per Mark's feedback - distilleries and
+              feature-stop chips previously sat on two separate lines and
+              read as disconnected. Both pill styles are unchanged; only
+              the layout is now a single flex-wrap container so they sit
+              together and wrap together as a card narrows. */}
+          {(day.distilleries.length > 0 || day.featureStops.length > 0) && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+              {day.distilleries.map((d, i) => (
+                <span
+                  key={`${d}-${i}`}
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: "var(--dark)",
+                    background: "var(--green-light)",
+                    padding: "4px 12px",
+                    borderRadius: 100,
+                  }}
+                >
+                  {d}
+                </span>
+              ))}
+              {day.featureStops.map((f) => (
+                <span
+                  key={f.id}
+                  title={f.name}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: "var(--copper)",
+                    background: "var(--amber-pale)",
+                    padding: "4px 10px 4px 8px",
+                    borderRadius: 100,
+                  }}
+                >
+                  <span style={{ fontSize: 13, lineHeight: 1 }}>{f.icon}</span>
+                  {f.name}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Narrative */}
           <p
