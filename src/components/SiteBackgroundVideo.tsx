@@ -64,6 +64,7 @@ export default function SiteBackgroundVideo() {
       muted
       loop
       playsInline
+      preload="auto"
       poster="https://images.pexels.com/videos/13610011/alcohol-bar-drink-drinks-13610011.jpeg?auto=compress&cs=tinysrgb&w=1920"
     >
       <source src="/videos/hero.mp4" type="video/mp4" />
