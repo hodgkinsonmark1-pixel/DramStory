@@ -75,24 +75,42 @@ export default function SiteBackgroundVideo() {
   }, [visible]);
 
   return (
-    // autoPlay lets the browser start the (muted, inline) loop as soon as
-    // enough data arrives, without waiting for hydration + the play()
-    // effect above - the effect remains the authority for pausing/resuming
-    // on step and route changes.
-    <video
-      ref={videoRef}
-      className="site-background-video"
-      style={{ opacity: visible ? 1 : 0 }}
-      aria-hidden="true"
-      tabIndex={-1}
-      muted
-      loop
-      autoPlay
-      playsInline
-      preload="auto"
-      poster="https://images.pexels.com/videos/13610011/alcohol-bar-drink-drinks-13610011.jpeg?auto=compress&cs=tinysrgb&w=1920"
-    >
-      <source src="/videos/hero.mp4" type="video/mp4" />
-    </video>
+    <>
+      {/* autoPlay lets the browser start the (muted, inline) loop as soon
+          as enough data arrives, without waiting for hydration + the
+          play() effect above - the effect remains the authority for
+          pausing/resuming on step and route changes. */}
+      <video
+        ref={videoRef}
+        className="site-background-video"
+        style={{ opacity: visible ? 1 : 0 }}
+        aria-hidden="true"
+        tabIndex={-1}
+        muted
+        loop
+        autoPlay
+        playsInline
+        preload="auto"
+        poster="https://images.pexels.com/videos/13610011/alcohol-bar-drink-drinks-13610011.jpeg?auto=compress&cs=tinysrgb&w=1920"
+      >
+        <source src="/videos/hero.mp4" type="video/mp4" />
+      </video>
+      {/* Base footage is Mark's own edit of "Laphroaig - Hollow By The Bay"
+          by North Sea Air (dir. Graeme Maclean), Vimeo, licensed CC BY 3.0 -
+          permits commercial use and derivative works, credit required.
+          Shown/hidden in lockstep with the video itself (same `visible`),
+          positioned the same way .journey-hero-credit is for photo credits
+          elsewhere on the site. */}
+      {visible && (
+        <a
+          className="site-background-video-credit"
+          href="https://vimeo.com/117012900"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Footage: "Hollow By The Bay" by North Sea Air (CC BY)
+        </a>
+      )}
+    </>
   );
 }
