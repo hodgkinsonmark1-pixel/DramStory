@@ -498,13 +498,13 @@ export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClien
   const isWalkOrRide = f.category === "walk" || f.category === "bike-route";
   const isFoodDrink = f.category === "pub" || f.category === "cafe" || f.category === "restaurant";
   const hasTripTips = f.bestTimeToVisit || f.nearestFacilities || f.whatToBring || f.mobileSignalNote || f.pairsWellWith;
-  // Golf and spa Visit Info fields tend to be full sentences rather than
-  // short facts, so the narrow sidebar card wraps awkwardly for them.
-  // These two categories get the card rendered as a full-width horizontal
-  // bar above the two-column layout instead. Other "dist-" categories
-  // (pub/cafe/restaurant/transport) keep the original sidebar placement
+  // Golf, spa and transport Visit Info fields tend to be full sentences
+  // rather than short facts, so the narrow sidebar card wraps awkwardly for
+  // them. These categories get the card rendered as a full-width horizontal
+  // bar below the About/Highlights/Gallery content instead. Other "dist-"
+  // categories (pub/cafe/restaurant) keep the original sidebar placement
   // for now.
-  const isHorizontalVisitInfo = f.category === "golf" || f.category === "spa";
+  const isHorizontalVisitInfo = f.category === "golf" || f.category === "spa" || f.category === "transport";
 
   const tripTipsContent = (
     <div className="info-grid">
