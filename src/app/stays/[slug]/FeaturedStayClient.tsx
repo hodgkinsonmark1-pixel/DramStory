@@ -94,8 +94,7 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
     s.distanceFromAirport ||
     s.distanceFromPortAskaigFerry ||
     s.distanceFromPortEllenFerry ||
-    s.mobileSignalNote ||
-    s.nearestArea;
+    s.mobileSignalNote;
   const websiteDiffersFromBooking = s.websiteUrl && s.websiteUrl !== s.bookingUrl;
   const worksGreatWith = s.worksGreatWithDistilleries.length > 0 || s.worksGreatWithLocalFeatures.length > 0;
 
@@ -217,12 +216,6 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
                     <div className="info-value">{s.mobileSignalNote}</div>
                   </div>
                 )}
-                {s.nearestArea && (
-                  <div className="info-item">
-                    <div className="info-label">Nearest area</div>
-                    <div className="info-value">{s.nearestArea}</div>
-                  </div>
-                )}
               </div>
               {websiteDiffersFromBooking && (
                 <a href={s.websiteUrl} target="_blank" rel="noopener noreferrer" className="dist-website-link">
@@ -304,29 +297,56 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
             </div>
           </div>
 
-          {/* Works Great With as a full-width horizontal section below the
-              two-column body, rather than confined to the ~800px left
-              column - requested by Mark 04 Aug 2026 so the cross-link cards
-              get the full page width instead of wrapping narrowly. */}
-          {worksGreatWith && (
-            <div className="dist-section">
-              <div className="dist-section-title">Works Great With</div>
-              <div className="nearby-grid">
-                {s.worksGreatWithDistilleries.map((d) => (
-                  <Link href={`/distilleries/${d.slug}`} className="nearby-card" key={d.slug}>
-                    <div className="nearby-icon">🥃</div>
-                    <div className="nearby-name">{d.name}</div>
-                    <div className="nearby-type">Distillery</div>
-                    {d.region && <div className="nearby-dist">{d.region}</div>}
-                  </Link>
-                ))}
-                {s.worksGreatWithLocalFeatures.map((f) => (
-                  <Link href={`/explore/${f.slug}`} className="nearby-card" key={f.slug}>
-                    <div className="nearby-icon">{f.icon}</div>
-                    <div className="nearby-name">{f.name}</div>
-                    <div className="nearby-type">{LOCAL_FEATURE_CATEGORY_LABELS[f.category]}</div>
-                  </Link>
-                ))}
+          {/* Works Great With (left) + Nearest Area (right) as a second
+              two-column row below the About body - Works Great With moved
+              out of the narrow left column into a full-width row here, and
+              Nearest Area moved out of the Visit Info bar into its own
+              card alongside it, both requested by Mark 04 Aug 2026. The
+              Nearest Area card is deliberately not a <Link> - there's no
+              Areas table/page yet (explicitly deferred until after all
+              Featured Stays are built, see project punch list), so this is
+              a preview of the future card, not a working link. Wire it up
+              once /areas/[slug] exists. */}
+          {(worksGreatWith || s.nearestArea) && (
+            <div className="dist-detail-grid">
+              <div>
+                {worksGreatWith && (
+                  <div className="dist-section">
+                    <div className="dist-section-title">Works Great With</div>
+                    <div className="nearby-grid">
+                      {s.worksGreatWithDistilleries.map((d) => (
+                        <Link href={`/distilleries/${d.slug}`} className="nearby-card" key={d.slug}>
+                          <div className="nearby-icon">🥃</div>
+                          <div className="nearby-name">{d.name}</div>
+                          <div className="nearby-type">Distillery</div>
+                          {d.region && <div className="nearby-dist">{d.region}</div>}
+                        </Link>
+                      ))}
+                      {s.worksGreatWithLocalFeatures.map((f) => (
+                        <Link href={`/explore/${f.slug}`} className="nearby-card" key={f.slug}>
+                          <div className="nearby-icon">{f.icon}</div>
+                          <div className="nearby-name">{f.name}</div>
+                          <div className="nearby-type">{LOCAL_FEATURE_CATEGORY_LABELS[f.category]}</div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="dist-sidebar">
+                {s.nearestArea && (
+                  <div className="dist-section">
+                    <div className="dist-section-title">Nearest Area</div>
+                    <div className="nearby-grid">
+                      <div className="nearby-card" style={{ cursor: "default" }}>
+                        <div className="nearby-icon">📍</div>
+                        <div className="nearby-name">{s.nearestArea}</div>
+                        <div className="nearby-type">Area</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
