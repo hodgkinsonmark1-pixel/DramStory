@@ -106,6 +106,85 @@ export interface LocalFeature {
   galleryCredits?: string[];
 }
 
+/** A Featured Stay - a curated hotel/accommodation partner shown on its own
+ *  detail page (and, eventually, the workspace map's Accommodation layer -
+ *  see journey-options.ts's "places-to-stay" category and the Map pin
+ *  behaviour note in docs/deferred-features.md; pins are deliberately not
+ *  wired yet, this is the content layer only). Schema deliberately modelled
+ *  on LocalFeature above - Hero Image + Credit, Gallery + Credits, a
+ *  Why Visit-equivalent ("Why Stay"), Pin Summary - so it inherits the same
+ *  conventions rather than inventing new ones. Two fields that exist in the
+ *  Airtable table (`Meals Included`, `Accessibility`) are deliberately NOT
+ *  represented here - dropped from scope (on-site dining is covered by the
+ *  "On-site Restaurant" Facilities tag instead; accessibility specifics are
+ *  left to the hotel's own site) - see AirtableFeaturedStayFields for the
+ *  same omission on the raw-fields side. */
+export interface FeaturedStay {
+  id: string;
+  slug: string;
+  name: string;
+  lat: number;
+  lng: number;
+  /** e.g. "Boutique country house hotel", "Traditional coaching inn". */
+  style?: string;
+  /** Short, punchy 1-2 sentence hook shown as a callout under the hero -
+   *  same pattern as Distillery/LocalFeature's Why Visit. */
+  whyStay?: string;
+  /** Main editorial copy - what to expect. */
+  description: string;
+  /** Only present where there's a genuine, verifiable story - not forced. */
+  history?: string;
+  /** Single main banner image - distinct from the gallery strip below it. */
+  heroImageUrl?: string;
+  /** Photo credit for heroImageUrl - same "[label](url)" markdown-style
+   *  convention as LocalFeature's heroImageCredit. */
+  heroImageCredit?: string;
+  /** Full-size photo URLs for the gallery lightbox. */
+  gallery?: string[];
+  /** Photo credits for `gallery`, index-aligned - same convention as
+   *  LocalFeature's galleryCredits. */
+  galleryCredits?: string[];
+  /** Formatted e.g. "£450" - empty string if unset. */
+  priceFrom?: string;
+  /** e.g. Spa, On-site Restaurant, Bar, Parking, Pet Friendly, Family
+   *  Rooms, Wi-Fi, Sea View. */
+  facilities: string[];
+  /** e.g. "Sea view, on the dunes above a seven-mile beach". */
+  setting?: string;
+  distanceFromFerryAirport?: string;
+  /** Genuine whisky-relevant hook for a whisky-trip site - an on-site bar
+   *  with a notable collection, tasting evenings, etc. */
+  whiskyBarNote?: string;
+  mobileSignalNote?: string;
+  parking?: string;
+  /** Plain text for now, e.g. "Port Ellen" - becomes a real linked field
+   *  once an Areas table exists (see docs/deferred-features.md). */
+  nearestArea?: string;
+  bookingUrl?: string;
+  /** The hotel's own official website - shown only when it differs from
+   *  Booking URL, same deliberate external-link exception as Distillery/
+   *  LocalFeature's websiteUrl. */
+  websiteUrl?: string;
+  /** Deliberate link-out only ("See reviews on TripAdvisor ->") - NOT a
+   *  scraped rating/score, per the site's sourcing rule (no third-party
+   *  aggregator content rendered as if it were DramStory's own). */
+  tripAdvisorUrl?: string;
+  /** One tight sentence written specifically for the map pin popup. */
+  pinSummary?: string;
+  /** Nearby/complementary Distilleries this hotel pairs well with -
+   *  rendered on the hotel page as "Works Great With". Resolved to full
+   *  Distillery records (not just slugs) so the section can show more than
+   *  a bare name - deliberately actually rendered, unlike the past mistake
+   *  where LocalFeature's own "Distilleries" linked field was mapped into
+   *  the raw Airtable type but never mapped onto the object or rendered
+   *  anywhere (see mapToLocalFeature). */
+  worksGreatWithDistilleries: Distillery[];
+  /** Nearby/complementary Local Features this hotel pairs well with - same
+   *  "Works Great With" section, same rendering guarantee as above. */
+  worksGreatWithLocalFeatures: LocalFeature[];
+  source: DataSource;
+}
+
 export interface JournalPost {
   id: string;
   slug: string;

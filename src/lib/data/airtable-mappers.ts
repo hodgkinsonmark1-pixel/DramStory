@@ -1,5 +1,5 @@
 import type { AirtableAttachment } from "@/lib/airtable";
-import type { Distillery, JournalPost, LocalEvent, LocalFeature, NearbyFeature, Tour } from "@/lib/types";
+import type { Distillery, FeaturedStay, JournalPost, LocalEvent, LocalFeature, NearbyFeature, Tour } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Raw shapes as returned by the Airtable REST API for each table.
@@ -241,6 +241,108 @@ export function mapToLocalFeature(id: string, fields: AirtableLocalFeatureFields
     // unset entirely when the field is blank, rather than an array of
     // empty strings, so callers can cheaply check `galleryCredits?.[i]`.
     galleryCredits: fields["Gallery Credits"] ? fields["Gallery Credits"].split("\n") : undefined,
+  };
+}
+
+export interface AirtableFeaturedStayFields {
+  Name?: string;
+  Slug?: string;
+  Status?: string;
+  Latitude?: number;
+  Longitude?: number;
+  Style?: string;
+  "Why Stay"?: string;
+  Description?: string;
+  History?: string;
+  "Hero Image"?: AirtableAttachment[];
+  "Hero Image Credit"?: string;
+  Gallery?: AirtableAttachment[];
+  "Gallery Credits"?: string;
+  "Price From"?: number;
+  Facilities?: string[];
+  // NOTE: "Meals Included" and "Accessibility" exist as real fields on the
+  // Featured Stays Airtable table but are deliberately NOT captured here -
+  // dropped from scope (see FeaturedStay's doc comment in types.ts). Do not
+  // add them back without re-confirming that decision with Mark first.
+  Setting?: string;
+  "Distance from Ferry/Airport"?: string;
+  "Whisky Bar/Collection Note"?: string;
+  "Mobile Signal Note"?: string;
+  Parking?: string;
+  "Nearest Area"?: string;
+  "Booking URL"?: string;
+  "Website URL"?: string;
+  "TripAdvisor URL"?: string;
+  "Pin Summary"?: string;
+  "Works Great With — Distilleries"?: string[]; // linked record IDs -> Distilleries table
+  "Works Great With — Local Features"?: string[]; // linked record IDs -> Local Features table
+}
+
+/** Maps a raw Featured Stays record into a FeaturedStay - same pattern as
+ *  mapToLocalFeature above, its closest template (schema was deliberately
+ *  modelled on Local Features). Returns null for records missing a
+ *  Name/Slug (Airtable placeholder rows, same "skip anything not a real
+ *  record" pattern used everywhere else in this file) or not yet Status:
+ *  Live (same Draft -> In review -> Live gate as the Days table, so a
+ *  record still under review never leaks onto the live site).
+ *
+ *  `distilleryById`/`localFeatureById` are passed in (rather than fetched
+ *  here) because this module has no dependency on src/lib/data/index.ts -
+ *  same split already used by mapToLocalEvent's `allDistilleries` param,
+ *  which avoids a circular import between the two files. */
+export function mapToFeaturedStay(
+  id: string,
+  fields: AirtableFeaturedStayFields,
+  distilleryById: Map<string, Distillery>,
+  localFeatureById: Map<string, LocalFeature>
+): FeaturedStay | null {
+  if (!fields.Name || !fields.Slug || fields.Status !== "Live") return null;
+  const FEATURED_STAYS_TABLE = "tblspiVzY3ihpm1o1";
+  return {
+    id,
+    slug: fields.Slug,
+    name: fields.Name,
+    lat: fields.Latitude ?? 0,
+    lng: fields.Longitude ?? 0,
+    style: fields.Style || undefined,
+    whyStay: fields["Why Stay"] || undefined,
+    description: fields.Description ?? "",
+    history: fields.History || undefined,
+    // Routed through /api/attachment rather than using fields[...].url
+    // directly - Airtable's own attachment URLs expire after a few hours,
+    // which breaks images baked into ISR-cached pages. Same pattern as
+    // mapToLocalFeature above.
+    heroImageUrl: fields["Hero Image"]?.[0]
+      ? `/api/attachment?t=${FEATURED_STAYS_TABLE}&r=${id}&f=fldRUCii4BcP4RxQQ&i=0`
+      : undefined,
+    heroImageCredit: fields["Hero Image Credit"] || undefined,
+    gallery: (fields.Gallery ?? []).map(
+      (_, i) => `/api/attachment?t=${FEATURED_STAYS_TABLE}&r=${id}&f=flduIQPfOlFT8IkMh&i=${i}`
+    ),
+    galleryCredits: fields["Gallery Credits"] ? fields["Gallery Credits"].split("\n") : undefined,
+    priceFrom: fields["Price From"] != null ? `£${fields["Price From"]}` : "",
+    facilities: fields.Facilities ?? [],
+    setting: fields.Setting || undefined,
+    distanceFromFerryAirport: fields["Distance from Ferry/Airport"] || undefined,
+    whiskyBarNote: fields["Whisky Bar/Collection Note"] || undefined,
+    mobileSignalNote: fields["Mobile Signal Note"] || undefined,
+    parking: fields.Parking || undefined,
+    nearestArea: fields["Nearest Area"] || undefined,
+    bookingUrl: fields["Booking URL"] || undefined,
+    websiteUrl: fields["Website URL"] || undefined,
+    tripAdvisorUrl: fields["TripAdvisor URL"] || undefined,
+    pinSummary: fields["Pin Summary"] || undefined,
+    // Resolved to full records, not just IDs/slugs, so "Works Great With"
+    // can actually render something (name, image, link) rather than being
+    // fetched-but-unused - see the doc comment on these fields in
+    // types.ts for the exact past mistake this is guarding against.
+    worksGreatWithDistilleries: (fields["Works Great With — Distilleries"] ?? [])
+      .map((recId) => distilleryById.get(recId))
+      .filter((d): d is Distillery => !!d),
+    worksGreatWithLocalFeatures: (fields["Works Great With — Local Features"] ?? [])
+      .map((recId) => localFeatureById.get(recId))
+      .filter((f): f is LocalFeature => !!f),
+    source: "airtable",
   };
 }
 

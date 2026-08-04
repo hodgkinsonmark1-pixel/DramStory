@@ -1,11 +1,12 @@
 import { cache } from "react";
-import type { Distillery, HubDay, JournalPost, LocalEvent, LocalFeature, PlaceListing, Tour } from "@/lib/types";
+import type { Distillery, FeaturedStay, HubDay, JournalPost, LocalEvent, LocalFeature, PlaceListing, Tour } from "@/lib/types";
 import { airtableFetchAll } from "@/lib/airtable";
 import { searchAccommodation, searchNearbyByCategory } from "@/lib/google-places";
 import {
   deriveNextStops,
   mapLocalFeature,
   mapTour,
+  mapToFeaturedStay,
   mapToJournalPost,
   mapToLocalEvent,
   mapToLocalFeature,
@@ -13,6 +14,7 @@ import {
   type AirtableDayStopFields,
   type AirtableDistilleryFields,
   type AirtableEventFields,
+  type AirtableFeaturedStayFields,
   type AirtableJournalFields,
   type AirtableLocalFeatureFields,
   type AirtableTourFields,
@@ -147,6 +149,36 @@ async function fetchLocalFeaturesFromAirtable(): Promise<LocalFeature[]> {
 export async function getLocalFeatureBySlug(slug: string): Promise<LocalFeature | undefined> {
   const features = await getLocalFeatures();
   return features.find((f) => f.slug === slug);
+}
+
+/** Featured Stays (curated hotel/accommodation partners). Only Status: Live
+ *  records are returned - same "never leak a draft onto the live site" gate
+ *  as getDays' Status filter above (Featured Stays uses the identical
+ *  Draft/In review/Live convention, not Local Features' Todo/In progress/
+ *  Done task-tracking style). React's cache() again (see getDistilleries
+ *  above for why), not a module-level variable. */
+export const getFeaturedStays = cache(async (): Promise<FeaturedStay[]> => {
+  return fetchFeaturedStaysFromAirtable();
+});
+
+async function fetchFeaturedStaysFromAirtable(): Promise<FeaturedStay[]> {
+  const [records, distilleries, localFeatures] = await Promise.all([
+    airtableFetchAll<AirtableFeaturedStayFields>("Featured Stays"),
+    getDistilleries(),
+    getLocalFeatures(),
+  ]);
+
+  const distilleryById = new Map(distilleries.map((d) => [d.id, d]));
+  const localFeatureById = new Map(localFeatures.map((f) => [f.id, f]));
+
+  return records
+    .map((r) => mapToFeaturedStay(r.id, r.fields, distilleryById, localFeatureById))
+    .filter((s): s is FeaturedStay => s !== null);
+}
+
+export async function getFeaturedStayBySlug(slug: string): Promise<FeaturedStay | undefined> {
+  const stays = await getFeaturedStays();
+  return stays.find((s) => s.slug === slug);
 }
 
 /** Pre-Designed Days Hub entries. Only Status: Live Days are returned -
