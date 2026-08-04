@@ -155,10 +155,40 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
           </div>
         </div>
 
-        {s.whyStay && (
-          <div className="dist-why-visit">
-            <span className="dist-why-visit-label">Why stay here</span>
-            <p>{s.whyStay}</p>
+        {/* Why Stay + Facilities as a two-column row right under the hero -
+            Facilities moved up from the About section's sidebar to sit
+            alongside Why Stay here, requested by Mark 04 Aug 2026. This
+            row lives outside .distillery-body (same as the original
+            standalone Why Stay callout did) so it replicates that
+            element's own page-level centering/padding directly rather
+            than double up with .distillery-body's. */}
+        {(s.whyStay || s.facilities.length > 0) && (
+          <div
+            className="dist-detail-grid"
+            style={{ maxWidth: 1200, margin: "32px auto 0", padding: "0 48px" }}
+          >
+            <div>
+              {s.whyStay && (
+                <div className="dist-why-visit" style={{ maxWidth: "none", margin: 0 }}>
+                  <span className="dist-why-visit-label">Why stay here</span>
+                  <p>{s.whyStay}</p>
+                </div>
+              )}
+            </div>
+            <div className="dist-sidebar">
+              {s.facilities.length > 0 && (
+                <div className="sidebar-card">
+                  <div className="sidebar-card-title">Facilities</div>
+                  <div className="facilities-grid">
+                    {s.facilities.map((f) => (
+                      <span className="facility-badge" key={f}>
+                        {f}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -230,71 +260,58 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
             </div>
           )}
 
-          <div className="dist-detail-grid">
-            <div>
+          {/* Single-column now - this used to be a dist-detail-grid with
+              Facilities as the second column, but Facilities moved up
+              alongside Why Stay Here (see above), so a second, now-empty
+              320px column here would just leave dead space. */}
+          <div>
+            <div className="dist-section">
+              <div className="dist-section-title">About {s.name}</div>
+              {s.description.split("\n\n").map((para, i) => (
+                <p className="dist-p" key={i} style={{ marginBottom: 12 }}>
+                  {renderWithLinks(para)}
+                </p>
+              ))}
+            </div>
+
+            {s.whiskyBarNote && (
               <div className="dist-section">
-                <div className="dist-section-title">About {s.name}</div>
-                {s.description.split("\n\n").map((para, i) => (
-                  <p className="dist-p" key={i} style={{ marginBottom: 12 }}>
-                    {renderWithLinks(para)}
-                  </p>
-                ))}
+                <div className="dist-section-title">Whisky bar &amp; collection</div>
+                <p className="dist-p">{renderWithLinks(s.whiskyBarNote)}</p>
               </div>
+            )}
 
-              {s.whiskyBarNote && (
+            {s.gallery && s.gallery.length > 0 && (
+              <div className="dist-section">
+                <div className="dist-section-title">Gallery</div>
+                <div className="dist-gallery-grid">
+                  {s.gallery.map((url, i) => (
+                    <button
+                      type="button"
+                      className="dist-gallery-img"
+                      key={i}
+                      onClick={() => setLightboxIndex(i)}
+                      aria-label={`View larger photo ${i + 1} of ${s.name}`}
+                    >
+                      <Image src={url} alt={`${s.name} photo ${i + 1}`} fill unoptimized style={{ objectFit: "cover" }} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {s.history && (
+              <div className="dist-below-line">
                 <div className="dist-section">
-                  <div className="dist-section-title">Whisky bar &amp; collection</div>
-                  <p className="dist-p">{renderWithLinks(s.whiskyBarNote)}</p>
+                  <div className="dist-section-title">History</div>
+                  {s.history.split("\n\n").map((para, i) => (
+                    <p className="dist-p" key={i} style={{ marginBottom: 12 }}>
+                      {renderWithLinks(para)}
+                    </p>
+                  ))}
                 </div>
-              )}
-
-              {s.gallery && s.gallery.length > 0 && (
-                <div className="dist-section">
-                  <div className="dist-section-title">Gallery</div>
-                  <div className="dist-gallery-grid">
-                    {s.gallery.map((url, i) => (
-                      <button
-                        type="button"
-                        className="dist-gallery-img"
-                        key={i}
-                        onClick={() => setLightboxIndex(i)}
-                        aria-label={`View larger photo ${i + 1} of ${s.name}`}
-                      >
-                        <Image src={url} alt={`${s.name} photo ${i + 1}`} fill unoptimized style={{ objectFit: "cover" }} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {s.history && (
-                <div className="dist-below-line">
-                  <div className="dist-section">
-                    <div className="dist-section-title">History</div>
-                    {s.history.split("\n\n").map((para, i) => (
-                      <p className="dist-p" key={i} style={{ marginBottom: 12 }}>
-                        {renderWithLinks(para)}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="dist-sidebar">
-              {s.facilities.length > 0 && (
-                <div className="sidebar-card">
-                  <div className="sidebar-card-title">Facilities</div>
-                  <div className="facilities-grid">
-                    {s.facilities.map((f) => (
-                      <span className="facility-badge" key={f}>
-                        {f}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Works Great With (left) + Nearest Area (right) as a second
