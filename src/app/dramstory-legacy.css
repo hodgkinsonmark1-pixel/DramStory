@@ -303,8 +303,8 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
 .tour-add-btn{padding:8px 16px;background:var(--amber-pale);color:var(--amber);border:1px solid var(--amber-light);border-radius:100px;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s}
 .tour-add-btn:hover{background:var(--amber);color:white}
 .tour-add-btn.added{background:var(--green-light);color:var(--green-deep);border-color:var(--green-mid)}
-.nearby-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
-.nearby-card{background:white;border:1px solid var(--stone);border-radius:var(--radius);padding:16px;cursor:pointer;transition:all 0.2s}
+.nearby-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.nearby-card{background:white;border:1px solid var(--stone);border-radius:var(--radius);padding:12px;cursor:pointer;transition:all 0.2s}
 .nearby-card:hover{border-color:var(--green-mid);transform:translateY(-2px);box-shadow:var(--shadow-card)}
 .nearby-icon{font-size:22px;margin-bottom:8px}
 .nearby-name{font-size:13px;font-weight:600;color:var(--dark);margin-bottom:3px}
