@@ -152,11 +152,14 @@ export async function getLocalFeatureBySlug(slug: string): Promise<LocalFeature 
 }
 
 /** Featured Stays (curated hotel/accommodation partners). Only Status: Live
- *  records are returned - same "never leak a draft onto the live site" gate
- *  as getDays' Status filter above (Featured Stays uses the identical
- *  Draft/In review/Live convention, not Local Features' Todo/In progress/
- *  Done task-tracking style). React's cache() again (see getDistilleries
- *  above for why), not a module-level variable. */
+ *  records are returned in production - same "never leak a draft onto the
+ *  live site" gate as getDays' Status filter above (Featured Stays uses
+ *  the identical Draft/In review/Live convention, not Local Features'
+ *  Todo/In progress/Done task-tracking style). On preview/dev
+ *  environments, Draft/In review show too - see the gate comment on
+ *  mapToFeaturedStay in airtable-mappers.ts for the full reasoning.
+ *  React's cache() again (see getDistilleries above for why), not a
+ *  module-level variable. */
 export const getFeaturedStays = cache(async (): Promise<FeaturedStay[]> => {
   return fetchFeaturedStaysFromAirtable();
 });

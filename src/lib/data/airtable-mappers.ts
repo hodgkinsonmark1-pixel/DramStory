@@ -282,9 +282,18 @@ export interface AirtableFeaturedStayFields {
  *  mapToLocalFeature above, its closest template (schema was deliberately
  *  modelled on Local Features). Returns null for records missing a
  *  Name/Slug (Airtable placeholder rows, same "skip anything not a real
- *  record" pattern used everywhere else in this file) or not yet Status:
- *  Live (same Draft -> In review -> Live gate as the Days table, so a
- *  record still under review never leaks onto the live site).
+ *  record" pattern used everywhere else in this file).
+ *
+ *  Status gate (added when Mark asked to preview The Machrie's Draft
+ *  record before it was reviewed live): on `VERCEL_ENV === "production"`,
+ *  only Status: Live is ever returned - same Draft -> In review -> Live
+ *  gate as the Days table, so a record still under review can never leak
+ *  onto the real live site. On any other environment (preview
+ *  deployments, local dev - VERCEL_ENV is unset locally) Draft/In review
+ *  records are shown too, specifically so a feature-branch Vercel preview
+ *  can be reviewed before a record is flipped to Live. `/stays` isn't
+ *  linked from live navigation yet, so this has no live-traffic exposure
+ *  risk today - worth revisiting this gate once it is.
  *
  *  `distilleryById`/`localFeatureById` are passed in (rather than fetched
  *  here) because this module has no dependency on src/lib/data/index.ts -
@@ -296,7 +305,9 @@ export function mapToFeaturedStay(
   distilleryById: Map<string, Distillery>,
   localFeatureById: Map<string, LocalFeature>
 ): FeaturedStay | null {
-  if (!fields.Name || !fields.Slug || fields.Status !== "Live") return null;
+  if (!fields.Name || !fields.Slug) return null;
+  const isProduction = process.env.VERCEL_ENV === "production";
+  if (isProduction && fields.Status !== "Live") return null;
   const FEATURED_STAYS_TABLE = "tblspiVzY3ihpm1o1";
   return {
     id,
