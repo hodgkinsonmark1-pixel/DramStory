@@ -257,7 +257,7 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
                     {s.distanceFromFerryAirport && (
                       <div className="info-item">
                         <div className="info-label">Distance from ferry/airport</div>
-                        <div className="info-value">{s.distanceFromFerryAirport}</div>
+                        <div className="info-value">{renderWithLinks(s.distanceFromFerryAirport)}</div>
                       </div>
                     )}
                     {s.mobileSignalNote && (
