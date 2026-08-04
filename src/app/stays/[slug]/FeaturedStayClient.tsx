@@ -88,7 +88,14 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const hasVisitInfo =
-    s.setting || s.priceFrom || s.parking || s.distanceFromFerryAirport || s.mobileSignalNote || s.nearestArea;
+    s.setting ||
+    s.priceFrom ||
+    s.parking ||
+    s.distanceFromAirport ||
+    s.distanceFromPortAskaigFerry ||
+    s.distanceFromPortEllenFerry ||
+    s.mobileSignalNote ||
+    s.nearestArea;
   const websiteDiffersFromBooking = s.websiteUrl && s.websiteUrl !== s.bookingUrl;
   const worksGreatWith = s.worksGreatWithDistilleries.length > 0 || s.worksGreatWithLocalFeatures.length > 0;
 
@@ -157,6 +164,79 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
         )}
 
         <div className="distillery-body">
+          {/* Visit Info as a full-width horizontal bar above the About
+              section, not the narrow sidebar - same treatment
+              ExploreFeatureClient gives Ferry Port/Airport pages
+              (visitInfoAtTop), since practical travel facts are what a
+              visitor wants first, before the editorial story. Requested by
+              Mark 04 Aug 2026 alongside splitting ferry/airport distance
+              into three separate tiles. */}
+          {hasVisitInfo && (
+            <div className="sidebar-card horizontal-info-bar" style={{ marginTop: 0, marginBottom: 32 }}>
+              <div className="sidebar-card-title">Visit info</div>
+              <div className="info-grid">
+                {s.setting && (
+                  <div className="info-item">
+                    <div className="info-label">Setting</div>
+                    <div className="info-value">{s.setting}</div>
+                  </div>
+                )}
+                {s.priceFrom && (
+                  <div className="info-item">
+                    <div className="info-label">Price from</div>
+                    <div className="info-value">{s.priceFrom} per night</div>
+                  </div>
+                )}
+                {s.distanceFromAirport && (
+                  <div className="info-item">
+                    <div className="info-label">Distance from airport</div>
+                    <div className="info-value">{renderWithLinks(s.distanceFromAirport)}</div>
+                  </div>
+                )}
+                {s.distanceFromPortAskaigFerry && (
+                  <div className="info-item">
+                    <div className="info-label">Distance from Port Askaig ferry</div>
+                    <div className="info-value">{renderWithLinks(s.distanceFromPortAskaigFerry)}</div>
+                  </div>
+                )}
+                {s.distanceFromPortEllenFerry && (
+                  <div className="info-item">
+                    <div className="info-label">Distance from Port Ellen ferry</div>
+                    <div className="info-value">{renderWithLinks(s.distanceFromPortEllenFerry)}</div>
+                  </div>
+                )}
+                {s.parking && (
+                  <div className="info-item">
+                    <div className="info-label">Parking</div>
+                    <div className="info-value">{s.parking}</div>
+                  </div>
+                )}
+                {s.mobileSignalNote && (
+                  <div className="info-item">
+                    <div className="info-label">Mobile signal</div>
+                    <div className="info-value">{s.mobileSignalNote}</div>
+                  </div>
+                )}
+                {s.nearestArea && (
+                  <div className="info-item">
+                    <div className="info-label">Nearest area</div>
+                    <div className="info-value">{s.nearestArea}</div>
+                  </div>
+                )}
+              </div>
+              {websiteDiffersFromBooking && (
+                <a href={s.websiteUrl} target="_blank" rel="noopener noreferrer" className="dist-website-link">
+                  Visit {s.name}&apos;s official website ↗
+                </a>
+              )}
+              {s.tripAdvisorUrl && (
+                <a href={s.tripAdvisorUrl} target="_blank" rel="noopener noreferrer" className="dist-website-link">
+                  See reviews on TripAdvisor &rarr;
+                </a>
+              )}
+            </div>
+          )}
+
           <div className="dist-detail-grid">
             <div>
               <div className="dist-section">
@@ -194,29 +274,6 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
                 </div>
               )}
 
-              {worksGreatWith && (
-                <div className="dist-section">
-                  <div className="dist-section-title">Works Great With</div>
-                  <div className="nearby-grid">
-                    {s.worksGreatWithDistilleries.map((d) => (
-                      <Link href={`/distilleries/${d.slug}`} className="nearby-card" key={d.slug}>
-                        <div className="nearby-icon">🥃</div>
-                        <div className="nearby-name">{d.name}</div>
-                        <div className="nearby-type">Distillery</div>
-                        {d.region && <div className="nearby-dist">{d.region}</div>}
-                      </Link>
-                    ))}
-                    {s.worksGreatWithLocalFeatures.map((f) => (
-                      <Link href={`/explore/${f.slug}`} className="nearby-card" key={f.slug}>
-                        <div className="nearby-icon">{f.icon}</div>
-                        <div className="nearby-name">{f.name}</div>
-                        <div className="nearby-type">{LOCAL_FEATURE_CATEGORY_LABELS[f.category]}</div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {s.history && (
                 <div className="dist-below-line">
                   <div className="dist-section">
@@ -232,60 +289,6 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
             </div>
 
             <div className="dist-sidebar">
-              {hasVisitInfo && (
-                <div className="sidebar-card">
-                  <div className="sidebar-card-title">Visit info</div>
-                  <div className="info-grid">
-                    {s.setting && (
-                      <div className="info-item">
-                        <div className="info-label">Setting</div>
-                        <div className="info-value">{s.setting}</div>
-                      </div>
-                    )}
-                    {s.priceFrom && (
-                      <div className="info-item">
-                        <div className="info-label">Price from</div>
-                        <div className="info-value">{s.priceFrom} per night</div>
-                      </div>
-                    )}
-                    {s.parking && (
-                      <div className="info-item">
-                        <div className="info-label">Parking</div>
-                        <div className="info-value">{s.parking}</div>
-                      </div>
-                    )}
-                    {s.distanceFromFerryAirport && (
-                      <div className="info-item">
-                        <div className="info-label">Distance from ferry/airport</div>
-                        <div className="info-value">{renderWithLinks(s.distanceFromFerryAirport)}</div>
-                      </div>
-                    )}
-                    {s.mobileSignalNote && (
-                      <div className="info-item">
-                        <div className="info-label">Mobile signal</div>
-                        <div className="info-value">{s.mobileSignalNote}</div>
-                      </div>
-                    )}
-                    {s.nearestArea && (
-                      <div className="info-item">
-                        <div className="info-label">Nearest area</div>
-                        <div className="info-value">{s.nearestArea}</div>
-                      </div>
-                    )}
-                  </div>
-                  {websiteDiffersFromBooking && (
-                    <a href={s.websiteUrl} target="_blank" rel="noopener noreferrer" className="dist-website-link">
-                      Visit {s.name}&apos;s official website ↗
-                    </a>
-                  )}
-                  {s.tripAdvisorUrl && (
-                    <a href={s.tripAdvisorUrl} target="_blank" rel="noopener noreferrer" className="dist-website-link">
-                      See reviews on TripAdvisor &rarr;
-                    </a>
-                  )}
-                </div>
-              )}
-
               {s.facilities.length > 0 && (
                 <div className="sidebar-card">
                   <div className="sidebar-card-title">Facilities</div>
@@ -300,6 +303,33 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
               )}
             </div>
           </div>
+
+          {/* Works Great With as a full-width horizontal section below the
+              two-column body, rather than confined to the ~800px left
+              column - requested by Mark 04 Aug 2026 so the cross-link cards
+              get the full page width instead of wrapping narrowly. */}
+          {worksGreatWith && (
+            <div className="dist-section">
+              <div className="dist-section-title">Works Great With</div>
+              <div className="nearby-grid">
+                {s.worksGreatWithDistilleries.map((d) => (
+                  <Link href={`/distilleries/${d.slug}`} className="nearby-card" key={d.slug}>
+                    <div className="nearby-icon">🥃</div>
+                    <div className="nearby-name">{d.name}</div>
+                    <div className="nearby-type">Distillery</div>
+                    {d.region && <div className="nearby-dist">{d.region}</div>}
+                  </Link>
+                ))}
+                {s.worksGreatWithLocalFeatures.map((f) => (
+                  <Link href={`/explore/${f.slug}`} className="nearby-card" key={f.slug}>
+                    <div className="nearby-icon">{f.icon}</div>
+                    <div className="nearby-name">{f.name}</div>
+                    <div className="nearby-type">{LOCAL_FEATURE_CATEGORY_LABELS[f.category]}</div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

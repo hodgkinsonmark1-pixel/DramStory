@@ -151,7 +151,14 @@ export interface FeaturedStay {
   facilities: string[];
   /** e.g. "Sea view, on the dunes above a seven-mile beach". */
   setting?: string;
-  distanceFromFerryAirport?: string;
+  /** Split into three separate fields (rather than one combined
+   *  "ferry/airport" field) so each can render as its own Visit Info tile
+   *  and link through to its own /explore page - a single free-text field
+   *  read awkwardly once Port Ellen's closure caveat was added alongside
+   *  Port Askaig and the airport. */
+  distanceFromAirport?: string;
+  distanceFromPortAskaigFerry?: string;
+  distanceFromPortEllenFerry?: string;
   /** Genuine whisky-relevant hook for a whisky-trip site - an on-site bar
    *  with a notable collection, tasting evenings, etc. */
   whiskyBarNote?: string;

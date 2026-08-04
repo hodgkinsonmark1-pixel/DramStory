@@ -265,7 +265,17 @@ export interface AirtableFeaturedStayFields {
   // dropped from scope (see FeaturedStay's doc comment in types.ts). Do not
   // add them back without re-confirming that decision with Mark first.
   Setting?: string;
-  "Distance from Ferry/Airport"?: string;
+  // "Distance from Ferry/Airport" (the original single combined field) was
+  // split into three on 04 Aug 2026 - see the three fields below - because
+  // Mark wanted each as its own Visit Info tile linking to its own /explore
+  // page, and one free-text field read awkwardly once the Port Ellen
+  // closure caveat sat alongside Port Askaig and the airport. The old field
+  // still exists in Airtable (kept blank going forward) rather than being
+  // deleted, same "deprecate, don't delete" pattern as Meals Included/
+  // Accessibility - not read here.
+  "Distance from Airport"?: string;
+  "Distance from Port Askaig Ferry"?: string;
+  "Distance from Port Ellen Ferry"?: string;
   "Whisky Bar/Collection Note"?: string;
   "Mobile Signal Note"?: string;
   Parking?: string;
@@ -334,7 +344,9 @@ export function mapToFeaturedStay(
     priceFrom: fields["Price From"] != null ? `£${fields["Price From"]}` : "",
     facilities: fields.Facilities ?? [],
     setting: fields.Setting || undefined,
-    distanceFromFerryAirport: fields["Distance from Ferry/Airport"] || undefined,
+    distanceFromAirport: fields["Distance from Airport"] || undefined,
+    distanceFromPortAskaigFerry: fields["Distance from Port Askaig Ferry"] || undefined,
+    distanceFromPortEllenFerry: fields["Distance from Port Ellen Ferry"] || undefined,
     whiskyBarNote: fields["Whisky Bar/Collection Note"] || undefined,
     mobileSignalNote: fields["Mobile Signal Note"] || undefined,
     parking: fields.Parking || undefined,
