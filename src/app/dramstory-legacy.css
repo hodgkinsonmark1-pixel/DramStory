@@ -347,6 +347,14 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
 /* Same odd-one-out fix as the base .info-grid, for the flex-wrap variant. */
 .horizontal-info-bar .info-item:last-child:nth-child(odd){flex-basis:100%}
 .horizontal-info-bar .dist-website-link{display:block;margin-top:16px}
+/* Featured Stay "Visit info" bar only - website + TripAdvisor links side by
+   side in one row instead of stacked, TripAdvisor right-aligned. Scoped to
+   this row class rather than touching the shared .dist-website-link rule,
+   since that class is also used (stacked) on Distillery and Explore pages.
+   Requested by Mark 04 Aug 2026. */
+.dist-website-links-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px;margin-top:16px;padding-top:16px;border-top:1px solid var(--stone)}
+.dist-website-links-row .dist-website-link{margin-top:0;padding-top:0;border-top:none}
+.dist-website-links-row .dist-website-link-right{margin-left:auto}
 .facilities-grid{display:flex;flex-wrap:wrap;gap:8px}
 .facility-badge{padding:5px 12px;border-radius:100px;background:var(--green-light);color:var(--green-deep);font-size:11px;font-weight:500}
 .next-stop-card{display:flex;align-items:center;gap:12px;padding:12px;background:var(--off-white);border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s;border:1px solid transparent;margin-bottom:8px}

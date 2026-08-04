@@ -247,15 +247,19 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
                   </div>
                 )}
               </div>
-              {websiteDiffersFromBooking && (
-                <a href={s.websiteUrl} target="_blank" rel="noopener noreferrer" className="dist-website-link">
-                  Visit {s.name}&apos;s official website ↗
-                </a>
-              )}
-              {s.tripAdvisorUrl && (
-                <a href={s.tripAdvisorUrl} target="_blank" rel="noopener noreferrer" className="dist-website-link">
-                  See reviews on TripAdvisor &rarr;
-                </a>
+              {(websiteDiffersFromBooking || s.tripAdvisorUrl) && (
+                <div className="dist-website-links-row">
+                  {websiteDiffersFromBooking && (
+                    <a href={s.websiteUrl} target="_blank" rel="noopener noreferrer" className="dist-website-link">
+                      Visit {s.name}&apos;s official website ↗
+                    </a>
+                  )}
+                  {s.tripAdvisorUrl && (
+                    <a href={s.tripAdvisorUrl} target="_blank" rel="noopener noreferrer" className="dist-website-link dist-website-link-right">
+                      See reviews on TripAdvisor &rarr;
+                    </a>
+                  )}
+                </div>
               )}
             </div>
           )}
