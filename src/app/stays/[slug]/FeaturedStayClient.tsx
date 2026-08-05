@@ -65,6 +65,62 @@ function PhotoCredit({ credit }: { credit?: string }) {
   );
 }
 
+/** A "distance from" field parsed into the mockup's tile shape (05 Aug
+ *  2026 review): big time headline, short mileage subline, page link at
+ *  the foot - with any long trailing caveat (e.g. Port Ellen's closure)
+ *  moved out of the tile into the note banner below, replaced by a "See
+ *  note below" anchor. Returns null when the text doesn't follow the
+ *  authored "... (about X minutes) ... [Label](/path)" pattern, so the
+ *  caller can fall back to rendering the raw text - a hotel whose fields
+ *  are written differently degrades to the old paragraph tile rather
+ *  than a broken one. */
+interface ParsedDistanceTile {
+  /** e.g. "15–20 min" */
+  headline: string;
+  /** e.g. "Around 8–9 miles by road." */
+  sub: string;
+  link?: { label: string; href: string };
+  /** Long caveat clause for the note banner (capitalised, full stop, with
+   *  the tile's page link appended as a markdown link so it isn't lost). */
+  overflow?: string;
+}
+
+function parseDistanceTile(text: string): ParsedDistanceTile | null {
+  let working = text.trim();
+
+  const linkMatch = working.match(/\[([^\]]+)\]\(([^)]+)\)/);
+  const link = linkMatch ? { label: linkMatch[1], href: linkMatch[2] } : undefined;
+  if (linkMatch) working = working.replace(linkMatch[0], "").trim();
+
+  const timeMatch = working.match(/\(about\s+([^)]+?)\s*min(?:ute)?s?\)/i);
+  if (!timeMatch) return null;
+  const headline = `${timeMatch[1].trim()} min`;
+  working = working.replace(timeMatch[0], "").replace(/\s{2,}/g, " ").trim();
+  // Tidy punctuation stranded by the removals ("by road ." etc.).
+  working = working.replace(/\s+([.,])/g, "$1").replace(/^[\s.,;–—-]+/, "").replace(/[\s.]+$/, "");
+
+  // A long clause after an em-dash (like Port Ellen's closure note) moves
+  // to the note banner; a short aside ("— Bridgend sits on the direct
+  // route north") stays in the tile. 60 chars is the cut-off between
+  // "aside" and "paragraph that makes the tiles uneven" - the exact
+  // problem Mark flagged.
+  const emDashIndex = working.indexOf(" — ");
+  let sub = working;
+  let overflow: string | undefined;
+  if (emDashIndex !== -1) {
+    const tail = working.slice(emDashIndex + 3).trim();
+    if (tail.length > 60) {
+      sub = working.slice(0, emDashIndex).trim();
+      overflow = tail.charAt(0).toUpperCase() + tail.slice(1);
+      if (!/[.!?]$/.test(overflow)) overflow += ".";
+      if (link) overflow += ` [${link.label}](${link.href})`;
+    }
+  }
+  if (sub && !/[.!?]$/.test(sub)) sub += ".";
+
+  return { headline, sub, link, overflow };
+}
+
 interface FeaturedStayClientProps {
   stay: FeaturedStay;
 }
@@ -79,8 +135,20 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
   // operational asides rather than "tile" shaped facts - both now render
   // in the note banner just below the tiles instead. See this file's
   // hasVisitInfo/hasVisitNote split below.
-  const hasVisitTiles = s.setting || s.distanceFromAirport || s.distanceFromPortAskaigFerry || s.distanceFromPortEllenFerry;
-  const hasVisitNote = s.parking || s.mobileSignalNote;
+  // Distance tiles parsed into the mockup's headline/subline/link shape -
+  // see parseDistanceTile above. parsed === null → that tile falls back
+  // to rendering its raw text.
+  const distanceTiles = [
+    { label: "From the airport", value: s.distanceFromAirport },
+    { label: "From Port Askaig", value: s.distanceFromPortAskaigFerry },
+    { label: "From Port Ellen", value: s.distanceFromPortEllenFerry },
+  ]
+    .filter((t) => t.value)
+    .map((t) => ({ ...t, parsed: parseDistanceTile(t.value!) }));
+  const overflowNotes = distanceTiles.flatMap((t) => (t.parsed?.overflow ? [t.parsed.overflow] : []));
+
+  const hasVisitTiles = s.setting || distanceTiles.length > 0;
+  const hasVisitNote = overflowNotes.length > 0 || s.parking || s.mobileSignalNote;
   const hasVisitInfo = hasVisitTiles || hasVisitNote;
   const hasHistoryHighlight = !!(s.historyHighlightYear && s.historyHighlightQuote);
 
@@ -199,39 +267,64 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
               <div className="sidebar-card-title" style={{ marginBottom: 12 }}>
                 Visit info
               </div>
+              {/* Tiles restyled to the mockup's shape (05 Aug 2026 review):
+                  headline (time / area name), short subline, link at the
+                  foot. Long caveats move to the note banner below via
+                  parseDistanceTile - a tile whose text doesn't parse falls
+                  back to the previous paragraph style. */}
               {hasVisitTiles && (
                 <div className="stay-visit-tiles">
                   {s.setting && (
                     <div className="stay-visit-tile">
                       <div className="stay-visit-tile-label">Setting</div>
-                      <div className="stay-visit-tile-value">{s.setting}</div>
+                      {s.nearestArea && <div className="stay-visit-tile-headline">{s.nearestArea}</div>}
+                      <div className="stay-visit-tile-sub">{s.setting}</div>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="stay-visit-tile-link"
+                      >
+                        View on map &rarr;
+                      </a>
                     </div>
                   )}
-                  {s.distanceFromAirport && (
-                    <div className="stay-visit-tile">
-                      <div className="stay-visit-tile-label">From the airport</div>
-                      <div className="stay-visit-tile-value">{renderWithLinks(s.distanceFromAirport)}</div>
-                    </div>
-                  )}
-                  {s.distanceFromPortAskaigFerry && (
-                    <div className="stay-visit-tile">
-                      <div className="stay-visit-tile-label">From Port Askaig</div>
-                      <div className="stay-visit-tile-value">{renderWithLinks(s.distanceFromPortAskaigFerry)}</div>
-                    </div>
-                  )}
-                  {s.distanceFromPortEllenFerry && (
-                    <div className="stay-visit-tile">
-                      <div className="stay-visit-tile-label">From Port Ellen</div>
-                      <div className="stay-visit-tile-value">{renderWithLinks(s.distanceFromPortEllenFerry)}</div>
-                    </div>
+                  {distanceTiles.map((t) =>
+                    t.parsed ? (
+                      <div className="stay-visit-tile" key={t.label}>
+                        <div className="stay-visit-tile-label">{t.label}</div>
+                        <div className="stay-visit-tile-headline">{t.parsed.headline}</div>
+                        <div className="stay-visit-tile-sub">{t.parsed.sub}</div>
+                        {t.parsed.overflow ? (
+                          <a href="#stay-visit-note" className="stay-visit-tile-link">
+                            See note below &darr;
+                          </a>
+                        ) : t.parsed.link ? (
+                          t.parsed.link.href.startsWith("/") ? (
+                            <Link href={t.parsed.link.href} className="stay-visit-tile-link">
+                              {t.parsed.link.label} &rarr;
+                            </Link>
+                          ) : (
+                            <a href={t.parsed.link.href} target="_blank" rel="noopener noreferrer" className="stay-visit-tile-link">
+                              {t.parsed.link.label} &rarr;
+                            </a>
+                          )
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className="stay-visit-tile" key={t.label}>
+                        <div className="stay-visit-tile-label">{t.label}</div>
+                        <div className="stay-visit-tile-value">{renderWithLinks(t.value!)}</div>
+                      </div>
+                    )
                   )}
                 </div>
               )}
               {hasVisitNote && (
-                <div className="stay-visit-note">
+                <div className="stay-visit-note" id="stay-visit-note">
                   <span className="stay-visit-note-icon">!</span>
                   <span>
-                    {[s.parking, s.mobileSignalNote].filter(Boolean).join(" ")}
+                    {renderWithLinks([...overflowNotes, s.parking, s.mobileSignalNote].filter(Boolean).join(" "))}
                   </span>
                 </div>
               )}

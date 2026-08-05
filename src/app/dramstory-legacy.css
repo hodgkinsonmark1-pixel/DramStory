@@ -570,8 +570,17 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
 
 /* Visit Info tiles + note banner */
 .stay-visit-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:16px}
-.stay-visit-tile{background:var(--off-white);border-radius:var(--radius-sm);padding:16px 18px}
-.stay-visit-tile-label{font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--slate);margin-bottom:6px}
+/* Restyled 05 Aug 2026 (Mark's review) to the mockup's uniform card
+   shape: white card, big display-font headline (drive time / area name),
+   short subline, link pinned to the card foot. .stay-visit-tile-value is
+   kept for the fallback tile (a field that doesn't parse - see
+   parseDistanceTile in FeaturedStayClient.tsx). */
+.stay-visit-tile{background:white;border:1px solid var(--stone);border-radius:var(--radius);padding:18px 20px;display:flex;flex-direction:column}
+.stay-visit-tile-label{font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--slate);margin-bottom:8px}
+.stay-visit-tile-headline{font-family:var(--font-display);font-size:25px;font-weight:500;color:var(--dark);margin-bottom:6px}
+.stay-visit-tile-sub{font-size:13px;color:var(--peat);line-height:1.5;margin-bottom:14px}
+.stay-visit-tile-link{margin-top:auto;font-size:13px;font-weight:600;color:var(--copper);text-decoration:none}
+.stay-visit-tile-link:hover{text-decoration:underline}
 .stay-visit-tile-value{font-size:15px;font-weight:600;color:var(--dark);line-height:1.4}
 .stay-visit-note{
   display:flex;gap:10px;align-items:flex-start;
