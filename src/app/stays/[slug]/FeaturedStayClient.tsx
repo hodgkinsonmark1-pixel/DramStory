@@ -6,6 +6,10 @@ import Link from "next/link";
 import type { FeaturedStay } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 import Footer from "@/components/Footer";
+import StickyStayBar from "./StickyStayBar";
+import PlanYourDaysSection from "./PlanYourDaysSection";
+import DistilleriesFromYourDoor from "./DistilleriesFromYourDoor";
+import { useAddStayToTrip } from "./useAddStayToTrip";
 
 /** Renders plain text containing [label](/path) markdown-style links as
  *  real internal <Link>s - same helper as DistilleryPageClient/
@@ -86,21 +90,25 @@ interface FeaturedStayClientProps {
 
 export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const handleAddToTrip = useAddStayToTrip(s);
 
-  const hasVisitInfo =
-    s.setting ||
-    s.priceFrom ||
-    s.parking ||
-    s.distanceFromAirport ||
-    s.distanceFromPortAskaigFerry ||
-    s.distanceFromPortEllenFerry ||
-    s.mobileSignalNote;
+  // Visit Info tiles - Price From and Parking/Mobile Signal deliberately
+  // NOT included here (05 Aug 2026 rebuild): Price From is already shown
+  // in the hero and sticky bar, and Parking/Mobile Signal read as
+  // operational asides rather than "tile" shaped facts - both now render
+  // in the note banner just below the tiles instead. See this file's
+  // hasVisitInfo/hasVisitNote split below.
+  const hasVisitTiles = s.setting || s.distanceFromAirport || s.distanceFromPortAskaigFerry || s.distanceFromPortEllenFerry;
+  const hasVisitNote = s.parking || s.mobileSignalNote;
+  const hasVisitInfo = hasVisitTiles || hasVisitNote;
   const websiteDiffersFromBooking = s.websiteUrl && s.websiteUrl !== s.bookingUrl;
   const worksGreatWith = s.worksGreatWithDistilleries.length > 0 || s.worksGreatWithLocalFeatures.length > 0;
+  const hasHistoryHighlight = !!(s.historyHighlightYear && s.historyHighlightQuote);
 
   return (
     <>
       <PageHeader />
+      <StickyStayBar stay={s} />
 
       <div className="page">
         <div className="distillery-hero">
@@ -155,13 +163,19 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
           </div>
         </div>
 
-        {/* Why Stay + Facilities as a two-column row right under the hero -
-            Facilities moved up from the About section's sidebar to sit
-            alongside Why Stay here, requested by Mark 04 Aug 2026. This
-            row lives outside .distillery-body (same as the original
-            standalone Why Stay callout did) so it replicates that
-            element's own page-level centering/padding directly rather
-            than double up with .distillery-body's. */}
+        {/* "Plan your days from here" (05 Aug 2026) - sits right under the
+            hero, before Why Stay/Facilities, matching the reference layout
+            Mark reviewed. Renders nothing if this hotel has no "Plan Your
+            Days" picked yet in Airtable. */}
+        <PlanYourDaysSection days={s.planYourDays} />
+
+        {/* Why Stay + Facilities as a two-column row - Facilities moved up
+            from the About section's sidebar to sit alongside Why Stay here,
+            requested by Mark 04 Aug 2026. This row lives outside
+            .distillery-body (same as the original standalone Why Stay
+            callout did) so it replicates that element's own page-level
+            centering/padding directly rather than double up with
+            .distillery-body's. */}
         {(s.whyStay || s.facilities.length > 0) && (
           <div
             className="dist-detail-grid"
@@ -193,60 +207,57 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
         )}
 
         <div className="distillery-body">
-          {/* Visit Info as a full-width horizontal bar above the About
-              section, not the narrow sidebar - same treatment
-              ExploreFeatureClient gives Ferry Port/Airport pages
-              (visitInfoAtTop), since practical travel facts are what a
-              visitor wants first, before the editorial story. Requested by
-              Mark 04 Aug 2026 alongside splitting ferry/airport distance
-              into three separate tiles. */}
+          {/* Visit Info - restyled 05 Aug 2026 from a single stacked
+              info-grid into four separate tiles (Setting/Airport/Port
+              Askaig/Port Ellen), plus a note banner for Parking/Mobile
+              Signal (operational asides, not tile-shaped facts) - see
+              hasVisitTiles/hasVisitNote above. Still a full-width bar
+              above the About section rather than a narrow sidebar (same
+              "practical travel facts first" reasoning as before), and
+              still carries the website/TripAdvisor links row exactly as
+              already fixed earlier today - not moved, so as not to
+              re-break that fix. */}
           {hasVisitInfo && (
-            <div className="sidebar-card horizontal-info-bar" style={{ marginTop: 0, marginBottom: 32 }}>
-              <div className="sidebar-card-title">Visit info</div>
-              <div className="info-grid">
-                {s.setting && (
-                  <div className="info-item">
-                    <div className="info-label">Setting</div>
-                    <div className="info-value">{s.setting}</div>
-                  </div>
-                )}
-                {s.priceFrom && (
-                  <div className="info-item">
-                    <div className="info-label">Price from</div>
-                    <div className="info-value">{s.priceFrom} per night</div>
-                  </div>
-                )}
-                {s.distanceFromAirport && (
-                  <div className="info-item">
-                    <div className="info-label">Distance from airport</div>
-                    <div className="info-value">{renderWithLinks(s.distanceFromAirport)}</div>
-                  </div>
-                )}
-                {s.distanceFromPortAskaigFerry && (
-                  <div className="info-item">
-                    <div className="info-label">Distance from Port Askaig ferry</div>
-                    <div className="info-value">{renderWithLinks(s.distanceFromPortAskaigFerry)}</div>
-                  </div>
-                )}
-                {s.distanceFromPortEllenFerry && (
-                  <div className="info-item">
-                    <div className="info-label">Distance from Port Ellen ferry</div>
-                    <div className="info-value">{renderWithLinks(s.distanceFromPortEllenFerry)}</div>
-                  </div>
-                )}
-                {s.parking && (
-                  <div className="info-item">
-                    <div className="info-label">Parking</div>
-                    <div className="info-value">{s.parking}</div>
-                  </div>
-                )}
-                {s.mobileSignalNote && (
-                  <div className="info-item">
-                    <div className="info-label">Mobile signal</div>
-                    <div className="info-value">{s.mobileSignalNote}</div>
-                  </div>
-                )}
+            <div style={{ marginBottom: 32 }}>
+              <div className="sidebar-card-title" style={{ marginBottom: 12 }}>
+                Visit info
               </div>
+              {hasVisitTiles && (
+                <div className="stay-visit-tiles">
+                  {s.setting && (
+                    <div className="stay-visit-tile">
+                      <div className="stay-visit-tile-label">Setting</div>
+                      <div className="stay-visit-tile-value">{s.setting}</div>
+                    </div>
+                  )}
+                  {s.distanceFromAirport && (
+                    <div className="stay-visit-tile">
+                      <div className="stay-visit-tile-label">From the airport</div>
+                      <div className="stay-visit-tile-value">{renderWithLinks(s.distanceFromAirport)}</div>
+                    </div>
+                  )}
+                  {s.distanceFromPortAskaigFerry && (
+                    <div className="stay-visit-tile">
+                      <div className="stay-visit-tile-label">From Port Askaig</div>
+                      <div className="stay-visit-tile-value">{renderWithLinks(s.distanceFromPortAskaigFerry)}</div>
+                    </div>
+                  )}
+                  {s.distanceFromPortEllenFerry && (
+                    <div className="stay-visit-tile">
+                      <div className="stay-visit-tile-label">From Port Ellen</div>
+                      <div className="stay-visit-tile-value">{renderWithLinks(s.distanceFromPortEllenFerry)}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {hasVisitNote && (
+                <div className="stay-visit-note">
+                  <span className="stay-visit-note-icon">!</span>
+                  <span>
+                    {[s.parking, s.mobileSignalNote].filter(Boolean).join(" ")}
+                  </span>
+                </div>
+              )}
               {(websiteDiffersFromBooking || s.tripAdvisorUrl) && (
                 <div className="dist-website-links-row">
                   {websiteDiffersFromBooking && (
@@ -264,59 +275,86 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
             </div>
           )}
 
-          {/* Single-column now - this used to be a dist-detail-grid with
-              Facilities as the second column, but Facilities moved up
-              alongside Why Stay Here (see above), so a second, now-empty
-              320px column here would just leave dead space. */}
-          <div>
-            <div className="dist-section">
-              <div className="dist-section-title">About {s.name}</div>
-              {s.description.split("\n\n").map((para, i) => (
-                <p className="dist-p" key={i} style={{ marginBottom: 12 }}>
-                  {renderWithLinks(para)}
-                </p>
-              ))}
+          {/* About (left) + "A Night in [Year]" history highlight (right) -
+              two-column row, same dist-detail-grid pattern as Works Great
+              With/Nearest Area below. History Highlight is a short,
+              separately-sourced pull-quote (FeaturedStay.historyHighlight*
+              - added 05 Aug 2026), distinct from the full `history` prose
+              further down the page - only renders once both a year and a
+              quote are set (see hasHistoryHighlight above), so a hotel
+              without one yet just gets the single-column About layout. */}
+          <div className={hasHistoryHighlight ? "dist-detail-grid" : undefined}>
+            <div>
+              <div className="dist-section">
+                <div className="dist-section-title">About {s.name}</div>
+                {s.description.split("\n\n").map((para, i) => (
+                  <p className="dist-p" key={i} style={{ marginBottom: 12 }}>
+                    {renderWithLinks(para)}
+                  </p>
+                ))}
+              </div>
+
+              {s.whiskyBarNote && (
+                <div className="dist-section">
+                  <div className="dist-section-title">Whisky bar &amp; collection</div>
+                  <p className="dist-p">{renderWithLinks(s.whiskyBarNote)}</p>
+                </div>
+              )}
             </div>
 
-            {s.whiskyBarNote && (
-              <div className="dist-section">
-                <div className="dist-section-title">Whisky bar &amp; collection</div>
-                <p className="dist-p">{renderWithLinks(s.whiskyBarNote)}</p>
-              </div>
-            )}
-
-            {s.gallery && s.gallery.length > 0 && (
-              <div className="dist-section">
-                <div className="dist-section-title">Gallery</div>
-                <div className="dist-gallery-grid">
-                  {s.gallery.map((url, i) => (
-                    <button
-                      type="button"
-                      className="dist-gallery-img"
-                      key={i}
-                      onClick={() => setLightboxIndex(i)}
-                      aria-label={`View larger photo ${i + 1} of ${s.name}`}
-                    >
-                      <Image src={url} alt={`${s.name} photo ${i + 1}`} fill unoptimized style={{ objectFit: "cover" }} />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {s.history && (
-              <div className="dist-below-line">
-                <div className="dist-section">
-                  <div className="dist-section-title">History</div>
-                  {s.history.split("\n\n").map((para, i) => (
-                    <p className="dist-p" key={i} style={{ marginBottom: 12 }}>
-                      {renderWithLinks(para)}
-                    </p>
-                  ))}
+            {hasHistoryHighlight && (
+              <div className="dist-sidebar">
+                <div className="stay-history-highlight">
+                  <span className="stay-history-highlight-eyebrow">A Night in {s.historyHighlightYear}</span>
+                  <p className="stay-history-highlight-quote">{s.historyHighlightQuote}</p>
+                  {s.historyHighlightSource && (
+                    <p className="stay-history-highlight-source">For {s.historyHighlightSource}</p>
+                  )}
                 </div>
               </div>
             )}
           </div>
+
+          {/* Gallery ("Inside the inn") - each photo now carries its own
+              short caption overlay (FeaturedStay.galleryCaptions, added 05
+              Aug 2026), index-aligned with `gallery` the same way
+              galleryCredits already was. A photo with no caption for its
+              index just shows no overlay - captions are being added
+              alongside the rest of this hotel's photography, same
+              "pending content" pattern as an empty Gallery. */}
+          {s.gallery && s.gallery.length > 0 && (
+            <div className="dist-section">
+              <div className="dist-section-title">Inside the inn</div>
+              <div className="dist-gallery-grid">
+                {s.gallery.map((url, i) => (
+                  <button
+                    type="button"
+                    className="dist-gallery-img"
+                    key={i}
+                    onClick={() => setLightboxIndex(i)}
+                    aria-label={`View larger photo ${i + 1} of ${s.name}`}
+                    style={{ position: "relative" }}
+                  >
+                    <Image src={url} alt={`${s.name} photo ${i + 1}`} fill unoptimized style={{ objectFit: "cover" }} />
+                    {s.galleryCaptions?.[i] && <span className="stay-gallery-caption">{s.galleryCaptions[i]}</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {s.history && (
+            <div className="dist-below-line">
+              <div className="dist-section">
+                <div className="dist-section-title">History</div>
+                {s.history.split("\n\n").map((para, i) => (
+                  <p className="dist-p" key={i} style={{ marginBottom: 12 }}>
+                    {renderWithLinks(para)}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Works Great With (left) + Nearest Area (right) as a second
               two-column row below the About body - Works Great With moved
@@ -371,6 +409,39 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
               </div>
             </div>
           )}
+        </div>
+
+        {/* "Distilleries from your door" (05 Aug 2026) - the nearest four
+            by real drive time, sourced from the Stay Distillery Distances
+            table. Full-width, outside .distillery-body's narrower
+            max-width, same treatment as Plan Your Days above. */}
+        <DistilleriesFromYourDoor nearest={s.nearestDistilleries} />
+
+        {/* Closing CTA banner (05 Aug 2026) */}
+        <div className="stay-cta-banner">
+          <div>
+            <p className="stay-cta-banner-title">Make {s.name} your base.</p>
+            {(s.facilities.length > 0 || s.nearestDistilleries.length > 0 || s.priceFrom) && (
+              <p className="stay-cta-banner-sub">
+                {s.facilities.length > 0 && `${s.facilities.length} facilit${s.facilities.length === 1 ? "y" : "ies"}`}
+                {s.facilities.length > 0 && s.nearestDistilleries.length > 0 && ", "}
+                {s.nearestDistilleries.length > 0 &&
+                  `nearest distillery ${s.nearestDistilleries[0].driveTimeMinutes} min away`}
+                {(s.facilities.length > 0 || s.nearestDistilleries.length > 0) && s.priceFrom && ". "}
+                {s.priceFrom && `From ${s.priceFrom} a night.`}
+              </p>
+            )}
+          </div>
+          <div className="stay-cta-banner-actions">
+            <button type="button" onClick={handleAddToTrip} className="stay-cta-banner-secondary">
+              + Add to my trip
+            </button>
+            {s.bookingUrl && (
+              <a href={s.bookingUrl} target="_blank" rel="noopener noreferrer" className="stay-cta-banner-primary">
+                Check availability &rarr;
+              </a>
+            )}
+          </div>
         </div>
       </div>
 

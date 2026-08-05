@@ -189,6 +189,39 @@ export interface FeaturedStay {
   /** Nearby/complementary Local Features this hotel pairs well with - same
    *  "Works Great With" section, same rendering guarantee as above. */
   worksGreatWithLocalFeatures: LocalFeature[];
+  /** Short historical pull-quote for the hotel page's "A Night in [Year]"
+   *  sidebar box - a curated highlight of the full `history` field, not a
+   *  replacement for it. All three must be present together to render
+   *  (partial data - e.g. a quote with no year - would look broken), so
+   *  callers should check historyHighlightYear before rendering the box.
+   *  Added 05 Aug 2026 for the hotel-template rebuild. */
+  historyHighlightYear?: string;
+  historyHighlightQuote?: string;
+  historyHighlightSource?: string;
+  /** One caption per `gallery` photo, index-aligned - same convention as
+   *  galleryCredits, but distinct from it: this is a short caption (e.g.
+   *  "a bedroom - the shot that sells the stay"), galleryCredits is photo
+   *  attribution. Undefined (not an array of empty strings) when the
+   *  field is blank in Airtable. Added 05 Aug 2026. */
+  galleryCaptions?: string[];
+  /** Curated Pre-Designed Days shown as "Plan your days from here" cards -
+   *  resolved to full HubDay records via the Days table's new "Plan Your
+   *  Days" link field on Featured Stays (added 05 Aug 2026), same
+   *  "resolve to real records, not just IDs" pattern as
+   *  worksGreatWithDistilleries above. Empty array if none picked yet. */
+  planYourDays: HubDay[];
+  /** Nearest four distilleries by one-way drive time from this hotel, for
+   *  the "Distilleries from your door" section. Drive time isn't a fact
+   *  about the Stay or the Distillery alone, so it's sourced from the
+   *  separate "Stay Distillery Distances" junction table (added 05 Aug
+   *  2026) rather than computed from coordinates - Mark wanted real
+   *  driving time, entered manually per hotel-distillery pair, not
+   *  straight-line distance. Filled in as a post-processing step in
+   *  fetchFeaturedStaysFromAirtable (mapToFeaturedStay alone can't see a
+   *  separate table). Empty array if no distances have been entered yet
+   *  for this hotel - the section shows a "coming soon" state rather than
+   *  nothing, same pattern as an empty Gallery. */
+  nearestDistilleries: { distillery: Distillery; driveTimeMinutes: number }[];
   source: DataSource;
 }
 

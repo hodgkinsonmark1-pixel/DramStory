@@ -490,6 +490,124 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
 .footer-legal a:hover{color:rgba(255,255,255,0.7)}
 .footer-badges{display:flex;gap:8px;align-items:center}
 .footer-badge{padding:4px 12px;border-radius:100px;border:1px solid rgba(255,255,255,0.12);font-size:10px;font-weight:600;letter-spacing:0.08em;color:rgba(255,255,255,0.35)}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Featured Stay (hotel) page only - added 05 Aug 2026 for the hotel
+   template rebuild. Every rule below is prefixed .stay- and scoped to
+   src/app/stays/[slug]/* components specifically so this pass can't
+   change how any other template (Distillery, Explore, Days Hub, etc.)
+   looks or behaves - see the project conventions doc's "ask before
+   touching a shared template" rule, which this whole rebuild was scoped
+   around from the start.
+   ───────────────────────────────────────────────────────────────────── */
+
+/* Sticky quick-actions bar */
+.stay-sticky-bar{
+  position:fixed;top:0;left:0;right:0;z-index:40;
+  background:var(--dark);color:white;
+  transform:translateY(-100%);transition:transform 0.25s ease;
+  box-shadow:0 4px 16px rgba(0,0,0,0.15);
+}
+.stay-sticky-bar-visible{transform:translateY(0)}
+.stay-sticky-bar-inner{
+  max-width:1200px;margin:0 auto;padding:14px 48px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+}
+.stay-sticky-bar-info{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.stay-sticky-bar-name{font-family:var(--font-display);font-size:17px;font-weight:500}
+.stay-sticky-bar-meta{font-size:13px;color:rgba(255,255,255,0.65)}
+.stay-sticky-bar-actions{display:flex;align-items:center;gap:12px}
+.stay-sticky-bar-add{
+  padding:9px 16px;background:transparent;color:white;border:1px solid rgba(255,255,255,0.4);
+  border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;font-family:var(--font-body);
+  white-space:nowrap;
+}
+.stay-sticky-bar-add:hover{border-color:white}
+.stay-sticky-bar-book{
+  padding:9px 20px;background:var(--copper);color:white;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;
+}
+
+/* "Plan your days from here" */
+.stay-plan-days{max-width:1200px;margin:48px auto 0;padding:0 48px}
+.stay-plan-days-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:24px}
+.stay-plan-days-eyebrow{display:block;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--copper);margin-bottom:6px}
+.stay-plan-days-title{font-family:var(--font-display);font-size:28px;font-weight:500;color:var(--dark);margin:0 0 8px}
+.stay-plan-days-intro{font-size:14px;color:var(--peat);max-width:640px;line-height:1.6;margin:0}
+.stay-plan-days-link{font-size:13px;font-weight:600;color:var(--copper);text-decoration:none;white-space:nowrap}
+.stay-plan-days-link:hover{text-decoration:underline}
+.stay-plan-days-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.stay-day-card{background:white;border:1px solid var(--stone);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column;gap:10px}
+.stay-day-card-pacing{display:inline-block;padding:4px 10px;border-radius:100px;font-size:10px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase}
+.stay-day-card-title{font-family:var(--font-display);font-size:18px;font-weight:500;color:var(--dark)}
+.stay-day-card-stops{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.stay-day-card-stops li{font-size:13px;color:var(--peat);padding-left:14px;position:relative}
+.stay-day-card-stops li::before{content:"";position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:var(--copper)}
+.stay-day-card-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto;padding-top:10px;border-top:1px solid var(--stone)}
+.stay-day-card-cost{font-size:13px;font-weight:600;color:var(--copper)}
+.stay-day-card-use{background:none;border:none;padding:0;font-size:13px;font-weight:600;color:var(--copper);cursor:pointer;font-family:var(--font-body)}
+.stay-day-card-use:disabled{color:var(--green-deep);cursor:default}
+
+/* Visit Info tiles + note banner */
+.stay-visit-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:16px}
+.stay-visit-tile{background:var(--off-white);border-radius:var(--radius-sm);padding:16px 18px}
+.stay-visit-tile-label{font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--slate);margin-bottom:6px}
+.stay-visit-tile-value{font-size:15px;font-weight:600;color:var(--dark);line-height:1.4}
+.stay-visit-note{
+  display:flex;gap:10px;align-items:flex-start;
+  background:var(--amber-pale);border-radius:var(--radius-sm);padding:14px 18px;
+  font-size:13px;color:var(--peat);line-height:1.6;margin-bottom:16px;
+}
+.stay-visit-note-icon{flex-shrink:0}
+
+/* History Highlight sidebar card ("A Night in [Year]") */
+.stay-history-highlight{background:white;border:1px solid var(--stone);border-radius:var(--radius);padding:22px}
+.stay-history-highlight-eyebrow{display:block;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--copper);margin-bottom:10px}
+.stay-history-highlight-quote{font-family:var(--font-display);font-size:17px;font-weight:500;color:var(--dark);line-height:1.5;margin:0 0 10px}
+.stay-history-highlight-source{font-size:12px;font-style:italic;color:var(--slate);margin:0 0 16px}
+.stay-history-highlight-links{display:flex;flex-direction:column;gap:8px;padding-top:12px;border-top:1px solid var(--stone)}
+
+/* Gallery captions overlay - sits on top of the existing .dist-gallery-img
+   button, doesn't touch its shared styling */
+.stay-gallery-caption{
+  position:absolute;left:0;right:0;bottom:0;z-index:2;
+  padding:20px 12px 8px;
+  background:linear-gradient(to top, rgba(0,0,0,0.65), transparent);
+  color:white;font-size:12px;text-align:left;
+}
+
+/* Distilleries from your door */
+.stay-door-section{max-width:1200px;margin:48px auto 0;padding:0 48px}
+.stay-door-head{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:18px}
+.stay-door-title{font-family:var(--font-display);font-size:22px;font-weight:500;color:var(--dark)}
+.stay-door-see-all{font-size:13px;font-weight:600;color:var(--copper);text-decoration:none;white-space:nowrap}
+.stay-door-see-all:hover{text-decoration:underline}
+.stay-door-pending{font-size:13px;color:var(--slate);font-style:italic}
+.stay-door-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
+.stay-door-card{background:white;border:1px solid var(--stone);border-radius:var(--radius);overflow:hidden}
+.stay-door-card-img-link{display:block}
+.stay-door-card-img-wrap{position:relative;height:130px;background:var(--stone)}
+.stay-door-card-img-fallback{position:absolute;inset:0;background:linear-gradient(135deg,var(--navy),var(--peat))}
+.stay-door-card-time{position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.6);color:white;font-size:11px;font-weight:600;padding:3px 9px;border-radius:100px}
+.stay-door-card-body{padding:14px 16px}
+.stay-door-card-name{display:block;font-family:var(--font-display);font-size:16px;font-weight:500;color:var(--dark);text-decoration:none;margin-bottom:4px}
+.stay-door-card-name:hover{color:var(--copper)}
+.stay-door-card-tagline{font-size:12px;color:var(--slate);margin-bottom:12px}
+.stay-door-card-foot{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.stay-door-card-price{font-size:12px;color:var(--peat)}
+.stay-door-card-add{background:none;border:none;padding:0;font-size:12px;font-weight:600;color:var(--copper);cursor:pointer;font-family:var(--font-body)}
+
+/* Closing CTA banner */
+.stay-cta-banner{
+  background:var(--dark);color:white;margin-top:56px;
+  padding:40px 48px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;
+}
+.stay-cta-banner-title{font-family:var(--font-display);font-size:26px;font-weight:500;margin:0 0 6px}
+.stay-cta-banner-sub{font-size:14px;color:rgba(255,255,255,0.65);margin:0}
+.stay-cta-banner-actions{display:flex;gap:12px;flex-wrap:wrap}
+.stay-cta-banner-secondary{padding:12px 22px;background:transparent;color:white;border:1px solid rgba(255,255,255,0.4);border-radius:var(--radius-sm);font-size:14px;font-weight:500;text-decoration:none;white-space:nowrap;cursor:pointer;font-family:var(--font-body)}
+.stay-cta-banner-primary{padding:12px 24px;background:var(--copper);color:white;border-radius:var(--radius-sm);font-size:14px;font-weight:600;text-decoration:none;white-space:nowrap}
+
 @media(max-width:768px){
   .footer-grid{grid-template-columns:1fr 1fr}
   .blog-featured{grid-template-columns:1fr}
@@ -534,4 +652,9 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
   .distillery-hero-content{flex-direction:column;align-items:flex-start;gap:16px;padding:24px}
   .distillery-body{padding:24px}
   .hero-nav{padding:20px 24px}
+
+  /* Featured Stay page only - see the non-media-query .stay- rules above */
+  .stay-sticky-bar-inner,.stay-plan-days,.stay-door-section{padding-left:24px;padding-right:24px}
+  .stay-cta-banner{padding:32px 24px}
+  .stay-sticky-bar-actions{width:100%;justify-content:space-between}
 }

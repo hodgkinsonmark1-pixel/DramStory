@@ -17,6 +17,7 @@ import {
   type AirtableFeaturedStayFields,
   type AirtableJournalFields,
   type AirtableLocalFeatureFields,
+  type AirtableStayDistilleryDistanceFields,
   type AirtableTourFields,
 } from "./airtable-mappers";
 
@@ -165,18 +166,46 @@ export const getFeaturedStays = cache(async (): Promise<FeaturedStay[]> => {
 });
 
 async function fetchFeaturedStaysFromAirtable(): Promise<FeaturedStay[]> {
-  const [records, distilleries, localFeatures] = await Promise.all([
+  const [records, distilleries, localFeatures, days, distanceRecords] = await Promise.all([
     airtableFetchAll<AirtableFeaturedStayFields>("Featured Stays"),
     getDistilleries(),
     getLocalFeatures(),
+    getDays(),
+    airtableFetchAll<AirtableStayDistilleryDistanceFields>("Stay Distillery Distances"),
   ]);
 
   const distilleryById = new Map(distilleries.map((d) => [d.id, d]));
   const localFeatureById = new Map(localFeatures.map((f) => [f.id, f]));
+  const daysById = new Map(days.map((d) => [d.id, d]));
 
-  return records
-    .map((r) => mapToFeaturedStay(r.id, r.fields, distilleryById, localFeatureById))
+  const stays = records
+    .map((r) => mapToFeaturedStay(r.id, r.fields, distilleryById, localFeatureById, daysById))
     .filter((s): s is FeaturedStay => s !== null);
+
+  // "Distilleries from your door" - nearest four by real drive time,
+  // sourced from the Stay Distillery Distances junction table rather than
+  // computed from coordinates (see FeaturedStay.nearestDistilleries' doc
+  // comment in types.ts for why). Grouped by Stay first since a stay's
+  // rows are scattered across the whole junction table, not adjacent.
+  const distancesByStayId = new Map<string, { distillery: Distillery; driveTimeMinutes: number }[]>();
+  for (const rec of distanceRecords) {
+    const stayId = rec.fields.Stay?.[0];
+    const distilleryId = rec.fields.Distillery?.[0];
+    const minutes = rec.fields["Drive Time (Minutes)"];
+    if (!stayId || !distilleryId || minutes == null) continue;
+    const distillery = distilleryById.get(distilleryId);
+    if (!distillery) continue;
+    const list = distancesByStayId.get(stayId) ?? [];
+    list.push({ distillery, driveTimeMinutes: minutes });
+    distancesByStayId.set(stayId, list);
+  }
+  for (const stay of stays) {
+    stay.nearestDistilleries = (distancesByStayId.get(stay.id) ?? [])
+      .sort((a, b) => a.driveTimeMinutes - b.driveTimeMinutes)
+      .slice(0, 4);
+  }
+
+  return stays;
 }
 
 export async function getFeaturedStayBySlug(slug: string): Promise<FeaturedStay | undefined> {

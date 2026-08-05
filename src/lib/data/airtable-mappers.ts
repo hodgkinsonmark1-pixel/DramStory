@@ -1,5 +1,5 @@
 import type { AirtableAttachment } from "@/lib/airtable";
-import type { Distillery, FeaturedStay, JournalPost, LocalEvent, LocalFeature, NearbyFeature, Tour } from "@/lib/types";
+import type { Distillery, FeaturedStay, HubDay, JournalPost, LocalEvent, LocalFeature, NearbyFeature, Tour } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Raw shapes as returned by the Airtable REST API for each table.
@@ -286,6 +286,25 @@ export interface AirtableFeaturedStayFields {
   "Pin Summary"?: string;
   "Works Great With — Distilleries"?: string[]; // linked record IDs -> Distilleries table
   "Works Great With — Local Features"?: string[]; // linked record IDs -> Local Features table
+  // Added 05 Aug 2026 for the hotel-template rebuild - see FeaturedStay's
+  // doc comments in types.ts for what each powers.
+  "History Highlight Year"?: string;
+  "History Highlight Quote"?: string;
+  "History Highlight Source"?: string;
+  "Gallery Captions"?: string;
+  "Plan Your Days"?: string[]; // linked record IDs -> Days table
+}
+
+/** Raw shape for the "Stay Distillery Distances" junction table - added 05
+ *  Aug 2026 to power "Distilleries from your door". One row per
+ *  hotel-distillery pair worth surfacing, with the one-way drive time
+ *  between them - see the table's own description in Airtable for why
+ *  this couldn't just be a field on either side. */
+export interface AirtableStayDistilleryDistanceFields {
+  Name?: string;
+  Stay?: string[]; // linked record ID -> Featured Stays table
+  Distillery?: string[]; // linked record ID -> Distilleries table
+  "Drive Time (Minutes)"?: number;
 }
 
 /** Maps a raw Featured Stays record into a FeaturedStay - same pattern as
@@ -313,7 +332,8 @@ export function mapToFeaturedStay(
   id: string,
   fields: AirtableFeaturedStayFields,
   distilleryById: Map<string, Distillery>,
-  localFeatureById: Map<string, LocalFeature>
+  localFeatureById: Map<string, LocalFeature>,
+  daysById: Map<string, HubDay>
 ): FeaturedStay | null {
   if (!fields.Name || !fields.Slug) return null;
   const isProduction = process.env.VERCEL_ENV === "production";
@@ -365,6 +385,18 @@ export function mapToFeaturedStay(
     worksGreatWithLocalFeatures: (fields["Works Great With — Local Features"] ?? [])
       .map((recId) => localFeatureById.get(recId))
       .filter((f): f is LocalFeature => !!f),
+    historyHighlightYear: fields["History Highlight Year"] || undefined,
+    historyHighlightQuote: fields["History Highlight Quote"] || undefined,
+    historyHighlightSource: fields["History Highlight Source"] || undefined,
+    galleryCaptions: fields["Gallery Captions"] ? fields["Gallery Captions"].split("\n") : undefined,
+    planYourDays: (fields["Plan Your Days"] ?? [])
+      .map((recId) => daysById.get(recId))
+      .filter((d): d is HubDay => !!d),
+    // Filled in afterward by fetchFeaturedStaysFromAirtable - the Stay
+    // Distillery Distances junction table isn't visible from here (see
+    // this function's distilleryById/localFeatureById param comment for
+    // why cross-table data gets passed in rather than fetched inline).
+    nearestDistilleries: [],
     source: "airtable",
   };
 }
