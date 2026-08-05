@@ -65,25 +65,6 @@ function PhotoCredit({ credit }: { credit?: string }) {
   );
 }
 
-// Same category -> display label mapping as ExploreFeatureClient's
-// CATEGORY_LABELS (duplicated rather than shared, matching this codebase's
-// existing per-page-client convention) - only used here for the "Works
-// Great With" Local Feature cards' small type line.
-const LOCAL_FEATURE_CATEGORY_LABELS: Record<FeaturedStay["worksGreatWithLocalFeatures"][number]["category"], string> = {
-  beach: "Beach",
-  walk: "Walk",
-  "bike-route": "Bike Route",
-  "local-gem": "Local Gem",
-  "historic-site": "Historic Site",
-  "attraction-gem": "Local Gem",
-  pub: "Pub",
-  cafe: "Cafe",
-  restaurant: "Restaurant",
-  golf: "Golf",
-  spa: "Spa",
-  transport: "Transport",
-};
-
 interface FeaturedStayClientProps {
   stay: FeaturedStay;
 }
@@ -101,14 +82,18 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
   const hasVisitTiles = s.setting || s.distanceFromAirport || s.distanceFromPortAskaigFerry || s.distanceFromPortEllenFerry;
   const hasVisitNote = s.parking || s.mobileSignalNote;
   const hasVisitInfo = hasVisitTiles || hasVisitNote;
-  const websiteDiffersFromBooking = s.websiteUrl && s.websiteUrl !== s.bookingUrl;
-  const worksGreatWith = s.worksGreatWithDistilleries.length > 0 || s.worksGreatWithLocalFeatures.length > 0;
   const hasHistoryHighlight = !!(s.historyHighlightYear && s.historyHighlightQuote);
 
   return (
     <>
-      <PageHeader />
-      <StickyStayBar stay={s} />
+      {/* Header wrapped in a page-local sticky container (05 Aug 2026,
+          Mark's review: "I'd like the header bar to remain visible") -
+          PageHeader itself is a shared component used across content
+          pages, so the stickiness lives here in a .stay- wrapper rather
+          than inside PageHeader, keeping this hotels-template-only. */}
+      <div className="stay-header-sticky">
+        <PageHeader />
+      </div>
 
       <div className="page">
         <div className="distillery-hero">
@@ -145,23 +130,15 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
                 {s.priceFrom && <span className="hero-badge">From {s.priceFrom}</span>}
               </div>
             </div>
-            <div className="distillery-hero-actions">
-              {s.bookingUrl && (
-                <a href={s.bookingUrl} target="_blank" rel="noopener noreferrer" className="hero-action-btn hero-action-primary">
-                  Book Now &rarr;
-                </a>
-              )}
-              <a
-                href={`https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`}
-                target="_blank"
-                rel="noreferrer"
-                className="hero-action-btn hero-action-secondary"
-              >
-                Get Directions
-              </a>
-            </div>
           </div>
         </div>
+
+        {/* Booking bar - in-flow directly under the hero, sticks below the
+            header on scroll. The hero's own Book Now / Get Directions
+            buttons were removed in the same 05 Aug 2026 review ("lose the
+            get directions... lose the book now button") - this bar is now
+            the page's single booking CTA, alongside the closing banner. */}
+        <StickyStayBar stay={s} />
 
         {/* "Plan your days from here" (05 Aug 2026) - sits right under the
             hero, before Why Stay/Facilities, matching the reference layout
@@ -258,20 +235,9 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
                   </span>
                 </div>
               )}
-              {(websiteDiffersFromBooking || s.tripAdvisorUrl) && (
-                <div className="dist-website-links-row">
-                  {websiteDiffersFromBooking && (
-                    <a href={s.websiteUrl} target="_blank" rel="noopener noreferrer" className="dist-website-link">
-                      Visit {s.name}&apos;s official website ↗
-                    </a>
-                  )}
-                  {s.tripAdvisorUrl && (
-                    <a href={s.tripAdvisorUrl} target="_blank" rel="noopener noreferrer" className="dist-website-link dist-website-link-right">
-                      See reviews on TripAdvisor &rarr;
-                    </a>
-                  )}
-                </div>
-              )}
+              {/* The official-website/TripAdvisor links row moved from
+                  here into StickyStayBar's second row (05 Aug 2026,
+                  Mark's review). */}
             </div>
           )}
 
@@ -356,59 +322,13 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
             </div>
           )}
 
-          {/* Works Great With (left) + Nearest Area (right) as a second
-              two-column row below the About body - Works Great With moved
-              out of the narrow left column into a full-width row here, and
-              Nearest Area moved out of the Visit Info bar into its own
-              card alongside it, both requested by Mark 04 Aug 2026. The
-              Nearest Area card is deliberately not a <Link> - there's no
-              Areas table/page yet (explicitly deferred until after all
-              Featured Stays are built, see project punch list), so this is
-              a preview of the future card, not a working link. Wire it up
-              once /areas/[slug] exists. */}
-          {(worksGreatWith || s.nearestArea) && (
-            <div className="dist-detail-grid">
-              <div>
-                {worksGreatWith && (
-                  <div className="dist-section">
-                    <div className="dist-section-title">Works Great With</div>
-                    <div className="nearby-grid">
-                      {s.worksGreatWithDistilleries.map((d) => (
-                        <Link href={`/distilleries/${d.slug}`} className="nearby-card" key={d.slug}>
-                          <div className="nearby-icon">🥃</div>
-                          <div className="nearby-name">{d.name}</div>
-                          <div className="nearby-type">Distillery</div>
-                          {d.region && <div className="nearby-dist">{d.region}</div>}
-                        </Link>
-                      ))}
-                      {s.worksGreatWithLocalFeatures.map((f) => (
-                        <Link href={`/explore/${f.slug}`} className="nearby-card" key={f.slug}>
-                          <div className="nearby-icon">{f.icon}</div>
-                          <div className="nearby-name">{f.name}</div>
-                          <div className="nearby-type">{LOCAL_FEATURE_CATEGORY_LABELS[f.category]}</div>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="dist-sidebar">
-                {s.nearestArea && (
-                  <div className="dist-section">
-                    <div className="dist-section-title">Nearest Area</div>
-                    <div className="nearby-grid">
-                      <div className="nearby-card" style={{ cursor: "default" }}>
-                        <div className="nearby-icon">📍</div>
-                        <div className="nearby-name">{s.nearestArea}</div>
-                        <div className="nearby-type">Area</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Works Great With + Nearest Area section removed 05 Aug 2026
+              (Mark's review): "Distilleries from your door" below now
+              covers the nearby-distillery job with real drive times, and
+              Nearest Area is covered by the Setting tile in the Visit
+              Info row. The worksGreatWith* fields stay in the data model
+              (still used by other surfaces and possibly a future Areas
+              page) - this template just no longer renders them. */}
         </div>
 
         {/* "Distilleries from your door" (05 Aug 2026) - the nearest four

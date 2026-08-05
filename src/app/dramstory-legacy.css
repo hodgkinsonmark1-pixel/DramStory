@@ -501,20 +501,29 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
    around from the start.
    ───────────────────────────────────────────────────────────────────── */
 
-/* Sticky quick-actions bar */
+/* Sticky page header wrapper - keeps the shared PageHeader visible while
+   scrolling on hotel pages only (the stickiness lives in this .stay-
+   wrapper, not in PageHeader itself, so other content pages are
+   untouched). Reworked 05 Aug 2026 per Mark's review. */
+.stay-header-sticky{position:sticky;top:0;z-index:50;background:var(--off-white)}
+
+/* Booking bar - in-flow directly below the hero (visible before any
+   scroll), then sticks below the header. top:97px = PageHeader's height
+   (32px padding-top + 32px logo + 32px padding-bottom + 1px border) -
+   PageHeader's dimensions are inline styles that no media query alters,
+   so this holds on mobile too. Update this value if PageHeader's padding
+   or logo size ever changes. */
 .stay-sticky-bar{
-  position:fixed;top:0;left:0;right:0;z-index:40;
+  position:sticky;top:97px;z-index:40;
   background:var(--dark);color:white;
-  transform:translateY(-100%);transition:transform 0.25s ease;
   box-shadow:0 4px 16px rgba(0,0,0,0.15);
 }
-.stay-sticky-bar-visible{transform:translateY(0)}
 .stay-sticky-bar-inner{
   max-width:1200px;margin:0 auto;padding:14px 48px;
   display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
 }
 .stay-sticky-bar-info{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
-.stay-sticky-bar-name{font-family:var(--font-display);font-size:17px;font-weight:500}
+.stay-sticky-bar-name{font-family:var(--font-display);font-size:17px;font-weight:500;white-space:nowrap}
 .stay-sticky-bar-meta{font-size:13px;color:rgba(255,255,255,0.65)}
 .stay-sticky-bar-actions{display:flex;align-items:center;gap:12px}
 .stay-sticky-bar-add{
@@ -527,6 +536,15 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
   padding:9px 20px;background:var(--copper);color:white;border-radius:var(--radius-sm);
   font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;
 }
+/* Second row: official website / TripAdvisor links (moved here from the
+   Visit Info section, 05 Aug 2026). */
+.stay-sticky-bar-links{
+  max-width:1200px;margin:0 auto;padding:9px 48px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  border-top:1px solid rgba(255,255,255,0.14);
+}
+.stay-sticky-bar-link{font-size:12px;color:rgba(255,255,255,0.7);text-decoration:none;white-space:nowrap}
+.stay-sticky-bar-link:hover{color:white;text-decoration:underline}
 
 /* "Plan your days from here" */
 .stay-plan-days{max-width:1200px;margin:48px auto 0;padding:0 48px}
@@ -540,9 +558,11 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
 .stay-day-card{background:white;border:1px solid var(--stone);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column;gap:10px}
 .stay-day-card-pacing{display:inline-block;padding:4px 10px;border-radius:100px;font-size:10px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase}
 .stay-day-card-title{font-family:var(--font-display);font-size:18px;font-weight:500;color:var(--dark)}
-.stay-day-card-stops{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
-.stay-day-card-stops li{font-size:13px;color:var(--peat);padding-left:14px;position:relative}
-.stay-day-card-stops li::before{content:"";position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:var(--copper)}
+/* Highlight rows separated by thin rules, matching the approved mockup's
+   stop-list treatment (05 Aug 2026 - was a bulleted list before). */
+.stay-day-card-stops{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.stay-day-card-stops li{font-size:13px;color:var(--peat);padding:7px 0;border-bottom:1px solid var(--stone)}
+.stay-day-card-stops li:last-child{border-bottom:none}
 .stay-day-card-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto;padding-top:10px;border-top:1px solid var(--stone)}
 .stay-day-card-cost{font-size:13px;font-weight:600;color:var(--copper)}
 .stay-day-card-use{background:none;border:none;padding:0;font-size:13px;font-weight:600;color:var(--copper);cursor:pointer;font-family:var(--font-body)}
@@ -584,16 +604,19 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
 .stay-door-see-all:hover{text-decoration:underline}
 .stay-door-pending{font-size:13px;color:var(--slate);font-style:italic}
 .stay-door-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
-.stay-door-card{background:white;border:1px solid var(--stone);border-radius:var(--radius);overflow:hidden}
-.stay-door-card-img-link{display:block}
+/* Uniform card boxes matching the mockup (05 Aug 2026 review): fixed
+   image height, note below in the card body, footer pinned to the bottom
+   so all four cards read as the same size regardless of tagline length. */
+.stay-door-card{background:white;border:1px solid var(--stone);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column}
+.stay-door-card-img-link{display:block;flex-shrink:0}
 .stay-door-card-img-wrap{position:relative;height:130px;background:var(--stone)}
 .stay-door-card-img-fallback{position:absolute;inset:0;background:linear-gradient(135deg,var(--navy),var(--peat))}
 .stay-door-card-time{position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.6);color:white;font-size:11px;font-weight:600;padding:3px 9px;border-radius:100px}
-.stay-door-card-body{padding:14px 16px}
+.stay-door-card-body{padding:14px 16px;display:flex;flex-direction:column;flex:1}
 .stay-door-card-name{display:block;font-family:var(--font-display);font-size:16px;font-weight:500;color:var(--dark);text-decoration:none;margin-bottom:4px}
 .stay-door-card-name:hover{color:var(--copper)}
 .stay-door-card-tagline{font-size:12px;color:var(--slate);margin-bottom:12px}
-.stay-door-card-foot{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.stay-door-card-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto}
 .stay-door-card-price{font-size:12px;color:var(--peat)}
 .stay-door-card-add{background:none;border:none;padding:0;font-size:12px;font-weight:600;color:var(--copper);cursor:pointer;font-family:var(--font-body)}
 
@@ -654,7 +677,7 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
   .hero-nav{padding:20px 24px}
 
   /* Featured Stay page only - see the non-media-query .stay- rules above */
-  .stay-sticky-bar-inner,.stay-plan-days,.stay-door-section{padding-left:24px;padding-right:24px}
+  .stay-sticky-bar-inner,.stay-sticky-bar-links,.stay-plan-days,.stay-door-section{padding-left:24px;padding-right:24px}
   .stay-cta-banner{padding:32px 24px}
   .stay-sticky-bar-actions{width:100%;justify-content:space-between}
 }

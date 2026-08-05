@@ -21,6 +21,19 @@ function PlanYourDaysCard({ day }: { day: HubDay }) {
   const isAdded = trip.days.some((d) => d.sourceHubDaySlug === day.slug);
   const tone = pacingTone(day.pacing);
 
+  // The day's key points as a simple highlight list (05 Aug 2026, Mark's
+  // review: show each day's highlights "as presented in the mock-up...
+  // don't put times against them though") - the distillery stops in
+  // visiting order, then the day's feature stops (walks, viewpoints,
+  // lunch spots). The two arrays don't record interleaved order between
+  // each other, so distilleries lead - they're the anchor stops of every
+  // Day. Deliberately no per-stop timings: those belong to the full Day
+  // page/planner, not a preview card.
+  const highlights = [
+    ...day.stops.map((stop) => stop.distillery.name),
+    ...day.featureStops.map((feature) => feature.name),
+  ];
+
   /** Same addDay/addStop/setTourForStop/addFeatureStop sequence as
    *  DaysHubGrid's own "+ Add this day to my trip" - deliberately not
    *  imported/shared as a single function, since DaysHubGrid also updates
@@ -46,9 +59,9 @@ function PlanYourDaysCard({ day }: { day: HubDay }) {
         </span>
       </div>
       <div className="stay-day-card-title">{day.name}</div>
-      {day.distilleries.length > 0 && (
+      {highlights.length > 0 && (
         <ul className="stay-day-card-stops">
-          {day.distilleries.map((name, i) => (
+          {highlights.map((name, i) => (
             <li key={`${name}-${i}`}>{name}</li>
           ))}
         </ul>
