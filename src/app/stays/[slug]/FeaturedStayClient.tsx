@@ -145,7 +145,15 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
     { fallbackLabel: "Port Ellen ferry", value: s.distanceFromPortEllenFerry },
   ]
     .filter((t) => t.value)
-    .map((t) => ({ ...t, parsed: parseDistance(t.value!) }));
+    .map((t) => ({
+      ...t,
+      parsed: parseDistance(t.value!),
+      // Greyed out in the sidebar (06 Aug 2026, Mark's review) when the
+      // route itself is unavailable right now - e.g. Port Ellen ferry
+      // terminal's redevelopment closure - so it reads as "not currently
+      // usable" next to the two live routes above it.
+      closed: /\bclosed\b/i.test(t.value!),
+    }));
 
   const hasGlance = glanceRows.some((r) => r.value);
   const hasHistoryHighlight = !!(s.historyHighlightYear && s.historyHighlightQuote);
@@ -230,7 +238,7 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
                 <span className="stay-side-label">Getting here</span>
                 <div>
                   {gettingHere.map((t) => (
-                    <div className="stay-gh-row" key={t.fallbackLabel}>
+                    <div className={`stay-gh-row${t.closed ? " stay-gh-row--closed" : ""}`} key={t.fallbackLabel}>
                       {t.parsed ? (
                         <>
                           <div className="stay-gh-top">

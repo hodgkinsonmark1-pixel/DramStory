@@ -544,7 +544,14 @@ a.stay-gh-name:hover{color:var(--copper);text-decoration:underline}
 .stay-divider{border:none;border-top:1px solid var(--stone);margin:30px 0}
 .stay-recognition{margin-top:18px}
 .stay-mini-label{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--copper);margin-bottom:3px}
-.stay-mini-value{font-size:13px;color:var(--copper);font-weight:600}
+.stay-mini-value{font-size:13px;color:var(--peat);font-weight:600}
+/* Getting Here row for a closed/unavailable route (e.g. a ferry terminal
+   shut for redevelopment) - greyed out per the mockup so it reads as
+   "not currently usable" at a glance, distinct from the two live routes
+   above it. */
+.stay-gh-row--closed .stay-gh-name{color:var(--slate)}
+.stay-gh-row--closed .stay-gh-time{color:var(--slate)}
+.stay-gh-row--closed .stay-gh-sub{color:var(--mist)}
 
 /* "A Night in [Year]" band - dark pull-quote with the year as a drop-in. */
 .stay-history-band{display:flex;gap:20px;align-items:center;background:var(--navy);border-radius:var(--radius);padding:20px 24px;margin:28px 0}
