@@ -32,29 +32,46 @@ import type { TripAccommodation } from "@/lib/types";
  * circular import, since AccommodationControl itself imports useTrip from
  * trip-context).
  */
-export const FEATURED_STAYS: (TripAccommodation & { url: string })[] = [
+export const FEATURED_STAYS: (TripAccommodation & { url: string; slug: string })[] = [
   {
     name: "The Machrie",
     lat: 55.661753,
     lng: -6.250829,
     url: "https://another.place/the-machrie/hotel",
+    slug: "the-machrie",
   },
   {
     name: "Port Charlotte Hotel",
     lat: 55.74021,
     lng: -6.378353,
     url: "https://bookings.hopsoftware.com/en/property/Port-Charlotte-Hotel",
+    slug: "port-charlotte-hotel",
   },
   {
     name: "Ardbeg House",
-    lat: 55.629847,
-    lng: -6.153463,
+    // Corrected 06 Aug 2026 - was geocoded against the wrong postcode
+    // (PA42 7DU, ~2.2km further east of Port Ellen village), which
+    // mislocated this pin. Ardbeg House's own site (ardbeghouse.com/
+    // pages/contact-ardbeg-house) gives the address as 18 Charlotte St,
+    // Port Ellen, PA42 7DF - geocoded via postcodes.io to the coordinate
+    // below. Same fix applied to the Featured Stays Airtable record.
+    lat: 55.630164,
+    lng: -6.188517,
     url: "https://app.mews.com/distributor/6d4a3b9d-d591-42e5-93a2-b259009afe58",
+    slug: "ardbeg-house",
   },
   {
     name: "Bridgend Hotel",
     lat: 55.785858,
     lng: -6.258693,
     url: "https://www.bridgend-hotel.com/book-now",
+    slug: "bridgend-hotel",
   },
 ];
+
+/** slug is added (06 Aug 2026) so the map's accommodation pin popup can
+ *  link through to this hotel's own /stays/[slug] page (same "View ->"
+ *  pattern as the distillery pin popups) whenever the visitor's chosen
+ *  accommodation is one of these four curated stays, rather than an Area
+ *  or a free-text Other place - see MapCanvas.tsx's accommodation marker
+ *  effect. */

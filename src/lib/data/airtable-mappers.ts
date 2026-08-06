@@ -1,5 +1,5 @@
 import type { AirtableAttachment } from "@/lib/airtable";
-import type { Distillery, JournalPost, LocalEvent, LocalFeature, NearbyFeature, Tour } from "@/lib/types";
+import type { Distillery, FeaturedStay, HubDay, JournalPost, LocalEvent, LocalFeature, NearbyFeature, Tour } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Raw shapes as returned by the Airtable REST API for each table.
@@ -241,6 +241,183 @@ export function mapToLocalFeature(id: string, fields: AirtableLocalFeatureFields
     // unset entirely when the field is blank, rather than an array of
     // empty strings, so callers can cheaply check `galleryCredits?.[i]`.
     galleryCredits: fields["Gallery Credits"] ? fields["Gallery Credits"].split("\n") : undefined,
+  };
+}
+
+export interface AirtableFeaturedStayFields {
+  Name?: string;
+  Slug?: string;
+  Status?: string;
+  Latitude?: number;
+  Longitude?: number;
+  Style?: string;
+  "Why Stay"?: string;
+  Description?: string;
+  History?: string;
+  "Hero Image"?: AirtableAttachment[];
+  "Hero Image Credit"?: string;
+  Gallery?: AirtableAttachment[];
+  "Gallery Credits"?: string;
+  "Price From"?: number;
+  Facilities?: string[];
+  // NOTE: "Meals Included" and "Accessibility" exist as real fields on the
+  // Featured Stays Airtable table but are deliberately NOT captured here -
+  // dropped from scope (see FeaturedStay's doc comment in types.ts). Do not
+  // add them back without re-confirming that decision with Mark first.
+  Setting?: string;
+  // "Distance from Ferry/Airport" (the original single combined field) was
+  // split into three on 04 Aug 2026 - see the three fields below - because
+  // Mark wanted each as its own Visit Info tile linking to its own /explore
+  // page, and one free-text field read awkwardly once the Port Ellen
+  // closure caveat sat alongside Port Askaig and the airport. The old field
+  // still exists in Airtable (kept blank going forward) rather than being
+  // deleted, same "deprecate, don't delete" pattern as Meals Included/
+  // Accessibility - not read here.
+  "Distance from Airport"?: string;
+  "Distance from Port Askaig Ferry"?: string;
+  "Distance from Port Ellen Ferry"?: string;
+  "Whisky Bar/Collection Note"?: string;
+  "Mobile Signal Note"?: string;
+  Parking?: string;
+  "Nearest Area"?: string;
+  "Booking URL"?: string;
+  "Website URL"?: string;
+  "TripAdvisor URL"?: string;
+  "Pin Summary"?: string;
+  "Works Great With — Distilleries"?: string[]; // linked record IDs -> Distilleries table
+  "Works Great With — Local Features"?: string[]; // linked record IDs -> Local Features table
+  // Added 05 Aug 2026 for the hotel-template rebuild - see FeaturedStay's
+  // doc comments in types.ts for what each powers.
+  "History Highlight Year"?: string;
+  "History Highlight Quote"?: string;
+  "History Highlight Source"?: string;
+  "Gallery Captions"?: string;
+  "Plan Your Days"?: string[]; // linked record IDs -> Days table
+  // Added 06 Aug 2026 for the simplified two-column hotel template - At a
+  // Glance rows, the Eating & Drinking section, and its Recognition line.
+  Rooms?: string;
+  "Room Types"?: string;
+  Dogs?: string;
+  Recognition?: string;
+  "Eating & Drinking"?: string;
+  // Focus box (06 Aug 2026) - see FeaturedStay.focusEyebrow's doc comment
+  // in types.ts.
+  "Focus Box Eyebrow"?: string;
+  "Focus Box Text"?: string;
+  "Focus Box Source"?: string;
+}
+
+/** Raw shape for the "Stay Distillery Distances" junction table - added 05
+ *  Aug 2026 to power "Distilleries from your door". One row per
+ *  hotel-distillery pair worth surfacing, with the one-way drive time
+ *  between them - see the table's own description in Airtable for why
+ *  this couldn't just be a field on either side. */
+export interface AirtableStayDistilleryDistanceFields {
+  Name?: string;
+  Stay?: string[]; // linked record ID -> Featured Stays table
+  Distillery?: string[]; // linked record ID -> Distilleries table
+  "Drive Time (Minutes)"?: number;
+}
+
+/** Maps a raw Featured Stays record into a FeaturedStay - same pattern as
+ *  mapToLocalFeature above, its closest template (schema was deliberately
+ *  modelled on Local Features). Returns null for records missing a
+ *  Name/Slug (Airtable placeholder rows, same "skip anything not a real
+ *  record" pattern used everywhere else in this file).
+ *
+ *  Status gate (added when Mark asked to preview The Machrie's Draft
+ *  record before it was reviewed live): on `VERCEL_ENV === "production"`,
+ *  only Status: Live is ever returned - same Draft -> In review -> Live
+ *  gate as the Days table, so a record still under review can never leak
+ *  onto the real live site. On any other environment (preview
+ *  deployments, local dev - VERCEL_ENV is unset locally) Draft/In review
+ *  records are shown too, specifically so a feature-branch Vercel preview
+ *  can be reviewed before a record is flipped to Live. `/stays` isn't
+ *  linked from live navigation yet, so this has no live-traffic exposure
+ *  risk today - worth revisiting this gate once it is.
+ *
+ *  `distilleryById`/`localFeatureById` are passed in (rather than fetched
+ *  here) because this module has no dependency on src/lib/data/index.ts -
+ *  same split already used by mapToLocalEvent's `allDistilleries` param,
+ *  which avoids a circular import between the two files. */
+export function mapToFeaturedStay(
+  id: string,
+  fields: AirtableFeaturedStayFields,
+  distilleryById: Map<string, Distillery>,
+  localFeatureById: Map<string, LocalFeature>,
+  daysById: Map<string, HubDay>
+): FeaturedStay | null {
+  if (!fields.Name || !fields.Slug) return null;
+  const isProduction = process.env.VERCEL_ENV === "production";
+  if (isProduction && fields.Status !== "Live") return null;
+  const FEATURED_STAYS_TABLE = "tblspiVzY3ihpm1o1";
+  return {
+    id,
+    slug: fields.Slug,
+    name: fields.Name,
+    lat: fields.Latitude ?? 0,
+    lng: fields.Longitude ?? 0,
+    style: fields.Style || undefined,
+    whyStay: fields["Why Stay"] || undefined,
+    description: fields.Description ?? "",
+    history: fields.History || undefined,
+    // Routed through /api/attachment rather than using fields[...].url
+    // directly - Airtable's own attachment URLs expire after a few hours,
+    // which breaks images baked into ISR-cached pages. Same pattern as
+    // mapToLocalFeature above.
+    heroImageUrl: fields["Hero Image"]?.[0]
+      ? `/api/attachment?t=${FEATURED_STAYS_TABLE}&r=${id}&f=fldRUCii4BcP4RxQQ&i=0`
+      : undefined,
+    heroImageCredit: fields["Hero Image Credit"] || undefined,
+    gallery: (fields.Gallery ?? []).map(
+      (_, i) => `/api/attachment?t=${FEATURED_STAYS_TABLE}&r=${id}&f=flduIQPfOlFT8IkMh&i=${i}`
+    ),
+    galleryCredits: fields["Gallery Credits"] ? fields["Gallery Credits"].split("\n") : undefined,
+    priceFrom: fields["Price From"] != null ? `£${fields["Price From"]}` : "",
+    facilities: fields.Facilities ?? [],
+    setting: fields.Setting || undefined,
+    distanceFromAirport: fields["Distance from Airport"] || undefined,
+    distanceFromPortAskaigFerry: fields["Distance from Port Askaig Ferry"] || undefined,
+    distanceFromPortEllenFerry: fields["Distance from Port Ellen Ferry"] || undefined,
+    whiskyBarNote: fields["Whisky Bar/Collection Note"] || undefined,
+    mobileSignalNote: fields["Mobile Signal Note"] || undefined,
+    parking: fields.Parking || undefined,
+    nearestArea: fields["Nearest Area"] || undefined,
+    bookingUrl: fields["Booking URL"] || undefined,
+    websiteUrl: fields["Website URL"] || undefined,
+    tripAdvisorUrl: fields["TripAdvisor URL"] || undefined,
+    pinSummary: fields["Pin Summary"] || undefined,
+    // Resolved to full records, not just IDs/slugs, so "Works Great With"
+    // can actually render something (name, image, link) rather than being
+    // fetched-but-unused - see the doc comment on these fields in
+    // types.ts for the exact past mistake this is guarding against.
+    worksGreatWithDistilleries: (fields["Works Great With — Distilleries"] ?? [])
+      .map((recId) => distilleryById.get(recId))
+      .filter((d): d is Distillery => !!d),
+    worksGreatWithLocalFeatures: (fields["Works Great With — Local Features"] ?? [])
+      .map((recId) => localFeatureById.get(recId))
+      .filter((f): f is LocalFeature => !!f),
+    historyHighlightYear: fields["History Highlight Year"] || undefined,
+    historyHighlightQuote: fields["History Highlight Quote"] || undefined,
+    historyHighlightSource: fields["History Highlight Source"] || undefined,
+    rooms: fields.Rooms || undefined,
+    roomTypes: fields["Room Types"] || undefined,
+    dogs: fields.Dogs || undefined,
+    recognition: fields.Recognition || undefined,
+    eatingDrinking: fields["Eating & Drinking"] || undefined,
+    focusEyebrow: fields["Focus Box Eyebrow"] || undefined,
+    focusText: fields["Focus Box Text"] || undefined,
+    focusSource: fields["Focus Box Source"] || undefined,
+    galleryCaptions: fields["Gallery Captions"] ? fields["Gallery Captions"].split("\n") : undefined,
+    planYourDays: (fields["Plan Your Days"] ?? [])
+      .map((recId) => daysById.get(recId))
+      .filter((d): d is HubDay => !!d),
+    // Filled in afterward by fetchFeaturedStaysFromAirtable - the Stay
+    // Distillery Distances junction table isn't visible from here (see
+    // this function's distilleryById/localFeatureById param comment for
+    // why cross-table data gets passed in rather than fetched inline).
+    nearestDistilleries: [],
+    source: "airtable",
   };
 }
 

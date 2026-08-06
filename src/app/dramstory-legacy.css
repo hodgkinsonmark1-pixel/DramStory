@@ -303,8 +303,8 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
 .tour-add-btn{padding:8px 16px;background:var(--amber-pale);color:var(--amber);border:1px solid var(--amber-light);border-radius:100px;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s}
 .tour-add-btn:hover{background:var(--amber);color:white}
 .tour-add-btn.added{background:var(--green-light);color:var(--green-deep);border-color:var(--green-mid)}
-.nearby-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
-.nearby-card{background:white;border:1px solid var(--stone);border-radius:var(--radius);padding:16px;cursor:pointer;transition:all 0.2s}
+.nearby-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.nearby-card{background:white;border:1px solid var(--stone);border-radius:var(--radius);padding:12px;cursor:pointer;transition:all 0.2s}
 .nearby-card:hover{border-color:var(--green-mid);transform:translateY(-2px);box-shadow:var(--shadow-card)}
 .nearby-icon{font-size:22px;margin-bottom:8px}
 .nearby-name{font-size:13px;font-weight:600;color:var(--dark);margin-bottom:3px}
@@ -347,6 +347,14 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
 /* Same odd-one-out fix as the base .info-grid, for the flex-wrap variant. */
 .horizontal-info-bar .info-item:last-child:nth-child(odd){flex-basis:100%}
 .horizontal-info-bar .dist-website-link{display:block;margin-top:16px}
+/* Featured Stay "Visit info" bar only - website + TripAdvisor links side by
+   side in one row instead of stacked, TripAdvisor right-aligned. Scoped to
+   this row class rather than touching the shared .dist-website-link rule,
+   since that class is also used (stacked) on Distillery and Explore pages.
+   Requested by Mark 04 Aug 2026. */
+.dist-website-links-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px;margin-top:16px;padding-top:16px;border-top:1px solid var(--stone)}
+.dist-website-links-row .dist-website-link{margin-top:0;padding-top:0;border-top:none}
+.dist-website-links-row .dist-website-link-right{margin-left:auto}
 .facilities-grid{display:flex;flex-wrap:wrap;gap:8px}
 .facility-badge{padding:5px 12px;border-radius:100px;background:var(--green-light);color:var(--green-deep);font-size:11px;font-weight:500}
 .next-stop-card{display:flex;align-items:center;gap:12px;padding:12px;background:var(--off-white);border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s;border:1px solid transparent;margin-bottom:8px}
@@ -482,6 +490,90 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
 .footer-legal a:hover{color:rgba(255,255,255,0.7)}
 .footer-badges{display:flex;gap:8px;align-items:center}
 .footer-badge{padding:4px 12px;border-radius:100px;border:1px solid rgba(255,255,255,0.12);font-size:10px;font-weight:600;letter-spacing:0.08em;color:rgba(255,255,255,0.35)}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Featured Stay (hotel) page only - simplified two-column template,
+   06 Aug 2026 (Mark's "change of plan" mockup). Every rule below is
+   prefixed .stay- and scoped to src/app/stays/[slug]/* so this template
+   can't change how any other page looks or behaves. The previous
+   template's sections (sticky booking bar, Plan Your Days, Visit Info
+   tiles, Distilleries from your door, closing CTA) were removed along
+   with their CSS - all recoverable from git history if wanted back.
+   ───────────────────────────────────────────────────────────────────── */
+
+/* Two-column shell: fixed sidebar card left, editorial content right. */
+.stay-layout{max-width:1160px;margin:40px auto 72px;padding:0 48px;display:grid;grid-template-columns:300px minmax(0,1fr);gap:44px;align-items:start}
+.stay-side-card{background:white;border:1px solid var(--stone);border-radius:var(--radius);padding:24px;position:sticky;top:24px}
+.stay-side-label{display:block;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--slate);margin:0 0 8px}
+
+/* At a Glance - thin-ruled label/value rows. */
+.stay-glance-rows{margin-bottom:22px}
+.stay-glance-row{display:flex;justify-content:space-between;gap:16px;padding:11px 0;border-bottom:1px solid var(--stone);font-size:13px}
+.stay-glance-key{color:var(--slate);flex-shrink:0}
+.stay-glance-val{color:var(--dark);font-weight:600;text-align:right}
+
+.stay-side-facilities{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
+/* Sidebar facility pills restyled to the mockup's outlined-pill-with-bullet
+   shape (06 Aug 2026 review) - scoped to .stay-side-facilities so the
+   shared .facility-badge rule (used on Distillery/Local Feature pages)
+   is untouched. */
+.stay-side-facilities .facility-badge{background:none;border:1px solid var(--stone);color:var(--peat);font-size:12px;padding:6px 14px 6px 12px}
+.stay-side-facilities .facility-badge::before{content:"•";color:var(--copper);margin-right:6px}
+
+/* Getting Here - place name + drive time, mileage/caveat subline. */
+.stay-gh-row{padding:9px 0;border-bottom:1px solid var(--stone)}
+.stay-gh-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:13px}
+.stay-gh-name{font-weight:600;color:var(--dark);text-decoration:none}
+a.stay-gh-name:hover{color:var(--copper);text-decoration:underline}
+.stay-gh-time{color:var(--copper);font-weight:600;white-space:nowrap}
+.stay-gh-sub{font-size:12px;color:var(--slate);line-height:1.5;margin-top:3px}
+
+.stay-side-actions{display:flex;flex-direction:column;gap:10px;margin-top:22px}
+.stay-side-book{display:block;text-align:center;background:var(--navy);color:white;border-radius:100px;padding:12px 16px;font-size:14px;font-weight:600;text-decoration:none}
+.stay-side-book:hover{background:var(--navy-mid)}
+.stay-side-add{display:block;width:100%;text-align:center;background:none;border:1px solid var(--stone);border-radius:100px;padding:11px 16px;font-size:14px;font-weight:600;color:var(--dark);cursor:pointer;font-family:var(--font-body)}
+.stay-side-add:hover{border-color:var(--dark)}
+.stay-side-note{font-size:11px;color:var(--slate);text-align:center;margin:10px 0 0}
+.stay-side-links{display:flex;justify-content:center;gap:16px;margin-top:8px;font-size:12px}
+.stay-side-links a{color:var(--copper);text-decoration:none}
+.stay-side-links a:hover{text-decoration:underline}
+
+/* Right column */
+.stay-eyebrow{display:block;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--copper);margin-bottom:12px}
+.stay-lede{font-family:var(--font-display);font-size:29px;font-weight:500;color:var(--dark);line-height:1.35;margin:0 0 18px;max-width:600px}
+.stay-divider{border:none;border-top:1px solid var(--stone);margin:30px 0}
+.stay-recognition{margin-top:18px}
+.stay-mini-label{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--copper);margin-bottom:3px}
+.stay-mini-value{font-size:13px;color:var(--peat);font-weight:600}
+/* Getting Here row for a closed/unavailable route (e.g. a ferry terminal
+   shut for redevelopment) - greyed out per the mockup so it reads as
+   "not currently usable" at a glance, distinct from the two live routes
+   above it. */
+.stay-gh-row--closed .stay-gh-name{color:var(--slate)}
+.stay-gh-row--closed .stay-gh-time{color:var(--slate)}
+.stay-gh-row--closed .stay-gh-sub{color:var(--mist)}
+
+/* "A Night in [Year]" band - dark pull-quote with the year as a drop-in. */
+.stay-history-band{display:flex;gap:20px;align-items:center;background:var(--navy);border-radius:var(--radius);padding:20px 24px;margin:28px 0}
+.stay-history-band-year{font-family:var(--font-display);font-size:32px;line-height:1;color:var(--amber-light);flex-shrink:0}
+.stay-history-band-quote{font-family:var(--font-display);font-style:italic;font-size:16px;font-weight:400;color:white;line-height:1.5;margin:0 0 6px}
+.stay-history-band-source{font-size:11px;color:rgba(255,255,255,0.6);line-height:1.4;margin:0}
+/* Focus box variant (06 Aug 2026) - same dark band, but an eyebrow label
+   instead of a big year numeral, for hotels without a dated history
+   anecdote. --focus adds top padding since there's no year column to
+   align the first line of text against. */
+.stay-history-band--focus{padding-top:22px}
+.stay-history-band-eyebrow{display:block;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--amber-light);margin-bottom:8px}
+
+/* Gallery captions overlay - sits on top of the existing .dist-gallery-img
+   button (shared with the Distillery/Explore galleries), so only the
+   caption itself is a new rule. */
+.stay-gallery-caption{
+  position:absolute;left:0;right:0;bottom:0;z-index:2;text-align:left;
+  padding:24px 12px 8px;font-family:var(--font-mono,monospace);font-size:11px;color:rgba(255,255,255,0.95);
+  background:linear-gradient(transparent,rgba(0,0,0,0.55));pointer-events:none;
+}
+
 @media(max-width:768px){
   .footer-grid{grid-template-columns:1fr 1fr}
   .blog-featured{grid-template-columns:1fr}
@@ -526,4 +618,8 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
   .distillery-hero-content{flex-direction:column;align-items:flex-start;gap:16px;padding:24px}
   .distillery-body{padding:24px}
   .hero-nav{padding:20px 24px}
+
+  /* Featured Stay page only - see the non-media-query .stay- rules above */
+  .stay-layout{grid-template-columns:1fr;padding:0 24px;gap:28px}
+  .stay-side-card{position:static}
 }
