@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type Leaflet from "leaflet";
 import type { Distillery, LocalFeature } from "@/lib/types";
 import { truncateSummary } from "@/lib/text";
+import { AREAS } from "@/lib/areas";
 import { FEATURED_STAYS } from "@/lib/featured-stays";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
@@ -446,8 +447,15 @@ export default function MapCanvas({
             // four curated Featured Stays rather than an Area or a
             // free-text Other place (which have no page to link to).
             const stay = FEATURED_STAYS.find((s) => s.name === accommodation.name);
+            // Same treatment extended to Areas (06 Aug 2026, Port Ellen
+            // first) - only areas with a real /areas/[slug] page built
+            // have `slug` set (see areas.ts), so this degrades to the
+            // plain name-only popup for the others, same as before.
+            const area = !stay ? AREAS.find((a) => a.name === accommodation.name && a.slug) : undefined;
             const link = stay
               ? `<div class="popup-actions"><a class="popup-btn popup-btn-secondary" href="/stays/${stay.slug}">View &rarr;</a></div>`
+              : area
+              ? `<div class="popup-actions"><a class="popup-btn popup-btn-secondary" href="/areas/${area.slug}">View &rarr;</a></div>`
               : "";
             return `<div class="popup-inner"><div class="popup-tag">Staying here</div><div class="popup-name">${accommodation.name}</div>${link}</div>`;
           })()

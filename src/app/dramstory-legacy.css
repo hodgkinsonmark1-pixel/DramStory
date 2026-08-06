@@ -565,6 +565,27 @@ a.stay-gh-name:hover{color:var(--copper);text-decoration:underline}
 .stay-history-band--focus{padding-top:22px}
 .stay-history-band-eyebrow{display:block;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--amber-light);margin-bottom:8px}
 
+/* Areas (village guide) page - reuses .stay-* two-column layout and
+   .dist-* editorial classes; these are the few genuinely new pieces:
+   pill-style link lists (distilleries/local features), a two-column
+   Best For/Not For row, and a hazard callout matching the amber
+   treatment used elsewhere (.signin-nudge/.cost-breakdown). */
+.area-pill-list{display:flex;flex-wrap:wrap;gap:8px}
+.area-pill{
+  display:inline-flex;align-items:center;gap:8px;padding:8px 14px;
+  border:1px solid var(--stone);border-radius:100px;font-size:13px;
+  font-weight:500;color:var(--dark);text-decoration:none;transition:border-color 0.15s;
+}
+.area-pill:hover{border-color:var(--copper)}
+.area-pill-dist{font-size:11px;color:var(--slate);font-weight:400}
+.area-best-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.area-hazard-callout{
+  margin:8px 0 28px;padding:14px 16px;background:var(--amber-pale);
+  border:1px solid var(--amber-light);border-radius:var(--radius-sm);
+  font-size:13px;color:var(--peat);line-height:1.6;
+}
+.area-hazard-callout strong{color:var(--dark)}
+
 /* Gallery captions overlay - sits on top of the existing .dist-gallery-img
    button (shared with the Distillery/Explore galleries), so only the
    caption itself is a new rule. */
