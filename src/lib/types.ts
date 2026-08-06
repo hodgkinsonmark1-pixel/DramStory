@@ -314,6 +314,28 @@ export interface Area {
   /** "If this isn't quite right" pointer to alternate areas - resolved to
    *  name/slug only (not a full Area, to avoid a circular fetch). */
   alternateAreas: { name: string; slug: string }[];
+  /** Time-bound notice that changes the trip (e.g. a ferry closure) - most
+   *  areas won't have one, render conditionally. Added 06 Aug 2026 for the
+   *  redesigned area-page template. */
+  advisoryNotice?: string;
+  /** "IN THE VILLAGE" sidebar rows, parsed from the Airtable "Label: Value"
+   *  per-line convention (see parseLabelValueLines). */
+  inTheVillage: { key: string; value: string }[];
+  /** Closing line under the In The Village rows naming what's genuinely
+   *  missing locally (pharmacy/dentist/bank etc). */
+  inTheVillageMissing?: string;
+  /** The one curated Day (from the Days table) featured in "Base here and
+   *  day one plans itself" - a real HubDay record, not invented content. */
+  dayPlan?: HubDay;
+  /** Booking-handoff advice rows ("Book by", "Also try", "Cheaper"), same
+   *  "Label: Value" per-line convention as inTheVillage. Genuinely new
+   *  editorial content - expected blank until drafted/reviewed, in which
+   *  case the section shows a pending state rather than invented advice. */
+  bookingAdvice: { key: string; value: string }[];
+  /** Glance-bar "Places to stay" qualitative fact - covers ALL village
+   *  accommodation, not just featuredStays, so it can't be derived from
+   *  data already on this record. Blank until sourced/decided. */
+  glancePlacesToStay?: string;
   source: DataSource;
 }
 

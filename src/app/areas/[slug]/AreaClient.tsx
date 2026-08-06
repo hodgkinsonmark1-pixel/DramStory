@@ -1,38 +1,31 @@
+"use client";
+
+import { useMemo } from "react";
+import { Spectral, Instrument_Sans } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
-import type { Area } from "@/lib/types";
+import type { Area, LocalFeature } from "@/lib/types";
+import { useTrip } from "@/lib/trip-context";
+import { buildAccommodationBookingLink } from "@/lib/accommodation-links";
+import { truncateSummary } from "@/lib/text";
 import PageHeader from "@/components/PageHeader";
 import Footer from "@/components/Footer";
-import { buildAccommodationBookingLink } from "@/lib/accommodation-links";
+import styles from "./area.module.css";
 
-/** Renders plain text containing [label](/path) markdown-style links as
- *  real internal <Link>s - same helper as DistilleryPageClient/
- *  ExploreFeatureClient/FeaturedStayClient (each detail page keeps its
- *  own copy rather than sharing one, matching the existing pattern in
- *  this codebase). */
-function renderWithLinks(text: string) {
-  const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g);
-  return parts.map((part, i) => {
-    const match = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-    if (!match) return part;
-    const [, label, href] = match;
-    return (
-      <Link href={href} key={i} className="dist-inline-link">
-        {label}
-      </Link>
-    );
-  });
-}
+// Fonts loaded ONLY here (next/font scopes the generated @font-face + CSS
+// variable to whatever applies the className below) - deliberately not
+// added to the root layout, so this redesign stays scoped to the Areas
+// template per Mark's steer not to touch any other page.
+const spectral = Spectral({ subsets: ["latin"], weight: ["600", "700"], variable: "--font-spectral" });
+const instrumentSans = Instrument_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-instrument",
+});
 
-/** Great-circle distance in miles - a small local copy of the same
- *  haversine formula used elsewhere (src/lib/data/airtable-mappers.ts'
- *  distanceKm), kept separate per this codebase's existing "each
- *  page/component keeps its own small copy" convention rather than
- *  reaching into the data-layer module from a UI component. Used only to
- *  show a rough "X.X miles" figure next to each Nearby Local Feature -
- *  the underlying curation (which features are even listed) is still
- *  done by hand, verified against real coordinates, per
- *  content-sourcing-standards.md, not this calculation. */
+/** Great-circle distance in miles - same small local copy convention as
+ *  the previous template (see git history), kept per-file rather than
+ *  reaching into the data layer from a UI component. */
 function milesBetween(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const R = 3958.8;
   const dLat = ((b.lat - a.lat) * Math.PI) / 180;
@@ -42,246 +35,397 @@ function milesBetween(a: { lat: number; lng: number }, b: { lat: number; lng: nu
   const h = Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
   return 2 * R * Math.asin(Math.sqrt(h));
 }
-
 function formatMiles(mi: number): string {
-  return mi < 0.15 ? "under 0.2 miles" : `${mi.toFixed(1)} miles`;
+  return mi < 0.15 ? "0.1" : mi.toFixed(1);
 }
 
-// Local Features whose Category marks them as somewhere to eat/drink,
-// rather than an attraction/natural feature - splits the single Nearby
-// Local Features link field into the two sections the agreed content
-// structure calls for (Nearby Local Features vs In-Village Food & Drink)
-// without needing a second, duplicate link field in Airtable.
+const NUMBER_WORDS = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
+
+// Local Features whose Category marks them as somewhere to eat/drink -
+// used both to size the glance bar's "Eating out" fact and to keep the
+// "What else is around you" grid distillery/food-free per the design's
+// content rule (distilleries live in the day plan; food/drink lives in
+// the In The Village card).
 const FOOD_DRINK_CATEGORIES = new Set(["pub", "cafe", "restaurant"]);
+
+/** Glance bar's "Eating out" fact, derived from the real count of linked
+ *  in-village food/drink features rather than invented - follows the
+ *  design handoff's own suggested qualitative scale. */
+function eatingOutFact(count: number): string {
+  if (count >= 3) return "Plenty, all walkable";
+  if (count === 2) return "Two pubs";
+  if (count === 1) return "One pub";
+  return "Nothing — eat where you stay";
+}
+
+const KIND_BADGES: Record<LocalFeature["category"], string> = {
+  beach: "Beach",
+  walk: "Walk",
+  "bike-route": "Bike route",
+  "local-gem": "Local gem",
+  "historic-site": "History",
+  "attraction-gem": "Attraction",
+  pub: "Pub",
+  cafe: "Cafe",
+  restaurant: "Restaurant",
+  golf: "Golf",
+  spa: "Spa",
+  transport: "Transport",
+};
 
 interface AreaClientProps {
   area: Area;
 }
 
-/** Village/region guide page (Areas table) - first built 06 Aug 2026 for
- *  Port Ellen. Reuses the simplified two-column hotel template's classes
- *  (.stay-*, .dist-*) rather than inventing a new layout, per Mark's
- *  steer that the hotel template's plainer two-column shape (hero, sticky
- *  sidebar facts, editorial column) is the direction to build in. */
+/** Area page template redesign (06 Aug 2026) - full rebuild per the
+ *  design handoff ("DramStory mobile experience design.zip", block 6a).
+ *  Ordered around the reader's decision (qualify fast, sell the place,
+ *  land the differentiator, convert) rather than around content
+ *  categories - see that handoff's README for the section-by-section
+ *  rationale. Scoped entirely to area.module.css + the fonts loaded
+ *  above; no other template's files are touched.
+ *
+ *  Content note: several sections need real, sourced content this
+ *  codebase doesn't have yet for every area (glance "Places to stay",
+ *  booking-handoff advice). Those render an honest pending state instead
+ *  of invented copy - see the Area type's doc comments for what's
+ *  expected per field. */
 export default function AreaClient({ area: a }: AreaClientProps) {
-  const foodDrink = a.nearbyLocalFeatures.filter((f) => FOOD_DRINK_CATEGORIES.has(f.category));
-  const attractions = a.nearbyLocalFeatures.filter((f) => !FOOD_DRINK_CATEGORIES.has(f.category));
+  const trip = useTrip();
+
+  const foodDrink = useMemo(
+    () => a.nearbyLocalFeatures.filter((f) => FOOD_DRINK_CATEGORIES.has(f.category)),
+    [a.nearbyLocalFeatures]
+  );
+  // The four closest non-food/drink features, closest first - an
+  // automatic rule (not hand-picked) so it keeps working as more areas
+  // and more Nearby Local Features get added, same reasoning as Plan
+  // Your Days auto-sorting by real duration rather than being curated.
+  const nearby = useMemo(
+    () =>
+      a.nearbyLocalFeatures
+        .filter((f) => !FOOD_DRINK_CATEGORIES.has(f.category))
+        .map((f) => ({ feature: f, miles: milesBetween(a, f) }))
+        .sort((x, y) => x.miles - y.miles)
+        .slice(0, 4),
+    [a]
+  );
+
+  const distilleryCount = a.distilleries.length;
+  const featuredStay = a.featuredStays[0];
   const bookingUrl = buildAccommodationBookingLink(a.name);
-  const hasGlance = a.population != null || !!a.distilleryRegion;
+  const stayDistanceMiles = featuredStay ? milesBetween(a, featuredStay) : undefined;
+
+  function toggleFeature(feature: LocalFeature) {
+    const alreadyAdded = trip.days.some((d) => d.stops.some((s) => s.kind === "feature" && s.feature.id === feature.id));
+    if (alreadyAdded) {
+      trip.days.forEach((d, i) => {
+        if (d.stops.some((s) => s.kind === "feature" && s.feature.id === feature.id)) trip.removeStop(i, feature.id);
+      });
+      return;
+    }
+    trip.initDays(1);
+    const dayIndex = Math.min(trip.currentDayIndex, Math.max(0, trip.days.length - 1));
+    trip.addFeatureStop(dayIndex, feature);
+  }
+  function isFeatureAdded(feature: LocalFeature): boolean {
+    return trip.ready && trip.days.some((d) => d.stops.some((s) => s.kind === "feature" && s.feature.id === feature.id));
+  }
+
+  // Mirrors DaysHubGrid's handleAddToTrip exactly (same addDay/addStop/
+  // setTourForStop/addFeatureStop sequence, same deliberate choice not to
+  // navigate this tab away - see that file's 22 Jul 2026 comment for why)
+  // rather than reintroducing the "yanks you out of the page" bug it
+  // fixed, even though the design brief's own wording says "routes to
+  // the planner".
+  function useThisDay() {
+    if (!a.dayPlan) return;
+    const day = a.dayPlan;
+    const newDayIndex = trip.days.length;
+    trip.addDay(day.slug);
+    for (const stop of day.stops) {
+      trip.addStop(newDayIndex, stop.distillery);
+      if (stop.tour) trip.setTourForStop(newDayIndex, stop.distillery, stop.tour);
+    }
+    for (const feature of day.featureStops) {
+      trip.addFeatureStop(newDayIndex, feature);
+    }
+    trip.setCurrentDayIndex(newDayIndex);
+    window.open("/journey?resume=1", "dramstory-journey");
+  }
+
+  const advisorySentences = a.advisoryNotice?.split(/(?<=[.!?])\s+/) ?? [];
 
   return (
     <>
       <PageHeader />
+      <div className={`${styles.page} ${spectral.variable} ${instrumentSans.variable}`}>
+      {/* ── 1. Hero ── */}
+      <div className={styles.hero}>
+        {a.heroImageUrl ? (
+          <Image src={a.heroImageUrl} alt={a.name} fill unoptimized className={styles.heroImg} />
+        ) : (
+          <div className={styles.heroPlaceholder} />
+        )}
+        <div className={styles.heroOverlay} />
+        <div className={styles.heroContent}>
+          {a.distilleryRegion && <div className={styles.eyebrow}>VILLAGE · {a.distilleryRegion.toUpperCase()}</div>}
+          <h1 className={styles.h1}>{a.name}</h1>
+          {a.whyHook && <p className={styles.subhead}>{a.whyHook}</p>}
+        </div>
+      </div>
 
-      <div className="page">
-        <div className="distillery-hero">
-          {a.heroImageUrl ? (
-            <Image className="distillery-hero-img" src={a.heroImageUrl} alt={a.name} fill unoptimized style={{ objectFit: "cover" }} />
-          ) : (
-            // Graceful empty state, same pattern as the hotel/distillery
-            // pages - a record can genuinely have no Hero Image yet.
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: "linear-gradient(135deg, var(--navy), var(--peat))",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-              }}
-            >
-              <span style={{ fontSize: 72 }}>🏘️</span>
-              <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>Photo coming soon</span>
+      {/* ── 2. Glance bar ── */}
+      <div className={styles.glanceBar}>
+        <div>
+          <div className={styles.glanceLabel}>Distilleries within 4 miles</div>
+          <div className={styles.glanceValue}>{NUMBER_WORDS[distilleryCount] ?? distilleryCount}</div>
+        </div>
+        <div>
+          <div className={styles.glanceLabel}>Places to stay</div>
+          <div className={a.glancePlacesToStay ? styles.glanceValue : `${styles.glanceValue} ${styles.glancePending}`}>
+            {a.glancePlacesToStay ?? "Coming soon"}
+          </div>
+        </div>
+        <div>
+          <div className={styles.glanceLabel}>Eating out</div>
+          <div className={styles.glanceValue}>{eatingOutFact(foodDrink.length)}</div>
+        </div>
+      </div>
+
+      {/* ── 3. Advisory notice ── */}
+      {a.advisoryNotice && (
+        <div className={styles.section}>
+          <div className={styles.advisoryCard}>
+            <span className={styles.advisoryBang}>!</span>
+            <p className={styles.advisoryBody}>
+              <span className={styles.advisoryLead}>{advisorySentences[0]}</span>{" "}
+              {advisorySentences.slice(1).join(" ")}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── 4. Base here if / Look elsewhere if ── */}
+      {(a.bestFor || a.notFor) && (
+        <div className={styles.section}>
+          <div className={styles.qualGrid}>
+            {a.bestFor && (
+              <div className={styles.qualCard}>
+                <div className={`${styles.qualLabel} ${styles.qualLabelGood}`}>Base here if</div>
+                <p className={styles.qualBody}>{a.bestFor}</p>
+              </div>
+            )}
+            {a.notFor && (
+              <div className={styles.qualCard}>
+                <div className={`${styles.qualLabel} ${styles.qualLabelBad}`}>Look elsewhere if</div>
+                <p className={styles.qualBody}>{a.notFor}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── 5. What it's like to stay here ── */}
+      <div className={styles.section}>
+        <div className={styles.stayGrid}>
+          <div>
+            <h2 className={styles.h2}>What it&apos;s like to stay here</h2>
+            {a.whatToExpect.split("\n\n").map((para, i) => (
+              <p className={styles.stayP} key={i}>
+                {para}
+              </p>
+            ))}
+          </div>
+          {a.inTheVillage.length > 0 && (
+            <div className={styles.villageCard}>
+              <div className={styles.villageLabel}>In the village</div>
+              {a.inTheVillage.map((row) => (
+                <div className={styles.villageRow} key={row.key}>
+                  <span className={styles.villageKey}>{row.key}</span>
+                  <span className={styles.villageVal}>{row.value}</span>
+                </div>
+              ))}
+              {a.inTheVillageMissing && <p className={styles.villageMissing}>{a.inTheVillageMissing}</p>}
             </div>
           )}
-          <div className="distillery-hero-overlay" />
-          <div className="distillery-hero-content">
-            <div>
-              <h1 className="distillery-hero-title">{a.name}</h1>
-              <div className="distillery-hero-sub">
-                {a.distilleryRegion && <span className="hero-badge">{a.distilleryRegion}</span>}
-                {a.population != null && <span className="hero-badge">{a.population.toLocaleString()} people</span>}
+        </div>
+      </div>
+
+      {/* ── 6. Base here and day one plans itself ── */}
+      {a.dayPlan && (
+        <div className={styles.section}>
+          <span className={styles.dayEyebrow}>Only on DramStory</span>
+          <div className={styles.headRow}>
+            <h2 className={styles.h2} style={{ margin: "6px 0 0" }}>
+              Base here and day one plans itself
+            </h2>
+            <Link href={`/journeys/${a.dayPlan.slug}`} className={styles.sectionLink}>
+              Open the full planner →
+            </Link>
+          </div>
+          <p className={styles.dayIntro} style={{ marginTop: 14 }}>
+            {a.dayPlan.narrative.split(/(?<=[.!?])\s+/)[0]}
+          </p>
+          <div className={styles.dayPanel}>
+            <div className={styles.dayTitle}>{a.dayPlan.name}</div>
+            <div className={styles.dayPanelInner}>
+              <div className={styles.stopsRow}>
+                {a.dayPlan.stops.map((stop, i) => (
+                  <div className={styles.stop} key={stop.distillery.slug}>
+                    <div className={styles.stopTime}>Stop {i + 1}</div>
+                    <div className={styles.stopName}>{stop.distillery.name}</div>
+                    <div className={styles.stopNote}>
+                      {stop.tour
+                        ? truncateSummary(`${stop.tour.name}${stop.tour.duration ? ` — ${stop.tour.duration}` : ""}`, 60)
+                        : truncateSummary(stop.distillery.tagline, 60)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className={styles.dayRail}>
+                {a.dayPlan.durationPortEllen && (
+                  <>
+                    <div className={styles.railLabel}>Total time</div>
+                    <div className={styles.railValue}>{a.dayPlan.durationPortEllen}</div>
+                  </>
+                )}
+                {a.dayPlan.cost && (
+                  <>
+                    <div className={styles.railLabel}>Tours from</div>
+                    <div className={styles.railValue}>{a.dayPlan.cost}</div>
+                  </>
+                )}
+                <button type="button" className={styles.ctaGold} onClick={useThisDay}>
+                  Use this day →
+                </button>
               </div>
             </div>
           </div>
         </div>
+      )}
 
-        <div className="stay-layout">
-          {/* ── Sidebar card ── */}
-          <aside className="stay-side-card">
-            {hasGlance && (
-              <>
-                <span className="stay-side-label">At a glance</span>
-                <div className="stay-glance-rows">
-                  {a.population != null && (
-                    <div className="stay-glance-row">
-                      <span className="stay-glance-key">Population</span>
-                      <span className="stay-glance-val">{a.population.toLocaleString()}</span>
+      {/* ── 7. What else is around you ── */}
+      {nearby.length > 0 && (
+        <div className={styles.section}>
+          <div className={styles.headRow}>
+            <h2 className={styles.h2}>What else is around</h2>
+            {a.distilleryRegion && (
+              <Link href={`/distilleries?region=${encodeURIComponent(a.distilleryRegion)}`} className={styles.sectionLink}>
+                Everything in {a.distilleryRegion} on the map →
+              </Link>
+            )}
+          </div>
+          <div className={styles.nearbyGrid}>
+            {nearby.map(({ feature, miles }) => {
+              const added = isFeatureAdded(feature);
+              return (
+                <div className={styles.nearbyCard} key={feature.id}>
+                  <Link href={`/explore/${feature.slug}`} className={styles.nearbyImgWrap}>
+                    {feature.heroImageUrl ? (
+                      <Image src={feature.heroImageUrl} alt={feature.name} fill unoptimized className={styles.nearbyImg} />
+                    ) : (
+                      <div className={styles.heroPlaceholder} />
+                    )}
+                    <span className={styles.nearbyKindBadge}>{KIND_BADGES[feature.category] ?? feature.category}</span>
+                  </Link>
+                  <div className={styles.nearbyBody}>
+                    <Link href={`/explore/${feature.slug}`} style={{ textDecoration: "none" }}>
+                      <div className={styles.nearbyName}>{feature.name}</div>
+                    </Link>
+                    <p className={styles.nearbyReason}>{feature.description ? truncateSummary(feature.description, 100) : ""}</p>
+                    <div className={styles.nearbyFoot}>
+                      <span className={styles.nearbyDist}>{formatMiles(miles)} miles</span>
+                      <button
+                        type="button"
+                        className={added ? `${styles.nearbyAdd} ${styles.nearbyAddDone}` : styles.nearbyAdd}
+                        onClick={() => toggleFeature(feature)}
+                      >
+                        {added ? "✓ Added" : "+ Add"}
+                      </button>
                     </div>
-                  )}
-                  {a.distilleryRegion && (
-                    <div className="stay-glance-row">
-                      <span className="stay-glance-key">Region</span>
-                      <span className="stay-glance-val">{a.distilleryRegion}</span>
-                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── 8. Where to stay ── */}
+      <div className={styles.sectionLast}>
+        <h2 className={styles.h2}>Where to stay in {a.name}</h2>
+        <div className={styles.staysGrid}>
+          {featuredStay ? (
+            <div className={styles.stayCard}>
+              <div className={styles.stayImgWrap}>
+                {featuredStay.heroImageUrl ? (
+                  <Image src={featuredStay.heroImageUrl} alt={featuredStay.name} fill unoptimized className={styles.stayImg} />
+                ) : (
+                  <div className={styles.heroPlaceholder} />
+                )}
+                <span className={styles.featuredBadge}>Featured stay</span>
+              </div>
+              <div className={styles.stayCardBody}>
+                <div className={styles.stayCardHeadRow}>
+                  <h3 className={styles.stayName}>{featuredStay.name}</h3>
+                  {stayDistanceMiles != null && (
+                    <span className={styles.stayDistNote}>{formatMiles(stayDistanceMiles)} miles from the village</span>
                   )}
                 </div>
-                {a.populationSource && <p className="stay-side-note">Population: {a.populationSource}.</p>}
-              </>
-            )}
-
-            {a.shopsAmenities && (
-              <>
-                <span className="stay-side-label">Shops &amp; amenities</span>
-                <p className="dist-p" style={{ marginBottom: 22 }}>
-                  {renderWithLinks(a.shopsAmenities)}
-                </p>
-              </>
-            )}
-
-            {a.gettingHere && (
-              <>
-                <span className="stay-side-label">Getting here</span>
-                <p className="dist-p" style={{ marginBottom: 22 }}>
-                  {renderWithLinks(a.gettingHere)}
-                </p>
-              </>
-            )}
-
-            <div className="stay-side-actions">
-              <a href={bookingUrl} target="_blank" rel="noopener noreferrer" className="stay-side-book">
-                Search hotels.com &rarr;
-              </a>
-              {a.featuredStays.map((s) => (
-                <Link href={`/stays/${s.slug}`} key={s.slug} className="stay-side-add">
-                  View {s.name} &rarr;
-                </Link>
-              ))}
-            </div>
-          </aside>
-
-          {/* ── Editorial column ── */}
-          <main>
-            <section>
-              <span className="stay-eyebrow">Why base here</span>
-              {a.whyHook && <h2 className="stay-lede">{a.whyHook}</h2>}
-              {a.whatToExpect.split("\n\n").map((para, i) => (
-                <p className="dist-p" key={i} style={{ marginBottom: 12 }}>
-                  {renderWithLinks(para)}
-                </p>
-              ))}
-            </section>
-
-            {a.whatNotToExpect && (
-              <>
-                <hr className="stay-divider" />
-                <section>
-                  <span className="stay-eyebrow">What not to expect</span>
-                  <p className="dist-p">{renderWithLinks(a.whatNotToExpect)}</p>
-                </section>
-              </>
-            )}
-
-            {(a.bestFor || a.notFor) && (
-              <>
-                <hr className="stay-divider" />
-                <section className="area-best-grid">
-                  {a.bestFor && (
-                    <div>
-                      <div className="stay-mini-label">Best for</div>
-                      <p className="dist-p">{renderWithLinks(a.bestFor)}</p>
-                    </div>
-                  )}
-                  {a.notFor && (
-                    <div>
-                      <div className="stay-mini-label">Not for</div>
-                      <p className="dist-p">{renderWithLinks(a.notFor)}</p>
-                    </div>
-                  )}
-                </section>
-              </>
-            )}
-
-            {a.hazardCallout && (
-              <div className="area-hazard-callout">
-                <strong>Worth knowing:</strong> {a.hazardCallout}
-              </div>
-            )}
-
-            {a.distilleries.length > 0 && (
-              <>
-                <hr className="stay-divider" />
-                <section>
-                  <span className="stay-eyebrow">Local distilleries</span>
-                  <div className="area-pill-list">
-                    {a.distilleries.map((d) => (
-                      <Link href={`/distilleries/${d.slug}`} key={d.slug} className="area-pill">
-                        {d.name}
-                      </Link>
-                    ))}
-                  </div>
-                </section>
-              </>
-            )}
-
-            {attractions.length > 0 && (
-              <>
-                <hr className="stay-divider" />
-                <section>
-                  <span className="stay-eyebrow">Nearby</span>
-                  <div className="area-pill-list">
-                    {attractions.map((f) => (
-                      <Link href={`/explore/${f.slug}`} key={f.slug} className="area-pill">
-                        {f.name}
-                        <span className="area-pill-dist">{formatMiles(milesBetween(a, f))}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </section>
-              </>
-            )}
-
-            {foodDrink.length > 0 && (
-              <>
-                <hr className="stay-divider" />
-                <section>
-                  <span className="stay-eyebrow">In-village food &amp; drink</span>
-                  <div className="area-pill-list">
-                    {foodDrink.map((f) => (
-                      <Link href={`/explore/${f.slug}`} key={f.slug} className="area-pill">
-                        {f.name}
-                      </Link>
-                    ))}
-                  </div>
-                </section>
-              </>
-            )}
-
-            {a.alternateAreas.length > 0 && (
-              <>
-                <hr className="stay-divider" />
-                <section>
-                  <p className="dist-p">
-                    Not quite what you&apos;re after?{" "}
-                    {a.alternateAreas.map((alt, i) => (
-                      <span key={alt.slug}>
-                        {i > 0 && ", "}
-                        <Link href={`/areas/${alt.slug}`} className="dist-inline-link">
-                          {alt.name}
-                        </Link>
+                {(featuredStay.whyStay || featuredStay.description) && (
+                  <p className={styles.stayBlurb}>{featuredStay.whyStay ?? truncateSummary(featuredStay.description, 220)}</p>
+                )}
+                {featuredStay.facilities.length > 0 && (
+                  <div className={styles.chipRow}>
+                    {featuredStay.facilities.map((f) => (
+                      <span className={styles.chip} key={f}>
+                        {f}
                       </span>
-                    ))}{" "}
-                    might suit better.
-                  </p>
-                </section>
-              </>
+                    ))}
+                  </div>
+                )}
+                <div className={styles.stayFoot}>
+                  <span className={styles.stayFootNote}>Rates and dates on the hotel&apos;s own site</span>
+                  <Link href={`/stays/${featuredStay.slug}`} className={styles.btnDark}>
+                    View this stay →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className={styles.stayCard}>
+              <div className={styles.stayCardBody}>
+                <p className={styles.stayBlurb}>No Featured Stay set for {a.name} yet.</p>
+              </div>
+            </div>
+          )}
+
+          <div className={styles.handoffPanel}>
+            <span className={styles.handoffLabel}>Everything else</span>
+            <p className={styles.handoffLead}>
+              {a.name} has small hotels, B&amp;Bs and self-catering cottages beyond the Featured Stay — most without live
+              online booking.
+            </p>
+            <p className={styles.handoffBody}>Check live prices across all of them in one search, then come back and build the days around whatever you book.</p>
+            {a.bookingAdvice.length > 0 ? (
+              a.bookingAdvice.map((row) => (
+                <div className={styles.adviceRow} key={row.key}>
+                  <span className={styles.adviceKey}>{row.key}</span>
+                  <span className={styles.adviceValue}>{row.value}</span>
+                </div>
+              ))
+            ) : (
+              <p className={styles.handoffPending}>Local booking advice for {a.name} is being added.</p>
             )}
-          </main>
+            <a href={bookingUrl} target="_blank" rel="noopener noreferrer" className={`${styles.ctaGold} ${styles.ctaGoldFull}`}>
+              Search stays on hotels.com ↗
+            </a>
+            <p className={styles.disclosure}>Opens a {a.name} search with your dates. We may earn a commission — it costs you nothing.</p>
+          </div>
         </div>
       </div>
-
+      </div>
       <Footer />
     </>
   );

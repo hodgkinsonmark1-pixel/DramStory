@@ -223,15 +223,17 @@ export const getAreas = cache(async (): Promise<Area[]> => {
 });
 
 async function fetchAreasFromAirtable(): Promise<Area[]> {
-  const [records, distilleries, localFeatures, featuredStays] = await Promise.all([
+  const [records, distilleries, localFeatures, featuredStays, days] = await Promise.all([
     airtableFetchAll<AirtableAreaFields>("Areas"),
     getDistilleries(),
     getLocalFeatures(),
     getFeaturedStays(),
+    getDays(),
   ]);
 
   const localFeatureById = new Map(localFeatures.map((f) => [f.id, f]));
   const featuredStayById = new Map(featuredStays.map((s) => [s.id, s]));
+  const daysById = new Map(days.map((d) => [d.id, d]));
   // Name/slug only, built from the raw records before any Area is fully
   // mapped - see mapToArea's doc comment for why (Alternate Areas
   // self-links would otherwise need a circular fetch).
@@ -242,7 +244,7 @@ async function fetchAreasFromAirtable(): Promise<Area[]> {
   );
 
   const areas = records
-    .map((r) => mapToArea(r.id, r.fields, localFeatureById, featuredStayById, areaMetaById))
+    .map((r) => mapToArea(r.id, r.fields, localFeatureById, featuredStayById, areaMetaById, daysById))
     .filter((a): a is Area => a !== null);
 
   // Local Distilleries - grouped via the Distilleries table's own curated

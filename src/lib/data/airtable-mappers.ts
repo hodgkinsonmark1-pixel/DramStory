@@ -443,6 +443,33 @@ export interface AirtableAreaFields {
   "Nearby Local Features"?: string[]; // linked record IDs -> Local Features table
   "Featured Stays"?: string[]; // linked record IDs -> Featured Stays table
   "Alternate Areas"?: string[]; // linked record IDs -> Areas table (self)
+  "Advisory Notice"?: string;
+  "In The Village"?: string; // "Label: Value" per line
+  "In The Village Missing"?: string;
+  "Day Plan"?: string[]; // linked record IDs -> Days table (first one used)
+  "Booking Advice"?: string; // "Label: Value" per line
+  "Glance Places To Stay"?: string;
+}
+
+/** Parses the "Label: Value" per-line Airtable convention used by both
+ *  In The Village and Booking Advice - splits on the first colon only, so
+ *  a value containing its own colon (e.g. a time) doesn't get mangled.
+ *  Blank/malformed lines are skipped rather than rendered broken. */
+export function parseLabelValueLines(text?: string): { key: string; value: string }[] {
+  if (!text) return [];
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const i = line.indexOf(":");
+      if (i === -1) return null;
+      const key = line.slice(0, i).trim();
+      const value = line.slice(i + 1).trim();
+      if (!key || !value) return null;
+      return { key, value };
+    })
+    .filter((r): r is { key: string; value: string } => r !== null);
 }
 
 /** Maps a raw Areas record. Alternate Areas resolves to {name, slug} pairs
@@ -456,7 +483,8 @@ export function mapToArea(
   fields: AirtableAreaFields,
   localFeatureById: Map<string, LocalFeature>,
   featuredStayById: Map<string, FeaturedStay>,
-  areaMetaById: Map<string, { name: string; slug: string }>
+  areaMetaById: Map<string, { name: string; slug: string }>,
+  daysById: Map<string, HubDay>
 ): Area | null {
   if (!fields.Name || !fields.Slug) return null;
   const isProduction = process.env.VERCEL_ENV === "production";
@@ -499,6 +527,12 @@ export function mapToArea(
     alternateAreas: (fields["Alternate Areas"] ?? [])
       .map((recId) => areaMetaById.get(recId))
       .filter((a): a is { name: string; slug: string } => !!a),
+    advisoryNotice: fields["Advisory Notice"] || undefined,
+    inTheVillage: parseLabelValueLines(fields["In The Village"]),
+    inTheVillageMissing: fields["In The Village Missing"] || undefined,
+    dayPlan: fields["Day Plan"]?.[0] ? daysById.get(fields["Day Plan"][0]) : undefined,
+    bookingAdvice: parseLabelValueLines(fields["Booking Advice"]),
+    glancePlacesToStay: fields["Glance Places To Stay"] || undefined,
     source: "airtable",
   };
 }
