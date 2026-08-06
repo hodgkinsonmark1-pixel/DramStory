@@ -440,6 +440,7 @@ export interface AirtableAreaFields {
   "In-Village Food & Drink"?: string;
   "Hazard Callout"?: string;
   "Hero Image"?: AirtableAttachment[];
+  "Hero Image Credit"?: string;
   "Nearby Local Features"?: string[]; // linked record IDs -> Local Features table
   "Featured Stays"?: string[]; // linked record IDs -> Featured Stays table
   "Alternate Areas"?: string[]; // linked record IDs -> Areas table (self)
@@ -514,6 +515,7 @@ export function mapToArea(
     heroImageUrl: fields["Hero Image"]?.[0]
       ? `/api/attachment?t=${AREAS_TABLE}&r=${id}&f=fldLzSOiLgUI1OwOw&i=0`
       : undefined,
+    heroImageCredit: fields["Hero Image Credit"] || undefined,
     // Filled in afterward by fetchAreasFromAirtable, same reasoning as
     // FeaturedStay.nearestDistilleries - the full Distilleries list isn't
     // visible from inside this function.

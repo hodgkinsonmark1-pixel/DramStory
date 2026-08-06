@@ -73,6 +73,27 @@ const KIND_BADGES: Record<LocalFeature["category"], string> = {
   transport: "Transport",
 };
 
+/** Small corner photo-attribution tag - same [label](url) markdown-link
+ *  convention and visual treatment as the previous template's PhotoCredit
+ *  (each page keeps its own small copy per this codebase's existing
+ *  pattern, rather than sharing one). */
+function PhotoCredit({ credit }: { credit: string }) {
+  const match = credit.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+  const label = match ? match[1] : credit;
+  const href = match ? match[2] : null;
+  return (
+    <div className={styles.heroCredit}>
+      {href ? (
+        <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>
+          {label}
+        </a>
+      ) : (
+        label
+      )}
+    </div>
+  );
+}
+
 interface AreaClientProps {
   area: Area;
 }
@@ -167,6 +188,7 @@ export default function AreaClient({ area: a }: AreaClientProps) {
         ) : (
           <div className={styles.heroPlaceholder} />
         )}
+        {a.heroImageCredit && <PhotoCredit credit={a.heroImageCredit} />}
         <div className={styles.heroOverlay} />
         <div className={styles.heroContent}>
           {a.distilleryRegion && <div className={styles.eyebrow}>VILLAGE · {a.distilleryRegion.toUpperCase()}</div>}

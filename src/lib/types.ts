@@ -299,6 +299,9 @@ export interface Area {
    *  with areas that do have a real hazard. */
   hazardCallout?: string;
   heroImageUrl?: string;
+  /** Same [label](url) markdown-link convention as Local Features/
+   *  Featured Stays' heroImageCredit. */
+  heroImageCredit?: string;
   /** Curated by verifying coordinates against this Area's own lat/lng,
    *  not the LocalFeature "Distance" free-text field (not reliably
    *  anchored to a specific village - see content-sourcing-standards.md). */
