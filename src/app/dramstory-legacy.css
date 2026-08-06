@@ -508,11 +508,17 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
 
 /* At a Glance - thin-ruled label/value rows. */
 .stay-glance-rows{margin-bottom:22px}
-.stay-glance-row{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid var(--stone);font-size:13px}
+.stay-glance-row{display:flex;justify-content:space-between;gap:16px;padding:11px 0;border-bottom:1px solid var(--stone);font-size:13px}
 .stay-glance-key{color:var(--slate);flex-shrink:0}
-.stay-glance-val{color:var(--dark);font-weight:500;text-align:right}
+.stay-glance-val{color:var(--dark);font-weight:600;text-align:right}
 
 .stay-side-facilities{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
+/* Sidebar facility pills restyled to the mockup's outlined-pill-with-bullet
+   shape (06 Aug 2026 review) - scoped to .stay-side-facilities so the
+   shared .facility-badge rule (used on Distillery/Local Feature pages)
+   is untouched. */
+.stay-side-facilities .facility-badge{background:none;border:1px solid var(--stone);color:var(--peat);font-size:12px;padding:6px 14px 6px 12px}
+.stay-side-facilities .facility-badge::before{content:"•";color:var(--copper);margin-right:6px}
 
 /* Getting Here - place name + drive time, mileage/caveat subline. */
 .stay-gh-row{padding:9px 0;border-bottom:1px solid var(--stone)}
@@ -534,17 +540,17 @@ a.stay-gh-name:hover{color:var(--copper);text-decoration:underline}
 
 /* Right column */
 .stay-eyebrow{display:block;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--copper);margin-bottom:12px}
-.stay-lede{font-family:var(--font-display);font-size:29px;font-weight:500;color:var(--copper);line-height:1.35;margin:0 0 18px;max-width:600px}
+.stay-lede{font-family:var(--font-display);font-size:29px;font-weight:500;color:var(--dark);line-height:1.35;margin:0 0 18px;max-width:600px}
 .stay-divider{border:none;border-top:1px solid var(--stone);margin:30px 0}
 .stay-recognition{margin-top:18px}
-.stay-mini-label{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--slate);margin-bottom:3px}
-.stay-mini-value{font-size:13px;color:var(--dark);font-weight:500}
+.stay-mini-label{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--copper);margin-bottom:3px}
+.stay-mini-value{font-size:13px;color:var(--copper);font-weight:600}
 
 /* "A Night in [Year]" band - dark pull-quote with the year as a drop-in. */
-.stay-history-band{display:flex;gap:28px;align-items:flex-start;background:var(--navy);border-radius:var(--radius);padding:28px 32px;margin:32px 0}
-.stay-history-band-year{font-family:var(--font-display);font-size:42px;line-height:1;color:var(--amber-light);flex-shrink:0}
-.stay-history-band-quote{font-family:var(--font-display);font-style:italic;font-size:18px;font-weight:400;color:white;line-height:1.55;margin:0 0 10px}
-.stay-history-band-source{font-size:12px;color:rgba(255,255,255,0.6);line-height:1.5;margin:0}
+.stay-history-band{display:flex;gap:20px;align-items:center;background:var(--navy);border-radius:var(--radius);padding:20px 24px;margin:28px 0}
+.stay-history-band-year{font-family:var(--font-display);font-size:32px;line-height:1;color:var(--amber-light);flex-shrink:0}
+.stay-history-band-quote{font-family:var(--font-display);font-style:italic;font-size:16px;font-weight:400;color:white;line-height:1.5;margin:0 0 6px}
+.stay-history-band-source{font-size:11px;color:rgba(255,255,255,0.6);line-height:1.4;margin:0}
 
 /* Gallery captions overlay - sits on top of the existing .dist-gallery-img
    button (shared with the Distillery/Explore galleries), so only the
