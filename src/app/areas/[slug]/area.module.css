@@ -270,14 +270,17 @@
   max-width: 640px;
   margin: 0 0 24px;
 }
+/* Plain block wrapper (not a grid) - dayTitle stacks above
+   dayPanelInner, which is the ONLY grid here (stops beside the rail).
+   An earlier version nested two grids (this one + dayPanelInner) with
+   both children spanning grid-column:1/-1, which produced a large,
+   unintended gap between the title and the stops row - removed rather
+   than chased, since a single grid is simpler and matches the intended
+   layout exactly. */
 .dayPanel {
   background: #16394b;
   border-radius: 18px;
   padding: 28px 32px;
-  display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 40px;
-  align-items: center;
 }
 .dayTitle {
   font-family: var(--font-spectral), serif;
@@ -285,14 +288,12 @@
   font-size: clamp(19px, 1.8vw, 24px);
   color: #f4efe6;
   margin: 0 0 18px;
-  grid-column: 1 / -1;
 }
 .dayPanelInner {
   display: grid;
   grid-template-columns: 1fr 300px;
   gap: 40px;
   align-items: center;
-  grid-column: 1 / -1;
 }
 .stopsRow {
   display: flex;
@@ -376,6 +377,7 @@
   flex-direction: column;
 }
 .nearbyImgWrap {
+  display: block;
   position: relative;
   height: 118px;
 }
