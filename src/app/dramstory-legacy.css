@@ -558,6 +558,12 @@ a.stay-gh-name:hover{color:var(--copper);text-decoration:underline}
 .stay-history-band-year{font-family:var(--font-display);font-size:32px;line-height:1;color:var(--amber-light);flex-shrink:0}
 .stay-history-band-quote{font-family:var(--font-display);font-style:italic;font-size:16px;font-weight:400;color:white;line-height:1.5;margin:0 0 6px}
 .stay-history-band-source{font-size:11px;color:rgba(255,255,255,0.6);line-height:1.4;margin:0}
+/* Focus box variant (06 Aug 2026) - same dark band, but an eyebrow label
+   instead of a big year numeral, for hotels without a dated history
+   anecdote. --focus adds top padding since there's no year column to
+   align the first line of text against. */
+.stay-history-band--focus{padding-top:22px}
+.stay-history-band-eyebrow{display:block;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--amber-light);margin-bottom:8px}
 
 /* Gallery captions overlay - sits on top of the existing .dist-gallery-img
    button (shared with the Distillery/Explore galleries), so only the

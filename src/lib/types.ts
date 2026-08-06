@@ -210,6 +210,16 @@ export interface FeaturedStay {
   /** Eating & Drinking section body - split out of Description (06 Aug
    *  2026) so the two sections can render under their own headings. */
   eatingDrinking?: string;
+  /** Focus box (06 Aug 2026) - a second, generalised variant of the dark
+   *  "A Night in [Year]" band for hotels without a genuine dated history
+   *  anecdote. Eyebrow + text (+ optional source) rather than a big year
+   *  numeral - see historyHighlightYear's doc comment above for the
+   *  original variant, which still takes priority when both are set.
+   *  All three fields deliberately not forced - many hotels will have
+   *  neither this nor a history highlight. */
+  focusEyebrow?: string;
+  focusText?: string;
+  focusSource?: string;
   /** One caption per `gallery` photo, index-aligned - same convention as
    *  galleryCredits, but distinct from it: this is a short caption (e.g.
    *  "a bedroom - the shot that sells the stay"), galleryCredits is photo

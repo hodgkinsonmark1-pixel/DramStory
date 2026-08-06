@@ -300,6 +300,11 @@ export interface AirtableFeaturedStayFields {
   Dogs?: string;
   Recognition?: string;
   "Eating & Drinking"?: string;
+  // Focus box (06 Aug 2026) - see FeaturedStay.focusEyebrow's doc comment
+  // in types.ts.
+  "Focus Box Eyebrow"?: string;
+  "Focus Box Text"?: string;
+  "Focus Box Source"?: string;
 }
 
 /** Raw shape for the "Stay Distillery Distances" junction table - added 05
@@ -400,6 +405,9 @@ export function mapToFeaturedStay(
     dogs: fields.Dogs || undefined,
     recognition: fields.Recognition || undefined,
     eatingDrinking: fields["Eating & Drinking"] || undefined,
+    focusEyebrow: fields["Focus Box Eyebrow"] || undefined,
+    focusText: fields["Focus Box Text"] || undefined,
+    focusSource: fields["Focus Box Source"] || undefined,
     galleryCaptions: fields["Gallery Captions"] ? fields["Gallery Captions"].split("\n") : undefined,
     planYourDays: (fields["Plan Your Days"] ?? [])
       .map((recId) => daysById.get(recId))

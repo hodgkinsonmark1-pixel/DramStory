@@ -157,6 +157,10 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
 
   const hasGlance = glanceRows.some((r) => r.value);
   const hasHistoryHighlight = !!(s.historyHighlightYear && s.historyHighlightQuote);
+  // Focus box (06 Aug 2026) - generalised second variant of the dark band
+  // for hotels without a dated history anecdote for the box above. History
+  // Highlight takes priority when a hotel genuinely has both.
+  const hasFocusBox = !hasHistoryHighlight && !!(s.focusEyebrow && s.focusText);
 
   return (
     <>
@@ -341,6 +345,16 @@ export default function FeaturedStayClient({ stay: s }: FeaturedStayClientProps)
                   {s.historyHighlightSource && (
                     <p className="stay-history-band-source">From {s.historyHighlightSource}</p>
                   )}
+                </div>
+              </div>
+            )}
+
+            {hasFocusBox && (
+              <div className="stay-history-band stay-history-band--focus">
+                <div>
+                  <span className="stay-history-band-eyebrow">{s.focusEyebrow}</span>
+                  <p className="stay-history-band-quote">{s.focusText}</p>
+                  {s.focusSource && <p className="stay-history-band-source">{s.focusSource}</p>}
                 </div>
               </div>
             )}
