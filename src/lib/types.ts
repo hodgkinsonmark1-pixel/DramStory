@@ -198,6 +198,18 @@ export interface FeaturedStay {
   historyHighlightYear?: string;
   historyHighlightQuote?: string;
   historyHighlightSource?: string;
+  /** At a Glance sidebar rows for the simplified two-column hotel
+   *  template (06 Aug 2026) - short single-line facts. Any blank field
+   *  just omits its row. */
+  rooms?: string;
+  roomTypes?: string;
+  dogs?: string;
+  /** Award/accolade line shown in the Eating & Drinking section, e.g.
+   *  "Hotels of the Year Scotland 2023 Summer Star Award". */
+  recognition?: string;
+  /** Eating & Drinking section body - split out of Description (06 Aug
+   *  2026) so the two sections can render under their own headings. */
+  eatingDrinking?: string;
   /** One caption per `gallery` photo, index-aligned - same convention as
    *  galleryCredits, but distinct from it: this is a short caption (e.g.
    *  "a bedroom - the shot that sells the stay"), galleryCredits is photo

@@ -22,15 +22,12 @@ function isUntouchedDefault(accommodation: { name: string; lat: number; lng: num
 }
 
 /**
- * Shared "+ Add to my trip" behaviour for a Featured Stay page - used by
- * both StickyStayBar and the closing CTA banner (FeaturedStayClient.tsx)
- * so a visitor gets the identical, careful behaviour regardless of which
- * button they click, rather than the sticky bar being safe and a second
- * "+ Add to my trip" elsewhere on the page silently overwriting a
- * deliberate choice.
+ * Shared "+ Add to my trip" behaviour for a Featured Stay page (06 Aug 2026:
+ * now a single sidebar button after the two-column simplification, but
+ * kept as a shared hook so any future second button gets the identical,
+ * careful behaviour automatically).
  *
- * Option C (confirmed with Mark 05 Aug 2026) - see StickyStayBar.tsx's
- * original doc comment (now here) for the full reasoning: a hotel page
+ * Option C (confirmed with Mark 05 Aug 2026): a hotel page
  * has no day context to anchor an "all vs from here" choice to, so rather
  * than either always overwriting every day or bolting on new prompt UI,
  * this only ever fills in days still sitting on the untouched default

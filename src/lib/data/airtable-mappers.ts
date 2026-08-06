@@ -293,6 +293,13 @@ export interface AirtableFeaturedStayFields {
   "History Highlight Source"?: string;
   "Gallery Captions"?: string;
   "Plan Your Days"?: string[]; // linked record IDs -> Days table
+  // Added 06 Aug 2026 for the simplified two-column hotel template - At a
+  // Glance rows, the Eating & Drinking section, and its Recognition line.
+  Rooms?: string;
+  "Room Types"?: string;
+  Dogs?: string;
+  Recognition?: string;
+  "Eating & Drinking"?: string;
 }
 
 /** Raw shape for the "Stay Distillery Distances" junction table - added 05
@@ -388,6 +395,11 @@ export function mapToFeaturedStay(
     historyHighlightYear: fields["History Highlight Year"] || undefined,
     historyHighlightQuote: fields["History Highlight Quote"] || undefined,
     historyHighlightSource: fields["History Highlight Source"] || undefined,
+    rooms: fields.Rooms || undefined,
+    roomTypes: fields["Room Types"] || undefined,
+    dogs: fields.Dogs || undefined,
+    recognition: fields.Recognition || undefined,
+    eatingDrinking: fields["Eating & Drinking"] || undefined,
     galleryCaptions: fields["Gallery Captions"] ? fields["Gallery Captions"].split("\n") : undefined,
     planYourDays: (fields["Plan Your Days"] ?? [])
       .map((recId) => daysById.get(recId))
