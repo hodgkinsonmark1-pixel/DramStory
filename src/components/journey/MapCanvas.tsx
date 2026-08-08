@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type Leaflet from "leaflet";
 import type { Distillery, LocalFeature } from "@/lib/types";
 import { truncateSummary } from "@/lib/text";
 import { AREAS } from "@/lib/areas";
+import { generateAreaBlob } from "@/lib/area-blob";
 import { FEATURED_STAYS } from "@/lib/featured-stays";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
@@ -71,6 +72,13 @@ interface MapCanvasProps {
    *  naturally throttled) whenever the visitor pans or zooms, so the
    *  caller can persist the new view. */
   onViewChange?: (view: { lat: number; lng: number; zoom: number }) => void;
+  /** Which Area (by @/lib/areas.ts slug) is currently "active" - shows its
+   *  organic highlight blob on the map, and nothing else's. Owned by
+   *  Workspace.tsx (driven purely by hovering/clicking the "Where to
+   *  stay" Area cards below the map - the map itself has no Area pin of
+   *  its own to hover/click) - see the blob-drawing effect below for why
+   *  only ever one is rendered at a time. */
+  activeAreaSlug?: string | null;
 }
 
 // Rough center of Scotland, used when a region has no pins yet so the map
@@ -124,6 +132,7 @@ export default function MapCanvas({
   accommodation,
   initialView,
   onViewChange,
+  activeAreaSlug = null,
 }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Leaflet.Map | null>(null);
@@ -161,10 +170,11 @@ export default function MapCanvas({
   // stay individually visible - see activeDayFeatures' own comment.
   const activeDayFeatureMarkersRef = useRef<Leaflet.Marker[]>([]);
   const highlightMarkersRef = useRef<Leaflet.Marker[]>([]);
-  // Circle overlays around each real Area's village centre - see the
-  // "always shown" effect below (distinct from highlightMarkersRef's
-  // conditional distillery pulse ring).
-  const areaCircleRef = useRef<Leaflet.Circle[]>([]);
+  // The one currently-visible Area highlight blob (organic polygon, not a
+  // circle - see area-blob.ts), or null when no Area is active. Only ever
+  // one at a time, per the "active" prop being a single slug - see the
+  // blob-drawing effect below.
+  const activeAreaBlobRef = useRef<Leaflet.Polygon | null>(null);
   // Keyed by distillery slug - lets the onboarding walkthrough open a
   // specific real marker's popup (e.g. Bowmore) programmatically, rather
   // than requiring an actual click during the passive walkthrough.
@@ -669,22 +679,40 @@ export default function MapCanvas({
     highlightMarkersRef.current = newHighlights;
   }, [mapReady, highlightedDistillerySlugs, distilleries]);
 
-  // Low-opacity radius circle around each of the 3 real Areas' village
-  // centres (Port Ellen, Bowmore, Port Charlotte) - a visual "roughly
-  // here" indicator, not a claimed precise boundary. Unlike the
-  // distillery pulse ring above, this is always shown (no date-range/
-  // event condition), so it only ever needs to run once mapReady flips
-  // true - AREAS itself is a static import, not a prop, so there's no
-  // other dependency to redraw on. Uses the site's brand amber
-  // (--amber, #D4A574 in dramstory-legacy.css's :root) for both the
-  // stroke and a ~12% fill, same accent used everywhere else on the
-  // site rather than a new one-off colour.
+  // One stable-shaped organic "blob" outline per real Area (Port Ellen,
+  // Bowmore, Port Charlotte), computed once rather than regenerated on
+  // every render/hover - see area-blob.ts for the seeded-PRNG + Chaikin-
+  // smoothing approach and why it needs to be deterministic. AREAS itself
+  // is a static import (not a prop), so this only ever needs to
+  // recompute if the AREAS array reference itself changes.
+  const areaBlobs = useMemo(
+    () =>
+      AREAS.map((a) => ({
+        slug: a.slug ?? a.name,
+        points: generateAreaBlob(a.lat, a.lng, a.slug ?? a.name),
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  // Draws the ONE active Area's highlight blob (organic polygon, not a
+  // circle - see area-blob.ts), or nothing at all when no Area is active.
+  // Replaces the old always-on per-Area L.circle entirely (08 Aug 2026,
+  // per Mark's review): the owner wanted this to only show while a
+  // visitor is actually hovering/has clicked that Area's card in the
+  // "Where to stay" grid below - the map itself is deliberately pin-free,
+  // per Mark's follow-up review (an always-on or hoverable pin per Area
+  // made the map look "too busy", Port Ellen especially) - see
+  // activeAreaSlug's own prop comment. Still the same brand amber
+  // (--amber, #D4A574) as before, at ~40% fill (~60% transparent, per the
+  // reference) with a more solid ~85%-opacity stroke so the boundary
+  // reads clearly through whatever's underneath.
   //
-  // Drawn with plain L.circle rather than a divIcon marker (as the pulse
-  // ring above uses) - Leaflet already renders vector layers like circles
-  // in its overlayPane (z-index 400), below markerPane (z-index 600)
-  // where every real pin/cluster lives, so this sits behind the pins by
-  // default with no extra pane/z-index wiring needed, and interactive:
+  // Drawn with plain L.polygon rather than a divIcon marker (as the pulse
+  // ring above uses) - Leaflet already renders vector layers like
+  // polygons in its overlayPane (z-index 400), below markerPane (z-index
+  // 600) where every real pin/cluster lives, so this sits behind the pins
+  // by default with no extra pane/z-index wiring needed, and interactive:
   // false keeps it from ever intercepting a click meant for a pin
   // underneath/around it.
   useEffect(() => {
@@ -692,24 +720,30 @@ export default function MapCanvas({
     const L = leafletRef.current;
     const map = mapRef.current;
 
-    const circles = AREAS.map((a) =>
-      L.circle([a.lat, a.lng], {
-        radius: 650,
-        color: "#D4A574",
-        weight: 2,
-        opacity: 0.85,
-        fillColor: "#D4A574",
-        fillOpacity: 0.12,
-        interactive: false,
-      }).addTo(map)
-    );
-    areaCircleRef.current = circles;
+    if (activeAreaBlobRef.current) {
+      activeAreaBlobRef.current.remove();
+      activeAreaBlobRef.current = null;
+    }
+
+    if (!activeAreaSlug) return;
+    const blob = areaBlobs.find((b) => b.slug === activeAreaSlug);
+    if (!blob) return;
+
+    const polygon = L.polygon(blob.points, {
+      color: "#D4A574",
+      weight: 2.5,
+      opacity: 0.85,
+      fillColor: "#D4A574",
+      fillOpacity: 0.4,
+      interactive: false,
+    }).addTo(map);
+    activeAreaBlobRef.current = polygon;
 
     return () => {
-      for (const c of circles) c.remove();
-      areaCircleRef.current = [];
+      polygon.remove();
+      activeAreaBlobRef.current = null;
     };
-  }, [mapReady]);
+  }, [mapReady, activeAreaSlug, areaBlobs]);
 
   // Lets the onboarding walkthrough open (and later close) a specific real
   // distillery's popup programmatically, e.g. to show what "Add it to
