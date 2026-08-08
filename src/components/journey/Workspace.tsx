@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { Distillery, InterestCategoryId, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
+import type { Area, Distillery, FeaturedStay, InterestCategoryId, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
 import { INTEREST_CATEGORIES, REGIONS } from "@/lib/journey-options";
 import { CLASSIC_JOURNEYS, getJourneyDistilleries } from "@/lib/journeys-data";
 import { roundPriceUp } from "@/lib/pricing";
@@ -25,6 +25,14 @@ interface WorkspaceProps {
   distilleries: Distillery[];
   localFeatures: LocalFeature[];
   localEvents: LocalEvent[];
+  /** The 3 real, live Areas (Port Ellen, Bowmore, Port Charlotte) for the
+   *  "Where to stay" grid below the map - Airtable-backed via getAreas(),
+   *  NOT the static lat/lng-only @/lib/areas.ts used for the map/dropdown. */
+  areas: Area[];
+  /** The 4 curated hotels for the same grid - Airtable-backed via
+   *  getFeaturedStays() (image, whyStay, slug), the same source
+   *  /stays/[slug] itself reads from, not the static FEATURED_STAYS. */
+  featuredStays: FeaturedStay[];
   location: LocationAnswer;
   initialInterests: InterestCategoryId[];
   timing: TripTiming;
@@ -99,6 +107,8 @@ export default function Workspace({
   distilleries,
   localFeatures,
   localEvents,
+  areas,
+  featuredStays,
   location,
   initialInterests,
   timing,
@@ -1294,15 +1304,36 @@ export default function Workspace({
       <TripEssentials />
 
       <div className="below-map-section">
-        <div className="how-eyebrow">Coming soon</div>
         <h2 className="how-title">Where to stay</h2>
-        <div className="accommodation-placeholder">
-          <div className="accommodation-placeholder-icon">🏨</div>
-          <p>
-            Accommodation suggestions near your route are on the way — hotels, B&amp;Bs, and self-catering,
-            booked straight through the site.
-          </p>
-          <p style={{ fontSize: 12, opacity: 0.8 }}>Launching once our booking partner is confirmed.</p>
+        <div className="discover-grid">
+          {areas.map((a) => (
+            <Link href={`/areas/${a.slug}`} className="discover-card" key={`area-${a.slug}`}>
+              <div className="discover-card-image" style={a.heroImageUrl ? { backgroundImage: `url(${a.heroImageUrl})` } : undefined} />
+              <div className="discover-card-body">
+                <div className="discover-card-tag">Area</div>
+                <div className="discover-card-name">{a.name}</div>
+                {a.whyHook && <p className="discover-card-desc">{a.whyHook}</p>}
+                <div className="discover-card-footer">
+                  <span className="discover-card-meta">Islay</span>
+                  <span className="discover-card-link">Explore &rarr;</span>
+                </div>
+              </div>
+            </Link>
+          ))}
+          {featuredStays.map((s) => (
+            <Link href={`/stays/${s.slug}`} className="discover-card" key={`stay-${s.slug}`}>
+              <div className="discover-card-image" style={s.heroImageUrl ? { backgroundImage: `url(${s.heroImageUrl})` } : undefined} />
+              <div className="discover-card-body">
+                <div className="discover-card-tag">Hotel</div>
+                <div className="discover-card-name">{s.name}</div>
+                {s.whyStay && <p className="discover-card-desc">{s.whyStay}</p>}
+                <div className="discover-card-footer">
+                  <span className="discover-card-meta">{s.style || "Featured stay"}</span>
+                  <span className="discover-card-link">View &rarr;</span>
+                </div>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
     </div>

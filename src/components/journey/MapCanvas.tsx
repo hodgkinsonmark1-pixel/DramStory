@@ -161,6 +161,10 @@ export default function MapCanvas({
   // stay individually visible - see activeDayFeatures' own comment.
   const activeDayFeatureMarkersRef = useRef<Leaflet.Marker[]>([]);
   const highlightMarkersRef = useRef<Leaflet.Marker[]>([]);
+  // Circle overlays around each real Area's village centre - see the
+  // "always shown" effect below (distinct from highlightMarkersRef's
+  // conditional distillery pulse ring).
+  const areaCircleRef = useRef<Leaflet.Circle[]>([]);
   // Keyed by distillery slug - lets the onboarding walkthrough open a
   // specific real marker's popup (e.g. Bowmore) programmatically, rather
   // than requiring an actual click during the passive walkthrough.
@@ -664,6 +668,48 @@ export default function MapCanvas({
 
     highlightMarkersRef.current = newHighlights;
   }, [mapReady, highlightedDistillerySlugs, distilleries]);
+
+  // Low-opacity radius circle around each of the 3 real Areas' village
+  // centres (Port Ellen, Bowmore, Port Charlotte) - a visual "roughly
+  // here" indicator, not a claimed precise boundary. Unlike the
+  // distillery pulse ring above, this is always shown (no date-range/
+  // event condition), so it only ever needs to run once mapReady flips
+  // true - AREAS itself is a static import, not a prop, so there's no
+  // other dependency to redraw on. Uses the site's brand amber
+  // (--amber, #D4A574 in dramstory-legacy.css's :root) for both the
+  // stroke and a ~12% fill, same accent used everywhere else on the
+  // site rather than a new one-off colour.
+  //
+  // Drawn with plain L.circle rather than a divIcon marker (as the pulse
+  // ring above uses) - Leaflet already renders vector layers like circles
+  // in its overlayPane (z-index 400), below markerPane (z-index 600)
+  // where every real pin/cluster lives, so this sits behind the pins by
+  // default with no extra pane/z-index wiring needed, and interactive:
+  // false keeps it from ever intercepting a click meant for a pin
+  // underneath/around it.
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !leafletRef.current) return;
+    const L = leafletRef.current;
+    const map = mapRef.current;
+
+    const circles = AREAS.map((a) =>
+      L.circle([a.lat, a.lng], {
+        radius: 650,
+        color: "#D4A574",
+        weight: 2,
+        opacity: 0.85,
+        fillColor: "#D4A574",
+        fillOpacity: 0.12,
+        interactive: false,
+      }).addTo(map)
+    );
+    areaCircleRef.current = circles;
+
+    return () => {
+      for (const c of circles) c.remove();
+      areaCircleRef.current = [];
+    };
+  }, [mapReady]);
 
   // Lets the onboarding walkthrough open (and later close) a specific real
   // distillery's popup programmatically, e.g. to show what "Add it to

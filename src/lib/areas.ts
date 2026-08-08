@@ -6,19 +6,21 @@ import type { TripAccommodation } from "@/lib/types";
  * featured-stays.ts's own extraction: lives in its own module so
  * MapCanvas.tsx can import it too without pulling in a "use client"
  * component). Coordinates unchanged from the original inline array -
- * Port Ellen and Bruichladdich from journeys-data.ts/days page, Port
- * Askaig from the Local Features "Ferry Port" record in Airtable.
+ * Port Ellen, Bowmore and Port Charlotte from journeys-data.ts/days page.
  *
- * `slug` is only set for areas that have a real /areas/[slug] page built
- * (Port Ellen, first one live 06 Aug 2026) - same "slug added so the map
- * pin can link through" pattern as FEATURED_STAYS. Undefined for the
- * others until their pages exist, so the map pin/dropdown keep working
- * exactly as before for those (plain name-only popup, no dead link).
+ * Trimmed 08 Aug 2026 to exactly the 3 real, live Areas (Port Ellen,
+ * Bowmore, Port Charlotte - Airtable-backed /areas/[slug] pages).
+ * Bruichladdich and Port Askaig were both dropped - neither is a real
+ * Area page (Port Askaig was never more than a Local Features "Ferry
+ * Port" record; Bruichladdich was considered and deliberately shelved) -
+ * so they must not appear as accommodation/area options.
+ *
+ * `slug` links each entry through to its real /areas/[slug] page - all
+ * three now have one live, matching the Slug field on each Area's
+ * Airtable record (same value getAreaBySlug filters on).
  */
 export const AREAS: (TripAccommodation & { slug?: string })[] = [
   { name: "Port Ellen", lat: 55.630181, lng: -6.187415, slug: "port-ellen" },
-  { name: "Bowmore", lat: 55.7557, lng: -6.2875 },
-  { name: "Port Charlotte", lat: 55.74021, lng: -6.378353 },
-  { name: "Bruichladdich", lat: 55.7638, lng: -6.3605 },
-  { name: "Port Askaig", lat: 55.8476, lng: -6.1039 },
+  { name: "Bowmore", lat: 55.7557, lng: -6.2875, slug: "bowmore" },
+  { name: "Port Charlotte", lat: 55.74021, lng: -6.378353, slug: "port-charlotte" },
 ];
