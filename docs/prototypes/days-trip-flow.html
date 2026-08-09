@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DramStory — days flow prototype</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: #E8E2D6;
+    font-family: 'Instrument Sans', system-ui, sans-serif; color: #1A3A4A;
+    display: flex; align-items: center; justify-content: center; gap: 40px; padding: 40px 20px;
+  }
+  .aside { max-width: 300px; font-size: 14px; line-height: 1.55; color: #4A4438; }
+  .aside h1 { font-family: 'Spectral', Georgia, serif; font-size: 26px; line-height: 1.1; margin: 0 0 12px; color: #1A3A4A; }
+  .aside p { margin: 0 0 12px; text-wrap: pretty; }
+  .aside strong { color: #1A3A4A; }
+
+  .phone {
+    width: 390px; height: 844px; border-radius: 38px; overflow: hidden; position: relative;
+    background: #F5F1E8; box-shadow: 0 34px 70px -26px rgba(40,26,10,.5); flex: none;
+  }
+  .screen { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  .hidden { display: none !important; }
+  .scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .scroll::-webkit-scrollbar { width: 0; }
+
+  .nav { flex: none; background: #1A3A4A; color: #F5F1E8; padding: 42px 20px 14px; }
+  .foot { flex: none; background: #1A3A4A; color: #F5F1E8; padding: 13px 20px 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .bar-light { flex: none; background: #FFFFFF; border-top: 1px solid #E8E2D6; padding: 12px 20px 22px; }
+
+  h2.day { font-family: 'Spectral', Georgia, serif; font-weight: 600; line-height: 1.1; margin: 0; color: #1A3A4A; }
+  .kicker { font-size: 10.5px; font-weight: 700; letter-spacing: .14em; }
+  .muted { color: #8A8274; }
+  .route { font-family: 'Spectral', Georgia, serif; color: #8A8274; }
+  .sep { color: #8A8274; }
+
+  button { font: inherit; cursor: pointer; border: 0; background: none; color: inherit; padding: 0; text-align: left; }
+  .phone button { min-height: 44px; }
+  .btn {
+    display: block; width: 100%; text-align: center; font-size: 15px; font-weight: 600;
+    background: #1A3A4A; color: #F5F1E8; border-radius: 999px; padding: 14px 0;
+  }
+  .btn:active { background: #122C39; }
+  .btn.amber { background: #D4A574; color: #1A3A4A; }
+  .btn.ghost { background: #FFFFFF; color: #B87D4B; border: 1.5px solid #B87D4B; }
+  .btn.green { background: #EAE6DC; color: #1A3A4A; border: 1.5px solid #1A3A4A; }
+  .layers { position: relative; }
+  .layers-wrap { position: relative; flex: none; }
+  .layers-fade { position: absolute; top: 0; right: 0; bottom: 0; width: 46px; pointer-events: none; background: linear-gradient(to right, rgba(255,253,249,0), #FFFFFF 72%); display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; font-size: 15px; color: #B87D4B; font-weight: 600; }
+  .btn.sm { font-size: 14px; padding: 13px 16px; width: auto; display: inline-block; white-space: nowrap; }
+  .tlink { padding: 14px 10px; margin: -14px -10px; display: inline-block; }
+  .tlink-y { padding: 13px 0; display: inline-block; }
+  .nowrap { white-space: nowrap; }
+  .layers::-webkit-scrollbar { height: 0; }
+  .chip {
+    font-size: 15px; font-weight: 600; padding: 10px 18px; border-radius: 999px;
+    border: 1.5px solid #2A5A72; color: #D8E0E4;
+  }
+  .chip.on { background: #D4A574; color: #1A3A4A; border-color: #D4A574; }
+  .pill { box-shadow: inset 0 -2px 0 #B87D4B; color: #E8C99A; white-space: nowrap; display: inline-block; }
+
+  .card { background: #FFFFFF; border: 1px solid #E8E2D6; border-radius: 12px; padding: 12px 13px; }
+  .stop { display: flex; align-items: center; gap: 10px; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; flex: none; }
+  .dot.dist { background: #B87D4B; width: 13px; height: 13px; }
+  .dot.place { background: #8A8274; }
+  .dot.ferry { background: #1A3A4A; }
+  .num { width: 28px; height: 28px; border-radius: 50%; background: #1A3A4A; color: #F5F1E8; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex: none; }
+  .num.dist { background: #B87D4B; }
+
+  #map { flex: 1; width: 100%; background: #E8E2D6; }
+  .leaflet-container { font-family: 'Instrument Sans', system-ui, sans-serif; }
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; background: #FFFFFF;
+    border-radius: 20px 20px 0 0; box-shadow: 0 -12px 30px -16px rgba(20,26,30,.45);
+    display: flex; flex-direction: column; transition: height .28s cubic-bezier(.22,.68,.32,1);
+    overflow: hidden;
+  }
+  .recentre {
+    font: 600 13px 'Instrument Sans', sans-serif; background: #FFFFFF; color: #1A3A4A;
+    border: 1px solid #D4C9B8; border-radius: 999px; padding: 9px 14px; cursor: pointer;
+    white-space: nowrap; box-shadow: 0 2px 12px rgba(26,58,74,0.10);
+  }
+  .recentre:hover { background: #FBF5EA; }
+  button:focus-visible, [tabindex]:focus-visible { outline: 3px solid #B87D4B; outline-offset: 2px; border-radius: 6px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .tap { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+  .grabrow { padding: 10px 0 8px; display: block; width: 100%; }
+  .grab { width: 42px; height: 4px; border-radius: 999px; background: #D4C9B8; margin: 0 auto 12px; flex: none; }
+  .modal { position: absolute; inset: 0; background: rgba(20,32,38,.45); display: flex; align-items: flex-end; z-index: 900; }
+  .modal-inner { background: #FFFFFF; border-radius: 20px 20px 0 0; width: 100%; padding: 10px 20px 24px; max-height: 78%; overflow-y: auto; }
+  .toast { flex: none; background: #EAE6DC; border-bottom: 1px solid #D4C9B8; padding: 11px 20px; font-size: 13.5px; color: #4A4438; line-height: 1.45; display: flex; gap: 10px; align-items: baseline; }
+  .fade { animation: fade .26s ease both; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.05); } 100% { transform: scale(1); } }
+  .pop { animation: pop .42s cubic-bezier(.3,1.4,.5,1) both; }
+  @keyframes flyin { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
+  .flyin { animation: flyin .34s cubic-bezier(.22,.9,.32,1) both; }
+  @keyframes riseup { from { opacity: 0; transform: translateY(20px); } 12% { opacity: 1; transform: none; } 82% { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-6px); } }
+  .milestone { animation: riseup 2.8s ease both; }
+  @keyframes fillspin { from { stroke-dashoffset: var(--from); } to { stroke-dashoffset: var(--to); } }
+</style>
+</head>
+<body>
+
+<div class="aside">
+  <h1>Days flow, working</h1>
+  <p>The homepage asks, /days answers. Pick a base and some distilleries, add days to a trip, tweak the stops in place, then open the planner to rebuild a day on a real map.</p>
+  <p><strong>Try:</strong> change the base and watch the ordering and drive times move. Open a day, tap a distillery to change its tour, drop a stop and undo it. Then “make this day my own”, tap a hollow pin on the map, and save it back.</p>
+  <p class="muted">Real OpenStreetMap geography. Drive times are estimated from straight-line distance, so they're indicative rather than exact.</p>
+</div>
+
+<div class="phone">
+  <div id="app"></div>
+
+  <div id="plannerScreen" class="screen hidden">
+    <div class="nav" style="padding-bottom:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <button id="plannerBack" class="nowrap tlink" style="font-size:13.5px;font-weight:600;color:#B8C4CB;" aria-label="Back to my trip without saving">‹ Back</button>
+        <button id="plannerSave" class="btn amber sm">Save day</button>
+      </div>
+      <div id="plannerProv" style="font-size:13.5px;line-height:1.45;margin-top:10px;"></div>
+    </div>
+    <div class="layers-wrap">
+      <div class="layers" style="background:#FFFFFF;border-bottom:1px solid #F5F1E8;padding:10px 14px;display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;">
+      <span class="kicker" style="flex:none;border-radius:999px;padding:7px 13px;background:#1A3A4A;color:#F5F1E8;letter-spacing:.08em;">DISTILLERIES</span>
+      <span class="kicker" style="flex:none;border-radius:999px;padding:7px 13px;border:1px solid #E8E2D6;color:#4A4438;letter-spacing:.08em;">NATURAL</span>
+      <span class="kicker" style="flex:none;border-radius:999px;padding:7px 13px;border:1px solid #E8E2D6;color:#4A4438;letter-spacing:.08em;">PLACES TO EAT</span>
+      <span class="kicker" style="flex:none;border-radius:999px;padding:7px 13px;border:1px solid #E8E2D6;color:#4A4438;letter-spacing:.08em;">STAYS</span>
+      <span class="kicker" style="flex:none;border-radius:999px;padding:7px 13px;border:1px solid #E8E2D6;color:#4A4438;letter-spacing:.08em;margin-right:34px;">EVENTS</span>
+      </div>
+      <div class="layers-fade">›</div>
+    </div>
+    <div id="map"></div>
+    <div id="sheet" class="sheet" style="height:150px;">
+      <div id="grab" class="grabrow"><div class="grab" style="margin-bottom:0;"></div></div>
+      <div id="sheetBody" style="flex:1;overflow-y:auto;padding:0 18px 20px;"></div>
+    </div>
+  </div>
+
+  <div id="modal" class="modal hidden"><div class="modal-inner" id="modalInner"></div></div>
+</div>
+
+<script>
+const P = {
+  machrie:  { n: 'The Machrie',           k: 'base',  ll: [55.661753, -6.250829] },
+  ardbegHo: { n: 'Ardbeg House',          k: 'base',  ll: [55.630164, -6.188517] },
+  pcHotel:  { n: 'Port Charlotte Hotel',  k: 'base',  ll: [55.740210, -6.378353] },
+  bridgend: { n: 'Bridgend Hotel',        k: 'base',  ll: [55.785858, -6.258693] },
+  paBase:   { n: 'Port Askaig',           k: 'base',  ll: [55.8460, -6.1080] },
+  peBase:   { n: 'Port Ellen',            k: 'base',  ll: [55.6283, -6.1888] },
+  bowBase:  { n: 'Bowmore',               k: 'base',  ll: [55.7576, -6.2887] },
+  pcBase:   { n: 'Port Charlotte',        k: 'base',  ll: [55.7420, -6.3730] },
+  paBase:   { n: 'Port Askaig',           k: 'base',  ll: [55.8460, -6.1080] },
+
+  portEllen:  { n: 'Port Ellen',           k: 'dist',  ll: [55.6262, -6.1962], closedDays: [0], note: 'Rebuilt stillhouse over Kilnaughton Bay',
+                tours: [ { n: 'Port Ellen Reborn', mins: 90, p: 250, tag: '18+, online only' } ] },
+  laphroaig:  { n: 'Laphroaig',            k: 'dist',  ll: [55.6303, -6.1517], note: 'The only Scotch with a Royal Warrant',
+                tours: [ { n: 'Distillery Tour', mins: 60, p: 22, tag: '' }, { n: 'Grain to Glass', mins: 150, p: 90, tag: '18+' } ] },
+  lagavulin:  { n: 'Lagavulin',            k: 'dist',  ll: [55.6353, -6.1264], note: 'Its own bay, beside a castle ruin',
+                tours: [ { n: 'Classic Distillery Tour', mins: 60, p: 22, tag: '' }, { n: 'Distillery Exclusive Experience', mins: 120, p: 130, tag: '18+, fill your own bottle' } ] },
+  ardbeg:     { n: 'Ardbeg',               k: 'dist',  ll: [55.6404, -6.1084], note: 'Malting through to the stills',
+                tours: [ { n: 'Classic Ardbeg Tour', mins: 60, p: 22.5, tag: '' }, { n: 'Ardbeg Deconstructed', mins: 90, p: 45, tag: '18+' } ] },
+  bowmore:    { n: 'Bowmore',              k: 'dist',  ll: [55.7576, -6.2887], note: "Islay's oldest working distillery",
+                tours: [ { n: 'Bowmore Distillery Tour', mins: 60, p: 25, tag: 'glass to keep' }, { n: 'Essence of Islay Tasting', mins: 90, p: 100, tag: 'seafood at the Harbour Inn' } ] },
+  bruich:     { n: 'Bruichladdich',        k: 'dist',  ll: [55.7686, -6.3620], note: 'A Victorian distillery with no computers',
+                tours: [ { n: 'Guided Distillery Tour', mins: 90, p: 25, tag: '' } ] },
+  caolila:    { n: 'Caol Ila',             k: 'dist',  ll: [55.8590, -6.1120], note: 'Views over the Sound of Islay',
+                tours: [ { n: 'Flavour Journey', mins: 60, p: 20, tag: '' }, { n: 'Spirit of Smoke', mins: 90, p: 60, tag: 'cask strength, dress warm' } ] },
+  ardnahoe:   { n: 'Ardnahoe',             k: 'dist',  ll: [55.8700, -6.1090], closedDays: [0], note: 'The newest distillery on the island',
+                tours: [ { n: 'Spirit of Ardnahoe', mins: 45, p: 16, tag: '' }, { n: 'Ultimate Ardnahoe', mins: 180, p: 60, tag: 'four casks' } ] },
+  bunna:      { n: 'Bunnahabhain',         k: 'dist',  ll: [55.8828, -6.1330], closedDays: [0,6], note: "The island's great unpeated outlier",
+                tours: [ { n: 'Warehouse 9 Experience', mins: 90, p: 50, tag: 'four drams from cask' } ] },
+  kilchoman:  { n: 'Kilchoman',            k: 'dist',  ll: [55.7842, -6.4028], closedDays: [0], note: 'Grows and malts its own barley',
+                tours: [ { n: 'Roving Tour', mins: 90, p: 30, tag: 'dram in the warehouse' } ] },
+  jura:       { n: 'Isle of Jura',         k: 'dist',  ll: [55.8330, -5.9490], closedDays: [0,6], note: 'Shop and visitor centre only, no tour',
+                tours: [ { n: 'Visitor centre', mins: 45, p: 0, tag: 'Mon–Fri, 10–4' } ] },
+
+  peBeach:    { n: 'Port Ellen Beach',     k: 'place', ll: [55.6249, -6.2018], dur: 45, note: 'Boules weather, if you get it' },
+  charlotte:  { n: 'No. 1 Charlotte St',   k: 'place', ll: [55.6290, -6.1900], dur: 75, note: 'Drinks, darts and music' },
+  oldKiln:    { n: 'The Old Kiln Cafe',    k: 'place', ll: [55.6408, -6.1090], dur: 45, note: "On the distillery's own pier" },
+  kildalton:  { n: 'Kildalton Cross',      k: 'place', ll: [55.6266, -6.0176], dur: 40, note: 'Roofless chapel at the end of the road' },
+  portMor:    { n: 'Port Mòr',             k: 'place', ll: [55.6250, -6.0100], dur: 60, note: 'A mile on foot through woodland' },
+  claggain:   { n: 'Claggain Bay',         k: 'place', ll: [55.6180, -6.0500], dur: 30, note: 'Shingle, and quiet' },
+  dunyveg:    { n: 'Dunyveg Castle',       k: 'place', ll: [55.6357, -6.1230], dur: 30, note: 'Ruins on the shore' },
+  lagBay:     { n: 'Lagavulin Bay',        k: 'place', ll: [55.6350, -6.1290], dur: 30, note: 'Sit and let it settle' },
+  bigStrand:  { n: 'The Big Strand',       k: 'place', ll: [55.6950, -6.2600], dur: 50, note: 'Seven miles of sand at Laggan Bay' },
+  machir:     { n: 'Machir Bay',           k: 'place', ll: [55.7796, -6.4470], dur: 60, note: "Two miles of sand, currents too strong to swim" },
+  museum:     { n: 'Museum of Islay Life', k: 'place', ll: [55.7405, -6.3720], dur: 50, note: 'In a former church by the shore' },
+  roundKirk:  { n: 'Round Church',         k: 'place', ll: [55.7570, -6.2880], dur: 20, note: 'Built round so the devil cannot hide' },
+  rubha:      { n: 'Rubha Bhachlaig',      k: 'place', ll: [55.8900, -6.1450], dur: 40, note: 'A rock arch every OS survey missed' },
+  askaigBar:  { n: 'Old Port Bar',         k: 'place', ll: [55.8462, -6.1072], dur: 60, note: 'Pulling pints since the sixteenth century' },
+  portAskaig: { n: 'Port Askaig ferry',    k: 'ferry', ll: [55.8460, -6.1080], note: 'Check the return times' },
+  feolin:     { n: 'Feolin',               k: 'place', ll: [55.8433, -6.0958], dur: 10, note: 'One road from here' },
+  mistyPool:  { n: 'The Misty Pool',       k: 'place', ll: [55.9080, -5.9330], dur: 50, note: 'A proper detour off the one road' }
+};
+Object.keys(P).forEach(id => P[id].id = id);
+
+const DAYS = [
+  { id: 'portEllenRebuilt', t: 'Port Ellen, Rebuilt', pace: 'Relaxed', anchors: ['portEllen'],
+    stops: ['portEllen', 'peBeach', 'charlotte'],
+    hook: 'Forty silent years, then a rebuilt stillhouse over Kilnaughton Bay.',
+    prose: ["Port Ellen made whisky history twice — once by falling silent for four decades, and again in March 2024 by starting up again in a rebuilt stillhouse with floor-to-ceiling windows over Kilnaughton Bay. Port Ellen Reborn spends about ninety minutes on that comeback story, built around the new production floor — including the world's first Ten Part Spirit Safe — with a rare vintage cask tasting in a historic shoreside warehouse most visitors never see inside, before closing on a pour from a genuinely rare historic release.",
+             "Book ahead, it's online only, no walk-ins, over-18s only. Afterwards, it's a short walk into the village itself. Wind down at Port Ellen Beach, perfect for a game of boules if the weather's playing along, or finish properly with drinks, darts and music at No. 1 Charlotte Street Bar."] },
+  { id: 'ardbegOnFoot', t: 'Ardbeg, on Foot', pace: 'Relaxed', anchors: ['ardbeg'],
+    stops: ['oldKiln', 'ardbeg', 'kildalton', 'portMor'],
+    hook: "The coast road, a cafe on the distillery's own pier, and a roofless chapel at the end of the road.",
+    prose: ["Ardbeg rewards the walk. Take the coast road out from Port Ellen with the sea on one side, and stop at The Old Kiln Cafe along the way — right on the distillery's own pier, looking straight out at the Atlantic. At Ardbeg itself, the Classic Ardbeg Tour takes you from malting through to the stills, with a guided tasting of three core-range drams as you go — book ahead, this one fills up.",
+             "If you have the energy, or you're driving and have time to spare, it's worth continuing a couple more miles to Kildalton Cross, standing beside the roofless ruins of Kildalton Chapel at the end of the road. From Kildalton's own car park, a quiet mile on foot through woodland leads down to Port Mòr, a hidden shore worth the detour for anyone not ready to turn back yet."] },
+  { id: 'threeLegends', t: 'Three Legends, One Road', pace: 'Packed', anchors: ['laphroaig', 'lagavulin', 'ardbeg'],
+    stops: ['laphroaig', 'lagavulin', 'ardbeg'],
+    hook: "Islay's most iconic peated trio, back to back, all within a few miles of each other.",
+    prose: ["Three legends, one road. Head out from Port Ellen along the coast, sea on one side, heathland on the other, for Islay's most iconic peated trio in a single day. First is Laphroaig, the only Scotch whisky ever granted a Royal Warrant, still worn by King Charles III today — a guided walk starting in the historic floor maltings, finishing with a tasting of three core-range drams, glass and lanyard included to take home.",
+             "Next is Lagavulin for the Classic Distillery Tour, starting with a glass of the 16 Year Old and finishing with a three-dram tasting including a distillery-exclusive pour. Last is Ardbeg, where the Classic Ardbeg Tour takes you from malting through to the stills. Three of Islay's heaviest hitters, back to back."] },
+  { id: 'lagavulinUnhurried', t: 'Lagavulin, Unhurried', pace: 'Relaxed', anchors: ['lagavulin'],
+    stops: ['lagavulin', 'dunyveg', 'lagBay'],
+    hook: 'Two hours in the Mackie Lounge, and a bottle you fill yourself and cannot buy again.',
+    prose: ["Lagavulin sits on its own bay, near the ruins of Dunyveg Castle, on Islay's south coast. Allow yourself time to enjoy the beautiful two-mile stroll from Port Ellen, coast on one side and Islay's peat-rich hills on the other. Relax — today nothing is rushed, including the tour.",
+             "The Distillery Exclusive Experience runs a full two hours, built for people who actually want to sit with it: through the production areas and the iconic Still House, then settling into the Mackie Lounge for four Lagavulin bottlings, a single cask sample, and a taste of the spirit before it's even whisky yet. You leave having hand-filled your own bottle from that cask. Sit by Lagavulin Bay afterwards and let it all settle."] },
+  { id: 'oldAndNew', t: 'Bowmore to Port Ellen, Old and New', pace: 'Moderate', anchors: ['bowmore', 'portEllen'],
+    stops: ['bowmore', 'bigStrand', 'portEllen'],
+    hook: "245 years separate Bowmore's founding from the morning Port Ellen's stills ran again.",
+    prose: ["In March 2024, Iain McArthur — the same worker who filled Port Ellen's very last cask back in 1983 — watched the stills run again after a £185 million rebuild. It's one of the most extraordinary comebacks in Scotch whisky, and today pairs it with the distillery that never stopped: 245 years separate Bowmore's founding in 1779 from that reopening morning.",
+             "Start at Bowmore, Islay's oldest working distillery, for the whole process, malting floor through to the stills, finishing with a dram in a glass that's yours to keep. Heading south, break the drive for a picnic at The Big Strand before the afternoon's main event at Port Ellen. Book ahead, it's online only."] },
+  { id: 'bruichladdichLoch', t: 'Bruichladdich, by the Loch', pace: 'Relaxed', anchors: ['bruich'],
+    stops: ['bruich', 'museum'],
+    hook: "Port Charlotte wasn't built for tourists — it was built for whisky.",
+    prose: ["Port Charlotte wasn't built for tourists — it was built for whisky. Walter Frederick Campbell founded the village in 1828, naming it after his mother, to house the workers of the Lochindaal Distillery next door. That distillery ran for exactly a century before falling silent in 1929; its old buildings still stand.",
+             "Bruichladdich, two miles up the road, is where that tradition carries on — ninety minutes in a working Victorian distillery with no computers anywhere in the process, tasting from unpeated Bruichladdich through to super-peated Octomore. Afterwards, walk down to the old stone pier, or lose an hour in the Museum of Islay Life."] },
+  { id: 'threeDistilleries', t: 'Three Distilleries, One Road', pace: 'Packed', anchors: ['caolila', 'ardnahoe', 'bunna'],
+    stops: ['caolila', 'ardnahoe', 'bunna'],
+    hook: 'Largest, newest and most traditional, along the coast from Port Askaig.',
+    prose: ["Heading along the coast from Port Askaig, today you'll take in three very different distilleries — largest, newest, and most traditional. First is Caol Ila, the largest of the three, with perhaps the most beautiful distillery views on the island, over the Sound of Islay to the Paps of Jura.",
+             "Next is Ardnahoe, the newest distillery here, finishing with two drams and a glass to keep. Last is Bunnahabhain, the most traditional and remote of the three, and the island's one great unpeated outlier while every other distillery chases peat smoke. Three distilleries, three characters, one road."] },
+  { id: 'juraAcross', t: 'Jura, Across the Water', pace: 'Relaxed', anchors: ['jura'],
+    stops: ['portAskaig', 'feolin', 'jura', 'mistyPool'],
+    hook: '258 people, one single-track road, and a crossing that runs to its own schedule.',
+    prose: ["Jura has just 258 people across the whole island and one single-track road that gives out well short of the island's northern tip. If Islay's distilleries can start to feel like a well-worn trail, Jura is the opposite: quieter, wilder, and considerably harder to reach by accident.",
+             "Getting there is part of the day: drive to Port Askaig, take the short crossing to Feolin, then that one road carries you to Craighouse. There's no guided tour running at the moment, so today is built around the shop and the island itself. Whatever you do, check the return ferry times before you settle in."] },
+  { id: 'kilchomanMachir', t: 'Kilchoman and Machir Bay', pace: 'Relaxed', anchors: ['kilchoman'],
+    stops: ['kilchoman', 'machir'],
+    hook: 'The only distillery growing, malting and distilling its own barley — then two miles of sand.',
+    prose: ["Kilchoman is the most westerly distillery in Scotland, and the only one on the island growing, malting and distilling its own barley on its own farm — genuinely Islay in a glass, start to finish. The Roving Tour goes deep into that process for an hour and a half, finishing with a special dram in the warehouse.",
+             "Afterwards, walk out to Machir Bay: two miles of white sand that's swallowed more ships than almost anywhere on the island. Locals don't swim here; the currents run too strong to risk it. Kilchoman even named one of its own whiskies after this beach."] }
+];
+
+const BASES = [
+  { id: 'machrie', n: 'The Machrie', prep: 'at', kind: 'hotel', note: 'On the links above Laggan Bay, halfway between north and south' },
+  { id: 'ardbegHo', n: 'Ardbeg House', prep: 'at', kind: 'hotel', note: 'Charlotte Street, Port Ellen — the peated south on your doorstep' },
+  { id: 'pcHotel', n: 'Port Charlotte Hotel', prep: 'at', kind: 'hotel', note: 'Victorian, on the shore — Bruichladdich and Kilchoman close by' },
+  { id: 'bridgend', n: 'Bridgend Hotel', prep: 'at', kind: 'hotel', note: 'Where the island\'s roads meet — nothing is far from here' },
+  { id: 'peBase', n: 'Port Ellen', prep: 'in', kind: 'area', note: 'The south — Laphroaig, Lagavulin, Ardbeg' },
+  { id: 'bowBase', n: 'Bowmore', prep: 'in', kind: 'area', note: 'The middle — everything within reach' },
+  { id: 'pcBase', n: 'Port Charlotte', prep: 'in', kind: 'area', note: 'The Rhinns — Bruichladdich and Kilchoman' },
+  { id: 'paBase', n: 'Port Askaig', prep: 'in', kind: 'area', note: 'The north-east — Caol Ila, Ardnahoe, and the Jura ferry' }
+];
+const DISTILLERIES = ['portEllen','laphroaig','lagavulin','ardbeg','bowmore','bruich','caolila','ardnahoe','bunna','kilchoman','jura'];
+
+  let S = {
+  screen: 'home', base: 'machrie', nights: 3, picks: [],
+  startDate: null,
+  trip: [], openDay: null, expandProse: false, sheet: 'peek',
+  selected: null, draft: null, toast: null, undo: null, modal: null, justAdded: null, milestone: null,
+  swapFor: null
+};
+
+const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function fmtDate(d, long) { return (long ? DAY_NAMES[d.getDay()] : DAY_NAMES[d.getDay()].slice(0,3)) + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()]; }
+function dateForDay(i) { return S.startDate ? addDays(S.startDate, i) : null; }
+function closedOn(pid, date) {
+  const p = P[pid];
+  if (!date || !p.closedDays) return false;
+  return p.closedDays.includes(date.getDay());
+}
+
+const $ = id => document.getElementById(id);
+const km = (a, b) => {
+  const R = 6371, dLat = (b[0]-a[0]) * Math.PI/180, dLon = (b[1]-a[1]) * Math.PI/180;
+  const x = Math.sin(dLat/2)**2 + Math.cos(a[0]*Math.PI/180) * Math.cos(b[0]*Math.PI/180) * Math.sin(dLon/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(x));
+};
+const mins = (a, b) => Math.max(5, Math.round((km(P[a].ll, P[b].ll) / 40 * 60) / 5) * 5);
+const baseId = () => S.base === 'anywhere' ? 'peBase' : S.base;
+const baseObj = () => BASES.find(b => b.id === S.base);
+const baseName = () => baseObj().n;
+const basePhrase = () => S.base === 'anywhere' ? 'anywhere on Islay' : baseObj().prep + ' ' + baseObj().n;
+const money = n => '£' + (Math.round(n * 100) / 100).toFixed(2).replace(/\.00$/, '');
+const hhmm = m => m >= 60 ? Math.floor(m/60) + 'h' + (m % 60 ? ' ' + (m % 60) + 'm' : '') : m + 'm';
+
+function tripEntry(dayId) { return S.trip.find(t => t.dayId === dayId); }
+function stopsOf(dayId) {
+  const e = tripEntry(dayId);
+  return e ? e.stops.slice() : DAYS.find(d => d.id === dayId).stops.slice();
+}
+function tourOf(dayId, pid) {
+  const e = tripEntry(dayId);
+  return (e && e.tours[pid] != null) ? e.tours[pid] : 0;
+}
+function stopDur(dayId, pid) {
+  const p = P[pid];
+  if (p.tours) return p.tours[tourOf(dayId, pid)].mins;
+  return p.dur || (p.k === 'ferry' ? 30 : 45);
+}
+const clock = m => {
+  const r = Math.round(m / 5) * 5;
+  const h = Math.floor(r / 60), mm = r % 60;
+  return h + ':' + String(mm).padStart(2, '0');
+};
+function schedule(dayId) {
+  const st = stopsOf(dayId), b = baseId();
+  let t = 9 * 60 + 30;
+  const rows = [];
+  st.forEach((pid, i) => {
+    const leg = i === 0 ? mins(b, pid) : mins(st[i-1], pid);
+    t += leg;
+    const dur = stopDur(dayId, pid);
+    rows.push({ pid, leg, arrive: t, leave: t + dur, dur });
+    t += dur;
+  });
+  const home = t + (st.length ? mins(st[st.length-1], b) : 0);
+  return { rows, home };
+}
+function partOfDay(m) { return m < 12 * 60 ? 'Morning' : m < 17 * 60 ? 'Afternoon' : 'Evening'; }
+
+function dayCost(dayId) {
+  return stopsOf(dayId).reduce((s, pid) => {
+    const p = P[pid];
+    return s + (p.tours ? p.tours[tourOf(dayId, pid)].p : 0);
+  }, 0);
+}
+function driveMins(dayId) {
+  const st = stopsOf(dayId), b = baseId();
+  if (!st.length) return 0;
+  let t = mins(b, st[0]);
+  for (let i = 1; i < st.length; i++) t += mins(st[i-1], st[i]);
+  return t + mins(st[st.length-1], b);
+}
+function dayScore(d) {
+  const st = stopsOf(d.id), b = baseId();
+  const drive = st.reduce((m, s) => Math.max(m, mins(b, s)), 0);
+  const hit = d.stops.filter(s => S.picks.includes(s)).length;
+  return drive - hit * 25;
+}
+function orderedDays() {
+  const list = DAYS.slice();
+  if (S.base === 'anywhere' && !S.picks.length) return list;
+  return list.sort((a, b) => dayScore(a) - dayScore(b));
+}
+function paceColour(p) { return p === 'Packed' ? '#B5502E' : p === 'Moderate' ? '#B87D4B' : '#1A3A4A'; }
+function routeLine(ids) {
+  return ids.map(id => P[id].n).join(' <span class="sep">→</span> ');
+}
+function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+
+/* ---------------- screens ---------------- */
+
+function render() {
+  $('plannerScreen').classList.toggle('hidden', S.screen !== 'planner');
+  if (S.screen === 'planner') { $('app').innerHTML = ''; renderPlanner(); renderModal(); return; }
+  const fns = { home: viewHome, days: viewDays, day: viewDay, trip: viewTrip };
+  $('app').innerHTML = '<div class="screen fade">' + fns[S.screen]() + '</div>';
+  wire();
+  renderModal();
+}
+
+function viewHome() {
+  return `
+  <div class="scroll" style="background:#F5F1E8;">
+    <div style="position:relative;height:250px;background:repeating-linear-gradient(135deg,#9aa6a4,#9aa6a4 12px,#a6b1ae 12px,#a6b1ae 24px);">
+      <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(12,26,33,.9),rgba(12,26,33,.28) 62%,rgba(12,26,33,.24));"></div>
+      <div style="position:absolute;top:40px;left:20px;">
+        <img src="public/logo-white.png" alt="DramStory" width="104" height="78" style="object-fit:contain;display:block;">
+      </div>
+      <div style="position:absolute;left:20px;right:20px;bottom:18px;">
+        <h1 style="font-family:'Spectral';font-weight:600;font-size:31px;line-height:1.05;color:#FFFFFF;margin:0 0 6px;">Islay, planned properly</h1>
+        <p style="font-size:14px;line-height:1.45;color:#E8E2D6;margin:0;">By people who've driven every one of these roads.</p>
+      </div>
+    </div>
+    <div style="background:#1A3A4A;color:#F5F1E8;padding:20px 20px 24px;">
+      <div class="kicker" style="color:#D4A574;margin-bottom:14px;">PLAN YOUR TRIP</div>
+      <div style="font-family:'Spectral';font-weight:600;font-size:25px;line-height:1.62;">
+        I'm staying <button class="pill" data-open="base">${basePhrase()} ▾</button> for
+        <button class="pill" data-open="nights">${S.nights} days ▾</button>, and I'd like to see
+        <button class="pill" data-open="picks">${S.picks.length ? S.picks.map(p => P[p].n).join(' and ') : 'any distillery'} ▾</button>.
+      </div>
+      <p style="font-size:14px;line-height:1.5;color:#B8C4CB;margin:16px 0 18px;">Answer as much or as little as you like — you'll get ${DAYS.length} ready-made days either way, in the order that suits you.</p>
+      <button class="btn amber" data-go="days">Show me the days</button>
+    </div>
+    <div style="padding:16px 20px 26px;display:flex;gap:10px;">
+      <div class="card" style="flex:1;"><div style="font-family:'Spectral';font-weight:600;font-size:16px;color:#1A3A4A;">Distilleries</div><div style="font-size:12px;" class="muted">All eleven, honestly</div></div>
+      <div class="card" style="flex:1;"><div style="font-family:'Spectral';font-weight:600;font-size:16px;color:#1A3A4A;">Journal</div><div style="font-size:12px;" class="muted">Stories from the island</div></div>
+    </div>
+  </div>`;
+}
+
+function dayGroup(d) {
+  if (stopsOf(d.id).includes('portAskaig')) return 'ferry';
+  if (S.base === 'anywhere') return d.pace === 'Packed' ? 'packed' : d.pace === 'Moderate' ? 'mid' : 'easy';
+  const m = driveMins(d.id);
+  return m <= 30 ? 'easy' : m <= 70 ? 'mid' : 'far';
+}
+const GROUP_LABEL_DIST = {
+  easy:   { t: 'Close to your door',  s: 'Little or no driving — the car can stay put' },
+  mid:    { t: 'A short drive out',   s: 'An hour or so on the road, all in' },
+  far:    { t: 'Worth the drive',     s: 'A proper day out — leave early' },
+  packed: { t: 'Full days',           s: 'Three distilleries or more, back to back' },
+  ferry:  { t: 'Needs a ferry',       s: 'The crossing sets your timings, not you' }
+};
+const GROUP_LABEL_PACE = {
+  easy:   { t: 'Gentle days',         s: 'One distillery, and plenty of time around it' },
+  mid:    { t: 'A fuller day',        s: 'Two distilleries, or a longer drive between them' },
+  packed: { t: 'Full days',           s: 'Three distilleries, back to back' },
+  ferry:  { t: 'Needs a ferry',       s: 'The crossing sets your timings, not you' }
+};
+const GL = () => S.base === 'anywhere' ? GROUP_LABEL_PACE : GROUP_LABEL_DIST;
+const GROUP_ORDER = ['easy', 'mid', 'packed', 'far', 'ferry'];
+
+function dayPriceLabel(dayId) {
+  const st = stopsOf(dayId);
+  const cheapest = st.reduce((s, pid) => s + (P[pid].tours ? Math.min(...P[pid].tours.map(t => t.p)) : 0), 0);
+  const now = dayCost(dayId);
+  const hasChoice = st.some(pid => P[pid].tours && P[pid].tours.length > 1);
+  if (hasChoice && now === cheapest) return 'from ' + money(now) + 'pp';
+  if (now > cheapest) return money(now) + 'pp · upgraded';
+  return money(now) + 'pp';
+}
+
+function tripSummary() {
+  const dists = new Set();
+  S.trip.forEach(t => stopsOf(t.dayId).forEach(s => P[s].k === 'dist' && dists.add(s)));
+  const packed = S.trip.filter(t => DAYS.find(d => d.id === t.dayId).pace === 'Packed').length;
+  const free = Math.max(0, S.nights - S.trip.length);
+  const bits = [S.trip.length + (S.trip.length === 1 ? ' day' : ' days'), dists.size + (dists.size === 1 ? ' distillery' : ' distilleries')];
+  if (free) bits.push(free === 1 ? 'one day free' : free + ' days free');
+  else if (packed) bits.push(packed === 1 ? 'one packed' : packed + ' packed');
+  return bits.join(' · ');
+}
+
+function collectionNote(n) {
+  if (n === 1) return 'One down. Most visitors manage three or four in a long weekend.';
+  if (n <= 3) return 'A good start — three or four is a comfortable weekend.';
+  if (n <= 5) return 'More than most people fit into a week here.';
+  if (n <= 8) return 'That is serious ground covered. Pace yourself.';
+  if (n < 11) return 'All but a couple. The last ones are the awkward ones.';
+  return 'Every distillery on Islay. Very few people manage that in one trip.';
+}
+
+function milestoneFor(dayId) {
+  const n = S.trip.length;
+  const dists = new Set();
+  S.trip.forEach(t => stopsOf(t.dayId).forEach(s => P[s].k === 'dist' && dists.add(s)));
+  if (n === 1) return 'Day one. The rest is easier.';
+  if (n === S.nights) return `That is your ${S.nights} days filled — have a look at the shape of it.`;
+  if (n > S.nights) return `Day ${n} — one more than you planned. No harm in options.`;
+  if (dists.size >= 8) return `${dists.size} distilleries. More than most people manage in a week.`;
+  if (dists.size >= 5) return `${dists.size} distilleries now — a proper spread of the island.`;
+  if (stopsOf(dayId).includes('portAskaig')) return 'A ferry day. That is a different island entirely.';
+  return `Day ${n} added — ${Math.max(0, S.nights - n)} to go.`;
+}
+
+function pickHits(d) { return stopsOf(d.id).filter(s => S.picks.includes(s)); }
+
+function routeLineHi(dayId, ids) {
+  return ids.map(id => S.picks.includes(id)
+    ? `<span style="color:#1A3A4A;font-weight:600;background:#FBF5EA;border-radius:4px;padding:1px 5px;margin:0 -2px;">${P[id].n}</span>`
+    : P[id].n).join(' <span class="sep">→</span> ');
+}
+
+function viewDays() {
+  const list = orderedDays();
+  const works = S.base === 'anywhere' ? list.length : list.filter(d => dayScore(d) < 34).length;
+  const hits = S.picks.length ? list.filter(d => d.stops.some(s => S.picks.includes(s))).length : 0;
+  const head = S.base === 'anywhere'
+    ? `${DAYS.length} days, most-loved first`
+    : `${works} days work well from ${baseName()}`;
+  const sub = S.picks.length
+    ? `${hits} of them include ${S.picks.length === 1 ? P[S.picks[0]].n : 'a distillery you picked'}`
+    : S.base === 'anywhere'
+      ? 'Tell us where you\'re staying and we\'ll re-sort by how far you\'d drive'
+      : 'Sorted by how far you\'d drive from your door';
+
+  const card = d => {
+    const inTrip = tripEntry(d.id);
+    const st = stopsOf(d.id);
+    const hits = pickHits(d);
+    const drive = S.base === 'anywhere' ? '' : `≈${hhmm(driveMins(d.id))} on the road · `;
+    return `
+    <div class="${S.justAdded === d.id ? 'pop' : ''}" style="background:#FFFFFF;border:1px solid ${inTrip ? '#1A3A4A' : hits.length ? '#E8C99A' : '#E8E2D6'};border-width:${inTrip || hits.length ? '1.5px' : '1px'};border-radius:12px;box-shadow:0 2px 12px rgba(26,58,74,0.10);padding:0;margin-bottom:12px;overflow:hidden;">
+      ${hits.length ? `<div style="background:#FBF5EA;border-bottom:1px solid #E8C99A;padding:8px 16px;font-size:12.5px;font-weight:600;color:#B87D4B;line-height:1.4;">★ ${hits.length === 1 ? 'Includes ' + P[hits[0]].n : 'Includes ' + hits.slice(0, -1).map(h => P[h].n).join(', ') + ' and ' + P[hits[hits.length-1]].n}</div>` : ''}
+      <div style="padding:16px;">
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:7px;line-height:1.4;flex-wrap:wrap;">
+          <span class="kicker" style="color:${paceColour(d.pace)};">${d.pace.toUpperCase()}</span>
+          <span style="font-size:12.5px;" class="muted">${drive}${dayPriceLabel(d.id)}</span>
+        </div>
+        <button data-day="${d.id}" style="display:block;width:100%;">
+          <h2 class="day" style="font-size:23px;margin-bottom:5px;">${d.t}</h2>
+          <div class="route" style="font-size:14.5px;margin-bottom:9px;">${routeLineHi(d.id, st)}</div>
+          <p style="font-size:14.5px;line-height:1.55;color:#4A4438;margin:0 0 12px;text-wrap:pretty;">${d.hook}</p>
+        </button>
+        ${inTrip
+          ? `<button class="btn green" data-remove="${d.id}">✓ Day ${S.trip.indexOf(inTrip)+1} of your trip · remove</button>`
+          : `<button class="btn" data-add="${d.id}">+ Add as a day</button>`}
+      </div>
+    </div>`;
+  };
+
+  const hitDays = S.picks.length ? list.filter(d => pickHits(d).length) : [];
+  const restList = list.filter(d => !hitDays.includes(d));
+
+  const hitBlock = hitDays.length ? `
+    <div style="margin:4px 0 10px;">
+      <div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;">
+        <h3 style="font-family:'Spectral';font-weight:600;font-size:19px;color:#1A3A4A;margin:0;line-height:1.25;">The days with your distilleries <span style="font-family:'Instrument Sans';font-size:12.5px;font-weight:500;color:#8A8274;">${hitDays.length}</span></h3>
+      </div>
+      <div style="font-size:12.5px;margin:2px 0 12px;" class="muted">${S.picks.map(p => P[p].n).join(', ')} — shown first, but nothing below is hidden</div>
+    </div>
+    ${hitDays.map(card).join('')}
+    <div style="display:flex;align-items:center;gap:12px;margin:18px 0 16px;">
+      <div style="flex:1;height:1px;background:#E8E2D6;"></div>
+      <div style="font-size:12px;letter-spacing:.1em;font-weight:700;" class="muted">EVERYTHING ELSE</div>
+      <div style="flex:1;height:1px;background:#E8E2D6;"></div>
+    </div>` : '';
+
+  const cards = hitBlock + GROUP_ORDER.filter(g => restList.some(d => dayGroup(d) === g)).map(g => {
+    const inGroup = restList.filter(d => dayGroup(d) === g);
+    return `
+    <div style="margin:4px 0 10px;">
+      <div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;">
+        <h3 style="font-family:'Spectral';font-weight:600;font-size:19px;color:#1A3A4A;margin:0;line-height:1.25;">${GL()[g].t} <span style="font-family:'Instrument Sans';font-size:12.5px;font-weight:500;color:#8A8274;">${inGroup.length}</span></h3>
+      </div>
+      <div style="font-size:12.5px;margin:2px 0 12px;" class="muted">${GL()[g].s}</div>
+    </div>
+    ${inGroup.map(card).join('')}`;
+  }).join('');
+
+  return `
+    <div class="nav" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div style="min-width:0;">
+        <div class="kicker" style="color:#B8C4CB;">YOUR ANSWERS</div>
+        <div style="font-size:14.5px;font-weight:600;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          ${baseName()} · ${S.nights} days · ${S.picks.length ? S.picks.map(p => P[p].n).join(', ') : 'any distillery'}
+        </div>
+      </div>
+      <button class="chip" style="font-size:13px;padding:8px 14px;" data-go="home">Change</button>
+    </div>
+    <div class="scroll" style="padding:16px 20px 0;background:#F5F1E8;">
+      <h2 class="day" style="font-size:23px;margin-bottom:4px;">${head}</h2>
+      <div style="font-size:13px;padding-bottom:14px;border-bottom:2px solid #1A3A4A;margin-bottom:14px;" class="muted">${sub}</div>
+      ${cards}
+      <div style="height:20px;"></div>
+    </div>
+    ${footTrip()}`;
+}
+
+function footTrip() {
+  const n = S.trip.length;
+  const cost = S.trip.reduce((s, t) => s + dayCost(t.dayId), 0);
+  const dists = new Set();
+  S.trip.forEach(t => stopsOf(t.dayId).forEach(s => P[s].k === 'dist' && dists.add(s)));
+  const pct = Math.min(1, n / Math.max(1, S.nights));
+  const C = 2 * Math.PI * 15;
+  const ring = `
+    <svg width="38" height="38" viewBox="0 0 38 38" style="flex:none;">
+      <circle cx="19" cy="19" r="15" fill="none" stroke="#2A5A72" stroke-width="3"></circle>
+      <circle cx="19" cy="19" r="15" fill="none" stroke="${pct >= 1 ? '#D4A574' : '#D4A574'}" stroke-width="3" stroke-linecap="round"
+        stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - pct)}" transform="rotate(-90 19 19)"
+        style="transition:stroke-dashoffset .5s cubic-bezier(.22,.9,.32,1);"></circle>
+      <text x="19" y="23" text-anchor="middle" style="font:600 13px 'Instrument Sans',sans-serif;fill:#F5F1E8;">${n}</text>
+    </svg>`;
+  return `
+    ${S.milestone ? `<div class="milestone" role="status" style="flex:none;background:#D4A574;color:#1A3A4A;padding:10px 20px;font-size:14px;font-weight:600;line-height:1.4;text-wrap:pretty;">${S.milestone}</div>` : ''}
+    <div class="foot">
+      <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+        ${n ? ring : ''}
+        <div style="min-width:0;">
+          <div class="kicker" style="color:#B8C4CB;">YOUR TRIP</div>
+          <div class="${S.justAdded ? 'flyin' : ''}" style="font-size:14.5px;font-weight:600;margin-top:2px;">${n ? tripSummary() : 'No days yet'}</div>
+          ${n ? `<div style="font-size:12px;color:#B8C4CB;margin-top:2px;">${dists.size} of 11 distilleries · ${money(cost)}pp</div>` : ''}
+        </div>
+      </div>
+      <button class="btn amber sm" ${n ? 'data-go="trip"' : 'disabled style="opacity:.45;"'}>Review</button>
+    </div>`;
+}
+
+function viewDay() {
+  const d = DAYS.find(x => x.id === S.openDay);
+  const e = tripEntry(d.id);
+  const st = stopsOf(d.id);
+  const idx = e ? S.trip.indexOf(e) + 1 : null;
+
+  const sch = schedule(d.id);
+  const dayDate = idx ? dateForDay(idx - 1) : null;
+  let lastPart = '';
+
+  const stops = st.map((pid, i) => {
+    const p = P[pid], anchor = d.anchors.includes(pid);
+    const tour = p.tours ? p.tours[tourOf(d.id, pid)] : null;
+    const row = sch.rows[i];
+    const shut = closedOn(pid, dayDate);
+    const part = partOfDay(row.arrive);
+    const header = part !== lastPart ? `<div class="kicker" style="color:#8A8274;margin:${lastPart ? '16px' : '2px'} 0 8px;">${part.toUpperCase()}</div>` : '';
+    lastPart = part;
+    return header + `
+    <div class="card" style="margin-bottom:8px;${shut ? 'border-color:#E8C99A;background:#FBF5EA;' : ''}">
+      <div style="display:flex;gap:11px;align-items:flex-start;">
+        <div style="flex:none;width:46px;padding-top:1px;">
+          <div style="font-family:'Spectral';font-size:16px;color:#1A3A4A;">${clock(row.arrive)}</div>
+          <div style="font-size:11px;" class="muted">${row.dur}m</div>
+        </div>
+        <span class="dot ${p.k === 'dist' ? 'dist' : p.k === 'ferry' ? 'ferry' : 'place'}" style="margin-top:7px;"></span>
+        <button style="flex:1;min-width:0;" ${p.tours ? `data-tour="${pid}"` : ''} aria-label="${p.tours ? 'Change tour at ' + p.n : p.n}">
+          <div style="font-size:14.5px;font-weight:600;color:#1A3A4A;line-height:1.25;">${p.n}${p.tours ? ' <span style="color:#B87D4B;font-size:12.5px;white-space:nowrap;">tours ▾</span>' : ''}</div>
+          <div style="font-size:12px;margin-top:2px;line-height:1.4;" class="muted">${tour ? tour.n + ' · ' + (tour.p ? money(tour.p) : 'free') : p.note}</div>
+          ${shut ? `<div style="font-size:12px;color:#B5502E;font-weight:600;margin-top:3px;">Closed on ${DAY_NAMES[dayDate.getDay()]}s</div>` : ''}
+        </button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:2px;margin:2px -6px -6px 0;">
+        ${anchor
+          ? `<span style="font-size:11px;color:#8A8274;font-weight:700;letter-spacing:.08em;padding:8px 6px;">ANCHOR · the reason for this day</span>`
+          : `${i > 0 ? `<button data-up="${i}" class="tap" style="color:#8A8274;font-size:14px;" aria-label="Move ${p.n} earlier">▲</button>` : ''}
+             <button data-swap="${pid}" class="tap" style="color:#B87D4B;font-size:13px;font-weight:600;" aria-label="Swap ${p.n} for somewhere else">Swap</button>
+             <button data-drop="${pid}" class="tap" style="color:#B5502E;font-size:13px;font-weight:600;" aria-label="Remove ${p.n}">Drop</button>`}
+      </div>
+    </div>`;
+  }).join('');
+
+  const dropped = d.stops.filter(s => !st.includes(s));
+  const droppedRow = dropped.length ? `
+    <div style="border:1.5px dashed #D4C9B8;border-radius:8px;padding:11px;text-align:center;font-size:13.5px;" class="muted">
+      ${dropped.map(s => P[s].n).join(', ')} dropped ·
+      <button data-restore="${dropped[0]}" style="color:#B87D4B;font-weight:600;">put back</button>
+    </div>` : '';
+
+  return `
+    <div style="flex:none;padding:40px 20px 14px;border-bottom:1px solid #E8E2D6;background:#FBF5EA;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <button class="nowrap tlink" style="font-size:14px;font-weight:600;color:#4A4438;" data-go="${e ? 'trip' : 'days'}" aria-label="Back to ${e ? 'my trip' : 'all days'}">‹ ${e ? 'My trip' : 'All days'}</button>
+        <span style="font-size:12.5px;" class="muted">${idx ? 'Day ' + idx + ' of ' + S.trip.length : d.pace}</span>
+      </div>
+      <h2 class="day" style="font-size:26px;">${d.t}</h2>
+      <div style="font-size:12.5px;margin-top:5px;" class="muted">${dayDate ? fmtDate(dayDate, true) + ' · ' : ''}${d.pace} · ≈${hhmm(driveMins(d.id))} on the road · ${money(dayCost(d.id))}pp</div>
+    </div>
+    <div class="scroll" style="padding:16px 20px 0;background:#FBF5EA;">
+      <p style="font-size:15px;line-height:1.6;color:#4A4438;margin:0 0 8px;text-wrap:pretty;">
+        ${S.expandProse ? d.prose.join('</p><p style="font-size:15px;line-height:1.6;color:#4A4438;margin:0 0 8px;text-wrap:pretty;">') : d.prose[0].slice(0, 150) + '…'}
+      </p>
+      <button data-toggle="prose" class="nowrap tlink-y" style="display:block;font-size:14px;font-weight:600;color:#B87D4B;margin-bottom:8px;" aria-label="${S.expandProse ? 'Show less of the write-up' : 'Read the full write-up'}">${S.expandProse ? 'Show less' : 'Read on'}</button>
+      <div style="margin-bottom:10px;">
+        <div class="kicker muted">THE DAY'S SHAPE</div>
+        <div style="font-size:12.5px;margin-top:3px;" class="muted">Starting 9:30, back by ${clock(sch.home)} — reorder, swap or drop anything</div>
+      </div>
+      ${stops}
+      ${droppedRow}
+      <div style="height:18px;"></div>
+    </div>
+    <div class="bar-light">
+      ${e ? '' : `<button class="btn" data-add="${d.id}" style="margin-bottom:10px;">+ Add as a day</button>`}
+      <div style="font-size:12.5px;text-align:center;margin-bottom:10px;" class="muted">Want to reshape it properly?</div>
+      <button class="btn" data-plan="${d.id}">Make this day my own →</button>
+    </div>`;
+}
+
+function viewTrip() {
+  const drive = S.trip.reduce((s, t) => s + driveMins(t.dayId), 0);
+  const cost = S.trip.reduce((s, t) => s + dayCost(t.dayId), 0);
+  const dists = new Set();
+  S.trip.forEach(t => stopsOf(t.dayId).forEach(s => P[s].k === 'dist' && dists.add(s)));
+  const ferry = S.trip.some(t => stopsOf(t.dayId).includes('portAskaig'));
+  const over18 = [];
+  S.trip.forEach(t => stopsOf(t.dayId).forEach(s => {
+    const p = P[s]; if (!p.tours) return;
+    const tr = p.tours[tourOf(t.dayId, s)];
+    if (tr.tag.includes('18+')) over18.push(p.n);
+  }));
+
+  const days = S.trip.map((t, i) => {
+    const d = DAYS.find(x => x.id === t.dayId);
+    const st = stopsOf(d.id);
+    return `
+    <div style="display:flex;gap:12px;padding:14px 0;border-bottom:1px solid #E8E2D6;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:none;">
+        <button data-moveday="${i}|-1" class="tap" style="color:${i === 0 ? '#D4C9B8' : '#8A8274'};font-size:13px;" aria-label="Move ${d.t} earlier">▲</button>
+        <span class="num" style="width:32px;height:32px;font-size:15px;font-family:'Spectral';background:${paceColour(d.pace)};">${i+1}</span>
+        <button data-moveday="${i}|1" class="tap" style="color:${i === S.trip.length - 1 ? '#D4C9B8' : '#8A8274'};font-size:13px;" aria-label="Move ${d.t} later">▼</button>
+      </div>
+      <div style="flex:1;min-width:0;padding-top:4px;">
+        <button data-day="${d.id}" style="display:block;width:100%;padding:11px 0;margin:-8px 0 0;" aria-label="Open ${d.t}">
+          <div style="font-family:'Spectral';font-weight:600;font-size:20px;color:#1A3A4A;line-height:1.15;">${d.t}</div>
+        </button>
+        ${t.edited ? '<div style="display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.1em;color:#1A3A4A;background:#EAE6DC;border-radius:999px;padding:3px 8px;margin-top:6px;">YOUR VERSION</div>' : ''}
+        <div style="font-size:12.5px;margin-top:5px;" class="muted">${dateForDay(i) ? fmtDate(dateForDay(i)) + ' · ' : ''}${d.pace} · ≈${hhmm(driveMins(d.id))} · ${dayPriceLabel(d.id)}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;">
+          ${st.map(pid => `<span style="display:flex;align-items:center;gap:2px;background:#FFFFFF;border:1px solid #E8E2D6;border-radius:999px;padding:0 6px 0 12px;min-height:44px;font-size:12.5px;color:#1A3A4A;">${P[pid].n}${d.anchors.includes(pid) ? '<span style="color:#8A8274;font-size:11px;padding-right:6px;">anchor</span>' : `<button data-tripdrop="${d.id}|${pid}" aria-label="Remove ${P[pid].n} from ${d.t}" style="color:#8A8274;width:32px;height:44px;display:inline-flex;align-items:center;justify-content:center;font-size:16px;">×</button>`}</span>`).join('')}
+        </div>
+        <div style="margin-top:4px;"><button data-plan="${d.id}" class="nowrap tlink-y" style="font-size:13.5px;font-weight:600;color:#B87D4B;" aria-label="Open ${d.t} in the map planner">Make this day my own →</button></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const rhythm = S.trip.length ? (() => {
+    const cells = S.trip.map((t, i) => {
+      const d = DAYS.find(x => x.id === t.dayId);
+      const ferry = stopsOf(d.id).includes('portAskaig');
+      return `<div style="flex:1;text-align:center;">
+        <div style="height:8px;border-radius:999px;background:${paceColour(d.pace)};opacity:${d.pace === 'Packed' ? 1 : d.pace === 'Moderate' ? .72 : .5};" role="img" aria-label="Day ${i+1}: ${ferry ? 'ferry day, ' : ''}${d.pace}"></div>
+        <div style="font-size:11px;margin-top:6px;" class="muted">${dateForDay(i) ? fmtDate(dateForDay(i)) : 'Day ' + (i+1)}</div>
+        <div style="font-size:11.5px;color:${paceColour(d.pace)};font-weight:600;">${ferry ? 'Ferry' : d.pace}</div>
+      </div>`;
+    }).join('');
+    const paces = S.trip.map(t => DAYS.find(x => x.id === t.dayId).pace);
+    let note = 'A steady rhythm — nothing back to back.';
+    for (let i = 1; i < paces.length; i++) if (paces[i] === 'Packed' && paces[i-1] === 'Packed') note = 'Two full days back to back — consider swapping one down the list.';
+    if (S.trip.length && stopsOf(S.trip[0].dayId).includes('portAskaig')) note = 'The ferry day is first — fine, but it is the one day weather can ruin.';
+    return `<div style="background:#FFFFFF;border:1px solid #E8E2D6;border-radius:12px;padding:14px 15px;margin:0 0 12px;">
+      <div class="kicker muted" style="margin-bottom:12px;">THE SHAPE OF YOUR TRIP</div>
+      <div style="display:flex;gap:8px;">${cells}</div>
+      <div style="font-size:13px;line-height:1.5;margin-top:12px;text-wrap:pretty;" class="muted">${note}</div>
+    </div>`;
+  })() : '';
+
+  const DIST_LIST = DISTILLERIES;
+  const collected = new Set();
+  S.trip.forEach(t => stopsOf(t.dayId).forEach(s => P[s].k === 'dist' && collected.add(s)));
+
+  const collection = S.trip.length ? `
+    <div style="background:#FFFFFF;border:1px solid #E8E2D6;border-radius:12px;padding:14px 15px;margin:0 0 12px;">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:11px;">
+        <span class="kicker muted nowrap">DISTILLERIES VISITED</span>
+        <span style="font-family:'Spectral';font-size:17px;color:#1A3A4A;">${collected.size}<span style="color:#8A8274;"> / ${DIST_LIST.length}</span></span>
+      </div>
+      <div style="display:flex;gap:5px;" role="img" aria-label="${collected.size} of ${DIST_LIST.length} distilleries on your trip: ${[...collected].map(id => P[id].n).join(', ') || 'none yet'}">
+        ${DIST_LIST.map(id => `<div title="${P[id].n}" style="flex:1;height:7px;border-radius:999px;background:${collected.has(id) ? '#B87D4B' : '#E8E2D6'};"></div>`).join('')}
+      </div>
+      <div style="font-size:12.5px;line-height:1.5;margin-top:10px;text-wrap:pretty;" class="muted">${collectionNote(collected.size)}</div>
+    </div>` : '';
+
+  const dateBlock = S.startDate ? `
+    <div style="background:#FFFFFF;border:1px solid #E8E2D6;border-radius:12px;padding:13px 15px;margin:0 0 12px;display:flex;align-items:center;gap:12px;">
+      <div style="flex:1;min-width:0;">
+        <div class="kicker muted">YOUR DATES</div>
+        <div style="font-family:'Spectral';font-size:17px;color:#1A3A4A;margin-top:3px;">${fmtDate(S.startDate, true)} – ${fmtDate(addDays(S.startDate, S.trip.length - 1), true)}</div>
+      </div>
+      <button data-open="dates" class="tlink-y nowrap" style="font-size:13.5px;font-weight:600;color:#B87D4B;" aria-label="Change your dates">Change</button>
+    </div>` : `
+    <button data-open="dates" style="display:block;width:100%;background:#FFFFFF;border:1.5px dashed #D4C9B8;border-radius:12px;padding:14px 15px;margin:0 0 12px;text-align:left;" aria-label="Add your travel dates">
+      <div style="font-family:'Spectral';font-size:17px;color:#1A3A4A;">Know your dates? <span style="color:#B87D4B;">Add them →</span></div>
+      <div style="font-size:12.5px;line-height:1.5;margin-top:4px;text-wrap:pretty;" class="muted">We'll flag anything closed on the day you're going, and which day the ferry decides.</div>
+    </button>`;
+
+  const todo = [];
+  S.trip.forEach((t, i) => {
+    const dte = dateForDay(i);
+    if (!dte) return;
+    const shut = stopsOf(t.dayId).filter(s => closedOn(s, dte));
+    if (shut.length) todo.push(`<strong>Day ${i+1} is a ${DAY_NAMES[dte.getDay()]}</strong> — ${shut.map(s => P[s].n).join(' and ')} ${shut.length > 1 ? 'are' : 'is'} closed. Move the day, or swap the stop.`);
+  });
+  if (!S.startDate) todo.push('<strong>Add your dates</strong> — then we can flag closures and ferry timings.');
+  if (ferry) todo.push('<strong>Feolin ferry times</strong> — the last crossing decides your day, not you.');
+  if (over18.length) todo.push(`<strong>Book ${[...new Set(over18)].join(' and ')} direct</strong> — over-18s only, and they fill up.`);
+  todo.push(`<strong>${S.nights} nights in ${S.base === 'anywhere' ? 'somewhere central' : baseName()}</strong> — see where to stay.`);
+  const carDays = S.trip.filter(t => driveMins(t.dayId) > 40).length;
+  if (S.trip.length) todo.push(`<strong>${carDays} of ${S.trip.length} days need a car</strong> — worth knowing before you hire one.`);
+
+  return `
+    <div class="nav">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div class="kicker nowrap" style="color:#D4A574;">YOUR TRIP</div>
+        <button class="nowrap tlink" style="font-size:13.5px;font-weight:600;color:#B8C4CB;" data-go="days" aria-label="Back to all days">‹ All days</button>
+      </div>
+      <h1 style="font-family:'Spectral';font-weight:600;font-size:28px;line-height:1.05;margin:8px 0 6px;">${S.trip.length} ${S.trip.length === 1 ? 'day' : 'days'} from ${baseName()}</h1>
+      <p style="font-size:14px;line-height:1.45;color:#D8E0E4;margin:0;">${S.startDate ? fmtDate(S.startDate) + ' – ' + fmtDate(addDays(S.startDate, S.trip.length - 1)) + ' · ' : ''}${dists.size} ${dists.size === 1 ? 'distillery' : 'distilleries'}${ferry ? ', one ferry' : ''}, ≈${hhmm(drive)} driving.</p>
+    </div>
+    ${S.toast ? `<div class="toast fade" role="status"><span>${S.toast}</span>${S.undo ? '<button data-undo="1" style="color:#B87D4B;font-weight:600;margin-left:auto;">undo</button>' : ''}</div>` : ''}
+    <div class="scroll" style="padding:14px 20px 0;">
+      ${dateBlock}
+      ${rhythm}
+      ${collection}
+      ${days || '<p style="font-size:15px;color:#4A4438;padding:20px 0;">Nothing here yet — add a day from the list.</p>'}
+      <div style="background:#FBF5EA;border:1px solid #E8C99A;border-radius:12px;padding:13px 15px;margin:0 0 16px;">
+        <div class="kicker" style="color:#B87D4B;margin-bottom:9px;">STILL TO SORT · ${todo.length}</div>
+        ${todo.map(t => `<div style="display:flex;gap:9px;font-size:13.5px;line-height:1.5;color:#4A4438;margin-bottom:7px;text-wrap:pretty;"><span style="color:#B87D4B;font-weight:700;">·</span><div>${t}</div></div>`).join('')}
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <div class="kicker muted" style="margin-bottom:10px;">THE TRIP IN NUMBERS</div>
+        <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:7px;"><span class="muted">Distilleries visited</span><strong>${dists.size} of 11</strong></div>
+        <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:7px;"><span class="muted">Time on the road</span><strong>≈${hhmm(drive)}</strong></div>
+        <div style="display:flex;justify-content:space-between;font-size:14px;padding-top:8px;border-top:1px solid #E8E2D6;"><span class="muted">Indicative cost</span><strong>${money(cost)}pp</strong></div>
+        <div style="font-size:12.5px;margin-top:9px;" class="muted">Tours only — no travel, food or stays.</div>
+      </div>
+    </div>
+    <div class="bar-light" style="display:flex;gap:10px;">
+      <button class="btn ghost" style="flex:1;" data-plan="${S.trip.length ? S.trip[0].dayId : ''}">Map</button>
+      <button class="btn" style="flex:1.4;">Save as a tour</button>
+    </div>`;
+}
+
+/* ---------------- modal sheets ---------------- */
+
+function renderModal() {
+  const m = $('modal');
+  if (!S.modal) { m.classList.add('hidden'); return; }
+  m.classList.remove('hidden');
+  let html = '';
+  if (S.modal === 'base') {
+    const brow = b => `<button data-setbase="${b.id}" style="display:block;width:100%;padding:13px 0;border-bottom:1px solid #E8E2D6;text-align:left;">
+      <span style="display:block;font-size:17px;font-family:'Spectral';font-weight:600;color:${S.base === b.id ? '#B87D4B' : '#1A3A4A'};">${b.n}${S.base === b.id ? ' ✓' : ''}</span>
+      <span style="display:block;font-size:12.5px;margin-top:2px;line-height:1.4;" class="muted">${b.note}</span>
+    </button>`;
+    html = `<div class="grab"></div>
+      <div class="kicker muted" style="margin:10px 0 10px;">FEATURED PLACES TO STAY</div>
+      ${BASES.filter(b => b.kind === 'hotel').map(brow).join('')}
+      <div class="kicker muted" style="margin:20px 0 10px;">OR JUST AN AREA</div>
+      ${BASES.filter(b => b.kind === 'area').map(brow).join('')}`;
+  } else if (S.modal === 'nights') {
+    html = `<div class="grab"></div><div class="kicker muted" style="margin-bottom:12px;">HOW MANY DAYS?</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">${[2,3,4,5,6].map(n => `<button data-setnights="${n}" style="font-size:16px;font-weight:600;padding:12px 20px;border-radius:999px;border:1.5px solid ${S.nights === n ? '#1A3A4A' : '#E8E2D6'};background:${S.nights === n ? '#1A3A4A' : '#FFFFFF'};color:${S.nights === n ? '#F5F1E8' : '#4A4438'};">${n === 6 ? '6+' : n} days</button>`).join('')}</div>`;
+  } else if (S.modal === 'picks') {
+    html = `<div class="grab"></div><div class="kicker muted" style="margin-bottom:6px;">DISTILLERIES YOU'D LIKE TO SEE</div>
+      <div style="font-size:13px;margin-bottom:12px;" class="muted">This reorders the list — it never hides a day.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">${DISTILLERIES.map(id => `<button data-pick="${id}" style="font-size:15px;font-weight:600;padding:10px 16px;border-radius:999px;border:1.5px solid ${S.picks.includes(id) ? '#B87D4B' : '#E8E2D6'};background:${S.picks.includes(id) ? '#f7ecdd' : '#FFFFFF'};color:#4A4438;">${P[id].n}${S.picks.includes(id) ? ' ✓' : ''}</button>`).join('')}</div>
+      <button class="btn" style="margin-top:16px;" data-close="1">Done</button>`;
+  } else if (S.modal === 'dates') {
+    const today = new Date();
+    const opts = Array.from({ length: 14 }, (_, i) => addDays(today, i + 3));
+    html = `<div class="grab"></div>
+      <div class="kicker muted" style="margin:10px 0 6px;">WHEN ARE YOU ARRIVING?</div>
+      <div style="font-size:13px;margin-bottom:12px;" class="muted">Real dates let us flag closures and ferry days. Optional.</div>
+      ${S.startDate ? '<button data-cleardate="1" style="display:block;width:100%;padding:12px 0;border-bottom:1px solid #E8E2D6;font-size:15px;color:#B87D4B;font-weight:600;">No dates yet</button>' : ''}
+      ${opts.map(d => `<button data-setdate="${d.toISOString().slice(0,10)}" style="display:flex;width:100%;justify-content:space-between;align-items:baseline;gap:12px;padding:13px 0;border-bottom:1px solid #E8E2D6;font-size:16px;font-family:'Spectral';white-space:nowrap;color:${S.startDate && S.startDate.toDateString() === d.toDateString() ? '#B87D4B' : '#1A3A4A'};"><span>${fmtDate(d, true)}</span><span style="font-size:12.5px;font-family:'Instrument Sans';color:#8A8274;">${d.getDay() === 0 ? 'some closed' : ''}</span></button>`).join('')}`;
+  } else if (S.modal === 'swap') {
+    const pid = S.swapFor, d = DAYS.find(x => x.id === S.openDay), st = stopsOf(d.id);
+    const alts = Object.values(P)
+      .filter(p => p.k !== 'base' && !st.includes(p.id) && p.k !== 'dist')
+      .map(p => ({ p, d: km(P[pid].ll, p.ll) })).sort((a, b) => a.d - b.d).slice(0, 5).map(x => x.p);
+    html = `<div class="grab"></div>
+      <div class="kicker muted" style="margin:10px 0 6px;">SWAP ${P[pid].n.toUpperCase()} FOR</div>
+      <div style="font-size:13px;margin-bottom:12px;" class="muted">Nearby, and it keeps its place in the day.</div>
+      ${alts.map(a => `<button data-doswap="${pid}|${a.id}" style="display:flex;width:100%;gap:11px;align-items:center;padding:12px 0;border-bottom:1px solid #E8E2D6;">
+        <span class="dot place"></span>
+        <span style="flex:1;"><span style="font-size:16px;font-weight:600;color:#1A3A4A;display:block;">${a.n}</span><span style="font-size:12.5px;" class="muted">${mins(pid, a.id)}m away · ${a.note}</span></span>
+        <span style="font-size:13px;font-weight:600;color:#B87D4B;">Use</span>
+      </button>`).join('')}
+      <button class="btn ghost" style="margin-top:16px;" data-close="1">Keep ${P[pid].n}</button>`;
+  } else if (S.modal && S.modal.startsWith('tour:')) {
+    const pid = S.modal.slice(5), p = P[pid], cur = tourOf(S.openDay, pid);
+    html = `<div class="grab"></div>
+      <div style="font-family:'Spectral';font-weight:600;font-size:24px;color:#1A3A4A;">${p.n}</div>
+      <div style="font-size:13.5px;margin:4px 0 14px;" class="muted">${p.note}</div>
+      ${p.tours.map((t, i) => `<button data-settour="${pid}|${i}" style="display:block;width:100%;padding:13px 0;border-top:1px solid #E8E2D6;">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;">
+          <span style="font-size:16px;font-weight:600;color:${i === cur ? '#B87D4B' : '#1A3A4A'};">${t.n}${i === cur ? ' ✓' : ''}</span>
+          <strong style="font-size:15px;">${t.p ? money(t.p) : 'free'}</strong>
+        </div>
+        <div style="font-size:13px;margin-top:3px;" class="muted">${t.mins} min${t.tag ? ' · ' + t.tag : ''}</div>
+      </button>`).join('')}
+      <button class="btn ghost" style="margin-top:16px;" data-close="1">Close</button>`;
+  }
+  $('modalInner').innerHTML = html;
+}
+
+/* ---------------- planner ---------------- */
+
+let map, layer;
+
+function nearby(stops) {
+  return Object.values(P)
+    .filter(p => p.k !== 'base' && !stops.includes(p.id))
+    .map(p => ({ p, d: Math.min(...stops.map(s => km(P[s].ll, p.ll))) }))
+    .sort((a, b) => a.d - b.d).slice(0, 6).map(x => x.p);
+}
+
+function renderPlanner() {
+  const d = DAYS.find(x => x.id === S.draft.dayId);
+  $('plannerProv').innerHTML = `<strong style="color:#F5F1E8;">Day ${S.draft.index} loaded from a day plan</strong> <span style="color:#B8C4CB;">— ${d.t}. Change anything; it saves back to your trip.</span>`;
+
+  if (!map) {
+    map = L.map('map', { zoomControl: false, scrollWheelZoom: false,
+      maxBounds: [[55.51, -6.62], [56.02, -5.62]], maxBoundsViscosity: .9, minZoom: 9 });
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors', maxZoom: 18 }).addTo(map);
+    L.control.zoom({ position: 'topleft' }).addTo(map);
+    const recentre = L.control({ position: 'topright' });
+    recentre.onAdd = () => {
+      const b = L.DomUtil.create('button', 'recentre');
+      b.type = 'button';
+      b.setAttribute('aria-label', 'Show my whole day');
+      b.innerHTML = '<span aria-hidden="true">⌖</span> Whole day';
+      L.DomEvent.disableClickPropagation(b);
+      b.onclick = () => fitMap();
+      return b;
+    };
+    recentre.addTo(map);
+    layer = L.layerGroup().addTo(map);
+  }
+  drawMap();
+  drawSheet();
+  setTimeout(() => { map.invalidateSize(); fitMap(); }, 60);
+}
+
+function fitMap() {
+  const pts = [P[baseId()].ll, ...S.draft.stops.map(s => P[s].ll)];
+  const pad = S.sheet === 'peek' ? 150 : S.sheet === 'half' ? 380 : 520;
+  map.fitBounds(pts, { paddingTopLeft: [40, 40], paddingBottomRight: [40, pad] });
+}
+
+function drawMap() {
+  layer.clearLayers();
+  const st = S.draft.stops;
+  L.polyline([P[baseId()].ll, ...st.map(s => P[s].ll)], { color: '#B87D4B', weight: 3.5, opacity: .85, dashArray: '1 8', lineCap: 'round' }).addTo(layer);
+  L.marker(P[baseId()].ll, { icon: L.divIcon({ className: '', iconSize: [16,16], iconAnchor: [8,8],
+    html: '<div style="width:16px;height:16px;border-radius:4px;background:#1A3A4A;border:2.5px solid #FFFFFF;box-shadow:0 2px 6px rgba(0,0,0,.35);"></div>' }) })
+    .addTo(layer).bindTooltip('Your base · ' + baseName(), { direction: 'right', offset: [10,0] });
+
+  st.forEach((pid, i) => {
+    const p = P[pid];
+    L.marker(p.ll, { icon: L.divIcon({ className: '', iconSize: [26,26], iconAnchor: [13,13],
+      html: `<div style="width:26px;height:26px;border-radius:50%;background:${p.k === 'dist' ? '#B87D4B' : '#1A3A4A'};color:#FFFFFF;border:2px solid #FFFFFF;display:flex;align-items:center;justify-content:center;font:600 13px 'Instrument Sans',sans-serif;box-shadow:0 2px 6px rgba(0,0,0,.3);">${i+1}</div>` }) })
+      .addTo(layer).on('click', () => { S.selected = pid; drawSheet(); });
+  });
+
+  nearby(st).forEach(p => {
+    L.circleMarker(p.ll, { radius: 7, color: '#B87D4B', weight: 2, fillColor: '#FFFFFF', fillOpacity: 1 })
+      .addTo(layer).bindTooltip(p.n, { direction: 'right', offset: [8,0] })
+      .on('click', () => { S.selected = p.id; drawSheet(); });
+  });
+}
+
+function drawSheet() {
+  const h = S.selected ? 250 : S.sheet === 'peek' ? 150 : S.sheet === 'half' ? 420 : 620;
+  $('sheet').style.height = h + 'px';
+  const st = S.draft.stops;
+  const total = (() => { let t = mins(baseId(), st[0]); for (let i = 1; i < st.length; i++) t += mins(st[i-1], st[i]); return t; })();
+
+  if (S.selected) {
+    const p = P[S.selected], inDay = st.includes(p.id);
+    const after = st.length ? P[st[st.length - 1]].n : baseName();
+    $('sheetBody').innerHTML = `
+      <div style="display:flex;align-items:flex-start;gap:12px;">
+        <span class="dot ${p.k === 'dist' ? 'dist' : 'place'}" style="margin-top:7px;"></span>
+        <div style="flex:1;">
+          <div style="font-family:'Spectral';font-weight:600;font-size:22px;color:#1A3A4A;line-height:1.15;">${p.n}</div>
+          <div style="font-size:13.5px;margin-top:4px;line-height:1.45;" class="muted">${p.note} · ${mins(st[st.length-1], p.id)}m from your last stop${p.k === 'dist' && !inDay ? ' · adds a distillery to this day' : ''}</div>
+        </div>
+        <button data-clear="1" class="tap" style="font-size:20px;color:#8A8274;margin:-10px -10px 0 0;" aria-label="Close ${p.n}">×</button>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        ${inDay
+          ? `<button class="btn ghost" style="flex:1;" data-plandrop="${p.id}" aria-label="Remove ${p.n} from this day">Remove from day</button>`
+          : `<button class="btn" style="flex:1;" data-planadd="${p.id}" aria-label="Add ${p.n} after ${after}">+ Add after ${after}</button>`}
+      </div>`;
+    return;
+  }
+
+  const rows = st.map((pid, i) => {
+    const p = P[pid], anchor = DAYS.find(d => d.id === S.draft.dayId).anchors.includes(pid);
+    const leg = i === 0 ? `${mins(baseId(), pid)}m drive from ${baseName()}` : `${mins(st[i-1], pid)}m drive`;
+    return `<div style="font-size:12.5px;padding:8px 0;border-top:${i ? '1px solid #E8E2D6' : '0'};" class="muted">${leg}</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:6px 0;${S.draft.added === pid ? 'background:#FBF5EA;border-radius:8px;' : ''}">
+        <span class="num ${p.k === 'dist' ? 'dist' : ''}" style="margin-left:${S.draft.added === pid ? '4px' : '0'};">${i+1}</span>
+        <span style="flex:1;font-family:'Spectral';font-size:18px;color:#1A3A4A;">${p.n}${S.draft.added === pid ? ' <span style="font-family:\'Instrument Sans\';font-size:10.5px;font-weight:700;letter-spacing:.1em;color:#1A3A4A;">JUST ADDED</span>' : ''}</span>
+        ${i > 0 ? `<button data-planup="${i}" class="tap" style="color:#8A8274;font-size:14px;" aria-label="Move ${p.n} earlier in the day">▲</button>` : '<span class="tap"></span>'}
+        ${anchor ? '<span class="tap" style="font-size:10.5px;font-weight:700;letter-spacing:.1em;color:#8A8274;">ANCHOR</span>' : `<button data-plandrop="${pid}" class="tap" style="color:#8A8274;font-size:18px;" aria-label="Remove ${p.n} from this day">×</button>`}
+      </div>`;
+  }).join('');
+
+  const near = nearby(st).slice(0, 4).map(p => `
+    <div class="card" style="margin-bottom:7px;display:flex;align-items:center;gap:10px;">
+      <span class="dot ${p.k === 'dist' ? 'dist' : 'place'}"></span>
+      <div style="flex:1;"><div style="font-size:14.5px;font-weight:600;color:#1A3A4A;">${p.n}</div><div style="font-size:12px;margin-top:2px;" class="muted">${mins(st[st.length-1], p.id)}m on · ${p.note}</div></div>
+      <button data-planadd="${p.id}" style="font-size:13px;font-weight:600;color:#B87D4B;" aria-label="Add ${p.n} to this day">+ Add</button>
+    </div>`).join('');
+
+  $('sheetBody').innerHTML = `
+    <button data-cycle="1" style="display:flex;width:100%;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid #E8E2D6;" aria-label="${S.sheet === 'full' ? 'Collapse the itinerary and show the map' : 'Expand the itinerary'}">
+      <div>
+        <div class="kicker muted">YOUR ITINERARY · DAY ${S.draft.index}</div>
+        <div style="font-family:'Spectral';font-size:${S.sheet === 'peek' ? '21px' : '17px'};color:#1A3A4A;margin-top:3px;">${hhmm(total)} total journey</div>
+      </div>
+      <span style="font-size:13.5px;font-weight:600;color:#B87D4B;">${S.sheet === 'full' ? 'Show the map ▼' : 'Pull up ▲'}</span>
+    </button>
+    <div style="padding-top:10px;">${rows}</div>
+    ${S.sheet === 'full' ? `<div class="kicker muted" style="margin:18px 0 10px;">NEARBY, NOT YET IN YOUR DAY</div>${near}` : ''}
+    <div style="height:12px;"></div>`;
+}
+
+/* ---------------- events ---------------- */
+
+function setToast(msg, undoState) { S.toast = msg; S.undo = undoState || null; }
+
+function wire() {
+  document.querySelectorAll('#app [data-go]').forEach(b => b.onclick = () => { S.screen = b.dataset.go; S.toast = null; render(); });
+  document.querySelectorAll('#app [data-open]').forEach(b => b.onclick = () => { S.modal = b.dataset.open; renderModal(); });
+  document.querySelectorAll('#app [data-day]').forEach(b => b.onclick = () => { S.openDay = b.dataset.day; S.expandProse = false; S.screen = 'day'; render(); });
+  document.querySelectorAll('#app [data-add]').forEach(b => b.onclick = () => {
+    const id = b.dataset.add;
+    if (!tripEntry(id)) S.trip.push({ dayId: id, stops: DAYS.find(d => d.id === id).stops.slice(), tours: {}, edited: false });
+    S.justAdded = id;
+    S.milestone = milestoneFor(id);
+    render();
+    clearTimeout(window.__ms);
+    window.__ms = setTimeout(() => { S.justAdded = null; S.milestone = null; if (S.screen === 'days') render(); }, 2800);
+  });
+  document.querySelectorAll('#app [data-remove]').forEach(b => b.onclick = () => {
+    S.trip = S.trip.filter(t => t.dayId !== b.dataset.remove); S.milestone = null; S.justAdded = null; render();
+  });
+  document.querySelectorAll('#app [data-tour]').forEach(b => b.onclick = () => { S.modal = 'tour:' + b.dataset.tour; renderModal(); });
+  document.querySelectorAll('#app [data-toggle]').forEach(b => b.onclick = () => { S.expandProse = !S.expandProse; render(); });
+  document.querySelectorAll('#app [data-drop]').forEach(b => b.onclick = () => { mutate(S.openDay, st => st.filter(s => s !== b.dataset.drop)); render(); });
+  document.querySelectorAll('#app [data-restore]').forEach(b => b.onclick = () => {
+    const d = DAYS.find(x => x.id === S.openDay), pid = b.dataset.restore;
+    mutate(S.openDay, st => { const out = st.slice(); out.splice(Math.min(d.stops.indexOf(pid), out.length), 0, pid); return out; });
+    render();
+  });
+  document.querySelectorAll('#app [data-up]').forEach(b => b.onclick = () => { const i = +b.dataset.up; mutate(S.openDay, st => { const o = st.slice(); [o[i-1], o[i]] = [o[i], o[i-1]]; return o; }); render(); });
+  document.querySelectorAll('#app [data-down]').forEach(b => b.onclick = () => { const i = +b.dataset.down; mutate(S.openDay, st => { const o = st.slice(); [o[i+1], o[i]] = [o[i], o[i+1]]; return o; }); render(); });
+  document.querySelectorAll('#app [data-tripdrop]').forEach(b => b.onclick = () => {
+    const [did, pid] = b.dataset.tripdrop.split('|'); mutate(did, st => st.filter(s => s !== pid)); render();
+  });
+  document.querySelectorAll('#app [data-undo]').forEach(b => b.onclick = () => { if (S.undo) S.trip = JSON.parse(S.undo); S.toast = null; S.undo = null; render(); });
+  document.querySelectorAll('#app [data-moveday]').forEach(b => b.onclick = () => {
+    const [i, dir] = b.dataset.moveday.split('|').map(Number);
+    const j = i + dir;
+    if (j < 0 || j >= S.trip.length) return;
+    [S.trip[i], S.trip[j]] = [S.trip[j], S.trip[i]];
+    S.toast = null; render();
+  });
+  document.querySelectorAll('#app [data-swap]').forEach(b => b.onclick = () => { S.swapFor = b.dataset.swap; S.modal = 'swap'; renderModal(); });
+  document.querySelectorAll('#app [data-plan]').forEach(b => b.onclick = () => openPlanner(b.dataset.plan));
+}
+
+function mutate(dayId, fn) {
+  let e = tripEntry(dayId);
+  if (!e) { e = { dayId, stops: DAYS.find(d => d.id === dayId).stops.slice(), tours: {}, edited: false }; S.trip.push(e); }
+  e.stops = fn(e.stops);
+  e.edited = true;
+}
+
+function openPlanner(dayId) {
+  if (!dayId) return;
+  let e = tripEntry(dayId);
+  if (!e) { e = { dayId, stops: DAYS.find(d => d.id === dayId).stops.slice(), tours: {}, edited: false }; S.trip.push(e); }
+  S.draft = { dayId, index: S.trip.indexOf(e) + 1, stops: e.stops.slice(), before: e.stops.slice(), added: null };
+  S.screen = 'planner'; S.sheet = 'peek'; S.selected = null;
+  render();
+}
+
+$('modal').onclick = ev => {
+  const t = ev.target.closest('[data-setbase],[data-setnights],[data-pick],[data-settour],[data-close],[data-setdate],[data-cleardate],[data-doswap]');
+  if (!t) { if (ev.target.id === 'modal') { S.modal = null; renderModal(); } return; }
+  if (t.dataset.setbase) { S.base = t.dataset.setbase; S.modal = null; }
+  else if (t.dataset.setdate) { S.startDate = new Date(t.dataset.setdate + 'T00:00:00'); S.modal = null; }
+  else if (t.dataset.cleardate) { S.startDate = null; S.modal = null; }
+  else if (t.dataset.doswap) {
+    const [from, to] = t.dataset.doswap.split('|');
+    mutate(S.openDay, s => s.map(x => x === from ? to : x));
+    S.modal = null; S.swapFor = null;
+  }
+  else if (t.dataset.setnights) { S.nights = +t.dataset.setnights; S.modal = null; }
+  else if (t.dataset.pick) {
+    const id = t.dataset.pick;
+    S.picks = S.picks.includes(id) ? S.picks.filter(x => x !== id) : S.picks.concat(id);
+  }
+  else if (t.dataset.settour) {
+    const [pid, i] = t.dataset.settour.split('|');
+    let e = tripEntry(S.openDay);
+    if (!e) { e = { dayId: S.openDay, stops: DAYS.find(d => d.id === S.openDay).stops.slice(), tours: {}, edited: false }; S.trip.push(e); }
+    e.tours[pid] = +i; e.edited = true; S.modal = null;
+  }
+  else if (t.dataset.close) S.modal = null;
+  render();
+};
+
+$('sheetBody').onclick = ev => {
+  const t = ev.target.closest('[data-planadd],[data-plandrop],[data-planup],[data-cycle],[data-clear]');
+  if (!t) return;
+  if (t.dataset.planadd) {
+    const pid = t.dataset.planadd;
+    if (!S.draft.stops.includes(pid)) S.draft.stops.push(pid);
+    S.draft.added = pid; S.selected = null; S.sheet = 'half';
+  } else if (t.dataset.plandrop) {
+    S.draft.stops = S.draft.stops.filter(s => s !== t.dataset.plandrop);
+    if (S.draft.added === t.dataset.plandrop) S.draft.added = null;
+    S.selected = null;
+  } else if (t.dataset.planup) {
+    const i = +t.dataset.planup, o = S.draft.stops.slice();
+    [o[i-1], o[i]] = [o[i], o[i-1]]; S.draft.stops = o;
+  } else if (t.dataset.cycle) {
+    S.sheet = S.sheet === 'peek' ? 'half' : S.sheet === 'half' ? 'full' : 'peek';
+  } else if (t.dataset.clear) S.selected = null;
+  drawMap(); drawSheet(); fitMap();
+};
+
+$('grab').onclick = () => { S.sheet = S.sheet === 'peek' ? 'half' : S.sheet === 'half' ? 'full' : 'peek'; S.selected = null; drawSheet(); fitMap(); };
+
+$('plannerBack').onclick = () => { S.screen = S.trip.length ? 'trip' : 'days'; S.draft = null; render(); };
+
+$('plannerSave').onclick = () => {
+  const e = tripEntry(S.draft.dayId), before = S.draft.before, after = S.draft.stops;
+  const snapshot = JSON.stringify(S.trip);
+  const added = after.filter(s => !before.includes(s)).map(s => P[s].n);
+  const gone = before.filter(s => !after.includes(s)).map(s => P[s].n);
+  e.stops = after.slice();
+  e.edited = e.edited || !!(added.length || gone.length);
+  const bits = [];
+  if (added.length) bits.push(added.join(' and ') + ' added');
+  if (gone.length) bits.push(gone.join(' and ') + ' left out');
+  setToast(`<strong>Day ${S.draft.index} saved.</strong> ${bits.length ? bits.join(', ') : 'No changes'}`, bits.length ? snapshot : null);
+  S.draft = null; S.screen = 'trip'; render();
+};
+
+render();
+</script>
+</body>
+</html>
