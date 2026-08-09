@@ -17,12 +17,49 @@ function defaultTripDates(): TripDates {
   return { mode: "range", startDate: "", endDate: "", month: "", confirmed: false };
 }
 
+/** Site-wide "where are you staying, how long, which distilleries"
+ *  answers - asked once on the homepage question block and read
+ *  everywhere from there on (distillery pages, area pages, /stays,
+ *  Local Features, and eventually /days' own ranking - see
+ *  docs/days-trip-flow-handoff.md §2.2/§3.1). picks is a RANKING input,
+ *  never a filter: this phase only captures and persists it, Phase 2's
+ *  /days rebuild is what actually reorders on it. */
+export interface TripAnswers {
+  /** A FEATURED_STAYS slug when baseKind is "hotel", an AREAS slug when
+   *  baseKind is "area" - always a real, linkable place. There is
+   *  deliberately no "anywhere on Islay" option (per the design doc: an
+   *  unranked list is the one thing the homepage question exists to
+   *  avoid). */
+  base: string;
+  baseKind: "hotel" | "area";
+  /** Defaults to 3 - matches FEATURED_STAYS[0] (The Machrie) already
+   *  being addDay()'s own fallback default, so this formalises an
+   *  existing implicit default rather than introducing a new one. */
+  nights: number;
+  /** Distillery slugs the visitor said they'd like to see - reorders
+   *  Phase 2's /days list and never hides a day. Empty means "any
+   *  distillery". */
+  picks: string[];
+}
+
+/** What the homepage block and the /days answers bar show before a
+ *  visitor has touched anything - "Deep links from search show
+ *  defaults; never blank" per the design doc's §3.2. Matches addDay()'s
+ *  own existing fallback (FEATURED_STAYS[0], 3 nights). */
+export const DEFAULT_TRIP_ANSWERS: TripAnswers = {
+  base: FEATURED_STAYS[0].slug,
+  baseKind: "hotel",
+  nights: 3,
+  picks: [],
+};
+
 interface StoredTrip {
   days: ItineraryDay[];
   intake: TripIntake | null;
   currentDayIndex: number;
   mapView: TripMapView | null;
   tripDates: TripDates | null;
+  answers: TripAnswers | null;
 }
 
 interface TripContextValue {
@@ -125,6 +162,24 @@ interface TripContextValue {
    *  stay across two bases - updates dayIndex and every day AFTER it,
    *  leaving earlier days untouched. */
   setAccommodationFromDay: (dayIndex: number, accommodation: TripAccommodation, scope: "all" | "fromHere") => void;
+  /** Site-wide "where/how long/which distilleries" answers - null until
+   *  the visitor has touched the homepage question block at least once.
+   *  Consumers should treat null the same as DEFAULT_TRIP_ANSWERS (see
+   *  that constant) rather than rendering a blank state - "deep links
+   *  show defaults; never blank" per the design doc. */
+  answers: TripAnswers | null;
+  /** Sets the base answer AND calls setAccommodationFromDay(0, ..., "all")
+   *  so the stated answer and the actual itinerary never disagree (per
+   *  the design doc's §2.2). accommodation is the full place (name/lat/
+   *  lng) the caller already has from FEATURED_STAYS or AREAS. Fills in
+   *  nights/picks from the current answers (or the defaults, if unset)
+   *  so setting the base alone doesn't reset them. */
+  setAnswersBase: (base: string, baseKind: "hotel" | "area", accommodation: TripAccommodation) => void;
+  /** Sets the nights answer, leaving base/picks untouched. */
+  setAnswersNights: (nights: number) => void;
+  /** Replaces the picks answer wholesale - callers own their own
+   *  toggle/multi-select logic and pass the resulting full array. */
+  setAnswersPicks: (picks: string[]) => void;
 }
 
 const TripContext = createContext<TripContextValue | null>(null);
@@ -135,6 +190,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [mapView, setMapView] = useState<TripMapView | null>(null);
   const [tripDates, setTripDates] = useState<TripDates>(defaultTripDates);
+  const [answers, setAnswers] = useState<TripAnswers | null>(null);
   const [ready, setReady] = useState(false);
 
   // Reads localStorage after mount rather than in a lazy useState
@@ -152,6 +208,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     setCurrentDayIndex(parsed.currentDayIndex ?? 0);
     setMapView(parsed.mapView ?? null);
     setTripDates(parsed.tripDates ?? defaultTripDates());
+    setAnswers(parsed.answers ?? null);
   }
 
   useEffect(() => {
@@ -172,12 +229,15 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!ready) return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ days, intake, currentDayIndex, mapView, tripDates }));
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ days, intake, currentDayIndex, mapView, tripDates, answers })
+      );
     } catch {
       // Storage full or unavailable - the trip still works for this
       // session, it just won't survive a reload.
     }
-  }, [days, intake, currentDayIndex, mapView, tripDates, ready]);
+  }, [days, intake, currentDayIndex, mapView, tripDates, answers, ready]);
 
   // Cross-tab live sync (22 July 2026) - added for the Days Hub's
   // "+ Add this day to my trip", which a visitor might reasonably have
@@ -256,6 +316,13 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     setCurrentDayIndex(0);
     setMapView(null);
     setTripDates(defaultTripDates());
+    // Judgment call (Phase 1, days-trip-flow): "Start over" clears the
+    // whole StoredTrip blob answers now lives in, so it clears the
+    // site-wide answers too rather than leaving a stale base/nights/
+    // picks pointing at a trip that no longer exists. Flagging this
+    // since the design doc doesn't explicitly say whether answers should
+    // survive a trip reset - easy to change if that's not the intent.
+    setAnswers(null);
   }, []);
 
   const setDateMode = useCallback((mode: TripDateMode) => {
@@ -428,6 +495,41 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  const setAnswersBase = useCallback(
+    (base: string, baseKind: "hotel" | "area", accommodation: TripAccommodation) => {
+      setAnswers((prev) => ({
+        base,
+        baseKind,
+        nights: prev?.nights ?? DEFAULT_TRIP_ANSWERS.nights,
+        picks: prev?.picks ?? DEFAULT_TRIP_ANSWERS.picks,
+      }));
+      // Keeps the stated answer and the actual itinerary in sync (per
+      // the design doc's §2.2) - a no-op if day 0 doesn't exist yet
+      // (nothing to sync to), same as any other setAccommodationFromDay
+      // call before a trip has been started.
+      setAccommodationFromDay(0, accommodation, "all");
+    },
+    [setAccommodationFromDay]
+  );
+
+  const setAnswersNights = useCallback((nights: number) => {
+    setAnswers((prev) => ({
+      base: prev?.base ?? DEFAULT_TRIP_ANSWERS.base,
+      baseKind: prev?.baseKind ?? DEFAULT_TRIP_ANSWERS.baseKind,
+      nights,
+      picks: prev?.picks ?? DEFAULT_TRIP_ANSWERS.picks,
+    }));
+  }, []);
+
+  const setAnswersPicks = useCallback((picks: string[]) => {
+    setAnswers((prev) => ({
+      base: prev?.base ?? DEFAULT_TRIP_ANSWERS.base,
+      baseKind: prev?.baseKind ?? DEFAULT_TRIP_ANSWERS.baseKind,
+      nights: prev?.nights ?? DEFAULT_TRIP_ANSWERS.nights,
+      picks,
+    }));
+  }, []);
+
   return (
     <TripContext.Provider
       value={{
@@ -459,6 +561,10 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         findStopDays,
         setAccommodation,
         setAccommodationFromDay,
+        answers,
+        setAnswersBase,
+        setAnswersNights,
+        setAnswersPicks,
       }}
     >
       {children}

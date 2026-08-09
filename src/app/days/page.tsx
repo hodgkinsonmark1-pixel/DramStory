@@ -1,7 +1,8 @@
 import Footer from "@/components/Footer";
 import PageHeader from "@/components/PageHeader";
 import DaysHubGrid from "@/components/journeys/DaysHubGrid";
-import { getDays } from "@/lib/data";
+import DaysAnswersBar from "@/components/journeys/DaysAnswersBar";
+import { getDays, getDistilleries } from "@/lib/data";
 
 /**
  * PRE-DESIGNED DAYS HUB
@@ -24,11 +25,16 @@ import { getDays } from "@/lib/data";
 export const dynamic = "force-dynamic";
 
 export default async function PreDesignedDaysHubPage() {
-  const days = await getDays();
+  const [days, distilleries] = await Promise.all([getDays(), getDistilleries()]);
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--off-white)" }}>
       <PageHeader />
+      {/* days-trip-flow Phase 1 (§3.2): reads the site-wide TripAnswers -
+          "The Machrie · 3 days · any distillery" + Change. Never blank:
+          falls back to the same defaults as the homepage block when a
+          visitor lands here via a deep link without having set anything. */}
+      <DaysAnswersBar distilleries={distilleries} />
 
       <div
         style={{

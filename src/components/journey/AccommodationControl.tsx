@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTrip } from "@/lib/trip-context";
 import { buildAccommodationBookingLink } from "@/lib/accommodation-links";
 import { FEATURED_STAYS } from "@/lib/featured-stays";
+import { AREAS } from "@/lib/areas";
 import type { TripAccommodation } from "@/lib/types";
 
 // Biases free-text search results toward Islay/Argyll, since that's where
@@ -18,21 +19,11 @@ const OTHER_VALUE = "__other__";
 // Re-exported here so nothing already importing it from this file breaks.
 export { FEATURED_STAYS };
 
-/**
- * Fixed area list (21 July 2026) - reuses coordinates already sourced and
- * live elsewhere in the app, rather than re-deriving anything: Port Ellen
- * and Bruichladdich from journeys-data.ts/days page, Port Askaig from the
- * Local Features "Ferry Port" record in Airtable. Not exhaustive (no
- * Portnahaven, Bridgend, Jura villages, etc. yet) - the "Other" group
- * below covers anywhere not listed here via the existing free-text search.
- */
-const AREAS: TripAccommodation[] = [
-  { name: "Port Ellen", lat: 55.630181, lng: -6.187415 },
-  { name: "Bowmore", lat: 55.7557, lng: -6.2875 },
-  { name: "Port Charlotte", lat: 55.74021, lng: -6.378353 },
-  { name: "Bruichladdich", lat: 55.7638, lng: -6.3605 },
-  { name: "Port Askaig", lat: 55.8476, lng: -6.1039 },
-];
+// AREAS now lives in @/lib/areas (09 Aug 2026, days-trip-flow Phase 1),
+// same reasoning as the FEATURED_STAYS move above - the homepage answers
+// block and the /days answers bar need it too. Re-exported here for the
+// same "nothing already importing it from this file breaks" reason.
+export { AREAS };
 
 function featuredStayFor(name?: string) {
   return FEATURED_STAYS.find((s) => s.name === name);
