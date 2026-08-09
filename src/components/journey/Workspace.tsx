@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { Distillery, InterestCategoryId, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
+import { useRouter } from "next/navigation";
+import type { Distillery, HubDay, InterestCategoryId, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
 import { INTEREST_CATEGORIES, REGIONS } from "@/lib/journey-options";
 import { CLASSIC_JOURNEYS, getJourneyDistilleries } from "@/lib/journeys-data";
 import { roundPriceUp } from "@/lib/pricing";
@@ -12,6 +13,7 @@ import { nearestWeatherReference } from "@/lib/weather-links";
 import { useRouteSegments } from "@/lib/use-route-segments";
 import { useTrip } from "@/lib/trip-context";
 import { stopCoords, stopId, stopName, stopVisitMinutes, incrementVisitMinutes } from "@/lib/itinerary-stop";
+import { droppedHubStops, describeHubDayChanges, resetDayToHub } from "@/lib/day-derivations";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MapCanvas from "./MapCanvas";
@@ -19,12 +21,17 @@ import AccommodationControl from "./AccommodationControl";
 import DateRangePicker from "./DateRangePicker";
 import TripEssentials from "./TripEssentials";
 import OnboardingOverlay from "./OnboardingOverlay";
+import PlannerContextBar from "./PlannerContextBar";
 import { useBackgroundVideoVisible } from "@/lib/background-video-context";
 
 interface WorkspaceProps {
   distilleries: Distillery[];
   localFeatures: LocalFeature[];
   localEvents: LocalEvent[];
+  /** Real Hub Days (getDays()) - Phase 5's planner context bar needs
+   *  these to resolve the active day's sourceHubDaySlug back to its
+   *  original stops (docs/days-trip-flow-handoff.md §3.5). */
+  hubDays: HubDay[];
   location: LocationAnswer;
   initialInterests: InterestCategoryId[];
   timing: TripTiming;
@@ -35,6 +42,13 @@ interface WorkspaceProps {
    *  reasoning was previously buried in a stop's own note rather than
    *  stated up front). Undefined for every other path - no banner shows. */
   todayNotice?: string;
+  /** True only when arriving via ?resume=1 (see JourneyFlow's own prop of
+   *  the same name) - Phase 5's context bar additionally requires this
+   *  (not just a sourceHubDaySlug day being active) so a fresh
+   *  planning/dreaming session that happens to seed a Hub-sourced day
+   *  never shows "loaded from a day plan" language it didn't earn - see
+   *  the task brief's explicit "resume=1 AND sourceHubDaySlug" gate. */
+  resume: boolean;
 }
 
 function describeLocation(location: LocationAnswer): string {
@@ -99,10 +113,12 @@ export default function Workspace({
   distilleries,
   localFeatures,
   localEvents,
+  hubDays,
   location,
   initialInterests,
   timing,
   todayNotice,
+  resume,
 }: WorkspaceProps) {
   // The itinerary/map workspace is the one intake-adjacent screen that
   // should NOT show the shared background video (see SiteBackgroundVideo)
@@ -110,6 +126,7 @@ export default function Workspace({
   // planning tool is what matters now.
   useBackgroundVideoVisible(false);
   const trip = useTrip();
+  const router = useRouter();
   const [activeCategories, setActiveCategories] = useState<Set<InterestCategoryId>>(
     new Set(initialInterests)
   );
@@ -165,6 +182,11 @@ export default function Workspace({
       return next;
     });
   const [justSaved, setJustSaved] = useState(false);
+  // Phase 5 planner context bar (docs/days-trip-flow-handoff.md §3.5,
+  // §10 "Planner") - the "Day {n} saved. {what changed}" confirmation,
+  // role="status" per §7. Cleared on unmount isn't needed: it's only
+  // ever set right before navigating away to /trip.
+  const [saveStatusMessage, setSaveStatusMessage] = useState<string | null>(null);
 
   // There's no longer a "how long" question (Step 3 removed, July 2026) -
   // trips start at a flat default day count and grow/shrink automatically
@@ -243,6 +265,66 @@ export default function Workspace({
 
   const days = trip.days;
   const activeDay = days[activeDayIndex];
+
+  // ---------------------------------------------------------------------
+  // Phase 5 planner context bar + "put it back" (docs/days-trip-flow-
+  // handoff.md §3.5, §10 "Planner"). hubDaysBySlug mirrors TripReview.tsx's
+  // own lookup - built fresh each render from the hubDays prop rather than
+  // memoized, since it's a small (~handful of entries) list and this
+  // avoids a useMemo import for what's a cheap Map construction.
+  // ---------------------------------------------------------------------
+  const hubDaysBySlug = new Map(hubDays.map((d) => [d.slug, d]));
+  const activeDayHub = activeDay?.sourceHubDaySlug ? hubDaysBySlug.get(activeDay.sourceHubDaySlug) : undefined;
+  // Both conditions required per the task brief: resume=1 (arrived via
+  // /trip's "Make this day my own", not a plain /journey visit) AND the
+  // active day still resolves back to a real Hub Day. Either alone isn't
+  // enough - see the resume prop's own JSDoc on WorkspaceProps above.
+  const showContextBar = resume && !!activeDayHub;
+  const droppedStops = activeDayHub ? droppedHubStops(activeDay, activeDayHub) : [];
+
+  function handleContextBarBack() {
+    router.push("/trip");
+  }
+
+  function handleContextBarReset() {
+    if (!activeDayHub) return;
+    // Destructive - discards every edit made to this day since it was
+    // added. Native confirm() per the task brief: the app has no existing
+    // modal/dialog system worth building out just for this one action
+    // (TripReview.tsx's own dates picker is the closest thing, and that's
+    // a real form, not a yes/no confirmation).
+    const ok = window.confirm(
+      `Reset ${activeDayHub.name} back to the original day plan? Any changes you've made to this day will be lost.`
+    );
+    if (!ok) return;
+    resetDayToHub(activeDayIndex, activeDay.stops, activeDayHub, trip);
+  }
+
+  function handleContextBarSave() {
+    if (!activeDayHub) return;
+    // JUDGEMENT CALL (flagged in the Phase 5 report): trip state already
+    // persists to localStorage on every change (see trip-context.tsx's
+    // own persistence effect) - there is no separate "save" write to
+    // perform here. This is a reassuring confirmation + navigation, not a
+    // new persistence path. describeHubDayChanges gives the copy deck's
+    // "{what changed}" honestly (added/dropped counts) rather than
+    // inventing something; no "undo" is offered here (unlike the copy
+    // deck's full `· undo`) since there's no discrete "save" action to
+    // undo - the edits themselves are undone individually via "Reset to
+    // the original" or the stop-level remove/put-it-back controls above.
+    setSaveStatusMessage(`Day ${activeDayIndex + 1} saved. ${describeHubDayChanges(activeDay, activeDayHub)}`);
+    setTimeout(() => router.push("/trip"), 1400);
+  }
+
+  function handlePutStopBack(stop: (typeof droppedStops)[number]) {
+    if (stop.kind === "distillery" && stop.distillery) {
+      trip.addStop(activeDayIndex, stop.distillery);
+      if (stop.tour) trip.setTourForStop(activeDayIndex, stop.distillery, stop.tour);
+    } else if (stop.kind === "feature" && stop.feature) {
+      trip.addFeatureStop(activeDayIndex, stop.feature);
+    }
+  }
+
   // Lets the onboarding walkthrough actually perform the "expand a stop"
   // action itself, rather than just pointing at it - the visitor watches
   // it happen, and it deliberately stays expanded afterward (not
@@ -651,6 +733,29 @@ export default function Workspace({
         </div>
       </div>
 
+      {showContextBar && activeDayHub && (
+        <PlannerContextBar
+          dayNumber={activeDayIndex + 1}
+          title={activeDayHub.name}
+          onBack={handleContextBarBack}
+          onReset={handleContextBarReset}
+          onSaveDay={handleContextBarSave}
+        />
+      )}
+
+      {/* §7: the save confirmation is the "milestone-style message" that
+          needs role="status" (announced to screen readers automatically,
+          same live-region treatment as DaysTripBar's own milestone toast)
+          - shown as a real, visible toast per the task brief ("a clear,
+          reassuring confirmation action") rather than only a screen-
+          reader announcement, since it's the only feedback the visitor
+          gets before this navigates them to /trip a moment later. */}
+      {saveStatusMessage && (
+        <div className="planner-save-toast" role="status">
+          {saveStatusMessage}
+        </div>
+      )}
+
       <div className="workspace-main">
         <div className="journey-panel" id="onboard-sidebar">
           <div className="panel-header panel-header-with-nav">
@@ -945,6 +1050,32 @@ export default function Workspace({
               </div>
             )}
           </div>
+
+          {/* §3.5/§10 "Planner" - "{name} was in this day plan - put it
+              back?" for any stop the original Hub Day had that's since
+              been dropped from this day. One row per dropped stop (a
+              grouped/summarised treatment didn't read any better with a
+              typical Hub Day's small stop counts - 3-5 stops total, so
+              rarely more than one or two of these at once). Not gated on
+              `resume` (unlike the context bar above) - this is true of
+              the day itself, regardless of how the planner was opened. */}
+          {droppedStops.length > 0 && (
+            <div className="planner-putback">
+              {droppedStops.map((stop) => (
+                <div className="planner-putback-row" key={stop.id}>
+                  <span className="planner-putback-text">{stop.name} was in this day plan — put it back?</span>
+                  <button
+                    type="button"
+                    className="planner-putback-btn"
+                    onClick={() => handlePutStopBack(stop)}
+                    aria-label={`Put ${stop.name} back into this day`}
+                  >
+                    Put back
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           {activeDay.stops.length > 0 && (
             <div className="journey-summary" id="onboard-journey-summary-panel">

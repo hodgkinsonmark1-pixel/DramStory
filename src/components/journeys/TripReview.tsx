@@ -18,6 +18,8 @@ import {
   paceAccentColour,
   tripShapeNote,
   collectionNote,
+  isDayEdited,
+  resetDayToHub,
 } from "@/lib/day-derivations";
 import DateRangePicker from "@/components/journey/DateRangePicker";
 
@@ -50,22 +52,6 @@ function addDaysIso(iso: string, days: number): Date | null {
 
 function formatDayDate(d: Date): string {
   return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
-}
-
-/**
- * §4.5 "edited days": a day counts as the visitor's own once its stops
- * no longer match what its source Hub Day would produce fresh. Cheap to
- * check here because the same getDays() call already needed for pace
- * (see paceForItineraryDay) gives every Hub Day's original stop order -
- * exactly what addDay/addStop/addFeatureStop copied in when the day was
- * first added (DaysHubGrid.tsx's handleAddToTrip), so comparing against
- * it needs no new persisted state.
- */
-function isDayEdited(day: ItineraryDay, hub: HubDay): boolean {
-  const original = [...hub.stops.map((s) => s.distillery.slug), ...hub.featureStops.map((f) => f.id)];
-  const current = day.stops.map(stopId);
-  if (original.length !== current.length) return true;
-  return original.some((id, i) => id !== current[i]);
 }
 
 /** Best-effort honest title for a trip day. HubDay has an authored name
@@ -370,13 +356,7 @@ export default function TripReview({ hubDays, distilleries }: { hubDays: HubDay[
     router.push("/journey?resume=1");
   }
   function resetDay(index: number, hub: HubDay) {
-    const current = trip.days[index]?.stops.map(stopId) ?? [];
-    current.forEach((id) => trip.removeStop(index, id));
-    hub.stops.forEach((s) => {
-      trip.addStop(index, s.distillery);
-      if (s.tour) trip.setTourForStop(index, s.distillery, s.tour);
-    });
-    hub.featureStops.forEach((f) => trip.addFeatureStop(index, f));
+    resetDayToHub(index, trip.days[index]?.stops ?? [], hub, trip);
   }
 
   // §4.4 "Still to sort" - generated, not written, and only ever

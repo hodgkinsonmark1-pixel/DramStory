@@ -1,6 +1,6 @@
-import type { HubDay, ItineraryDay } from "@/lib/types";
+import type { Distillery, HubDay, ItineraryDay, ItineraryStop, LocalFeature, Tour } from "@/lib/types";
 import { estimatedDriveMinutes } from "@/lib/drive-time";
-import { stopCoords } from "@/lib/itinerary-stop";
+import { stopCoords, stopId } from "@/lib/itinerary-stop";
 
 /**
  * Derived values for a HubDay against the visitor's current TripAnswers
@@ -312,4 +312,103 @@ export function collectionNote(count: number, total: number): string {
   if (count <= 8) return "That is serious ground covered. Pace yourself.";
   if (count < total) return "All but a couple. The last ones are the awkward ones.";
   return "Every distillery on Islay. Very few people manage that in one trip.";
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// §4.5 "edited days" / Phase 5 planner seam (docs/days-trip-flow-handoff.md
+// §3.5, §10 "Planner"). Originally lived only inside TripReview.tsx as a
+// private isDayEdited/resetDay pair - pulled out here, unchanged in logic,
+// so the planner's context bar (Workspace.tsx) can reuse the exact same
+// "does this day still match its source HubDay" comparison instead of a
+// second hand-copied version, per the Phase 5 task brief's explicit
+// instruction to extract rather than reimplement.
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * A day counts as the visitor's own once its stops no longer match what
+ * its source Hub Day would produce fresh - see the original comment on
+ * this function (now here) from TripReview.tsx (Phase 3).
+ */
+export function isDayEdited(day: ItineraryDay, hub: HubDay): boolean {
+  const original = [...hub.stops.map((s) => s.distillery.slug), ...hub.featureStops.map((f) => f.id)];
+  const current = day.stops.map(stopId);
+  if (original.length !== current.length) return true;
+  return original.some((id, i) => id !== current[i]);
+}
+
+/** Restores a day's stops to exactly what its original HubDay specifies,
+ *  discarding any edits (§4.5, "Reset to the original" per §10's copy
+ *  deck). Shared by trip review's own reset action and the planner's
+ *  "Reset to the original" control - both need the identical
+ *  remove-everything-then-replay-the-HubDay sequence, so this takes the
+ *  handful of TripContext mutators it needs as a plain object rather than
+ *  importing useTrip's return type here (keeps this file free of the
+ *  "use client" trip-context import). */
+export function resetDayToHub(
+  dayIndex: number,
+  currentStops: ItineraryStop[],
+  hub: HubDay,
+  actions: {
+    removeStop: (dayIndex: number, id: string) => void;
+    addStop: (dayIndex: number, distillery: Distillery) => void;
+    addFeatureStop: (dayIndex: number, feature: LocalFeature) => void;
+    setTourForStop: (dayIndex: number, distillery: Distillery, tour: Tour | undefined) => void;
+  }
+): void {
+  currentStops.map(stopId).forEach((id) => actions.removeStop(dayIndex, id));
+  hub.stops.forEach((s) => {
+    actions.addStop(dayIndex, s.distillery);
+    if (s.tour) actions.setTourForStop(dayIndex, s.distillery, s.tour);
+  });
+  hub.featureStops.forEach((f) => actions.addFeatureStop(dayIndex, f));
+}
+
+/** One entry per stop that was in the original HubDay but has since been
+ *  dropped from the visitor's real day - the planner's "{name} was in
+ *  this day plan - put it back?" line (§3.5, §10 "Planner"). Carries the
+ *  real Distillery/Tour or LocalFeature record so the "put it back"
+ *  action can call addStop/addFeatureStop (+ setTourForStop) directly,
+ *  same objects DaysHubGrid's own "+ Add this day to my trip" already
+ *  uses. */
+export interface DroppedHubStop {
+  id: string;
+  name: string;
+  kind: "distillery" | "feature";
+  distillery?: Distillery;
+  tour?: Tour;
+  feature?: LocalFeature;
+}
+
+export function droppedHubStops(day: ItineraryDay, hub: HubDay): DroppedHubStop[] {
+  const current = new Set(day.stops.map(stopId));
+  const dropped: DroppedHubStop[] = [];
+  for (const s of hub.stops) {
+    if (!current.has(s.distillery.slug)) {
+      dropped.push({ id: s.distillery.slug, name: s.distillery.name, kind: "distillery", distillery: s.distillery, tour: s.tour });
+    }
+  }
+  for (const f of hub.featureStops) {
+    if (!current.has(f.id)) {
+      dropped.push({ id: f.id, name: f.name, kind: "feature", feature: f });
+    }
+  }
+  return dropped;
+}
+
+/** One-line "what changed" summary vs the original HubDay - the
+ *  planner's `Day {n} saved. {what changed}` confirmation (§10 "Planner").
+ *  Deliberately a simple added/removed count, not a full diff (reordering
+ *  and tour swaps aren't mentioned) - honest about what it's counting
+ *  rather than claiming to describe every possible edit. */
+export function describeHubDayChanges(day: ItineraryDay, hub: HubDay): string {
+  const originalIds = new Set([...hub.stops.map((s) => s.distillery.slug), ...hub.featureStops.map((f) => f.id)]);
+  const currentIds = day.stops.map(stopId);
+  let added = 0;
+  for (const id of currentIds) if (!originalIds.has(id)) added++;
+  const removed = droppedHubStops(day, hub).length;
+  if (added === 0 && removed === 0) return "No changes from the original.";
+  const parts: string[] = [];
+  if (added > 0) parts.push(`${added} stop${added > 1 ? "s" : ""} added`);
+  if (removed > 0) parts.push(`${removed} dropped`);
+  return `${parts.join(", ")}.`;
 }

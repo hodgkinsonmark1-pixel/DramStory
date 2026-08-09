@@ -2,7 +2,7 @@
 
 import { Suspense, use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Distillery, InterestCategoryId, JournalPost, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
+import type { Distillery, HubDay, InterestCategoryId, JournalPost, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
 import { useTrip } from "@/lib/trip-context";
 import LocationStep from "./LocationStep";
 import TodayLocationStep from "./TodayLocationStep";
@@ -32,6 +32,12 @@ interface JourneyFlowProps {
    *  Q2 and Q3 now that those steps extend the homepage rather than
    *  being separate dead-ended pages (July 2026). */
   journalPostsPromise: Promise<JournalPost[]>;
+  /** Deferred, workspace-only (same treatment as localFeaturesPromise/
+   *  localEventsPromise) - Phase 5's planner context bar (Workspace.tsx)
+   *  needs the real Hub Days to detect a day's sourceHubDaySlug origin
+   *  and to reset/offer back its original stops (docs/days-trip-flow-
+   *  handoff.md §3.5, §10 "Planner"). */
+  hubDaysPromise: Promise<HubDay[]>;
   /** True only when arriving via "Back to your journey" (see
    *  DistilleryPageClient's ?resume=1 link) - an explicit signal that
    *  resuming the saved trip is wanted. A fresh homepage Q1 click never
@@ -59,23 +65,28 @@ function WorkspaceWithFeatures(props: {
   distilleriesPromise: Promise<Distillery[]>;
   localFeaturesPromise: Promise<LocalFeature[]>;
   localEventsPromise: Promise<LocalEvent[]>;
+  hubDaysPromise: Promise<HubDay[]>;
   location: LocationAnswer;
   initialInterests: InterestCategoryId[];
   timing: TripTiming;
   todayNotice?: string;
+  resume: boolean;
 }) {
   const distilleries = use(props.distilleriesPromise);
   const localFeatures = use(props.localFeaturesPromise);
   const localEvents = use(props.localEventsPromise);
+  const hubDays = use(props.hubDaysPromise);
   return (
     <Workspace
       distilleries={distilleries}
       localFeatures={localFeatures}
       localEvents={localEvents}
+      hubDays={hubDays}
       location={props.location}
       initialInterests={props.initialInterests}
       timing={props.timing}
       todayNotice={props.todayNotice}
+      resume={props.resume}
     />
   );
 }
@@ -274,7 +285,7 @@ function seedTodayDay(
   return { interests: eveningInterests, notice: eveningExplainer };
 }
 
-export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, resume }: JourneyFlowProps) {
+export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, hubDaysPromise, resume }: JourneyFlowProps) {
   const router = useRouter();
   const trip = useTrip();
   const [step, setStep] = useState<Step>("location");
@@ -453,10 +464,12 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
         distilleriesPromise={distilleriesPromise}
         localFeaturesPromise={localFeaturesPromise}
         localEventsPromise={localEventsPromise}
+        hubDaysPromise={hubDaysPromise}
         location={location!}
         initialInterests={interests}
         timing={trip.intake?.timing ?? timing}
         todayNotice={todayNotice}
+        resume={resume}
       />
     </Suspense>
   );

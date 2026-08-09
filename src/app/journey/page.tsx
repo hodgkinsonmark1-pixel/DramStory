@@ -1,4 +1,4 @@
-import { getDistilleries, getLocalEvents, getLocalFeatures, getJournalPosts } from "@/lib/data";
+import { getDays, getDistilleries, getLocalEvents, getLocalFeatures, getJournalPosts } from "@/lib/data";
 import type { TripTiming } from "@/lib/types";
 import JourneyFlow from "@/components/journey/JourneyFlow";
 
@@ -20,6 +20,12 @@ export default async function JourneyPage({
   // the whole page (including Q2's first paint) on this Airtable
   // round-trip was adding real, needless lag to every Q1->Q2 navigation.
   const distilleriesPromise = getDistilleries();
+  // Deferred, same reasoning as the rest of this page's fetches - only
+  // the workspace step's Phase 5 context bar (Workspace.tsx) needs Hub
+  // Days at all, to detect a day's sourceHubDaySlug origin and offer
+  // "Reset to the original"/"put it back" (docs/days-trip-flow-
+  // handoff.md §3.5). Q1-Q3 never touch it.
+  const hubDaysPromise = getDays();
   // Deliberately NOT awaited - neither Local Features nor Local Events is
   // needed until the final "workspace" step (Q2/Step3/Q4 don't touch
   // either), so blocking the whole page on these fetches was adding real,
@@ -40,6 +46,7 @@ export default async function JourneyPage({
       localFeaturesPromise={localFeaturesPromise}
       localEventsPromise={localEventsPromise}
       journalPostsPromise={journalPostsPromise}
+      hubDaysPromise={hubDaysPromise}
       resume={resume === "1"}
     />
   );
