@@ -18,14 +18,19 @@ export const FEATURED_STAY_NOTES: Record<string, string> = {
   "bridgend-hotel": "Where the island's roads meet — nothing is far from here",
 };
 
-/** Copy deck lines for "Or just an area". Only four of AREAS' five
- *  entries have a line here - see the note in @/lib/areas about
- *  Bruichladdich not being part of the signed-off base-sheet list. */
+/** Copy deck lines for "Or just an area". Only three of AREAS' five
+ *  entries have a line here. The design doc's own copy deck (§10) also
+ *  listed Port Askaig, but that predates the 8 Aug decision on
+ *  feature/areas-port-ellen to drop it from every area/accommodation
+ *  picker site-wide - it isn't a real /areas/[slug] page, just a Local
+ *  Features "Ferry Port" record. Excluded here too (Mark's call, 9 Aug)
+ *  so this list stays consistent with that one rather than reopening it.
+ *  Bruichladdich is excluded for the separate reason noted in
+ *  @/lib/areas - never part of the signed-off base-sheet list at all. */
 export const AREA_NOTES: Record<string, string> = {
   "port-ellen": "The south — Laphroaig, Lagavulin, Ardbeg",
   bowmore: "The middle — everything within reach",
   "port-charlotte": "The Rhinns — Bruichladdich and Kilchoman",
-  "port-askaig": "The north-east — Caol Ila, Ardnahoe, and the Jura ferry",
 };
 
 /** The Featured Stays offered on the homepage/answers-bar base sheet -
@@ -33,8 +38,8 @@ export const AREA_NOTES: Record<string, string> = {
 export const BASE_SHEET_STAYS = FEATURED_STAYS;
 
 /** The Areas offered on the homepage/answers-bar base sheet - only the
- *  four with a copy deck line (see AREA_NOTES above), matching the
- *  design doc's signed-off "Or just an area" list exactly. */
+ *  three with a copy deck line (see AREA_NOTES above): Port Ellen,
+ *  Bowmore, Port Charlotte - matching the 3 real, live Area pages. */
 export const BASE_SHEET_AREAS = AREAS.filter((a) => a.slug in AREA_NOTES);
 
 /** Looks up the full place (name/lat/lng) for a base answer, so a caller
