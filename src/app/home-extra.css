@@ -194,6 +194,17 @@
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 20px;
 }
+.discover-group-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin: 32px 0 16px;
+}
+.discover-group-label:first-of-type {
+  margin-top: 0;
+}
 .discover-card {
   display: block;
   text-decoration: none;

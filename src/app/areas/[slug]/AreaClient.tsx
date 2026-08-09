@@ -426,8 +426,9 @@ export default function AreaClient({ area: a }: AreaClientProps) {
           <div className={styles.handoffPanel}>
             <span className={styles.handoffLabel}>Everything else</span>
             <p className={styles.handoffLead}>
-              {a.name} has small hotels, B&amp;Bs and self-catering cottages beyond the Featured Stay — most without live
-              online booking.
+              {a.name}{" "}
+              has small hotels, B&amp;Bs and self-catering cottages beyond the Featured Stay — most without live online
+              booking.
             </p>
             <p className={styles.handoffBody}>Check live prices across all of them in one search, then come back and build the days around whatever you book.</p>
             {a.bookingAdvice.length > 0 ? (

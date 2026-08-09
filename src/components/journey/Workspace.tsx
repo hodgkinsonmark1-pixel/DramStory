@@ -1305,6 +1305,8 @@ export default function Workspace({
 
       <div className="below-map-section">
         <h2 className="how-title">Where to stay</h2>
+
+        <div className="discover-group-label">Areas</div>
         <div className="discover-grid">
           {areas.map((a) => (
             <Link href={`/areas/${a.slug}`} className="discover-card" key={`area-${a.slug}`}>
@@ -1320,6 +1322,10 @@ export default function Workspace({
               </div>
             </Link>
           ))}
+        </div>
+
+        <div className="discover-group-label">Featured hotels</div>
+        <div className="discover-grid">
           {featuredStays.map((s) => (
             <Link href={`/stays/${s.slug}`} className="discover-card" key={`stay-${s.slug}`}>
               <div className="discover-card-image" style={s.heroImageUrl ? { backgroundImage: `url(${s.heroImageUrl})` } : undefined} />
