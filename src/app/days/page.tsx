@@ -40,7 +40,11 @@ export default async function PreDesignedDaysHubPage() {
         style={{
           maxWidth: 1040,
           margin: "0 auto",
-          padding: "56px 24px 24px",
+          // Extra bottom padding (Phase 2) reserves room for the new
+          // fixed-position sticky trip bar DaysHubGrid now renders below
+          // the card list, so it never sits on top of the last group of
+          // cards on short pages.
+          padding: "56px 24px 120px",
         }}
       >
         <h1
@@ -78,7 +82,7 @@ export default async function PreDesignedDaysHubPage() {
           before building a day around a specific tour.
         </p>
 
-        <DaysHubGrid days={days} />
+        <DaysHubGrid days={days} distilleries={distilleries} />
       </div>
 
       <Footer />

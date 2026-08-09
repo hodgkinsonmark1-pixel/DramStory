@@ -1,0 +1,327 @@
+/* /days rebuild - Days/Trip flow Phase 2
+   (docs/days-trip-flow-handoff.md §3.2, §4, §5). Colours/radii/shadows
+   use the real tokens from dramstory-legacy.css's :root, same rule as
+   home-extra.css's ANSWERS BLOCK section - never the prototype's
+   hardcoded hexes. #B5502E (Packed pace) is the one exception, already
+   established by DaysHubGrid's own pre-existing PacingTag. */
+
+/* Cards sit as discrete bordered cards on a slightly darker panel than
+   the page background (§3.2: "the current flat stacked list reads as a
+   queue"). */
+.days-hub-panel {
+  background: var(--stone);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.days-hub-headline {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 22px;
+  color: var(--dark);
+  margin: 0 0 4px;
+}
+.days-hub-subline {
+  font-size: 13px;
+  color: var(--slate);
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--dark);
+  margin-bottom: 18px;
+}
+
+.days-hub-group-block {
+  margin: 22px 0 12px;
+}
+.days-hub-group-block:first-child {
+  margin-top: 0;
+}
+.days-hub-group-header {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--dark);
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.days-hub-group-count {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--slate);
+}
+.days-hub-group-sub {
+  font-size: 12.5px;
+  color: var(--slate);
+  margin-top: 2px;
+}
+
+.days-hub-rule {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 18px;
+}
+.days-hub-rule-line {
+  flex: 1;
+  height: 1px;
+  background: var(--mist);
+}
+.days-hub-rule-label {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  color: var(--slate);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Day card - pace tag · drive · price -> title -> route line -> hook ->
+   one action (§3.2). Border colour signals state: warm/amber for a
+   picked-distillery match, dark for already-in-trip (which wins if both
+   are true, matching the reference prototype). */
+.days-hub-card {
+  background: white;
+  border: 1px solid var(--stone);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.days-hub-card.hit {
+  border-color: var(--amber-light);
+  border-width: 1.5px;
+}
+.days-hub-card.in-trip {
+  border-color: var(--dark);
+  border-width: 1.5px;
+}
+.days-hub-hit-banner {
+  background: var(--amber-pale);
+  border-bottom: 1px solid var(--amber-light);
+  padding: 8px 20px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--copper);
+  line-height: 1.4;
+}
+.days-hub-card-body {
+  padding: 18px 20px;
+}
+.days-hub-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.days-hub-card-meta-text {
+  font-size: 12.5px;
+  color: var(--slate);
+}
+.days-hub-card-title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 22px;
+  color: var(--dark);
+  margin: 0 0 6px;
+}
+.days-hub-card-route {
+  font-family: var(--font-display);
+  font-size: 14.5px;
+  color: var(--slate);
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+.days-hub-card-sep {
+  color: var(--slate);
+}
+/* Picked distillery name tinted within the route line (§4.1). */
+.days-hub-card-route-hit {
+  color: var(--dark);
+  font-weight: 600;
+  background: var(--amber-pale);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin: 0 -2px;
+}
+.days-hub-card-hook {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--peat);
+  margin: 0 0 16px;
+}
+.days-hub-card-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 9px 18px;
+  background: white;
+  color: var(--copper);
+  border: 1px solid var(--copper);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.days-hub-card-action.in-trip {
+  background: var(--green-light);
+  color: var(--green-deep);
+  border-color: var(--green-deep);
+}
+
+/* Add-a-day motion (§5): card scales 1 -> 1.05 -> 1 over 420ms. */
+@keyframes days-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.days-pop {
+  animation: days-pop 0.42s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+/* Trip summary rises 14px and fades in over 340ms (§5) whenever a day is
+   added. */
+@keyframes days-flyin {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.days-flyin {
+  animation: days-flyin 0.34s cubic-bezier(0.22, 0.9, 0.32, 1) both;
+}
+
+/* Trip bar (sticky bottom, dark) - §3.2/§5. Fixed rather than sticky:
+   the page itself scrolls well past one viewport, and this needs to
+   stay visible throughout, the same way the reference prototype's phone
+   .foot bar never scrolls away. */
+.days-trip-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--dark);
+  color: var(--off-white);
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -8px 24px rgba(26, 58, 74, 0.18);
+}
+.days-trip-bar-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.days-trip-bar-ring {
+  flex: none;
+}
+.days-trip-bar-ring-count {
+  font: 600 13px var(--font-body);
+  fill: var(--off-white);
+}
+.days-trip-bar-text {
+  min-width: 0;
+}
+.days-trip-bar-kicker {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 2px;
+}
+.days-trip-bar-value {
+  font-size: 14.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.days-trip-bar-sub {
+  font-size: 12px;
+  color: var(--mist);
+  margin-top: 2px;
+}
+.days-trip-bar-review {
+  flex: none;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 22px;
+  background: var(--amber);
+  color: var(--dark);
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.days-trip-bar-review[aria-disabled="true"] {
+  opacity: 0.45;
+}
+
+/* Milestone toast (§5): amber bar rises above the trip bar, holds ~2.3s,
+   fades up. 76px ~= the trip bar's own height, so it sits directly above
+   it rather than overlapping. */
+@keyframes days-riseup {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  12% {
+    opacity: 1;
+    transform: none;
+  }
+  82% {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+.days-milestone-toast {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 76px;
+  z-index: 59;
+  background: var(--amber);
+  color: var(--dark);
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  animation: days-riseup 2.8s ease both;
+}
+
+@media (min-width: 640px) {
+  .days-trip-bar,
+  .days-milestone-toast {
+    padding-left: max(20px, calc((100% - 1040px) / 2 + 20px));
+    padding-right: max(20px, calc((100% - 1040px) / 2 + 20px));
+  }
+}

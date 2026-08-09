@@ -1,38 +1,46 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import Link from "next/link";
-import type { HubDay } from "@/lib/types";
-import HubDayMap from "@/components/journeys/HubDayMap";
-import { useTrip } from "@/lib/trip-context";
+import { useMemo, useRef, useState } from "react";
+import type { Distillery, HubDay } from "@/lib/types";
+import { useTrip, DEFAULT_TRIP_ANSWERS } from "@/lib/trip-context";
+import { findBaseAccommodation, baseDisplayName } from "@/lib/trip-answers";
+import { FEATURED_STAYS } from "@/lib/featured-stays";
+import { formatDuration } from "@/lib/drive-time";
+import {
+  type DayGroupId,
+  GROUP_ORDER,
+  GROUP_LABELS,
+  driveMinutesForDay,
+  dayGroupFor,
+  pickHitsFor,
+  dayPriceLabel,
+  deriveHook,
+  isFerryDay,
+  milestoneFor,
+} from "@/lib/day-derivations";
+import DaysTripBar from "@/components/journeys/DaysTripBar";
 
-/** Opens (or, if already open, refocuses) a single dedicated tab for the
- *  trip workspace - a fixed window target name is the browser-native way
- *  to get "reuse the same tab on repeat calls, or open a fresh one if the
- *  visitor closed it" without any custom messaging. Deliberately NOT
- *  called on every "+ Add this day" click (see handleAddToTrip below) -
- *  a visitor building a trip Day-by-Day from this page should be able to
- *  stay right here; this is only for the explicit "View your trip" link
- *  that appears once something's actually been added. */
-function openTripTab() {
-  window.open("/journey?resume=1", "dramstory-journey");
-}
-
-/** Renders plain text containing [label](/path) markdown-style links as
- *  real internal <Link>s - same helper used on Distillery/Explore pages. */
-function renderWithLinks(text: string) {
-  const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g);
-  return parts.map((part, i) => {
-    const match = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-    if (!match) return part;
-    const [, label, href] = match;
-    return (
-      <Link href={href} key={i} className="dist-inline-link">
-        {label}
-      </Link>
-    );
-  });
-}
+/**
+ * /days rebuild (Days/Trip flow Phase 2, docs/days-trip-flow-handoff.md
+ * §3.2/§4/§5). Was a flat filterable list with a distillery dropdown -
+ * per §1 ("This design turns the same content into a planning flow")
+ * that dropdown is gone: `answers.picks` now RE-SORTS the list into a
+ * "days with your distilleries" section instead of hiding anything
+ * (§4.1 - ranking, never filtering). The existing "+ Add this day to my
+ * trip" mechanism (addDay/addStop/setTourForStop/addFeatureStop) is
+ * unchanged underneath - only restyled/regrouped around, per the task
+ * brief.
+ *
+ * JUDGEMENT CALL: dropped the per-card route map (HubDayMap) and the
+ * feature-stop chip row along with the dropdown/expand-narrative UI -
+ * the design doc's own card anatomy (§3.2: "pace tag · drive · price →
+ * title → route line → hook → one action") and the reference prototype's
+ * day cards don't include a map thumbnail or chips at all; the route
+ * line text already carries the same "which distilleries, in what
+ * order" information. Also dropped the old "View your trip (N days
+ * added)" quiet pill - the new persistent trip bar (always visible,
+ * richer) supersedes it rather than sitting alongside it.
+ */
 
 function PacingTag({ pacing }: { pacing: HubDay["pacing"] }) {
   const tone =
@@ -61,42 +69,44 @@ function PacingTag({ pacing }: { pacing: HubDay["pacing"] }) {
   );
 }
 
-function DayCard({ day, onAdded }: { day: HubDay; onAdded: () => void }) {
-  const [expanded, setExpanded] = useState(false);
-  const isLong = day.narrative.length > 380;
+interface DayEntry {
+  day: HubDay;
+  driveMinutes: number;
+  group: DayGroupId;
+  hits: string[];
+  price: string;
+}
+
+function DayCard({
+  entry,
+  picks,
+  justAdded,
+  onAdd,
+}: {
+  entry: DayEntry;
+  picks: string[];
+  justAdded: boolean;
+  onAdd: (day: HubDay) => void;
+}) {
+  const { day, driveMinutes, hits, price } = entry;
   const trip = useTrip();
 
-  /** Derived from the actual trip, not a local timer - so the "Added"
-   *  state (22 July 2026 fix) stays true for as long as this Hub Day
-   *  really is in the trip, and only reverts if the visitor removes that
-   *  day. addDay() tags the new day with day.slug via sourceHubDaySlug
-   *  specifically so this can be checked here. */
-  const isAdded = trip.days.some((d) => d.sourceHubDaySlug === day.slug);
+  /** Derived from the actual trip, not a local timer - the "added" state
+   *  stays true for as long as this Hub Day really is in the trip, and
+   *  reverts if the visitor removes it. Unchanged from the pre-Phase-2
+   *  implementation. */
+  const addedIndex = trip.days.findIndex((d) => d.sourceHubDaySlug === day.slug);
+  const isAdded = addedIndex !== -1;
 
-  /** Adds this Day as a brand-new day in the visitor's trip (never merged
-   *  into whatever day they currently have open - a Hub Day is a complete
-   *  curated day in its own right), using the same addDay/addStop/
-   *  setTourForStop functions every other "add to trip" action in the app
-   *  already writes through. newDayIndex is captured from trip.days.length
-   *  BEFORE addDay() is called, since addDay always appends exactly one
-   *  day at the end - reading it after would risk a stale value, since
-   *  React doesn't apply the state update synchronously within this same
-   *  handler.
-   *
-   *  Deliberately does NOT navigate this tab away (22 July 2026 fix) - it
-   *  used to router.push to /journey, which was fine for a visitor who'd
-   *  opened the Days Hub as their only tab, but broke the "keep Days Hub
-   *  open, add several Days in a row" flow: a visitor with the workspace
-   *  already open in another tab (e.g. from the homepage, or via the
-   *  onboarding walkthrough's "open in new tab" links) would click Add,
-   *  get yanked out of the Days Hub into a second, redundant workspace
-   *  tab, and lose the one they came from entirely. The write to
-   *  localStorage (via TripProvider's existing persist effect) plus the
-   *  cross-tab `storage` event listener added to trip-context.tsx now
-   *  updates any already-open workspace tab live, in the background,
-   *  without touching this tab at all. */
+  /** Same add-to-trip mechanism as before Phase 2 (addDay/addStop/
+   *  setTourForStop/addFeatureStop, in that order, newDayIndex captured
+   *  before addDay() for the same "state updates aren't synchronous"
+   *  reason as previously) - onAdd(day) is called first so the parent
+   *  can compute the milestone toast from the trip as it stood BEFORE
+   *  this day was added. */
   function handleAddToTrip() {
     const newDayIndex = trip.days.length;
+    onAdd(day);
     trip.addDay(day.slug);
     for (const stop of day.stops) {
       trip.addStop(newDayIndex, stop.distillery);
@@ -106,316 +116,236 @@ function DayCard({ day, onAdded }: { day: HubDay; onAdded: () => void }) {
       trip.addFeatureStop(newDayIndex, feature);
     }
     trip.setCurrentDayIndex(newDayIndex);
-    onAdded();
   }
+
+  const hook = deriveHook(day.narrative);
+  const driveLabel = driveMinutes > 0 ? `≈${formatDuration(driveMinutes)} on the road` : "";
+  const metaText = [driveLabel, price].filter(Boolean).join(" · ");
 
   return (
     <div
-      style={{
-        background: "white",
-        border: "1px solid var(--stone)",
-        borderRadius: "var(--radius)",
-        boxShadow: "var(--shadow-card)",
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-      }}
+      className={[
+        "days-hub-card",
+        isAdded ? "in-trip" : "",
+        hits.length > 0 ? "hit" : "",
+        justAdded ? "days-pop" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
     >
-      <div style={{ display: "flex", flexWrap: "wrap" }}>
-        {/* Visual (23 July 2026): every card shows the real route map,
-            regardless of stop count - previously a 1-stop Day reused that
-            distillery's own Hero Image and a 2-stop Day showed both
-            distilleries' Hero Images as a split image, which Mark didn't
-            want (a Day card borrowing the distillery page's own photo).
-            One consistent map treatment across every card now, until
-            genuine Day-specific photography exists. */}
-        <div
-          style={{
-            width: 280,
-            minWidth: 220,
-            flexShrink: 0,
-            minHeight: 200,
-            position: "relative",
-            overflow: "hidden",
-            ...(day.mapDistilleries && day.mapDistilleries.length > 0
-              ? {}
-              : {
-                  background:
-                    "repeating-linear-gradient(45deg, var(--stone), var(--stone) 10px, var(--off-white) 10px, var(--off-white) 20px)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }),
-          }}
-        >
-          {day.mapDistilleries && day.mapDistilleries.length > 0 ? (
-            <HubDayMap distilleries={day.mapDistilleries} featureStops={day.mapFeatures} />
-          ) : (
-            <span style={{ fontSize: 12, color: "var(--slate)", fontWeight: 500 }}>
-              [ Map placeholder ]
-            </span>
-          )}
+      {hits.length > 0 && (
+        <div className="days-hub-hit-banner">
+          ★ Includes{" "}
+          {hits.length === 1 ? hits[0] : `${hits.slice(0, -1).join(", ")} and ${hits[hits.length - 1]}`}
         </div>
-
-        <div style={{ flex: 1, minWidth: 280, padding: "24px 28px" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 12,
-              marginBottom: 10,
-              flexWrap: "wrap",
-            }}
-          >
-            <h2
-              style={{
-                fontFamily: "var(--font-display)",
-                fontWeight: 500,
-                fontSize: 24,
-                color: "var(--dark)",
-                margin: 0,
-              }}
-            >
-              {day.name}
-            </h2>
-            <PacingTag pacing={day.pacing} />
-          </div>
-
-          {/* Quick-scan distillery + feature-stop row (23 July 2026: merged
-              onto one wrapping row, per Mark's feedback - distilleries and
-              feature-stop chips previously sat on two separate lines and
-              read as disconnected. Both pill styles are unchanged; only
-              the layout is now a single flex-wrap container so they sit
-              together and wrap together as a card narrows. */}
-          {(day.distilleries.length > 0 || day.featureStops.length > 0) && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-              {day.distilleries.map((d, i) => (
-                <span
-                  key={`${d}-${i}`}
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 500,
-                    color: "var(--dark)",
-                    background: "var(--green-light)",
-                    padding: "4px 12px",
-                    borderRadius: 100,
-                  }}
-                >
-                  {d}
-                </span>
-              ))}
-              {day.featureStops.map((f) => (
-                <span
-                  key={f.id}
-                  title={f.name}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 5,
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: "var(--copper)",
-                    background: "var(--amber-pale)",
-                    padding: "4px 10px 4px 8px",
-                    borderRadius: 100,
-                  }}
-                >
-                  <span style={{ fontSize: 13, lineHeight: 1 }}>{f.icon}</span>
-                  {f.name}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Narrative */}
-          <p
-            style={{
-              fontSize: 14,
-              lineHeight: 1.65,
-              color: "var(--peat)",
-              marginBottom: isLong ? 6 : 18,
-              maxWidth: 560,
-              ...(isLong && !expanded
-                ? {
-                    display: "-webkit-box",
-                    WebkitLineClamp: 4,
-                    WebkitBoxOrient: "vertical" as const,
-                    overflow: "hidden",
-                  }
-                : {}),
-            }}
-          >
-            {renderWithLinks(day.narrative)}
-          </p>
-          {isLong && (
-            <button
-              onClick={() => setExpanded((v) => !v)}
-              style={{
-                background: "none",
-                border: "none",
-                padding: 0,
-                marginBottom: 18,
-                fontSize: 13,
-                fontWeight: 600,
-                color: "var(--copper)",
-                cursor: "pointer",
-                fontFamily: "var(--font-body)",
-              }}
-            >
-              {expanded ? "See less" : "See more"}
-            </button>
-          )}
-
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              alignItems: "center",
-              gap: "20px 32px",
-              marginBottom: 4,
-              fontSize: 13,
-              color: "var(--peat)",
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 11, color: "var(--slate)", marginBottom: 2 }}>
-                From Port Ellen
-              </div>
-              <div style={{ fontWeight: 600, color: "var(--dark)" }}>{day.durationPortEllen}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 11, color: "var(--slate)", marginBottom: 2 }}>
-                From Bowmore
-              </div>
-              <div style={{ fontWeight: 600, color: "var(--dark)" }}>{day.durationBowmore}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 11, color: "var(--slate)", marginBottom: 2 }}>
-                Indicative distillery cost
-              </div>
-              <div style={{ fontWeight: 600, color: "var(--copper)" }}>{day.cost}</div>
-            </div>
-
-            <button
-              style={{
-                marginLeft: "auto",
-                padding: "9px 18px",
-                background: isAdded ? "var(--green-light)" : "white",
-                color: isAdded ? "var(--green-deep)" : "var(--copper)",
-                border: `1px solid ${isAdded ? "var(--green-deep)" : "var(--copper)"}`,
-                borderRadius: "var(--radius-sm)",
-                fontFamily: "var(--font-body)",
-                fontSize: 13,
-                fontWeight: 500,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-              }}
-              onClick={handleAddToTrip}
-              title={isAdded ? "Already in your trip - click to add another copy of this day" : undefined}
-            >
-              {isAdded ? "✓ Added to your trip" : "+ Add this day to my trip"}
-            </button>
-          </div>
+      )}
+      <div className="days-hub-card-body">
+        <div className="days-hub-card-meta">
+          <PacingTag pacing={day.pacing} />
+          {metaText && <span className="days-hub-card-meta-text">{metaText}</span>}
         </div>
+        <h3 className="days-hub-card-title">{day.name}</h3>
+        {day.stops.length > 0 && (
+          <div className="days-hub-card-route">
+            {day.stops.map((stop, i) => (
+              <span key={`${stop.distillery.slug}-${i}`}>
+                {i > 0 && <span className="days-hub-card-sep"> → </span>}
+                <span className={picks.includes(stop.distillery.slug) ? "days-hub-card-route-hit" : undefined}>
+                  {stop.distillery.name}
+                </span>
+              </span>
+            ))}
+          </div>
+        )}
+        {hook && <p className="days-hub-card-hook">{hook}</p>}
+        {isAdded ? (
+          <button
+            className="days-hub-card-action in-trip"
+            onClick={() => trip.removeDay(addedIndex)}
+            aria-label={`Remove ${day.name} from your trip`}
+          >
+            ✓ Day {addedIndex + 1} of your trip · remove
+          </button>
+        ) : (
+          <button className="days-hub-card-action" onClick={handleAddToTrip}>
+            + Add as a day
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
-export default function DaysHubGrid({ days }: { days: HubDay[] }) {
-  const [selectedDistillery, setSelectedDistillery] = useState<string>("all");
-  const [addedCount, setAddedCount] = useState(0);
+export default function DaysHubGrid({ days, distilleries }: { days: HubDay[]; distilleries: Distillery[] }) {
+  const trip = useTrip();
+  const [justAddedId, setJustAddedId] = useState<string | null>(null);
+  const [milestone, setMilestone] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const distilleryOptions = useMemo(
-    () => [...new Set(days.flatMap((d) => d.distilleries))].sort(),
-    [days]
+  const base = trip.answers?.base ?? DEFAULT_TRIP_ANSWERS.base;
+  const baseKind = trip.answers?.baseKind ?? DEFAULT_TRIP_ANSWERS.baseKind;
+  const nights = trip.answers?.nights ?? DEFAULT_TRIP_ANSWERS.nights;
+  const picks = trip.answers?.picks ?? DEFAULT_TRIP_ANSWERS.picks;
+
+  const baseAccommodation = findBaseAccommodation(base, baseKind) ?? FEATURED_STAYS[0];
+  const baseName = baseDisplayName(base, baseKind);
+
+  const entries: DayEntry[] = useMemo(
+    () =>
+      days.map((day) => {
+        const driveMinutes = driveMinutesForDay(day, baseAccommodation);
+        return {
+          day,
+          driveMinutes,
+          group: dayGroupFor(day, driveMinutes),
+          hits: pickHitsFor(day, picks),
+          price: dayPriceLabel(day),
+        };
+      }),
+    // baseAccommodation is re-looked-up each render but is stable in
+    // shape (name/lat/lng) for a given base/baseKind pair, so depending
+    // on those two primitives (rather than the object reference) avoids
+    // recomputing every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [days, base, baseKind, picks]
   );
 
-  const filteredDays = useMemo(() => {
-    if (selectedDistillery === "all") return days;
-    return days.filter((d) => d.distilleries.includes(selectedDistillery));
-  }, [days, selectedDistillery]);
+  const sorted = useMemo(() => [...entries].sort((a, b) => a.driveMinutes - b.driveMinutes), [entries]);
+
+  const hitEntries = picks.length > 0 ? sorted.filter((e) => e.hits.length > 0) : [];
+  const hitDayIds = new Set(hitEntries.map((e) => e.day.id));
+  const restEntries = sorted.filter((e) => !hitDayIds.has(e.day.id));
+
+  // "{n} days work well from {base}" (§3.2/§10 copy deck) - the design
+  // doc doesn't formally define "work well" beyond that headline, so
+  // per the reference prototype's own intent (close/short-drive days are
+  // the easy sell; a big trek or a ferry crossing is the exception), this
+  // counts the easy + short-drive groups. JUDGEMENT CALL, flagged since
+  // it's an editorial heuristic rather than a literal spec formula.
+  const worksCount = sorted.filter((e) => e.group === "easy" || e.group === "mid").length;
+  const pickHitCount = hitEntries.length;
+
+  const headline = `${worksCount} ${worksCount === 1 ? "day" : "days"} work well from ${baseName}`;
+  const singlePickName = picks.length === 1 ? distilleries.find((d) => d.slug === picks[0])?.name : undefined;
+  const subline =
+    picks.length > 0
+      ? `${pickHitCount} of them include ${singlePickName ?? "a distillery you picked"}`
+      : "Sorted by how far you'd drive from your door";
+
+  const pickedNames = picks
+    .map((slug) => distilleries.find((d) => d.slug === slug)?.name)
+    .filter((n): n is string => Boolean(n));
+
+  /** Computes the milestone toast from the trip as it stood BEFORE this
+   *  add (DayCard.handleAddToTrip calls this first, then mutates) - the
+   *  trip context's own setDays/addDay calls don't apply synchronously,
+   *  so reading trip.days right after calling addDay() would still see
+   *  the old array. */
+  function handleMilestone(day: HubDay) {
+    const existingSlugs = new Set(
+      trip.days.flatMap((d) => d.stops.filter((s) => s.kind === "distillery").map((s) => s.distillery.slug))
+    );
+    for (const stop of day.stops) existingSlugs.add(stop.distillery.slug);
+    const dayCount = trip.days.length + 1;
+    const msg = milestoneFor({
+      dayCount,
+      distilleryCount: existingSlugs.size,
+      nights,
+      ferryDay: isFerryDay(day),
+    });
+    setJustAddedId(day.id);
+    setMilestone(msg);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      setJustAddedId(null);
+      setMilestone(null);
+    }, 2800);
+  }
+
+  // Trip bar totals - read straight from the live trip (not the
+  // milestone snapshot above, which is only a point-in-time value for
+  // the toast's wording at the moment of adding).
+  const tripDistillerySlugs = new Set(
+    trip.days.flatMap((d) => d.stops.filter((s) => s.kind === "distillery").map((s) => s.distillery.slug))
+  );
+  const tripCost = trip.days.reduce(
+    (sum, d) =>
+      sum + d.stops.reduce((s, stop) => s + (stop.kind === "distillery" ? stop.tour?.price ?? 0 : 0), 0),
+    0
+  );
 
   return (
     <>
-      {/* Appears once at least one Day's been added this visit - a
-          deliberately quiet, non-blocking way to go see the trip
-          building up, rather than forcing a tab switch on every single
-          "+ Add this day" click (see openTripTab/handleAddToTrip above
-          for why). Reuses the same named tab on repeat clicks. */}
-      {addedCount > 0 && (
-        <button
-          onClick={openTripTab}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            marginBottom: 20,
-            padding: "8px 16px",
-            background: "var(--green-light)",
-            color: "var(--green-deep)",
-            border: "none",
-            borderRadius: 100,
-            fontFamily: "var(--font-body)",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          View your trip ({addedCount} {addedCount === 1 ? "day" : "days"} added) →
-        </button>
-      )}
+      <div className="days-hub-panel">
+        <h2 className="days-hub-headline">{headline}</h2>
+        <div className="days-hub-subline">{subline}</div>
 
-      {/* Distillery dropdown */}
-      <div style={{ marginBottom: 40 }}>
-        <label
-          style={{
-            display: "block",
-            fontSize: 11,
-            fontWeight: 600,
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            color: "var(--slate)",
-            marginBottom: 8,
-          }}
-        >
-          Select your distillery
-        </label>
-        <select
-          value={selectedDistillery}
-          onChange={(e) => setSelectedDistillery(e.target.value)}
-          style={{
-            padding: "12px 16px",
-            borderRadius: "var(--radius-sm)",
-            border: "1.5px solid var(--stone)",
-            background: "white",
-            fontSize: 14,
-            color: "var(--dark)",
-            minWidth: 260,
-            fontFamily: "var(--font-body)",
-          }}
-        >
-          <option value="all">All distilleries</option>
-          {distilleryOptions.map((d) => (
-            <option key={d} value={d}>
-              {d}
-            </option>
-          ))}
-        </select>
-      </div>
+        {hitEntries.length > 0 && (
+          <>
+            <div className="days-hub-group-block">
+              <h3 className="days-hub-group-header">
+                The days with your distilleries <span className="days-hub-group-count">{hitEntries.length}</span>
+              </h3>
+              <div className="days-hub-group-sub">
+                {pickedNames.join(", ")} — shown first, but nothing below is hidden
+              </div>
+            </div>
+            {hitEntries.map((entry) => (
+              <DayCard
+                key={entry.day.id}
+                entry={entry}
+                picks={picks}
+                justAdded={justAddedId === entry.day.id}
+                onAdd={handleMilestone}
+              />
+            ))}
+            <div className="days-hub-rule">
+              <div className="days-hub-rule-line" />
+              <div className="days-hub-rule-label">Everything else</div>
+              <div className="days-hub-rule-line" />
+            </div>
+          </>
+        )}
 
-      {/* Vertical stacked day list */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 28, paddingBottom: 64 }}>
-        {filteredDays.map((day) => (
-          <DayCard key={day.id} day={day} onAdded={() => setAddedCount((c) => c + 1)} />
-        ))}
-        {filteredDays.length === 0 && (
+        {GROUP_ORDER.filter((g) => restEntries.some((e) => e.group === g)).map((g) => {
+          const inGroup = restEntries.filter((e) => e.group === g);
+          return (
+            <div key={g}>
+              <div className="days-hub-group-block">
+                <h3 className="days-hub-group-header">
+                  {GROUP_LABELS[g].title} <span className="days-hub-group-count">{inGroup.length}</span>
+                </h3>
+                <div className="days-hub-group-sub">{GROUP_LABELS[g].sub}</div>
+              </div>
+              {inGroup.map((entry) => (
+                <DayCard
+                  key={entry.day.id}
+                  entry={entry}
+                  picks={picks}
+                  justAdded={justAddedId === entry.day.id}
+                  onAdd={handleMilestone}
+                />
+              ))}
+            </div>
+          );
+        })}
+
+        {sorted.length === 0 && (
           <div style={{ fontSize: 14, color: "var(--slate)", padding: "40px 0" }}>
-            No Days include that distillery yet.
+            No Days are ready to show yet.
           </div>
         )}
       </div>
+
+      <DaysTripBar
+        dayCount={trip.days.length}
+        distilleryCount={tripDistillerySlugs.size}
+        totalDistilleries={distilleries.length}
+        costTotal={tripCost}
+        nights={nights}
+        milestone={milestone}
+        justAdded={justAddedId !== null}
+      />
     </>
   );
 }
