@@ -157,29 +157,6 @@ export default function Workspace({
   // that lived in the Leaflet popup itself, which felt cluttered in that
   // narrow space - this is a proper on-brand modal instead.
   const [tourPickerDistillery, setTourPickerDistillery] = useState<Distillery | null>(null);
-  // Drives the map's per-Area highlight blob (08 Aug 2026) - split into
-  // "hovered" and "pinned" rather than one combined flag so a click/tap
-  // on an Area card's focus/click can hold the blob on past a mouseout,
-  // e.g. for touch or keyboard use where hover doesn't really apply.
-  // Pinned always wins over merely-hovered; either being set shows that
-  // area's blob on the map above. The map itself has no Area pin of its
-  // own (removed per Mark's review - it made the map look too busy) so
-  // this is driven purely by the "Where to stay" card wiring below.
-  const [hoveredAreaSlug, setHoveredAreaSlug] = useState<string | null>(null);
-  const [pinnedAreaSlug, setPinnedAreaSlug] = useState<string | null>(null);
-  const activeAreaSlug = pinnedAreaSlug ?? hoveredAreaSlug;
-  function handleAreaHoverStart(slug: string) {
-    setHoveredAreaSlug(slug);
-  }
-  // Only clears if THIS slug is still the one hovered - guards against a
-  // stray mouseleave/blur from an area the pointer already left clearing
-  // a different area that was hovered into in the meantime.
-  function handleAreaHoverEnd(slug: string) {
-    setHoveredAreaSlug((prev) => (prev === slug ? null : prev));
-  }
-  function handleAreaToggle(slug: string) {
-    setPinnedAreaSlug((prev) => (prev === slug ? null : slug));
-  }
   // Per-stop collapse state, scoped by stopId - a UI preference, not core
   // trip data, so it's local state rather than persisted via TripContext.
   // Opens with everything collapsed by default (19 July 2026 feedback) -
@@ -1145,7 +1122,6 @@ export default function Workspace({
               accommodation={isLive ? accommodation : undefined}
               initialView={trip.mapView ?? undefined}
               onViewChange={trip.setMapView}
-              activeAreaSlug={activeAreaSlug}
               routeStops={routeCoords.reduce<{ lat: number; lng: number }[]>((points, coord, i) => {
                 if (i === 0) return [coord];
                 const real = routeSegments[i - 1];
@@ -1331,22 +1307,7 @@ export default function Workspace({
         <h2 className="how-title">Where to stay</h2>
         <div className="discover-grid">
           {areas.map((a) => (
-            <Link
-              href={`/areas/${a.slug}`}
-              className="discover-card"
-              key={`area-${a.slug}`}
-              // Shows this Area's highlight blob on the map above while
-              // browsing the grid (08 Aug 2026) - hover/focus for mouse
-              // and keyboard, plus click so a tap gets the same instant
-              // feedback on touch before the Link navigates away. This is
-              // the ONLY way to trigger the blob - the map itself has no
-              // Area pin of its own (removed per Mark's review).
-              onMouseEnter={() => handleAreaHoverStart(a.slug)}
-              onMouseLeave={() => handleAreaHoverEnd(a.slug)}
-              onFocus={() => handleAreaHoverStart(a.slug)}
-              onBlur={() => handleAreaHoverEnd(a.slug)}
-              onClick={() => handleAreaHoverStart(a.slug)}
-            >
+            <Link href={`/areas/${a.slug}`} className="discover-card" key={`area-${a.slug}`}>
               <div className="discover-card-image" style={a.heroImageUrl ? { backgroundImage: `url(${a.heroImageUrl})` } : undefined} />
               <div className="discover-card-body">
                 <div className="discover-card-tag">Area</div>

@@ -72,13 +72,6 @@ interface MapCanvasProps {
    *  naturally throttled) whenever the visitor pans or zooms, so the
    *  caller can persist the new view. */
   onViewChange?: (view: { lat: number; lng: number; zoom: number }) => void;
-  /** Which Area (by @/lib/areas.ts slug) is currently "active" - shows its
-   *  organic highlight blob on the map, and nothing else's. Owned by
-   *  Workspace.tsx (driven purely by hovering/clicking the "Where to
-   *  stay" Area cards below the map - the map itself has no Area pin of
-   *  its own to hover/click) - see the blob-drawing effect below for why
-   *  only ever one is rendered at a time. */
-  activeAreaSlug?: string | null;
 }
 
 // Rough center of Scotland, used when a region has no pins yet so the map
@@ -132,7 +125,6 @@ export default function MapCanvas({
   accommodation,
   initialView,
   onViewChange,
-  activeAreaSlug = null,
 }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Leaflet.Map | null>(null);
@@ -679,6 +671,28 @@ export default function MapCanvas({
     highlightMarkersRef.current = newHighlights;
   }, [mapReady, highlightedDistillerySlugs, distilleries]);
 
+  // Which Area (by @/lib/areas.ts slug), if any, is currently "active" -
+  // shows its organic highlight blob on the map, and nothing else's.
+  // Derived from the accommodation prop itself (corrected 09 Aug 2026 -
+  // this used to be a separate prop driven by hovering/clicking the
+  // "Where to stay" Area cards below the map, which turned out to be a
+  // misunderstanding of what Mark actually wanted: the blob should follow
+  // whichever Area the visitor has picked as their accommodation via the
+  // map's own Accommodation selector, not the unrelated cards below).
+  // Matched the same way the 🏠 marker popup above identifies an Area
+  // (by accommodation.name, checking FEATURED_STAYS first so a same-named
+  // hotel never gets misread as an Area) rather than inventing a new
+  // matching strategy - null whenever the selected accommodation is a
+  // Featured Stay or a free-text/other place, since only the 3 real Areas
+  // have a blob to show at all.
+  const activeAreaSlug = useMemo(() => {
+    if (!accommodation) return null;
+    const isFeaturedStay = FEATURED_STAYS.some((s) => s.name === accommodation.name);
+    if (isFeaturedStay) return null;
+    const area = AREAS.find((a) => a.name === accommodation.name && a.slug);
+    return area?.slug ?? null;
+  }, [accommodation]);
+
   // One stable-shaped organic "blob" outline per real Area (Port Ellen,
   // Bowmore, Port Charlotte), computed once rather than regenerated on
   // every render/hover - see area-blob.ts for the seeded-PRNG + Chaikin-
@@ -698,15 +712,15 @@ export default function MapCanvas({
   // Draws the ONE active Area's highlight blob (organic polygon, not a
   // circle - see area-blob.ts), or nothing at all when no Area is active.
   // Replaces the old always-on per-Area L.circle entirely (08 Aug 2026,
-  // per Mark's review): the owner wanted this to only show while a
-  // visitor is actually hovering/has clicked that Area's card in the
-  // "Where to stay" grid below - the map itself is deliberately pin-free,
-  // per Mark's follow-up review (an always-on or hoverable pin per Area
-  // made the map look "too busy", Port Ellen especially) - see
-  // activeAreaSlug's own prop comment. Still the same brand amber
-  // (--amber, #D4A574) as before, at ~40% fill (~60% transparent, per the
-  // reference) with a more solid ~85%-opacity stroke so the boundary
-  // reads clearly through whatever's underneath.
+  // per Mark's review): the map itself is deliberately pin-free, per
+  // Mark's follow-up review (an always-on or hoverable pin per Area made
+  // the map look "too busy", Port Ellen especially) - now shows only
+  // while the visitor's chosen accommodation (via the map's own
+  // Accommodation selector) IS one of the 3 real Areas - see
+  // activeAreaSlug above. Still the same brand amber (--amber, #D4A574)
+  // as before, at ~40% fill (~60% transparent, per the reference) with a
+  // more solid ~85%-opacity stroke so the boundary reads clearly through
+  // whatever's underneath.
   //
   // Drawn with plain L.polygon rather than a divIcon marker (as the pulse
   // ring above uses) - Leaflet already renders vector layers like
