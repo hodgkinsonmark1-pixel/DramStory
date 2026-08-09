@@ -10,12 +10,9 @@ import { tripSummaryText, formatMoney } from "@/lib/day-derivations";
  * "No days yet"), matching the reference prototype's footTrip(), which
  * never disappears.
  *
- * TEMPORARY WIRING (flagged per the task brief, not a silent choice):
- * trip review is Phase 3 and doesn't exist yet, so Review points at
- * /journey?resume=1 - the closest existing "see your trip" page, and the
- * same target DaysHubGrid's own pre-existing "View your trip" flow
- * already used. Swap this for the real trip review page once Phase 3
- * lands.
+ * Review points at /trip (Days/Trip flow Phase 3's real trip review
+ * page, src/app/trip/page.tsx) - previously a temporary /journey?resume=1
+ * placeholder pending Phase 3, now swapped over.
  */
 export default function DaysTripBar({
   dayCount,
@@ -87,7 +84,7 @@ export default function DaysTripBar({
           </div>
         </div>
         <Link
-          href="/journey?resume=1"
+          href="/trip"
           className="days-trip-bar-review"
           aria-disabled={dayCount === 0}
           tabIndex={dayCount === 0 ? -1 : 0}

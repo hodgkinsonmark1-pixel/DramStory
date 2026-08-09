@@ -17,6 +17,7 @@ import {
   deriveHook,
   isFerryDay,
   milestoneFor,
+  paceTone,
 } from "@/lib/day-derivations";
 import DaysTripBar from "@/components/journeys/DaysTripBar";
 
@@ -43,12 +44,11 @@ import DaysTripBar from "@/components/journeys/DaysTripBar";
  */
 
 function PacingTag({ pacing }: { pacing: HubDay["pacing"] }) {
-  const tone =
-    pacing === "Relaxed"
-      ? { bg: "var(--green-light)", fg: "var(--green-deep)" }
-      : pacing === "Moderate"
-      ? { bg: "var(--amber-pale)", fg: "var(--copper)" }
-      : { bg: "#F7E6E0", fg: "#B5502E" };
+  // Colour mapping lives in day-derivations.ts's paceTone (Days/Trip
+  // flow Phase 3) - trip review's own pace badges import the same
+  // function so both places share one source of truth instead of two
+  // hand-copied colour tables drifting apart.
+  const tone = paceTone(pacing);
 
   return (
     <span

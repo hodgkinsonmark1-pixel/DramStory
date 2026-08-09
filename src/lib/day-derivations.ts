@@ -1,5 +1,6 @@
-import type { HubDay } from "@/lib/types";
+import type { HubDay, ItineraryDay } from "@/lib/types";
 import { estimatedDriveMinutes } from "@/lib/drive-time";
+import { stopCoords } from "@/lib/itinerary-stop";
 
 /**
  * Derived values for a HubDay against the visitor's current TripAnswers
@@ -169,4 +170,146 @@ export function tripSummaryText(dayCount: number, distilleryCount: number, night
   const free = Math.max(0, nights - dayCount);
   if (free > 0) bits.push(free === 1 ? "one day free" : `${free} days free`);
   return bits.join(" · ");
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────
+// Trip review (Days/Trip flow Phase 3, docs/days-trip-flow-handoff.md
+// §3.3) - everything above this line derives values for a catalog
+// HubDay (against the visitor's answers, for /days' own ranked list).
+// Trip review works against the visitor's REAL, editable trip
+// (ItineraryDay[] from trip-context.tsx) instead, which has a different
+// shape (accommodation is per-day, stops are the real ItineraryStop
+// union of distillery/feature, there's no `pacing`/`mapDistilleries`
+// field) - so these are parallel, ItineraryDay-shaped equivalents of the
+// functions above, not the same functions reused. Kept in this file
+// rather than a new one so every "per-day derived value" stays in one
+// place, per the file's own original intent.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** ItineraryDay equivalent of isFerryDay - same reasoning (isle-of-jura
+ *  is the one distillery slug that genuinely needs a ferry crossing). */
+export function isFerryDayItinerary(day: ItineraryDay): boolean {
+  return day.stops.some((s) => s.kind === "distillery" && s.distillery.slug === "isle-of-jura");
+}
+
+/**
+ * ItineraryDay equivalent of driveMinutesForDay: accommodation -> stop 1
+ * -> ... -> stop N -> accommodation, using the same haversine estimate.
+ * Every day gets an accommodation the moment it's created (addDay's own
+ * fallback to FEATURED_STAYS[0]), so in practice `day.accommodation` is
+ * always set by the time a day reaches trip review - the undefined
+ * branch below is just a defensive fallback (stop-to-stop only, no
+ * loop) for the theoretical case it isn't.
+ */
+export function driveMinutesForItineraryDay(day: ItineraryDay): number {
+  const stopPoints = day.stops.map(stopCoords);
+  if (stopPoints.length === 0) return 0;
+  const acc = day.accommodation;
+  const points = acc ? [{ lat: acc.lat, lng: acc.lng }, ...stopPoints, { lat: acc.lat, lng: acc.lng }] : stopPoints;
+  let total = 0;
+  for (let i = 0; i < points.length - 1; i++) {
+    total += estimatedDriveMinutes(points[i], points[i + 1]);
+  }
+  return total;
+}
+
+/** Sum of chosen tour prices for a real trip day. */
+export function itineraryDayCost(day: ItineraryDay): number {
+  return day.stops.reduce((sum, s) => sum + (s.kind === "distillery" ? s.tour?.price ?? 0 : 0), 0);
+}
+
+/** ItineraryDay equivalent of dayPriceLabel - same §4.3 from/flat rule,
+ *  against the visitor's own chosen tours rather than a HubDay's default
+ *  ones. */
+export function itineraryDayPriceLabel(day: ItineraryDay): string {
+  const now = itineraryDayCost(day);
+  if (now === 0) return "";
+  const cheapest = day.stops.reduce((sum, s) => {
+    if (s.kind !== "distillery") return sum;
+    const tours = s.distillery.tours;
+    if (!tours || tours.length === 0) return sum;
+    return sum + Math.min(...tours.map((t) => t.price));
+  }, 0);
+  const hasChoice = day.stops.some((s) => s.kind === "distillery" && (s.distillery.tours?.length ?? 0) > 1);
+  if (hasChoice && now === cheapest) return `from ${formatMoney(now)}pp`;
+  return `${formatMoney(now)}pp`;
+}
+
+/**
+ * A real trip day's pace (Relaxed/Moderate/Packed), for the "shape of
+ * your trip" strip and the Days list's numbered badge (§3.3 items 2/4).
+ *
+ * JUDGEMENT CALL: ItineraryDay carries no `pacing` field of its own
+ * (unlike HubDay - editing a day is exactly what turns it from "a
+ * HubDay" into "the visitor's own itinerary"). Where a day still traces
+ * back to a real HubDay (`sourceHubDaySlug`), this inherits that HubDay's
+ * own authored pacing - the best available signal, even if the day's
+ * stops have since been edited (that's what the "YOUR VERSION" tag is
+ * for, not a reason to discard the pacing). For a day with no source (or
+ * whose source no longer resolves - hubDaysBySlug should always be built
+ * from the same getDays() call passed to /trip), falls back to a simple
+ * stop-count heuristic, since distillery-stop count is the dominant
+ * driver of how full a day actually feels and mirrors the effective
+ * shape of the existing HubDay pacing without inventing a new drive-time
+ * threshold of its own.
+ */
+export function paceForItineraryDay(
+  day: ItineraryDay,
+  hubDaysBySlug: Map<string, HubDay>
+): "Relaxed" | "Moderate" | "Packed" {
+  const source = day.sourceHubDaySlug ? hubDaysBySlug.get(day.sourceHubDaySlug) : undefined;
+  if (source && (source.pacing === "Relaxed" || source.pacing === "Moderate" || source.pacing === "Packed")) {
+    return source.pacing;
+  }
+  const distilleryStops = day.stops.filter((s) => s.kind === "distillery").length;
+  if (distilleryStops >= 3) return "Packed";
+  if (distilleryStops === 2) return "Moderate";
+  return "Relaxed";
+}
+
+/** Background/foreground pair behind PacingTag's own pace pill
+ *  (DaysHubGrid.tsx) - pulled out here so trip review's pace badges use
+ *  literally the same mapping rather than a second hand-copied one. */
+export function paceTone(pacing: string): { bg: string; fg: string } {
+  if (pacing === "Relaxed") return { bg: "var(--green-light)", fg: "var(--green-deep)" };
+  if (pacing === "Moderate") return { bg: "var(--amber-pale)", fg: "var(--copper)" };
+  return { bg: "#F7E6E0", fg: "#B5502E" };
+}
+
+/** Solid pace colour for the shape strip's bars and the Days list's
+ *  numbered day badge (§3.3 items 2/4 - "coloured by pace"). Matches
+ *  paceTone's own `fg` above exactly (--green-deep/--copper/#B5502E),
+ *  just exposed as a single value for places that want a solid fill
+ *  rather than a bg/fg pill pair. */
+export function paceAccentColour(pacing: string): string {
+  return paceTone(pacing).fg;
+}
+
+/** §3.3 item 2's editorial read-out under the shape strip. Two
+ *  consecutive Packed days wins UNLESS the trip's first day is a ferry
+ *  day, which always takes precedence (matches the reference
+ *  prototype's own ordering: the back-to-back check runs first, but the
+ *  ferry-first check is applied after and overwrites it if true). */
+export function tripShapeNote(paces: string[], firstDayIsFerry: boolean): string {
+  let note = "A steady rhythm — nothing back to back.";
+  for (let i = 1; i < paces.length; i++) {
+    if (paces[i] === "Packed" && paces[i - 1] === "Packed") {
+      note = "Two full days back to back — consider swapping one down the list.";
+      break;
+    }
+  }
+  if (firstDayIsFerry) note = "The ferry day is first — fine, but it is the one day weather can ruin.";
+  return note;
+}
+
+/** §5 "Collection copy by count" table, verbatim. */
+export function collectionNote(count: number, total: number): string {
+  if (count <= 0) return "";
+  if (count === 1) return "One down. Most visitors manage three or four in a long weekend.";
+  if (count <= 3) return "A good start — three or four is a comfortable weekend.";
+  if (count <= 5) return "More than most people fit into a week here.";
+  if (count <= 8) return "That is serious ground covered. Pace yourself.";
+  if (count < total) return "All but a couple. The last ones are the awkward ones.";
+  return "Every distillery on Islay. Very few people manage that in one trip.";
 }
