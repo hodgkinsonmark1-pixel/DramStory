@@ -26,30 +26,31 @@ import type { HubDay } from "@/lib/types";
  */
 export const dynamic = "force-dynamic";
 
-/** Great-circle distance in miles - same small local copy convention as
- *  the Area template (see AreaClient.tsx's own milesBetween), kept
- *  per-file rather than reaching into the data layer from a page. */
-function milesBetween(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
-  const R = 3958.8;
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-  const lat1 = (a.lat * Math.PI) / 180;
-  const lat2 = (b.lat * Math.PI) / 180;
-  const h = Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
-  return 2 * R * Math.asin(Math.sqrt(h));
+/** Pulls the number of hours out of a HubDay's own "Duration from X"
+ *  field (e.g. "≈2.5 hrs", straight from Airtable - see data/index.ts).
+ *  Deliberately NOT a straight-line distance calculation: the Area
+ *  type's own doc comment on distilleryRegion already flags that
+ *  straight-line distance is misleading on Islay's road geography, and
+ *  every Day already carries this real, sourced drive-time figure - a
+ *  first attempt at this sort used a lat/lng midpoint instead and it
+ *  produced a visibly wrong order (Port Ellen's own day 2.5 hrs, but
+ *  Bowmore-side days ahead of some closer South Islay ones), caught in
+ *  live verification. Returns null (sorts last, not dropped) if the
+ *  field's missing or unparseable, rather than guessing. */
+function parseDurationHours(duration: string): number | null {
+  const match = duration.match(/(\d+(?:\.\d+)?)/);
+  return match ? parseFloat(match[1]) : null;
 }
 
-/** A Day's own "location" for proximity sorting - the midpoint of its
- *  real stops' coordinates (mapDistilleries, same data already used to
- *  draw each card's route map). Days with no resolved stop coordinates
- *  sort last rather than being dropped, since they're still real,
- *  addable Days - just not ones this sort can honestly place. */
-function dayMidpoint(day: HubDay): { lat: number; lng: number } | null {
-  const points = day.mapDistilleries ?? [];
-  if (points.length === 0) return null;
-  const lat = points.reduce((sum, p) => sum + p.lat, 0) / points.length;
-  const lng = points.reduce((sum, p) => sum + p.lng, 0) / points.length;
-  return { lat, lng };
+/** Which of HubDay's two real, sourced duration fields matches a given
+ *  Area slug - only Port Ellen and Bowmore have one (Airtable's "Duration
+ *  from Port Ellen"/"Duration from Bowmore" fields). Areas without one
+ *  (e.g. Port Charlotte) deliberately fall back to unsorted rather than
+ *  inventing a distance metric for them. */
+function durationFieldFor(areaSlug: string): ((day: HubDay) => string) | null {
+  if (areaSlug === "port-ellen") return (day) => day.durationPortEllen;
+  if (areaSlug === "bowmore") return (day) => day.durationBowmore;
+  return null;
 }
 
 /** "See all days" fix (10 Aug 2026, Area page CTA #2) - Mark asked for
@@ -68,14 +69,15 @@ export default async function PreDesignedDaysHubPage({
   const days = await getDays();
 
   const nearArea = near ? AREAS.find((a) => a.slug === near) : undefined;
-  const sortedDays = nearArea
+  const durationFor = nearArea ? durationFieldFor(nearArea.slug ?? "") : null;
+  const sortedDays = durationFor
     ? [...days].sort((x, y) => {
-        const mx = dayMidpoint(x);
-        const my = dayMidpoint(y);
-        if (!mx && !my) return 0;
-        if (!mx) return 1;
-        if (!my) return -1;
-        return milesBetween(nearArea, mx) - milesBetween(nearArea, my);
+        const hx = parseDurationHours(durationFor(x));
+        const hy = parseDurationHours(durationFor(y));
+        if (hx === null && hy === null) return 0;
+        if (hx === null) return 1;
+        if (hy === null) return -1;
+        return hx - hy;
       })
     : days;
 
