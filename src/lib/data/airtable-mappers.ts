@@ -36,6 +36,11 @@ export interface AirtableDistilleryFields {
   "Fun Facts"?: string;
   History?: string;
   "Whisky Profile"?: string;
+  /** Weekly closure pattern (added 9 Aug 2026) - day names ("Sunday",
+   *  "Monday", etc.), sourced from each distillery's own official site.
+   *  Blank means open every day - see Distillery.closedDays' doc comment
+   *  in types.ts for the one exception (Port Ellen). */
+  "Closed Days"?: string[];
 }
 
 export interface AirtableTourFields {
@@ -140,6 +145,26 @@ export function mapFeatureCategory(category?: string): NearbyFeature["category"]
     default:
       return "attraction";
   }
+}
+
+/** Day-name -> weekday-index (0 = Sunday .. 6 = Saturday), for turning
+ *  Distilleries' "Closed Days" multipleSelects into Distillery.closedDays
+ *  (Days/Trip flow Phase 4, docs/days-trip-flow-handoff.md §2.2/§4.4). */
+const WEEKDAY_INDEX: Record<string, number> = {
+  Sunday: 0,
+  Monday: 1,
+  Tuesday: 2,
+  Wednesday: 3,
+  Thursday: 4,
+  Friday: 5,
+  Saturday: 6,
+};
+
+export function mapClosedDays(closedDays: string[] | undefined): number[] {
+  if (!closedDays) return [];
+  return closedDays
+    .map((name) => WEEKDAY_INDEX[name])
+    .filter((n): n is number => n != null);
 }
 
 export function mapTour(fields: AirtableTourFields): Tour {
@@ -468,6 +493,11 @@ export interface AirtableDayStopFields {
   Distillery?: string[]; // linked record ID -> Distilleries table
   Tour?: string[]; // linked record ID -> Tours table
   Order?: number;
+  /** True if this stop is the reason its Day exists - not droppable in
+   *  the day screen's editing UI (added 9 Aug 2026, populated for every
+   *  real Day Stop record already - see Distillery/HubDay.stops'
+   *  `anchor` in types.ts). Undefined/false otherwise. */
+  Anchor?: boolean;
 }
 
 export interface AirtableEventFields {

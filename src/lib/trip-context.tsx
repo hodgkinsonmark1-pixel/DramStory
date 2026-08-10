@@ -123,7 +123,13 @@ interface TripContextValue {
    *  view follows it rather than jumping to whatever now sits at the old
    *  index. */
   moveDay: (index: number, direction: -1 | 1) => void;
-  addStop: (dayIndex: number, distillery: Distillery) => void;
+  /** anchor marks this stop as the reason the day exists (Days/Trip flow
+   *  Phase 4) - passed through from a HubDay's own stop.anchor when
+   *  copying a Hub Day into the trip (see DaysHubGrid.tsx's
+   *  handleAddToTrip and resetDayToHub). Omit (or false) for an ordinary
+   *  stop added freehand in the planner - anchors are never droppable/
+   *  swappable in the day screen's editing UI. */
+  addStop: (dayIndex: number, distillery: Distillery, anchor?: boolean) => void;
   /** Adds a Natural Feature (beach/walk/bike route/local gem) as a stop -
    *  the map popup's "+ Add to Trip" button for these. */
   addFeatureStop: (dayIndex: number, feature: LocalFeature) => void;
@@ -396,11 +402,11 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const addStop = useCallback((dayIndex: number, distillery: Distillery) => {
+  const addStop = useCallback((dayIndex: number, distillery: Distillery, anchor?: boolean) => {
     setDays((prev) =>
       prev.map((day, i) =>
         i === dayIndex && !day.stops.some((s) => stopId(s) === distillery.slug)
-          ? { ...day, stops: [...day.stops, { kind: "distillery" as const, distillery }] }
+          ? { ...day, stops: [...day.stops, { kind: "distillery" as const, distillery, ...(anchor ? { anchor: true } : {}) }] }
           : day
       )
     );

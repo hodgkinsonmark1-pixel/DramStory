@@ -1,6 +1,6 @@
-import type { Distillery, HubDay, ItineraryDay, ItineraryStop, LocalFeature, Tour } from "@/lib/types";
+import type { Distillery, HubDay, ItineraryDay, ItineraryStop, LocalFeature, Tour, TripDates } from "@/lib/types";
 import { estimatedDriveMinutes } from "@/lib/drive-time";
-import { stopCoords, stopId } from "@/lib/itinerary-stop";
+import { stopCoords, stopId, stopName, stopVisitMinutes } from "@/lib/itinerary-stop";
 
 /**
  * Derived values for a HubDay against the visitor's current TripAnswers
@@ -350,14 +350,14 @@ export function resetDayToHub(
   hub: HubDay,
   actions: {
     removeStop: (dayIndex: number, id: string) => void;
-    addStop: (dayIndex: number, distillery: Distillery) => void;
+    addStop: (dayIndex: number, distillery: Distillery, anchor?: boolean) => void;
     addFeatureStop: (dayIndex: number, feature: LocalFeature) => void;
     setTourForStop: (dayIndex: number, distillery: Distillery, tour: Tour | undefined) => void;
   }
 ): void {
   currentStops.map(stopId).forEach((id) => actions.removeStop(dayIndex, id));
   hub.stops.forEach((s) => {
-    actions.addStop(dayIndex, s.distillery);
+    actions.addStop(dayIndex, s.distillery, s.anchor);
     if (s.tour) actions.setTourForStop(dayIndex, s.distillery, s.tour);
   });
   hub.featureStops.forEach((f) => actions.addFeatureStop(dayIndex, f));
@@ -411,4 +411,148 @@ export function describeHubDayChanges(day: ItineraryDay, hub: HubDay): string {
   if (added > 0) parts.push(`${added} stop${added > 1 ? "s" : ""} added`);
   if (removed > 0) parts.push(`${removed} dropped`);
   return `${parts.join(", ")}.`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Day screen (Days/Trip flow Phase 4, docs/days-trip-flow-handoff.md
+// §3.4/§4.4/§10 "Day"). Reused by both /trip (TripReview.tsx's day rows,
+// which now link into the day screen) and /trip/day/[index]
+// (DayScreen.tsx) - kept here, not duplicated, per this file's own
+// "every per-day derived value in one place" intent.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Best-effort honest title for a trip day - moved here from
+ *  TripReview.tsx (Phase 3) so the day screen can use the exact same
+ *  fallback logic rather than a second hand-copied version. HubDay has an
+ *  authored name ("Ardbeg, on Foot") - a day that still traces back to
+ *  one uses it. A day with no source (built freehand in the planner, or
+ *  whose Hub Day no longer resolves) has no editorial name in the current
+ *  data model, so this falls back to the stop names themselves rather
+ *  than fabricating one - consistent with the brand-voice "no fabricated
+ *  specifics" rule. */
+export function dayTitle(day: ItineraryDay, hub: HubDay | undefined): string {
+  if (hub) return hub.name;
+  if (day.stops.length > 0) return day.stops.map(stopName).join(" → ");
+  return day.label;
+}
+
+// ---- small ISO-date helpers - moved here from TripReview.tsx so the day
+// screen can compute the same per-day calendar date without a second
+// hand-copied version. Deliberately plain string/Date arithmetic, no date
+// library, same approach used throughout this codebase. ----
+export function addDaysIso(iso: string, days: number): Date | null {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+export function formatDayDate(d: Date): string {
+  return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+}
+
+/** Real calendar date for trip day `index`, given tripDates - null if no
+ *  specific range is confirmed. A "month" answer (e.g. "September 2026")
+ *  doesn't pin down which day of the month Day 1 is, so that mode (and
+ *  the unset default) both fall back to null, same as TripReview's own
+ *  rangeStart check. */
+export function dateForDayIndex(tripDates: TripDates, index: number): Date | null {
+  if (tripDates.mode !== "range" || !tripDates.confirmed || !tripDates.startDate) return null;
+  return addDaysIso(tripDates.startDate, index);
+}
+
+/** §2.2's "Per-day derived values" - schedule(day): start 09:30, alternate
+ *  drive-leg + visit-duration per stop, ending with a `home` time. Legs
+ *  use the same haversine estimate as driveMinutesForItineraryDay; visit
+ *  length per stop comes from stopVisitMinutes (distillery avgVisit / a
+ *  feature's own duration / the flat feature default, or a visitor's
+ *  customMinutes override - itinerary-stop.ts's existing single source of
+ *  truth for "how long is this stop", reused rather than re-derived). */
+const SCHEDULE_START_MINUTES = 9 * 60 + 30; // 09:30, per §2.2/§3.4 - not adjustable (§8 open question 4)
+
+export interface ScheduleRow {
+  stop: ItineraryStop;
+  index: number;
+  arrive: number; // minutes after midnight
+  leave: number;
+  dur: number;
+}
+
+export interface DaySchedule {
+  rows: ScheduleRow[];
+  /** Minutes after midnight the visitor is back at their accommodation -
+   *  undefined base (theoretical - see driveMinutesForItineraryDay's own
+   *  comment, every day gets one from addDay) just stops the clock after
+   *  the last stop's visit, with no final drive leg added. */
+  home: number;
+}
+
+export function scheduleForItineraryDay(day: ItineraryDay): DaySchedule {
+  const acc = day.accommodation;
+  const base = acc ? { lat: acc.lat, lng: acc.lng } : undefined;
+  let t = SCHEDULE_START_MINUTES;
+  let prevPoint = base;
+  const rows: ScheduleRow[] = day.stops.map((stop, index) => {
+    const point = stopCoords(stop);
+    const leg = prevPoint ? estimatedDriveMinutes(prevPoint, point) : 0;
+    t += leg;
+    const dur = stopVisitMinutes(stop);
+    const row: ScheduleRow = { stop, index, arrive: t, leave: t + dur, dur };
+    t += dur;
+    prevPoint = point;
+    return row;
+  });
+  const home = base && prevPoint && day.stops.length > 0 ? t + estimatedDriveMinutes(prevPoint, base) : t;
+  return { rows, home };
+}
+
+/** Formats minutes-after-midnight as "9:30", "13:10" - rounded to the
+ *  nearest 5 minutes, matching the reference prototype's own `clock()`
+ *  (schedule times are estimates, not to-the-minute promises). */
+export function formatClockTime(minutes: number): string {
+  const rounded = Math.round(minutes / 5) * 5;
+  const h = Math.floor(rounded / 60);
+  const m = rounded % 60;
+  return `${h}:${String(m).padStart(2, "0")}`;
+}
+
+export type PartOfDay = "Morning" | "Afternoon" | "Evening";
+
+/** MORNING/AFTERNOON/EVENING boundaries for grouping the day screen's
+ *  stops (§3.4 item 4 - "reasonable boundaries... use your judgement, not
+ *  precisely specified"). Matches the reference prototype's own
+ *  partOfDay() exactly: before 12:00 is Morning, 12:00-17:00 is
+ *  Afternoon, after 17:00 is Evening - a plain, defensible 3-way split of
+ *  a schedule that starts at 09:30. */
+export function partOfDay(arriveMinutes: number): PartOfDay {
+  if (arriveMinutes < 12 * 60) return "Morning";
+  if (arriveMinutes < 17 * 60) return "Afternoon";
+  return "Evening";
+}
+
+export const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+/** §4.4 closure warning: is this distillery closed on the given calendar
+ *  date? Port Ellen is deliberately excluded even though its closedDays
+ *  is also empty (see isAppointmentOnly below) - both blank for different
+ *  reasons, so this alone can't tell them apart; callers should check
+ *  isAppointmentOnly first (see DayScreen.tsx) rather than relying on
+ *  this returning false for Port Ellen as if it were "open as normal". */
+export function isDistilleryClosedOn(distillery: Distillery, date: Date): boolean {
+  return distillery.closedDays.includes(date.getDay());
+}
+
+/** JUDGEMENT CALL: there's no dedicated "appointment only, no weekly
+ *  pattern" flag in the data model (Port Ellen's closedDays is left blank
+ *  for a structurally different reason than every other distillery's
+ *  blank closedDays - see types.ts's doc comment on Distillery.closedDays
+ *  and the Airtable field's own description). Rather than hardcode
+ *  "slug === 'port-ellen'" (the isFerryDay precedent elsewhere in this
+ *  file), this reads the distillery's own Hours text for "by appointment"
+ *  - Port Ellen's Hours field is literally "By appointment only - no
+ *  drop-in hours" - so it stays correct automatically if another
+ *  appointment-only distillery is ever added, rather than being a
+ *  one-off special case tied to a specific slug. */
+export function isAppointmentOnly(distillery: Distillery): boolean {
+  return distillery.hours.toLowerCase().includes("appointment");
 }

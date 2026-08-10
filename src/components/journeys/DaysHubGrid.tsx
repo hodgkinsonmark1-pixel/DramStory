@@ -43,7 +43,7 @@ import DaysTripBar from "@/components/journeys/DaysTripBar";
  * richer) supersedes it rather than sitting alongside it.
  */
 
-function PacingTag({ pacing }: { pacing: HubDay["pacing"] }) {
+export function PacingTag({ pacing }: { pacing: HubDay["pacing"] }) {
   // Colour mapping lives in day-derivations.ts's paceTone (Days/Trip
   // flow Phase 3) - trip review's own pace badges import the same
   // function so both places share one source of truth instead of two
@@ -109,7 +109,7 @@ function DayCard({
     onAdd(day);
     trip.addDay(day.slug);
     for (const stop of day.stops) {
-      trip.addStop(newDayIndex, stop.distillery);
+      trip.addStop(newDayIndex, stop.distillery, stop.anchor);
       if (stop.tour) trip.setTourForStop(newDayIndex, stop.distillery, stop.tour);
     }
     for (const feature of day.featureStops) {

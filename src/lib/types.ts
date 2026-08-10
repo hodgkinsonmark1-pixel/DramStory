@@ -286,8 +286,14 @@ export interface HubDay {
    *  whichever Tour this Day's Day Stop links (if any). This is what
    *  "+ Add this day to my trip" writes into TripContext via
    *  addDay/addStop/setTourForStop, so it needs the real objects those
-   *  functions expect, not just names. */
-  stops: { distillery: Distillery; tour?: Tour }[];
+   *  functions expect, not just names.
+   *
+   *  `anchor` - true when this stop is the reason the Day exists (e.g.
+   *  Ardbeg on "Ardbeg, on Foot") and shouldn't be droppable/swappable in
+   *  the day screen's editing UI - sourced from Day Stops' own "Anchor"
+   *  checkbox (added 9 Aug 2026, docs/days-trip-flow-handoff.md §2.2),
+   *  read straight through, not recomputed here. */
+  stops: { distillery: Distillery; tour?: Tour; anchor: boolean }[];
   /** The real Local Feature records behind mapFeatures above (walks,
    *  viewpoints, pubs the narrative links to) - same "+ Add this day"
    *  flow also adds these via addFeatureStop, so a Day's trip stops match
@@ -341,6 +347,18 @@ export interface Distillery {
   history?: string;
   /** House style, core expressions, tasting notes. */
   whiskyProfile?: string;
+  /** Weekly closure pattern - which weekdays (0 = Sunday .. 6 = Saturday)
+   *  this distillery is closed, sourced from Airtable's "Closed Days"
+   *  field (added 9 Aug 2026, docs/days-trip-flow-handoff.md §2.2/§4.4).
+   *  An EMPTY array deliberately means "open every day", not "unknown" -
+   *  every distillery without a genuine weekly closure has this field
+   *  left blank in Airtable on purpose. Port Ellen is the one exception:
+   *  its closedDays is also empty, but because it has no fixed weekly
+   *  pattern at all (monthly appointment-only open days) - callers that
+   *  render open/closed status should check its `hours` text (or the
+   *  isAppointmentOnly helper in day-derivations.ts) rather than reading
+   *  an empty closedDays as "open every day" for Port Ellen specifically. */
+  closedDays: number[];
   source: DataSource;
 }
 
@@ -502,6 +520,14 @@ export type ItineraryStop = (
    *  since it's exactly the kind of detail someone wants at a glance
    *  while scanning a busy day. Per 19 July 2026 conversation. */
   note?: string;
+  /** True when this stop is the reason the day exists (Days/Trip flow
+   *  Phase 4, docs/days-trip-flow-handoff.md §2.2/§3.4) - carried over
+   *  from HubDay.stops' own `anchor` when a day is added via "+ Add this
+   *  day to my trip" (see DaysHubGrid.tsx / trip-context.tsx's addStop).
+   *  Undefined/false for everything else, including every stop added
+   *  freehand in the planner - an anchor is never droppable or swappable
+   *  in the day screen's editing UI. */
+  anchor?: boolean;
 };
 
 /** Where a day's trip starts/ends - a real, verifiable place (a village,

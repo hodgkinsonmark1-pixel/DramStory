@@ -4,6 +4,7 @@ import { airtableFetchAll } from "@/lib/airtable";
 import { searchAccommodation, searchNearbyByCategory } from "@/lib/google-places";
 import {
   deriveNextStops,
+  mapClosedDays,
   mapLocalFeature,
   mapTour,
   mapToFeaturedStay,
@@ -118,6 +119,7 @@ async function fetchDistilleriesFromAirtable(): Promise<Distillery[]> {
         funFacts: f["Fun Facts"] || undefined,
         history: f.History || undefined,
         whiskyProfile: f["Whisky Profile"] || undefined,
+        closedDays: mapClosedDays(f["Closed Days"]),
         source: "airtable" as const,
       };
     });
@@ -252,8 +254,11 @@ async function fetchDaysFromAirtable(): Promise<HubDay[]> {
         distillery: s.Distillery?.[0] ? distilleryById.get(s.Distillery[0]) : undefined,
         tour: s.Tour?.[0] ? tourById.get(s.Tour[0]) : undefined,
         order: s.Order ?? 0,
+        anchor: s.Anchor === true,
       }))
-      .filter((s): s is { distillery: Distillery; tour: Tour | undefined; order: number } => !!s.distillery)
+      .filter(
+        (s): s is { distillery: Distillery; tour: Tour | undefined; order: number; anchor: boolean } => !!s.distillery
+      )
       .sort((a, b) => a.order - b.order);
 
     if (stops.length === 0) continue; // no resolvable stops - not ready to show
@@ -308,7 +313,7 @@ async function fetchDaysFromAirtable(): Promise<HubDay[]> {
       // Day-specific photography exists.
       mapDistilleries,
       mapFeatures: mapFeatures.length > 0 ? mapFeatures : undefined,
-      stops: stops.map((s) => ({ distillery: s.distillery, tour: s.tour })),
+      stops: stops.map((s) => ({ distillery: s.distillery, tour: s.tour, anchor: s.anchor })),
       featureStops,
       source: "airtable",
     });

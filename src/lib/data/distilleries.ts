@@ -100,6 +100,7 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       "lagavulin",
       "laphroaig"
     ],
+    "closedDays": [],
     "source": "mock"
   },
   {
@@ -175,6 +176,7 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       "ardbeg",
       "laphroaig"
     ],
+    "closedDays": [],
     "source": "mock"
   },
   {
@@ -237,6 +239,7 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       "lagavulin",
       "bowmore"
     ],
+    "closedDays": [],
     "source": "mock"
   },
   {
@@ -326,6 +329,7 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       "bruichladdich",
       "caol_ila"
     ],
+    "closedDays": [],
     "source": "mock"
   },
   {
@@ -395,6 +399,7 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       "bowmore",
       "kilchoman"
     ],
+    "closedDays": [],
     "source": "mock"
   },
   {
@@ -465,6 +470,7 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       "bruichladdich",
       "caol_ila"
     ],
+    "closedDays": [],
     "source": "mock"
   },
   {
@@ -534,6 +540,7 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       "bunnahabhain",
       "ardnahoe"
     ],
+    "closedDays": [],
     "source": "mock"
   },
   {
@@ -596,6 +603,7 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       "caol_ila",
       "ardnahoe"
     ],
+    "closedDays": [],
     "source": "mock"
   },
   {
@@ -659,6 +667,7 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       "caol_ila",
       "bunnahabhain"
     ],
+    "closedDays": [],
     "source": "mock"
   }
 ];

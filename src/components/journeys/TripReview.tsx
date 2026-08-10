@@ -20,6 +20,9 @@ import {
   collectionNote,
   isDayEdited,
   resetDayToHub,
+  dayTitle,
+  addDaysIso,
+  formatDayDate,
 } from "@/lib/day-derivations";
 import DateRangePicker from "@/components/journey/DateRangePicker";
 
@@ -37,35 +40,6 @@ import DateRangePicker from "@/components/journey/DateRangePicker";
  * detect whether it's been edited - see paceForItineraryDay and
  * isDayEdited below.
  */
-
-// ─────────────────────────────────────────────────────────────────────────
-// Small ISO-date helpers - deliberately plain string/Date arithmetic, no
-// date library, same approach Workspace.tsx already uses for its own
-// (separate, unexported) date helpers.
-// ─────────────────────────────────────────────────────────────────────────
-function addDaysIso(iso: string, days: number): Date | null {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return null;
-  d.setDate(d.getDate() + days);
-  return d;
-}
-
-function formatDayDate(d: Date): string {
-  return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
-}
-
-/** Best-effort honest title for a trip day. HubDay has an authored name
- *  ("Ardbeg, on Foot") - a day that still traces back to one uses it.
- *  A day with no source (built freehand in the planner, or whose Hub Day
- *  no longer resolves) has no editorial name in the current data model,
- *  so this falls back to the stop names themselves rather than
- *  fabricating one - consistent with the brand-voice "no fabricated
- *  specifics" rule. */
-function dayTitle(day: ItineraryDay, hub: HubDay | undefined): string {
-  if (hub) return hub.name;
-  if (day.stops.length > 0) return day.stops.map(stopName).join(" → ");
-  return day.label;
-}
 
 interface DayRow {
   day: ItineraryDay;
@@ -218,12 +192,16 @@ function DayReviewRow({
         </button>
       </div>
       <div className="trip-day-body">
-        {/* Plain text, not a link/button - there's no day-detail screen
-            to open in Phase 3 (that's §3.4, Phase 4, out of scope). The
-            one real hand-off this page offers into a day is "Make this
-            day my own" below, so the title doesn't duplicate that
-            action under a second, less legible affordance. */}
-        <div className="trip-day-title">{title}</div>
+        {/* Days/Trip flow Phase 4: the title now opens the day screen
+            (§3.4) - a real button rather than a plain div, per §3.3 item
+            4's own spec listing both a day view AND "Make this day my
+            own" as separate actions on this row. "Make this day my own"
+            stays a distinct action below (the hand-off into /journey),
+            so the two affordances remain legible as different things:
+            "look at this day" vs "go edit it properly". */}
+        <Link href={`/trip/day/${index}`} className="trip-day-title trip-day-title-link">
+          {title}
+        </Link>
         {edited && (
           <div className="trip-day-version">
             <span className="trip-day-version-tag">YOUR VERSION</span>

@@ -1,0 +1,373 @@
+/* Day screen (/trip/day/[index]) - Days/Trip flow Phase 4
+   (docs/days-trip-flow-handoff.md §3.4, §10 "Day"). Header/body follow
+   the reference prototype's own amber-pale palette for this screen
+   (distinct from /trip's dark navy hero) - real tokens from
+   dramstory-legacy.css throughout, never hardcoded hexes. Reuses
+   trip-review.css's .trip-day-version*/.trip-btn* and journey-extra.css's
+   .tour-picker-* classes directly (all stylesheets are global) rather
+   than redefining equivalents here. */
+
+.day-screen {
+  background: var(--amber-pale);
+  min-height: 100vh;
+}
+
+/* ---- header ---- */
+.day-header {
+  padding: 32px 24px 20px;
+  border-bottom: 1px solid var(--stone);
+  background: var(--amber-pale);
+}
+.day-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.day-back {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--peat);
+  text-decoration: none;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.day-back:hover,
+.day-back:focus-visible {
+  color: var(--copper);
+}
+.day-header-orient {
+  font-size: 12.5px;
+  color: var(--slate);
+  white-space: nowrap;
+}
+.day-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(24px, 4vw, 28px);
+  color: var(--dark);
+  line-height: 1.15;
+  margin: 2px 0 8px;
+}
+.day-meta {
+  font-size: 13px;
+  color: var(--slate);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---- body ---- */
+.day-body {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 20px 24px 100px;
+}
+
+.day-narrative-block {
+  margin-bottom: 18px;
+}
+.day-narrative {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--peat);
+  margin: 0 0 8px;
+  text-wrap: pretty;
+}
+.day-narrative-clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.day-narrative-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--copper);
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.day-shape {
+  margin-bottom: 6px;
+}
+.day-shape-line {
+  font-size: 12.5px;
+  color: var(--slate);
+  margin-top: 3px;
+}
+
+.day-empty-stops {
+  font-size: 13.5px;
+  color: var(--slate);
+  font-style: italic;
+  padding: 14px 0;
+}
+
+/* ---- stop groups/cards ---- */
+.day-stops {
+  margin-top: 14px;
+}
+.day-group-header {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin: 18px 0 8px;
+}
+.day-stops > .day-group-header:first-child {
+  margin-top: 2px;
+}
+
+.day-stop-card {
+  background: white;
+  border: 1px solid var(--stone);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+.day-stop-card.day-stop-closed {
+  border-color: var(--amber-light);
+  background: #fbf0e4;
+}
+.day-stop-top {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+}
+.day-stop-time {
+  flex: none;
+  width: 46px;
+  padding-top: 2px;
+}
+.day-stop-time-value {
+  font-family: var(--font-display);
+  font-size: 16px;
+  color: var(--dark);
+}
+.day-stop-time-dur {
+  font-size: 11px;
+  color: var(--slate);
+}
+.day-stop-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-top: 8px;
+  background: var(--copper);
+}
+.day-stop-dot.feature {
+  background: var(--slate);
+}
+.day-stop-main {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  min-height: 44px;
+  font-family: var(--font-body);
+}
+.day-stop-main:disabled {
+  cursor: default;
+}
+.day-stop-name {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--dark);
+  line-height: 1.25;
+}
+.day-stop-name-tours {
+  color: var(--copper);
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+.day-stop-sub {
+  font-size: 12px;
+  color: var(--slate);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+.day-stop-closed-note {
+  font-size: 12px;
+  font-weight: 600;
+  color: #b5502e;
+  margin-top: 4px;
+}
+.day-stop-appointment-note {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--copper);
+  margin-top: 4px;
+}
+.day-stop-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  margin: 2px -6px -6px 0;
+}
+.day-stop-anchor-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--slate);
+  padding: 8px 6px;
+}
+.day-stop-btn {
+  background: none;
+  border: none;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.day-stop-btn-up {
+  color: var(--slate);
+  font-size: 14px;
+}
+.day-stop-btn-up:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.day-stop-btn-swap {
+  color: var(--copper);
+}
+.day-stop-btn-drop {
+  color: #b5502e;
+}
+
+/* ---- ghost row (drop + undo, §5: "never silent removal") ---- */
+.day-ghost-row {
+  border: 1.5px dashed var(--mist);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--slate);
+  margin: 4px 0 8px;
+}
+.day-ghost-undo {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--copper);
+  cursor: pointer;
+  min-height: 44px;
+}
+
+/* ---- footer ---- */
+.day-footer {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--stone);
+  text-align: center;
+}
+.day-footer-prompt {
+  font-size: 13px;
+  color: var(--slate);
+  margin-bottom: 10px;
+}
+
+/* ---- swap sheet (reuses .tour-picker-backdrop/.tour-picker-modal shell) ---- */
+.day-swap-list {
+  display: flex;
+  flex-direction: column;
+}
+.day-swap-option {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  width: 100%;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--stone);
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  min-height: 44px;
+}
+.day-swap-option-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--slate);
+}
+.day-swap-option-body {
+  flex: 1;
+  min-width: 0;
+}
+.day-swap-option-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--dark);
+  display: block;
+}
+.day-swap-option-meta {
+  font-size: 12.5px;
+  color: var(--slate);
+}
+.day-swap-option-use {
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--copper);
+}
+.day-swap-empty {
+  font-size: 13.5px;
+  color: var(--slate);
+  padding: 8px 0 4px;
+}
+.day-swap-keep {
+  margin-top: 16px;
+}
+
+/* ---- not-found (bad/stale index) ---- */
+.day-not-found {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 80px 24px 120px;
+  text-align: center;
+}
+
+/* §7 accessibility: "Visible focus: outline: 3px solid at 2px offset."
+   No site-wide focus-visible rule exists to inherit (see Phase 5's own
+   identical note in journey-extra.css) - each phase scopes this to its
+   own new interactive classes. */
+.day-back:focus-visible,
+.day-narrative-toggle:focus-visible,
+.day-stop-main:focus-visible,
+.day-stop-btn:focus-visible,
+.day-ghost-undo:focus-visible,
+.day-swap-option:focus-visible {
+  outline: 3px solid var(--copper);
+  outline-offset: 2px;
+}
+
+@media (min-width: 640px) {
+  .day-header {
+    padding-left: max(24px, calc((100% - 640px) / 2 + 24px));
+    padding-right: max(24px, calc((100% - 640px) / 2 + 24px));
+  }
+}

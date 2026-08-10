@@ -5,6 +5,7 @@
 @import "./home-extra.css";
 @import "./days-hub.css";
 @import "./trip-review.css";
+@import "./day-screen.css";
 
 /* Base site chrome (from mockup) */
 html {
