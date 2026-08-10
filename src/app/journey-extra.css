@@ -1814,7 +1814,11 @@ select.location-inline-input {
   left: 0;
   right: 0;
   bottom: 24px;
-  z-index: 60;
+  /* Bumped from 60 (Phase 6, docs/days-trip-flow-handoff.md) - the new
+     mobile bottom sheet sits at z-index:520 (see mobile-planner-sheet.css),
+     and this toast (a transient save confirmation that then navigates
+     away) needs to stay visible above it, not hidden underneath. */
+  z-index: 900;
   margin: 0 auto;
   max-width: 420px;
   width: max-content;

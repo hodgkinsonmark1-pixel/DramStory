@@ -70,12 +70,45 @@ interface MapCanvasProps {
    *  naturally throttled) whenever the visitor pans or zooms, so the
    *  caller can persist the new view. */
   onViewChange?: (view: { lat: number; lng: number; zoom: number }) => void;
+  /** Mobile bottom sheet (Phase 6, docs/days-trip-flow-handoff.md §6):
+   *  extra bottom padding in pixels added to every fitBounds call, sized
+   *  to the sheet's current real on-screen height (including the
+   *  pin-detail-card height, which differs from the peek/half/full
+   *  stages) - see MobilePlannerSheet.tsx, which measures this directly
+   *  from its own inline `height` style rather than a second, separately
+   *  maintained constant, so the two can never drift apart. Undefined on
+   *  desktop, which has no sheet at all. */
+  sheetPaddingBottom?: number;
+  /** Bumped to any new number by the mobile "Whole day" recentre button
+   *  to force an extra fit-to-route pass outside the normal
+   *  day-switch/mount triggers below. Undefined on desktop, which relies
+   *  on Leaflet's own default zoom control instead. */
+  recenterSignal?: number;
+  /** Mobile only (§6: "Tapping a pin raises a card in the sheet"). When
+   *  provided, tapping a distillery or Local Feature marker calls this
+   *  INSTEAD of opening Leaflet's own popup - the mobile bottom sheet
+   *  shows its own detail card (name, distance from the last stop,
+   *  "+ Add after {name}" / "Remove from day") rather than a Leaflet
+   *  popup, which doesn't fit the sheet-first mobile interaction. Left
+   *  undefined on desktop, which keeps today's popup behaviour exactly
+   *  as it was. */
+  onPinTap?: (target: { kind: "distillery" | "feature"; id: string; name: string; lat: number; lng: number }) => void;
 }
 
 // Rough center of Scotland, used when a region has no pins yet so the map
 // doesn't default to (0,0) in the Atlantic.
 const SCOTLAND_CENTER: [number, number] = [56.8, -4.2];
 const ISLAY_CENTER: [number, number] = [55.63, -6.188]; // Port Ellen - the standard default location, per 18 July 2026 conversation (was a generic island-center point, roughly at Bowmore)
+// Pan bounds (docs/days-trip-flow-handoff.md §6) - checked first (per
+// the Phase 6 task brief) and this did NOT already exist anywhere in
+// this file before Phase 6, despite the design doc describing it as
+// something to "just confirm... still applies on mobile". Added here,
+// shared by the one MapCanvas instance used on both desktop and mobile,
+// rather than only wiring it up for the new mobile sheet - the
+// constraint reads as a property of the map itself (Islay + Jura, the
+// only region this app has real data for), not something specific to
+// the mobile layout.
+const MAP_BOUNDS: [[number, number], [number, number]] = [[55.51, -6.62], [56.02, -5.62]];
 
 // Distinct color per Natural Feature category, so pins read at a glance
 // without needing to open a popup - kept apart from the navy distillery
@@ -123,6 +156,9 @@ export default function MapCanvas({
   accommodation,
   initialView,
   onViewChange,
+  sheetPaddingBottom,
+  recenterSignal,
+  onPinTap,
 }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Leaflet.Map | null>(null);
@@ -177,6 +213,19 @@ export default function MapCanvas({
   useEffect(() => {
     onAddFeatureRef.current = onAddFeature;
   }, [onAddFeature]);
+  // Mobile sheet pin-tap callback (§6) - same ref pattern as
+  // onAddRef/onAddFeatureRef above, so the mount-once init effect below
+  // always calls whatever the latest onPinTap prop is, not a stale one
+  // captured the moment the map first mounted.
+  const onPinTapRef = useRef(onPinTap);
+  useEffect(() => {
+    onPinTapRef.current = onPinTap;
+  }, [onPinTap]);
+  // Read once at mount, same reasoning as routeStopsAtMountRef above -
+  // this only seeds the FIRST fit's padding; every later change goes
+  // through the dedicated effect further down that watches
+  // sheetPaddingBottom/recenterSignal directly.
+  const sheetPaddingAtMountRef = useRef(sheetPaddingBottom ?? 0);
   // Guards the initial route fit (below) so it only ever runs once, the
   // first time a real route shows up with no saved view to respect -
   // otherwise every later add/remove/reorder of a stop would re-fit the
@@ -204,6 +253,11 @@ export default function MapCanvas({
         center: savedView ? [savedView.lat, savedView.lng] : isLive && distilleries.length > 0 ? ISLAY_CENTER : SCOTLAND_CENTER,
         zoom: savedView ? savedView.zoom : isLive && distilleries.length > 0 ? 11 : 7,
         scrollWheelZoom: true,
+        // §6 pan bounds - see MAP_BOUNDS' own comment above for why this
+        // is here (shared) rather than only wired up for mobile.
+        maxBounds: MAP_BOUNDS,
+        maxBoundsViscosity: 0.9,
+        minZoom: 9,
       });
       mapRef.current = map;
 
@@ -258,19 +312,28 @@ export default function MapCanvas({
       for (const d of distilleries) {
         if (!d.lat || !d.lng) continue;
         const marker = L.marker([d.lat, d.lng], { icon: buildDistilleryIcon(d.slug) });
-        marker.bindPopup(
-          `<div class="popup-inner">
-            <div class="popup-tag">${d.style || "Distillery"}</div>
-            <div class="popup-name">${d.name}</div>
-            <div class="popup-region">${d.region}${d.founded ? ` &middot; Est. ${d.founded}` : ""}</div>
-            <div class="popup-detail">${d.tagline}</div>
-            <div class="popup-actions">
-              <a class="popup-btn popup-btn-secondary" href="/distilleries/${d.slug}">View &rarr;</a>
-              <button class="popup-btn popup-btn-primary" data-add-distillery="${d.slug}">+ Add</button>
-            </div>
-          </div>`,
-          { minWidth: 240 }
-        );
+        if (onPinTapRef.current) {
+          // Mobile sheet mode (§6) - no Leaflet popup here, the sheet
+          // raises its own detail card instead (see onPinTap's doc
+          // comment on MapCanvasProps).
+          marker.on("click", () =>
+            onPinTapRef.current?.({ kind: "distillery", id: d.slug, name: d.name, lat: d.lat, lng: d.lng })
+          );
+        } else {
+          marker.bindPopup(
+            `<div class="popup-inner">
+              <div class="popup-tag">${d.style || "Distillery"}</div>
+              <div class="popup-name">${d.name}</div>
+              <div class="popup-region">${d.region}${d.founded ? ` &middot; Est. ${d.founded}` : ""}</div>
+              <div class="popup-detail">${d.tagline}</div>
+              <div class="popup-actions">
+                <a class="popup-btn popup-btn-secondary" href="/distilleries/${d.slug}">View &rarr;</a>
+                <button class="popup-btn popup-btn-primary" data-add-distillery="${d.slug}">+ Add</button>
+              </div>
+            </div>`,
+            { minWidth: 240 }
+          );
+        }
         // Distillery markers are deliberately NOT added to the cluster
         // group - they're the primary thing visitors interact with to
         // build a route, so always showing them individually (never
@@ -290,9 +353,13 @@ export default function MapCanvas({
       // below doesn't also try. Otherwise, fall back to fitting every
       // distillery on Islay, same as before.
       const routeAtMount = routeStopsAtMountRef.current;
+      const mountPad = sheetPaddingAtMountRef.current;
       if (routeAtMount.length >= 2 && !savedView) {
         const bounds = L.latLngBounds(routeAtMount.map((s) => [s.lat, s.lng] as [number, number]));
-        map.fitBounds(bounds.pad(0.2));
+        // §6: paddingBottomRight sized to the sheet's height at mount, so
+        // the very first paint doesn't briefly show pins hidden under it
+        // before the reactive effect below gets a chance to re-fit.
+        map.fitBounds(bounds, { paddingTopLeft: [40, 40], paddingBottomRight: [40, 40 + mountPad] });
         initialRouteFitDoneRef.current = true;
       } else if (routeAtMount.length === 1 && !savedView) {
         // A single-stop day (added 21 July 2026 - the "today" flow's
@@ -307,7 +374,7 @@ export default function MapCanvas({
         initialRouteFitDoneRef.current = true;
       } else if (markers.length > 0 && !savedView) {
         const group = L.featureGroup(markers);
-        map.fitBounds(group.getBounds().pad(0.2));
+        map.fitBounds(group.getBounds(), { paddingTopLeft: [40, 40], paddingBottomRight: [40, 40 + mountPad] });
       }
 
       // Event delegation for the +Add button inside popup HTML - Leaflet
@@ -376,7 +443,13 @@ export default function MapCanvas({
       // was, so a day whose stops sit somewhere else on the island either
       // wasn't visible at all or barely peeked into a corner of the view.
       if ((!initialRouteFitDoneRef.current && !initialViewRef.current) || dayChanged) {
-        map.fitBounds(L.latLngBounds(latLngs).pad(0.2));
+        // §6: paddingBottomRight sized to the sheet's current height
+        // (0/undefined on desktop, which has no sheet) - pins never end
+        // up hidden underneath it.
+        map.fitBounds(L.latLngBounds(latLngs), {
+          paddingTopLeft: [40, 40],
+          paddingBottomRight: [40, 40 + (sheetPaddingBottom ?? 0)],
+        });
         initialRouteFitDoneRef.current = true;
       }
 
@@ -413,7 +486,35 @@ export default function MapCanvas({
       map.setView([routeStops[0].lat, routeStops[0].lng], 13);
       initialRouteFitDoneRef.current = true;
     }
-  }, [mapReady, routeStops, activeDayId]);
+  }, [mapReady, routeStops, activeDayId, sheetPaddingBottom]);
+
+  // §6: "the fitBounds padding... recalculated on every sheet-height
+  // change", plus the mobile "Whole day" recentre control. Deliberately
+  // its own effect, separate from the routeStops-drawing effect above -
+  // that one only re-fits on a genuine day switch or first paint (so
+  // editing the current day's stops doesn't yank the view out from under
+  // the visitor mid-edit, per initialRouteFitDoneRef's own comment);
+  // THIS effect exists purely to re-fit on every sheet resize (selecting/
+  // deselecting a pin card, cycling peek/half/full) and on an explicit
+  // recentre tap, regardless of whether the day itself changed. A no-op
+  // on desktop, where neither prop is ever supplied.
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !leafletRef.current) return;
+    if (sheetPaddingBottom === undefined && recenterSignal === undefined) return;
+    const L = leafletRef.current;
+    const map = mapRef.current;
+    const pad = sheetPaddingBottom ?? 0;
+    if (routeStops.length >= 2) {
+      const latLngs: [number, number][] = routeStops.map((s) => [s.lat, s.lng]);
+      map.fitBounds(L.latLngBounds(latLngs), {
+        paddingTopLeft: [40, 40],
+        paddingBottomRight: [40, 40 + pad],
+      });
+    } else if (routeStops.length === 1) {
+      map.setView([routeStops[0].lat, routeStops[0].lng], 13);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapReady, sheetPaddingBottom, recenterSignal]);
 
   // Draws/updates/clears the accommodation ("home base") pin - deliberately
   // a distinct marker style from distillery pins (a plain circle, not the
@@ -577,31 +678,42 @@ export default function MapCanvas({
         popupAnchor: [0, -size / 2],
       });
       const marker = L.marker([pos.lat, pos.lng], { icon });
-      const categoryLabel = f.category.replace("-", " ");
-      // Popups need a short hook, not the full page copy - "More info"
-      // is right there for anyone who wants the rest. Pin Summary is
-      // written specifically for this popup (one tight sentence); Why
-      // Visit has grown into full-paragraph blockquote copy for the page
-      // itself, so it's no longer reliably short enough to use as-is and
-      // gets truncated the same way Description does. Same fallback-chain
-      // pattern as the Tours "Short Summary" field (docs/deferred-features.md).
-      const popupSummary = f.pinSummary ?? truncateSummary(f.whyVisit ?? f.description);
-      // "More info" now links to a real DramStory detail page (parking,
-      // accessibility, hours, highlights, length/difficulty for walks and
-      // rides) - deliberately keeping visitors on-site rather than sending
-      // them to Google Maps, per the monetization/retention goal.
-      marker.bindPopup(
-        `<div class="popup-inner">
-          <div class="popup-tag">${categoryLabel}</div>
-          <div class="popup-name">${f.name}</div>
-          <div class="popup-detail">${popupSummary}</div>
-          <div class="popup-actions">
-            <a class="popup-btn popup-btn-secondary" href="/explore/${f.slug}">More info &rarr;</a>
-            <button class="popup-btn popup-btn-primary" data-add-feature="${f.id}">+ Add to Trip</button>
-          </div>
-        </div>`,
-        { minWidth: 240 }
-      );
+      if (onPinTapRef.current) {
+        // Mobile sheet mode (§6) - same reasoning as the distillery
+        // marker loop above: the sheet's own detail card replaces the
+        // popup entirely, using the feature's REAL (un-offset)
+        // coordinates for its "Nm from your last stop" maths, not the
+        // collision-nudged `pos` this pin is actually drawn at.
+        marker.on("click", () =>
+          onPinTapRef.current?.({ kind: "feature", id: f.id, name: f.name, lat: f.lat, lng: f.lng })
+        );
+      } else {
+        const categoryLabel = f.category.replace("-", " ");
+        // Popups need a short hook, not the full page copy - "More info"
+        // is right there for anyone who wants the rest. Pin Summary is
+        // written specifically for this popup (one tight sentence); Why
+        // Visit has grown into full-paragraph blockquote copy for the page
+        // itself, so it's no longer reliably short enough to use as-is and
+        // gets truncated the same way Description does. Same fallback-chain
+        // pattern as the Tours "Short Summary" field (docs/deferred-features.md).
+        const popupSummary = f.pinSummary ?? truncateSummary(f.whyVisit ?? f.description);
+        // "More info" now links to a real DramStory detail page (parking,
+        // accessibility, hours, highlights, length/difficulty for walks and
+        // rides) - deliberately keeping visitors on-site rather than sending
+        // them to Google Maps, per the monetization/retention goal.
+        marker.bindPopup(
+          `<div class="popup-inner">
+            <div class="popup-tag">${categoryLabel}</div>
+            <div class="popup-name">${f.name}</div>
+            <div class="popup-detail">${popupSummary}</div>
+            <div class="popup-actions">
+              <a class="popup-btn popup-btn-secondary" href="/explore/${f.slug}">More info &rarr;</a>
+              <button class="popup-btn popup-btn-primary" data-add-feature="${f.id}">+ Add to Trip</button>
+            </div>
+          </div>`,
+          { minWidth: 240 }
+        );
+      }
       return marker;
     }
 

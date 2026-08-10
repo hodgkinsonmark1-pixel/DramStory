@@ -22,6 +22,7 @@ import DateRangePicker from "./DateRangePicker";
 import TripEssentials from "./TripEssentials";
 import OnboardingOverlay from "./OnboardingOverlay";
 import PlannerContextBar from "./PlannerContextBar";
+import MobilePlannerSheet from "./MobilePlannerSheet";
 import { useBackgroundVideoVisible } from "@/lib/background-video-context";
 
 interface WorkspaceProps {
@@ -127,6 +128,32 @@ export default function Workspace({
   useBackgroundVideoVisible(false);
   const trip = useTrip();
   const router = useRouter();
+  // Phase 6 mobile bottom sheet (docs/days-trip-flow-handoff.md section
+  // 3.5/section 9 item 6) - "the desktop rail cannot survive 390px...
+  // narrow viewports get the new full-screen-map + bottom-sheet layout
+  // instead. This is a CSS/conditional-render split, not two separate
+  // routes." MOBILE_BREAKPOINT matches the convention already used
+  // throughout the rest of this flow's own CSS (day-screen.css,
+  // days-hub.css, journey-extra.css, dramstory-legacy.css, trip-
+  // review.css all switch at max-width:768px) rather than inventing a
+  // new one. Checked via matchMedia in an effect (not read synchronously
+  // from window at module scope, which would break server rendering) -
+  // starts false so the server and the very first client render agree
+  // (no hydration mismatch), then flips true a moment later on an actual
+  // mobile viewport. JUDGEMENT CALL: this means a real, if usually
+  // sub-16ms, desktop-layout flash before the effect runs on mobile -
+  // accepted rather than adding a no-flash-of-wrong-content mechanism
+  // (e.g. a cookie-based viewport guess) that nothing else in this
+  // codebase uses.
+  const MOBILE_BREAKPOINT = 768;
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
+    const update = () => setIsMobileViewport(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
   const [activeCategories, setActiveCategories] = useState<Set<InterestCategoryId>>(
     new Set(initialInterests)
   );
@@ -265,6 +292,32 @@ export default function Workspace({
 
   const days = trip.days;
   const activeDay = days[activeDayIndex];
+
+  // Shared by the desktop MapCanvas AND the mobile MobilePlannerSheet
+  // (Phase 6, docs/days-trip-flow-handoff.md section 6 item 1: "reuse
+  // MapCanvas... don't fork") - the SAME two functions are passed to
+  // both, not two separately-written copies.
+  function handleAddDistillery(slug: string) {
+    const d = distilleries.find((x) => x.slug === slug);
+    if (!d) return;
+    if (d.tours.length >= 2) {
+      // Real choice to make - hold off adding until the visitor picks
+      // one in the modal below, rather than adding blank and leaving it
+      // to fix up afterward.
+      setTourPickerDistillery(d);
+      return;
+    }
+    trip.addStop(activeDayIndex, d);
+    // Exactly one tour: no real choice, so no modal - use it directly.
+    // Zero tours: unchanged, adds with none set.
+    if (d.tours.length === 1) {
+      trip.setTourForStop(activeDayIndex, d, d.tours[0]);
+    }
+  }
+  function handleAddFeature(id: string) {
+    const f = localFeatures.find((x) => x.id === id);
+    if (f) trip.addFeatureStop(activeDayIndex, f);
+  }
 
   // ---------------------------------------------------------------------
   // Phase 5 planner context bar + "put it back" (docs/days-trip-flow-
@@ -611,6 +664,87 @@ export default function Workspace({
     return <div className="workspace-root" />;
   }
 
+  // Extracted (Phase 6, docs/days-trip-flow-handoff.md §6: "layer
+  // toggles... already viewport-agnostic") so the exact same
+  // distilleries/natural-features/places-to-stay/events filter row
+  // renders above BOTH the desktop map and the new mobile full-screen
+  // map - one definition, reused in both branches below, rather than a
+  // second copy that could drift out of sync with this one.
+  const mapToolbar = (
+  <div className="map-toolbar">
+              <div
+                className={
+                  "map-toolbar-row" +
+                  (expandedCategoryData?.id === "places-to-stay" ? " map-toolbar-row--scroll" : "")
+                }
+                id="onboard-toolbar-row"
+              >
+                {expandedCategoryData &&
+                (expandedCategoryData.subcategories.length > 0 || expandedCategoryData.id === "places-to-stay") ? (
+                  <>
+                    <button className="filter-btn active" data-category-id="distilleries" onClick={() => toggleCategory("distilleries", true)}>
+                      <span>🥃</span> Distilleries
+                    </button>
+                    <button
+                      className="filter-btn active expanded"
+                      onClick={() => toggleCategory(expandedCategoryData.id, expandedCategoryData.alwaysOn)}
+                    >
+                      <span>{expandedCategoryData.icon}</span> {expandedCategoryData.label}
+                    </button>
+                    <span className="toolbar-divider" />
+                    {expandedCategoryData.id === "places-to-stay" ? (
+                      <AccommodationControl
+                        dayIndex={activeDayIndex}
+                        dayLabel={useCalendarDayLabels ? calendarDayLabel(activeDayIndex) : activeDay.label}
+                        accommodation={accommodation}
+                      />
+                    ) : (
+                      <>
+                        <button
+                          className={
+                            "subcat-chip" +
+                            (Array.from(activeSubcats).every((k) => !k.startsWith(`${expandedCategoryData.id}:`))
+                              ? " active"
+                              : "")
+                          }
+                          onClick={() => clearSubcatsForCategory(expandedCategoryData.id)}
+                        >
+                          Everything
+                        </button>
+                        {expandedCategoryData.subcategories.map((sub) => {
+                          const key = `${expandedCategoryData.id}:${sub}`;
+                          return (
+                            <button
+                              key={key}
+                              className={"subcat-chip" + (activeSubcats.has(key) ? " active" : "")}
+                              onClick={() => toggleSubcat(key)}
+                            >
+                              {sub}
+                            </button>
+                          );
+                        })}
+                      </>
+                    )}
+                  </>
+                ) : (
+                  INTEREST_CATEGORIES.map((c) => {
+                    const on = c.alwaysOn || activeCategories.has(c.id);
+                    return (
+                      <button
+                        key={c.id}
+                        data-category-id={c.id}
+                        className={"filter-btn" + (on ? " active" : "")}
+                        onClick={() => toggleCategory(c.id, c.alwaysOn)}
+                      >
+                        <span>{c.icon}</span> {c.label}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+  );
+
   return (
     <>
     {/* Skipped entirely for "today" (21 July 2026) - the walkthrough's
@@ -756,7 +890,36 @@ export default function Workspace({
         </div>
       )}
 
-      <div className="workspace-main">
+      {isMobileViewport ? (
+          <MobilePlannerSheet
+            distilleries={isLive ? distilleries : []}
+            localFeatures={isLive ? visibleLocalFeatures : []}
+            isLive={isLive}
+            regionLabel={title}
+            activeDay={activeDay}
+            activeDayIndex={activeDayIndex}
+            totalDays={days.length}
+            dayLabel={useCalendarDayLabels ? calendarDayLabel(activeDayIndex) : activeDay.label}
+            accommodation={isLive ? accommodation : undefined}
+            routeStops={routeCoords.reduce<{ lat: number; lng: number }[]>((points, coord, i) => {
+              if (i === 0) return [coord];
+              const real = routeSegments[i - 1];
+              return [...points, ...(real ? real.points : [routeCoords[i - 1], coord])];
+            }, [])}
+            driveSegments={driveSegments}
+            stopDriveOffset={stopDriveOffset}
+            totalDriveMinutes={totalDriveMinutes}
+            totalVisitMinutes={totalVisitMinutes}
+            activeDayFeatures={isLive ? activeDayFeatures : []}
+            highlightedDistillerySlugs={isLive ? highlightedDistillerySlugs : []}
+            initialView={trip.mapView ?? undefined}
+            onViewChange={trip.setMapView}
+            onAddDistillery={handleAddDistillery}
+            onAddFeature={handleAddFeature}
+            mapToolbar={mapToolbar}
+          />
+        ) : (
+        <div className="workspace-main">
         <div className="journey-panel" id="onboard-sidebar">
           <div className="panel-header panel-header-with-nav">
             <div className="panel-eyebrow">Your itinerary</div>
@@ -1159,78 +1322,7 @@ export default function Workspace({
         </div>
 
         <div className="map-area">
-          <div className="map-toolbar">
-            <div
-              className={
-                "map-toolbar-row" +
-                (expandedCategoryData?.id === "places-to-stay" ? " map-toolbar-row--scroll" : "")
-              }
-              id="onboard-toolbar-row"
-            >
-              {expandedCategoryData &&
-              (expandedCategoryData.subcategories.length > 0 || expandedCategoryData.id === "places-to-stay") ? (
-                <>
-                  <button className="filter-btn active" data-category-id="distilleries" onClick={() => toggleCategory("distilleries", true)}>
-                    <span>🥃</span> Distilleries
-                  </button>
-                  <button
-                    className="filter-btn active expanded"
-                    onClick={() => toggleCategory(expandedCategoryData.id, expandedCategoryData.alwaysOn)}
-                  >
-                    <span>{expandedCategoryData.icon}</span> {expandedCategoryData.label}
-                  </button>
-                  <span className="toolbar-divider" />
-                  {expandedCategoryData.id === "places-to-stay" ? (
-                    <AccommodationControl
-                      dayIndex={activeDayIndex}
-                      dayLabel={useCalendarDayLabels ? calendarDayLabel(activeDayIndex) : activeDay.label}
-                      accommodation={accommodation}
-                    />
-                  ) : (
-                    <>
-                      <button
-                        className={
-                          "subcat-chip" +
-                          (Array.from(activeSubcats).every((k) => !k.startsWith(`${expandedCategoryData.id}:`))
-                            ? " active"
-                            : "")
-                        }
-                        onClick={() => clearSubcatsForCategory(expandedCategoryData.id)}
-                      >
-                        Everything
-                      </button>
-                      {expandedCategoryData.subcategories.map((sub) => {
-                        const key = `${expandedCategoryData.id}:${sub}`;
-                        return (
-                          <button
-                            key={key}
-                            className={"subcat-chip" + (activeSubcats.has(key) ? " active" : "")}
-                            onClick={() => toggleSubcat(key)}
-                          >
-                            {sub}
-                          </button>
-                        );
-                      })}
-                    </>
-                  )}
-                </>
-              ) : (
-                INTEREST_CATEGORIES.map((c) => {
-                  const on = c.alwaysOn || activeCategories.has(c.id);
-                  return (
-                    <button
-                      key={c.id}
-                      data-category-id={c.id}
-                      className={"filter-btn" + (on ? " active" : "")}
-                      onClick={() => toggleCategory(c.id, c.alwaysOn)}
-                    >
-                      <span>{c.icon}</span> {c.label}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
+          {mapToolbar}
 
           <div style={{ position: "relative", flex: 1, minHeight: 0 }} id="onboard-map">
             <MapCanvas
@@ -1251,27 +1343,8 @@ export default function Workspace({
                 // degrades gracefully rather than breaking the whole route.
                 return [...points, ...(real ? real.points : [routeCoords[i - 1], coord])];
               }, [])}
-              onAddDistillery={(slug) => {
-                const d = distilleries.find((x) => x.slug === slug);
-                if (!d) return;
-                if (d.tours.length >= 2) {
-                  // Real choice to make - hold off adding until the
-                  // visitor picks one in the modal below, rather than
-                  // adding blank and leaving it to fix up afterward.
-                  setTourPickerDistillery(d);
-                  return;
-                }
-                trip.addStop(activeDayIndex, d);
-                // Exactly one tour: no real choice, so no modal - use it
-                // directly. Zero tours: unchanged, adds with none set.
-                if (d.tours.length === 1) {
-                  trip.setTourForStop(activeDayIndex, d, d.tours[0]);
-                }
-              }}
-              onAddFeature={(id) => {
-                const f = localFeatures.find((x) => x.id === id);
-                if (f) trip.addFeatureStop(activeDayIndex, f);
-              }}
+              onAddDistillery={handleAddDistillery}
+              onAddFeature={handleAddFeature}
             />
             {!isLive && (
               <div
@@ -1360,6 +1433,7 @@ export default function Workspace({
           </div>
         </div>
       </div>
+      )}
 
       {weatherReady && weatherMinimized && (
         <div className="below-map-section weather-banner-section">

@@ -556,3 +556,46 @@ export function isDistilleryClosedOn(distillery: Distillery, date: Date): boolea
 export function isAppointmentOnly(distillery: Distillery): boolean {
   return distillery.hours.toLowerCase().includes("appointment");
 }
+
+/**
+ * "Nearby, not yet in your day" (Days/Trip flow Phase 6, docs/days-trip-
+ * flow-handoff.md §3.5/§6) - the mobile planner sheet's full-height
+ * section. JUDGEMENT CALL, flagged per the task brief: the task assumed
+ * this logic might already live in this file - it doesn't. The one real
+ * precedent is DayScreen.tsx's inline swapAlternatives (Phase 4, §3.4
+ * item 5/§8 open question 7): Local Features only, never other
+ * distilleries, nearest-first by the same haversine drive-time estimate,
+ * excluding whatever's already in the day. DayScreen.tsx is explicitly
+ * out of scope for Phase 6, so that inline logic is left untouched
+ * rather than refactored out into here - this mirrors its approach
+ * (LocalFeature candidates only, same exclusion/estimate/sort) rather
+ * than importing from it, applied against every stop already in the day
+ * (nearest of ANY of them, not one single swap target - matching the
+ * reference prototype's own planner-screen `nearby()`, which is the
+ * right precedent for THIS particular section, as opposed to the day
+ * screen's swap sheet). A day with no stops yet falls back to distance
+ * from the accommodation, if one is set, so the section still has
+ * something to suggest from before a first stop is added; with neither,
+ * there is nothing to measure "nearby" against, so it returns empty.
+ */
+export function nearbyFeaturesForDay(
+  day: ItineraryDay,
+  localFeatures: LocalFeature[],
+  limit = 4
+): { feature: LocalFeature; mins: number }[] {
+  const stopIds = new Set(day.stops.map((s) => stopId(s)));
+  const fromPoints = day.stops.length > 0
+    ? day.stops.map((s) => stopCoords(s))
+    : day.accommodation
+      ? [{ lat: day.accommodation.lat, lng: day.accommodation.lng }]
+      : [];
+  if (fromPoints.length === 0) return [];
+  return localFeatures
+    .filter((f) => !stopIds.has(f.id))
+    .map((f) => ({
+      feature: f,
+      mins: Math.min(...fromPoints.map((p) => estimatedDriveMinutes(p, { lat: f.lat, lng: f.lng }))),
+    }))
+    .sort((a, b) => a.mins - b.mins)
+    .slice(0, limit);
+}
