@@ -756,8 +756,19 @@ export default function Workspace({
         position it assumes) can't reliably generalise. Rather than patch
         every step for an arbitrary starting location, "today" skips the
         walkthrough outright; planning/dreaming keep it since their seeded
-        default day is always the same fixed Port Ellen-area route. */}
-    {timing !== "today" && <OnboardingOverlay timing={timing} />}
+        default day is always the same fixed Port Ellen-area route.
+
+        Also skipped on mobile (10 Aug 2026, Mark's call): every step's
+        `cutout` targets an #onboard-* id that only exists in the desktop
+        rail (Phase 6's mobile bottom sheet replaces that DOM entirely),
+        so on a mobile viewport findElement() never finds anything and
+        the overlay falls back to a full-screen dark layer with no
+        cutout - a confusing, seemingly-broken "Skip/Next" over a solid
+        black screen rather than a real walkthrough. Reuses the same
+        isMobileViewport check Phase 6 already computes above, rather
+        than duplicating a second matchMedia listener inside
+        OnboardingOverlay itself. Desktop behaviour is unchanged. */}
+    {timing !== "today" && !isMobileViewport && <OnboardingOverlay timing={timing} />}
     {tourPickerDistillery && (
       <div className="tour-picker-backdrop" onClick={() => setTourPickerDistillery(null)}>
         <div className="tour-picker-modal" role="dialog" aria-label={`Choose a tour at ${tourPickerDistillery.name}`} onClick={(e) => e.stopPropagation()}>
