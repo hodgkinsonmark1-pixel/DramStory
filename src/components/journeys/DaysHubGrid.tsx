@@ -15,6 +15,8 @@ import {
   pickHitsFor,
   dayPriceLabel,
   deriveHook,
+  hasMoreNarrative,
+  fullNarrativeText,
   isFerryDay,
   milestoneFor,
   paceTone,
@@ -119,6 +121,8 @@ function DayCard({
   }
 
   const hook = deriveHook(day.narrative);
+  const hasMore = hasMoreNarrative(day.narrative);
+  const [expanded, setExpanded] = useState(false);
   const driveLabel = driveMinutes > 0 ? `≈${formatDuration(driveMinutes)} on the road` : "";
   const metaText = [driveLabel, price].filter(Boolean).join(" · ");
 
@@ -157,7 +161,23 @@ function DayCard({
             ))}
           </div>
         )}
-        {hook && <p className="days-hub-card-hook">{hook}</p>}
+        {hook && (
+          <div className="days-hub-card-hook-block">
+            <p className={`days-hub-card-hook${expanded ? " expanded" : ""}`}>
+              {expanded ? fullNarrativeText(day.narrative) : hook}
+            </p>
+            {hasMore && (
+              <button
+                type="button"
+                className="days-hub-card-hook-toggle"
+                onClick={() => setExpanded((v) => !v)}
+                aria-expanded={expanded}
+              >
+                {expanded ? "Show less" : "Read more"}
+              </button>
+            )}
+          </div>
+        )}
         {isAdded ? (
           <button
             className="days-hub-card-action in-trip"

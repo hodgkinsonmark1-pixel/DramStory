@@ -148,11 +148,40 @@
   padding: 1px 5px;
   margin: 0 -2px;
 }
+.days-hub-card-hook-block {
+  margin: 0 0 16px;
+}
 .days-hub-card-hook {
   font-size: 14px;
   line-height: 1.55;
   color: var(--peat);
-  margin: 0 0 16px;
+  margin: 0;
+}
+.days-hub-card-hook.expanded {
+  text-wrap: pretty;
+}
+/* Read more/Show less - unfolds the same real narrative inline, never
+   navigates away, matching the day screen's own narrative toggle
+   (day-screen.css's .day-narrative-toggle). Added 10 Aug 2026 so every
+   card offers this consistently, not just the ones whose first
+   sentence happened to get cut by the old hook logic - see
+   deriveHook()/hasMoreNarrative() in day-derivations.ts for why. */
+.days-hub-card-hook-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 4px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--copper);
+  cursor: pointer;
+  min-height: 44px;
+}
+.days-hub-card-hook-toggle:focus-visible {
+  outline: 3px solid var(--copper);
+  outline-offset: 2px;
 }
 .days-hub-card-action {
   display: inline-flex;

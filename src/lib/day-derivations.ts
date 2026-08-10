@@ -135,12 +135,44 @@ export function dayPriceLabel(day: HubDay): string {
  * sentence of the real, unedited narrative instead of fabricating new
  * copy - consistent with §1: "Nothing about the day narratives changes."
  */
+function plainNarrative(narrative: string): string {
+  return narrative.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").trim();
+}
+
+/** Fixed character budget for a card's teaser - see deriveHook's own
+ *  comment for why this replaced a sentence-boundary cut. */
+const HOOK_CHAR_LIMIT = 130;
+
 export function deriveHook(narrative: string): string {
-  const plain = narrative.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").trim();
-  const match = plain.match(/^.*?[.!?](?=\s|$)/);
-  let hook = match ? match[0] : plain;
-  if (hook.length > 150) hook = `${hook.slice(0, 147).trimEnd()}…`;
-  return hook.trim();
+  const plain = plainNarrative(narrative);
+  if (plain.length <= HOOK_CHAR_LIMIT) return plain;
+  const cut = plain.slice(0, HOOK_CHAR_LIMIT);
+  const lastSpace = cut.lastIndexOf(" ");
+  const safe = lastSpace > HOOK_CHAR_LIMIT * 0.6 ? cut.slice(0, lastSpace) : cut;
+  return `${safe.trimEnd()}…`;
+}
+
+/** True when deriveHook() had to cut the narrative short - i.e. there's
+ *  more of the same real narrative worth a "Read more" on the card.
+ *  Added 10 Aug 2026 per Mark's feedback: cards were inconsistent -
+ *  some Days open with a short, punchy first sentence ("Three legends,
+ *  one road.") that read as the whole hook with nothing missing, others
+ *  open with one very long first sentence (Laphroaig and the Mull of
+ *  Oa's Bessie Williamson line) that got abruptly truncated with no way
+ *  to see what was cut. Both cases actually have plenty more real
+ *  narrative underneath - this + fullNarrativeText() let every card
+ *  offer the same "Read more" affordance rather than only the ones that
+ *  happened to get truncated by the old sentence-boundary logic. */
+export function hasMoreNarrative(narrative: string): boolean {
+  return plainNarrative(narrative).length > HOOK_CHAR_LIMIT;
+}
+
+/** Full plain-text narrative for a day card's expanded "Read more"
+ *  state - same markdown-link-stripping as deriveHook so the teaser and
+ *  the expansion read as one continuous piece of text, not two
+ *  differently-rendered ones. */
+export function fullNarrativeText(narrative: string): string {
+  return plainNarrative(narrative);
 }
 
 /** §5 milestone copy, first match wins - verbatim from the copy deck. */
