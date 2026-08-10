@@ -10,7 +10,7 @@ import InterestsStep from "./InterestsStep";
 import Workspace from "./Workspace";
 import { FEATURED_STAYS } from "@/lib/featured-stays";
 import { estimatedDriveMinutes, formatDuration } from "@/lib/drive-time";
-import { TODAY_EXCLUDED_DISTILLERY_SLUGS } from "@/lib/journey-options";
+import { INTEREST_CATEGORIES, TODAY_EXCLUDED_DISTILLERY_SLUGS } from "@/lib/journey-options";
 
 interface JourneyFlowProps {
   timing: TripTiming;
@@ -50,9 +50,23 @@ interface JourneyFlowProps {
    *  option looked like it "skipped" Q2/Q3 straight to the map, because
    *  ANY saved intake was silently resumed regardless of intent. */
   resume: boolean;
+  /** True only via AreaClient's "Everything in {region} on the map" link
+   *  (10 Aug 2026) - a one-time signal to seed every InterestCategoryId
+   *  active (see ALL_INTEREST_CATEGORIES below) instead of the usual
+   *  Distilleries-only default, so that entry point's map opens with
+   *  every layer already switched on rather than needing the visitor to
+   *  toggle each one by hand. */
+  showAll: boolean;
 }
 
 type Step = "location" | "today-location" | "interests" | "workspace";
+
+/** Every InterestCategoryId, derived from the single source of truth
+ *  (INTEREST_CATEGORIES in journey-options.ts) rather than hand-listed
+ *  here, so a category added there is automatically included - used only
+ *  by the showAll entry point (see JourneyFlowProps.showAll) to force
+ *  every map layer active instead of the usual Distilleries-only default. */
+const ALL_INTEREST_CATEGORIES: InterestCategoryId[] = INTEREST_CATEGORIES.map((c) => c.id);
 
 // Q3 ("what matters most to your trip?") is skipped on desktop - the
 // walkthrough already demonstrates that every one of these categories is
@@ -290,7 +304,7 @@ function seedTodayDay(
   return { interests: eveningInterests, notice: eveningExplainer };
 }
 
-export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, areasPromise, featuredStaysPromise, resume }: JourneyFlowProps) {
+export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, areasPromise, featuredStaysPromise, resume, showAll }: JourneyFlowProps) {
   const router = useRouter();
   const trip = useTrip();
   const [step, setStep] = useState<Step>("location");
@@ -320,14 +334,14 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
     if (resume && trip.intake) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocation(trip.intake.location);
-      setInterests(trip.intake.interests);
+      setInterests(showAll ? ALL_INTEREST_CATEGORIES : trip.intake.interests);
       setStep("workspace");
       setHandledInitialState(true);
       return;
     }
     if (resume && !trip.intake && trip.days.length > 0) {
       setLocation({ kind: "region", region: "islay" });
-      setInterests(["distilleries"]);
+      setInterests(showAll ? ALL_INTEREST_CATEGORIES : ["distilleries"]);
       setStep("workspace");
       setHandledInitialState(true);
       return;
@@ -337,7 +351,7 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
     if (trip.intake || trip.days.length > 0) trip.resetTrip();
 
     const freshLocation: LocationAnswer = { kind: "region", region: "islay" };
-    const freshInterests: InterestCategoryId[] = ["distilleries"];
+    const freshInterests: InterestCategoryId[] = showAll ? ALL_INTEREST_CATEGORIES : ["distilleries"];
     setLocation(freshLocation);
     setInterests(freshInterests);
 

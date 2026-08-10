@@ -11,9 +11,9 @@ function parseTiming(mode: string | string[] | undefined): TripTiming {
 export default async function JourneyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string; resume?: string }>;
+  searchParams: Promise<{ mode?: string; resume?: string; showAll?: string }>;
 }) {
-  const { mode, resume } = await searchParams;
+  const { mode, resume, showAll } = await searchParams;
   // Deliberately NOT awaited, same reasoning as Local Features/Events
   // below: Q2's primary region cards don't touch distillery data at all -
   // only the secondary "a specific distillery" dropdown does. Blocking
@@ -50,6 +50,11 @@ export default async function JourneyPage({
       areasPromise={areasPromise}
       featuredStaysPromise={featuredStaysPromise}
       resume={resume === "1"}
+      // Set only by AreaClient's "Everything in {region} on the map" link
+      // (10 Aug 2026 fix) - a one-time signal to seed every interest
+      // category active rather than JourneyFlow's usual Distilleries-only
+      // default, so the map opens with all layers showing.
+      showAll={showAll === "1"}
     />
   );
 }

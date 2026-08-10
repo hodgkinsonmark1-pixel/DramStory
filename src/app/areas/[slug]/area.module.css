@@ -123,6 +123,15 @@
   color: #b5763a;
   text-decoration: none;
   white-space: nowrap;
+  /* Both usages became <button>s (10 Aug 2026, link-destination fixes) so
+     they can trigger real trip actions instead of navigating - reset the
+     browser's default button chrome so they still read as the same plain
+     text link they were as an <a>. */
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font-instrument), sans-serif;
 }
 .sectionLink:hover {
   text-decoration: underline;

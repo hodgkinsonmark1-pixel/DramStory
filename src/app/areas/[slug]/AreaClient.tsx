@@ -39,6 +39,29 @@ function formatMiles(mi: number): string {
   return mi < 0.15 ? "0.1" : mi.toFixed(1);
 }
 
+/** Center + zoom for "Everything in {region} on the map" (fix #2, 10 Aug
+ *  2026) - averages this Area's own real distilleries into a midpoint,
+ *  with a zoom picked from how spread out they are. a.distilleries is
+ *  already filtered to Distillery.region === a.distilleryRegion (see the
+ *  Area type's own doc comment on that field), so this works generically
+ *  for any Area's region, not just South Islay/Port Ellen. Deliberately
+ *  NOT a real fitBounds() calculation - a coarse fixed-zoom lookup per
+ *  the design ask ("11-12 is fine, doesn't need to be pixel-perfect").
+ *  Falls back to the Area's own lat/lng if it has no distilleries yet. */
+function regionMapView(
+  points: { lat: number; lng: number }[],
+  fallback: { lat: number; lng: number }
+): { lat: number; lng: number; zoom: number } {
+  if (points.length === 0) return { ...fallback, zoom: 12 };
+  const lats = points.map((p) => p.lat);
+  const lngs = points.map((p) => p.lng);
+  const lat = (Math.min(...lats) + Math.max(...lats)) / 2;
+  const lng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+  const span = Math.max(Math.max(...lats) - Math.min(...lats), Math.max(...lngs) - Math.min(...lngs));
+  const zoom = span > 0.15 ? 10 : span > 0.08 ? 11 : span > 0.03 ? 12 : 13;
+  return { lat, lng, zoom };
+}
+
 const NUMBER_WORDS = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
 
 // Local Features whose Category marks them as somewhere to eat/drink -
@@ -175,6 +198,24 @@ export default function AreaClient({ area: a }: AreaClientProps) {
     window.open("/journey?resume=1", "dramstory-journey");
   }
 
+  // Fix #2 (10 Aug 2026): was a plain /distilleries?region= Link (a
+  // filtered text list, no map) - Mark asked for this to open the real
+  // interactive planner map instead, panned/zoomed to this Area's region
+  // with every layer switched on, same "the planner map" meaning as
+  // everywhere else on the site. Seeds trip.mapView (read by MapCanvas's
+  // initialView prop via Workspace - see trip-context.tsx) before
+  // navigating, then opens with the same resume=1 + named-window
+  // convention as useThisDay() above for consistency. showAll=1 is a new
+  // one-time signal, read server-side (journey/page.tsx) into
+  // JourneyFlow's initial interests, so every category defaults active
+  // here instead of just Distilleries - see JourneyFlow's ALL_INTEREST_
+  // CATEGORIES/showAll handling.
+  function openRegionOnMap() {
+    if (!a.distilleryRegion) return;
+    trip.setMapView(regionMapView(a.distilleries, { lat: a.lat, lng: a.lng }));
+    window.open("/journey?resume=1&showAll=1", "dramstory-journey");
+  }
+
   const advisorySentences = a.advisoryNotice?.split(/(?<=[.!?])\s+/) ?? [];
 
   return (
@@ -282,9 +323,9 @@ export default function AreaClient({ area: a }: AreaClientProps) {
             <h2 className={styles.h2} style={{ margin: "6px 0 0" }}>
               Base here and day one plans itself
             </h2>
-            <Link href={`/journeys/${a.dayPlan.slug}`} className={styles.sectionLink}>
+            <button type="button" className={styles.sectionLink} onClick={useThisDay}>
               Open the full planner →
-            </Link>
+            </button>
           </div>
           <p className={styles.dayIntro} style={{ marginTop: 14 }}>
             {a.dayPlan.narrative.split(/(?<=[.!?])\s+/)[0]}
@@ -333,9 +374,9 @@ export default function AreaClient({ area: a }: AreaClientProps) {
           <div className={styles.headRow}>
             <h2 className={styles.h2}>What else is around</h2>
             {a.distilleryRegion && (
-              <Link href={`/distilleries?region=${encodeURIComponent(a.distilleryRegion)}`} className={styles.sectionLink}>
+              <button type="button" className={styles.sectionLink} onClick={openRegionOnMap}>
                 Everything in {a.distilleryRegion} on the map →
-              </Link>
+              </button>
             )}
           </div>
           <div className={styles.nearbyGrid}>
