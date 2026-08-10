@@ -1,5 +1,5 @@
 import { cache } from "react";
-import type { Distillery, FeaturedStay, HubDay, JournalPost, LocalEvent, LocalFeature, PlaceListing, Tour } from "@/lib/types";
+import type { Area, Distillery, FeaturedStay, HubDay, JournalPost, LocalEvent, LocalFeature, PlaceListing, Tour } from "@/lib/types";
 import { airtableFetchAll } from "@/lib/airtable";
 import { searchAccommodation, searchNearbyByCategory } from "@/lib/google-places";
 import {
@@ -7,10 +7,12 @@ import {
   mapClosedDays,
   mapLocalFeature,
   mapTour,
+  mapToArea,
   mapToFeaturedStay,
   mapToJournalPost,
   mapToLocalEvent,
   mapToLocalFeature,
+  type AirtableAreaFields,
   type AirtableDayFields,
   type AirtableDayStopFields,
   type AirtableDistilleryFields,
@@ -213,6 +215,56 @@ async function fetchFeaturedStaysFromAirtable(): Promise<FeaturedStay[]> {
 export async function getFeaturedStayBySlug(slug: string): Promise<FeaturedStay | undefined> {
   const stays = await getFeaturedStays();
   return stays.find((s) => s.slug === slug);
+}
+
+/** Areas (village/region guide pages, e.g. Port Ellen) - same "never leak
+ *  a draft onto the live site" Status gate as getFeaturedStays, handled
+ *  inside mapToArea. Added 06 Aug 2026. */
+export const getAreas = cache(async (): Promise<Area[]> => {
+  return fetchAreasFromAirtable();
+});
+
+async function fetchAreasFromAirtable(): Promise<Area[]> {
+  const [records, distilleries, localFeatures, featuredStays, days] = await Promise.all([
+    airtableFetchAll<AirtableAreaFields>("Areas"),
+    getDistilleries(),
+    getLocalFeatures(),
+    getFeaturedStays(),
+    getDays(),
+  ]);
+
+  const localFeatureById = new Map(localFeatures.map((f) => [f.id, f]));
+  const featuredStayById = new Map(featuredStays.map((s) => [s.id, s]));
+  const daysById = new Map(days.map((d) => [d.id, d]));
+  // Name/slug only, built from the raw records before any Area is fully
+  // mapped - see mapToArea's doc comment for why (Alternate Areas
+  // self-links would otherwise need a circular fetch).
+  const areaMetaById = new Map(
+    records
+      .filter((r) => r.fields.Name && r.fields.Slug)
+      .map((r) => [r.id, { name: r.fields.Name!, slug: r.fields.Slug! }])
+  );
+
+  const areas = records
+    .map((r) => mapToArea(r.id, r.fields, localFeatureById, featuredStayById, areaMetaById, daysById))
+    .filter((a): a is Area => a !== null);
+
+  // Local Distilleries - grouped via the Distilleries table's own curated
+  // Region field (matched to this area's distilleryRegion), not computed
+  // straight-line distance. Islay's geography makes raw distance
+  // misleading for "nearby" claims (see content-sourcing-standards.md).
+  for (const area of areas) {
+    area.distilleries = area.distilleryRegion
+      ? distilleries.filter((d) => d.region === area.distilleryRegion)
+      : [];
+  }
+
+  return areas;
+}
+
+export async function getAreaBySlug(slug: string): Promise<Area | undefined> {
+  const areas = await getAreas();
+  return areas.find((a) => a.slug === slug);
 }
 
 /** Pre-Designed Days Hub entries. Only Status: Live Days are returned -

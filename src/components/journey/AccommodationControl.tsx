@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useTrip } from "@/lib/trip-context";
 import { buildAccommodationBookingLink } from "@/lib/accommodation-links";
-import { FEATURED_STAYS } from "@/lib/featured-stays";
 import { AREAS } from "@/lib/areas";
+import { FEATURED_STAYS } from "@/lib/featured-stays";
 import type { TripAccommodation } from "@/lib/types";
 
 // Biases free-text search results toward Islay/Argyll, since that's where
@@ -19,10 +19,11 @@ const OTHER_VALUE = "__other__";
 // Re-exported here so nothing already importing it from this file breaks.
 export { FEATURED_STAYS };
 
-// AREAS now lives in @/lib/areas (09 Aug 2026, days-trip-flow Phase 1),
-// same reasoning as the FEATURED_STAYS move above - the homepage answers
-// block and the /days answers bar need it too. Re-exported here for the
-// same "nothing already importing it from this file breaks" reason.
+// AREAS now lives in @/lib/areas (09 Aug 2026, days-trip-flow Phase 1;
+// also independently extracted there on 06 Aug 2026 by the areas
+// branch so MapCanvas.tsx could import it - same file, reconciled on
+// merge, see that file's own header). Re-exported here for the same
+// "nothing already importing it from this file breaks" reason.
 export { AREAS };
 
 function featuredStayFor(name?: string) {

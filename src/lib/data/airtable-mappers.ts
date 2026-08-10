@@ -1,5 +1,5 @@
 import type { AirtableAttachment } from "@/lib/airtable";
-import type { Distillery, FeaturedStay, HubDay, JournalPost, LocalEvent, LocalFeature, NearbyFeature, Tour } from "@/lib/types";
+import type { Area, Distillery, FeaturedStay, HubDay, JournalPost, LocalEvent, LocalFeature, NearbyFeature, Tour } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Raw shapes as returned by the Airtable REST API for each table.
@@ -446,8 +446,126 @@ export function mapToFeaturedStay(
   };
 }
 
+export interface AirtableAreaFields {
+  Name?: string;
+  Slug?: string;
+  Status?: string;
+  Latitude?: number;
+  Longitude?: number;
+  Population?: number;
+  "Population Source"?: string;
+  "Why Hook"?: string;
+  "What to Expect"?: string;
+  "What Not to Expect"?: string;
+  "Shops & Amenities"?: string;
+  "Best For"?: string;
+  "Not For"?: string;
+  "Getting Here"?: string;
+  "Distillery Region"?: string;
+  "In-Village Food & Drink"?: string;
+  "Hazard Callout"?: string;
+  "Hero Image"?: AirtableAttachment[];
+  "Hero Image Credit"?: string;
+  "Nearby Local Features"?: string[]; // linked record IDs -> Local Features table
+  "Featured Stays"?: string[]; // linked record IDs -> Featured Stays table
+  "Alternate Areas"?: string[]; // linked record IDs -> Areas table (self)
+  "Advisory Notice"?: string;
+  "In The Village"?: string; // "Label: Value" per line
+  "In The Village Missing"?: string;
+  "Day Plan"?: string[]; // linked record IDs -> Days table (first one used)
+  "Booking Advice"?: string; // "Label: Value" per line
+  "Glance Places To Stay"?: string;
+}
+
+/** Parses the "Label: Value" per-line Airtable convention used by both
+ *  In The Village and Booking Advice - splits on the first colon only, so
+ *  a value containing its own colon (e.g. a time) doesn't get mangled.
+ *  Blank/malformed lines are skipped rather than rendered broken. */
+export function parseLabelValueLines(text?: string): { key: string; value: string }[] {
+  if (!text) return [];
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const i = line.indexOf(":");
+      if (i === -1) return null;
+      const key = line.slice(0, i).trim();
+      const value = line.slice(i + 1).trim();
+      if (!key || !value) return null;
+      return { key, value };
+    })
+    .filter((r): r is { key: string; value: string } => r !== null);
+}
+
+/** Maps a raw Areas record. Alternate Areas resolves to {name, slug} pairs
+ *  only (via areaMetaById, built from the raw record list before any
+ *  Area objects exist) rather than full Area records, since self-linking
+ *  would otherwise need every Area fully mapped first - a circular
+ *  dependency this avoids by not needing more than a link+label for that
+ *  one "point elsewhere" section. */
+export function mapToArea(
+  id: string,
+  fields: AirtableAreaFields,
+  localFeatureById: Map<string, LocalFeature>,
+  featuredStayById: Map<string, FeaturedStay>,
+  areaMetaById: Map<string, { name: string; slug: string }>,
+  daysById: Map<string, HubDay>
+): Area | null {
+  if (!fields.Name || !fields.Slug) return null;
+  const isProduction = process.env.VERCEL_ENV === "production";
+  if (isProduction && fields.Status !== "Live") return null;
+  const AREAS_TABLE = "tbl0lIjmDpdrTsM7F";
+  return {
+    id,
+    slug: fields.Slug,
+    name: fields.Name,
+    lat: fields.Latitude ?? 0,
+    lng: fields.Longitude ?? 0,
+    population: fields.Population ?? undefined,
+    populationSource: fields["Population Source"] || undefined,
+    whyHook: fields["Why Hook"] || undefined,
+    whatToExpect: fields["What to Expect"] ?? "",
+    whatNotToExpect: fields["What Not to Expect"] || undefined,
+    shopsAmenities: fields["Shops & Amenities"] || undefined,
+    bestFor: fields["Best For"] || undefined,
+    notFor: fields["Not For"] || undefined,
+    gettingHere: fields["Getting Here"] || undefined,
+    distilleryRegion: fields["Distillery Region"] || undefined,
+    inVillageFoodDrink: fields["In-Village Food & Drink"] || undefined,
+    hazardCallout: fields["Hazard Callout"] || undefined,
+    // Routed through /api/attachment rather than fields[...].url directly -
+    // Airtable's own attachment URLs expire after a few hours, same
+    // pattern as mapToFeaturedStay/mapToLocalFeature.
+    heroImageUrl: fields["Hero Image"]?.[0]
+      ? `/api/attachment?t=${AREAS_TABLE}&r=${id}&f=fldLzSOiLgUI1OwOw&i=0`
+      : undefined,
+    heroImageCredit: fields["Hero Image Credit"] || undefined,
+    // Filled in afterward by fetchAreasFromAirtable, same reasoning as
+    // FeaturedStay.nearestDistilleries - the full Distilleries list isn't
+    // visible from inside this function.
+    distilleries: [],
+    nearbyLocalFeatures: (fields["Nearby Local Features"] ?? [])
+      .map((recId) => localFeatureById.get(recId))
+      .filter((f): f is LocalFeature => !!f),
+    featuredStays: (fields["Featured Stays"] ?? [])
+      .map((recId) => featuredStayById.get(recId))
+      .filter((s): s is FeaturedStay => !!s),
+    alternateAreas: (fields["Alternate Areas"] ?? [])
+      .map((recId) => areaMetaById.get(recId))
+      .filter((a): a is { name: string; slug: string } => !!a),
+    advisoryNotice: fields["Advisory Notice"] || undefined,
+    inTheVillage: parseLabelValueLines(fields["In The Village"]),
+    inTheVillageMissing: fields["In The Village Missing"] || undefined,
+    dayPlan: fields["Day Plan"]?.[0] ? daysById.get(fields["Day Plan"][0]) : undefined,
+    bookingAdvice: parseLabelValueLines(fields["Booking Advice"]),
+    glancePlacesToStay: fields["Glance Places To Stay"] || undefined,
+    source: "airtable",
+  };
+}
+
 /** Great-circle distance in km between two lat/lng points (haversine). */
-function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+export function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const R = 6371;
   const dLat = ((b.lat - a.lat) * Math.PI) / 180;
   const dLng = ((b.lng - a.lng) * Math.PI) / 180;

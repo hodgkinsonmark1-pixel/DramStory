@@ -263,6 +263,85 @@ export interface JournalPost {
   category?: string;
 }
 
+/** A village/region guide page (Areas table) - helps a visitor decide
+ *  whether to base themselves in, or just visit, a given area. Same
+ *  golden-source-in-Airtable pattern as Distillery/LocalFeature/
+ *  FeaturedStay. Added 06 Aug 2026 for the Port Ellen area page. */
+export interface Area {
+  id: string;
+  slug: string;
+  name: string;
+  lat: number;
+  lng: number;
+  population?: number;
+  /** Where the Population figure came from, e.g. "NRS via Argyll and
+   *  Bute Council" - shown as a small citation, not just asserted. */
+  populationSource?: string;
+  /** Short, punchy 1-2 sentence hook - same pattern as Distillery/
+   *  FeaturedStay's Why Visit/Why Stay. */
+  whyHook?: string;
+  /** Atmosphere/character - meant to read emotionally, not as a bare
+   *  fact listing, while every claim in it still traces to a source. */
+  whatToExpect: string;
+  /** Genuine limitations - not padded out for balance. */
+  whatNotToExpect?: string;
+  shopsAmenities?: string;
+  bestFor?: string;
+  notFor?: string;
+  gettingHere?: string;
+  /** Maps to the Distilleries table's own curated Region field (e.g.
+   *  "South Islay") so nearby distilleries can be grouped correctly -
+   *  Islay's geography makes straight-line distance misleading for
+   *  "nearby" claims here. */
+  distilleryRegion?: string;
+  inVillageFoodDrink?: string;
+  /** Only set where genuinely sourced - never invented for symmetry
+   *  with areas that do have a real hazard. */
+  hazardCallout?: string;
+  heroImageUrl?: string;
+  /** Same [label](url) markdown-link convention as Local Features/
+   *  Featured Stays' heroImageCredit. */
+  heroImageCredit?: string;
+  /** Curated by verifying coordinates against this Area's own lat/lng,
+   *  not the LocalFeature "Distance" free-text field (not reliably
+   *  anchored to a specific village - see content-sourcing-standards.md). */
+  /** Real Distillery records whose own Region field matches this area's
+   *  distilleryRegion - filled in as a post-processing step in
+   *  fetchAreasFromAirtable (mapToArea alone can't see the full
+   *  Distilleries list at map time), same "resolve to real records"
+   *  pattern as FeaturedStay.nearestDistilleries. */
+  distilleries: Distillery[];
+  nearbyLocalFeatures: LocalFeature[];
+  /** The Featured Stay(s) tied to this area, if any. */
+  featuredStays: FeaturedStay[];
+  /** "If this isn't quite right" pointer to alternate areas - resolved to
+   *  name/slug only (not a full Area, to avoid a circular fetch). */
+  alternateAreas: { name: string; slug: string }[];
+  /** Time-bound notice that changes the trip (e.g. a ferry closure) - most
+   *  areas won't have one, render conditionally. Added 06 Aug 2026 for the
+   *  redesigned area-page template. */
+  advisoryNotice?: string;
+  /** "IN THE VILLAGE" sidebar rows, parsed from the Airtable "Label: Value"
+   *  per-line convention (see parseLabelValueLines). */
+  inTheVillage: { key: string; value: string }[];
+  /** Closing line under the In The Village rows naming what's genuinely
+   *  missing locally (pharmacy/dentist/bank etc). */
+  inTheVillageMissing?: string;
+  /** The one curated Day (from the Days table) featured in "Base here and
+   *  day one plans itself" - a real HubDay record, not invented content. */
+  dayPlan?: HubDay;
+  /** Booking-handoff advice rows ("Book by", "Also try", "Cheaper"), same
+   *  "Label: Value" per-line convention as inTheVillage. Genuinely new
+   *  editorial content - expected blank until drafted/reviewed, in which
+   *  case the section shows a pending state rather than invented advice. */
+  bookingAdvice: { key: string; value: string }[];
+  /** Glance-bar "Places to stay" qualitative fact - covers ALL village
+   *  accommodation, not just featuredStays, so it can't be derived from
+   *  data already on this record. Blank until sourced/decided. */
+  glancePlacesToStay?: string;
+  source: DataSource;
+}
+
 /** A Pre-Designed Days Hub entry - a ready-made day itinerary built from
  *  the Airtable Days + Day Stops tables. Named "HubDay" (not "Day") to
  *  avoid colliding with the unrelated ItineraryDay used by the trip

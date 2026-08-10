@@ -1,0 +1,689 @@
+/* Area page template redesign (06 Aug 2026) - scoped entirely to this CSS
+   Module so it can't leak into, or be affected by, any other page's
+   styles. Self-contained design tokens per the design handoff (does not
+   reuse dramstory-legacy.css's --navy/--copper/etc. tokens - this is a
+   deliberately distinct visual language, scoped to Areas only per Mark's
+   steer not to touch any other template). */
+
+.page {
+  background: #f3ede2;
+  font-family: var(--font-instrument), "Inter", sans-serif;
+  color: #3d4b52;
+}
+
+/* ---------- 1. Hero ---------- */
+.hero {
+  position: relative;
+  height: 520px;
+  width: 100%;
+  overflow: hidden;
+}
+.heroImg {
+  object-fit: cover;
+}
+.heroPlaceholder {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(45deg, #cfc6b3, #cfc6b3 12px, #e2dac8 12px, #e2dac8 24px);
+}
+.heroOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(12, 26, 33, 0.86) 0%, rgba(12, 26, 33, 0.34) 46%, rgba(12, 26, 33, 0) 74%);
+}
+.heroContent {
+  position: absolute;
+  left: 56px;
+  bottom: 44px;
+  max-width: 780px;
+}
+.eyebrow {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #e2b078;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+}
+.h1 {
+  font-family: var(--font-spectral), serif;
+  font-weight: 600;
+  font-size: clamp(38px, 4.6vw, 68px);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+  color: #fdfbf7;
+  margin: 0 0 14px;
+}
+.subhead {
+  font-size: clamp(15px, 1.5vw, 19px);
+  line-height: 1.45;
+  color: #e6ded1;
+  max-width: 620px;
+  text-wrap: pretty;
+}
+
+.heroCredit {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 10px;
+  line-height: 1.4;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+/* ---------- 2. Glance bar ---------- */
+.glanceBar {
+  background: #16394b;
+  padding: 22px 56px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 36px;
+}
+.glanceLabel {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #8ba1ab;
+  text-transform: uppercase;
+  margin: 0 0 6px;
+}
+.glanceValue {
+  font-size: clamp(14px, 1.2vw, 16px);
+  font-weight: 600;
+  color: #f4efe6;
+  line-height: 1.35;
+}
+.glancePending {
+  color: #8ba1ab;
+  font-weight: 500;
+  font-style: italic;
+}
+
+/* ---------- shared section rhythm ---------- */
+.section {
+  padding: 56px 56px 0;
+}
+.sectionLast {
+  padding: 56px 56px 56px;
+}
+.headRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.sectionLink {
+  font-size: 14px;
+  font-weight: 600;
+  color: #b5763a;
+  text-decoration: none;
+  white-space: nowrap;
+  /* Both usages became <button>s (10 Aug 2026, link-destination fixes) so
+     they can trigger real trip actions instead of navigating - reset the
+     browser's default button chrome so they still read as the same plain
+     text link they were as an <a>. */
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font-instrument), sans-serif;
+}
+.sectionLink:hover {
+  text-decoration: underline;
+}
+.h2 {
+  font-family: var(--font-spectral), serif;
+  font-weight: 600;
+  font-size: clamp(22px, 2.2vw, 32px);
+  color: #14313f;
+  letter-spacing: -0.01em;
+  margin: 0 0 18px;
+}
+
+/* ---------- 3. Advisory notice ---------- */
+.advisoryCard {
+  background: #f7f0e2;
+  border: 1px solid #e8dcc2;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  gap: 14px;
+}
+.advisoryBang {
+  color: #b5763a;
+  font-weight: 700;
+  font-size: 17px;
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+.advisoryBody {
+  font-size: clamp(13px, 1.1vw, 14.5px);
+  line-height: 1.55;
+  color: #6d5a3c;
+  max-width: 960px;
+  margin: 0;
+}
+.advisoryLead {
+  color: #4c3d24;
+  font-weight: 700;
+}
+
+/* ---------- 4. Qualifier cards ---------- */
+.qualGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.qualCard {
+  background: #fffdf9;
+  border: 1px solid #e2d9c8;
+  border-radius: 16px;
+  padding: 24px 26px;
+}
+.qualLabel {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+}
+.qualLabelGood {
+  color: #2f7a5e;
+}
+.qualLabelBad {
+  color: #a8543a;
+}
+.qualBody {
+  font-size: clamp(14px, 1.3vw, 16.5px);
+  line-height: 1.55;
+  color: #3d4b52;
+  margin: 0;
+}
+
+/* ---------- 5. Stay here prose + In The Village ---------- */
+.stayGrid {
+  display: grid;
+  grid-template-columns: 700px 1fr;
+  gap: 56px;
+  align-items: start;
+}
+.stayP {
+  font-size: clamp(14.5px, 1.3vw, 17px);
+  line-height: 1.62;
+  color: #4b585e;
+  margin: 0 0 18px;
+  text-wrap: pretty;
+}
+.villageCard {
+  background: #fffdf9;
+  border: 1px solid #e2d9c8;
+  border-radius: 16px;
+  padding: 26px 28px;
+}
+.villageLabel {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #b5763a;
+  text-transform: uppercase;
+  margin: 0 0 14px;
+}
+.villageRow {
+  display: flex;
+  gap: 12px;
+  padding-bottom: 13px;
+  margin-bottom: 13px;
+  border-bottom: 1px solid #f1ebde;
+}
+.villageRow:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+.villageKey {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #14313f;
+  width: 96px;
+  flex-shrink: 0;
+}
+.villageVal {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #5c6a70;
+}
+.villageMissing {
+  font-size: 13.5px;
+  color: #8a7f6d;
+  margin-top: 13px;
+}
+
+/* ---------- 6. Day plan ---------- */
+.dayEyebrow {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #b5763a;
+  text-transform: uppercase;
+  display: block;
+  margin: 0 0 6px;
+}
+.dayIntro {
+  font-size: clamp(14px, 1.2vw, 16px);
+  color: #59666d;
+  max-width: 640px;
+  margin: 0 0 24px;
+}
+/* Plain block wrapper (not a grid) - dayTitle stacks above
+   dayPanelInner, which is the ONLY grid here (stops beside the rail).
+   An earlier version nested two grids (this one + dayPanelInner) with
+   both children spanning grid-column:1/-1, which produced a large,
+   unintended gap between the title and the stops row - removed rather
+   than chased, since a single grid is simpler and matches the intended
+   layout exactly. */
+.dayPanel {
+  background: #16394b;
+  border-radius: 18px;
+  padding: 28px 32px;
+}
+.dayTitle {
+  font-family: var(--font-spectral), serif;
+  font-weight: 600;
+  font-size: clamp(19px, 1.8vw, 24px);
+  color: #f4efe6;
+  margin: 0 0 18px;
+}
+.dayPanelInner {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 40px;
+  align-items: center;
+}
+.stopsRow {
+  display: flex;
+}
+.stop {
+  flex: 1;
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 0 14px;
+}
+.stop:first-child {
+  border-left: none;
+  padding-left: 0;
+}
+.stopTime {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #dda86a;
+  text-transform: uppercase;
+  margin: 0 0 4px;
+}
+.stopName {
+  font-size: clamp(13.5px, 1.2vw, 15.5px);
+  font-weight: 600;
+  color: #f4efe6;
+  margin: 0 0 4px;
+}
+.stopNote {
+  font-size: 12.5px;
+  color: #9fb0b8;
+  line-height: 1.4;
+}
+.dayRail {
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+  padding-left: 32px;
+}
+.railLabel {
+  font-size: 13px;
+  color: #9fb0b8;
+  margin: 0 0 2px;
+}
+.railValue {
+  font-family: var(--font-spectral), serif;
+  font-weight: 600;
+  font-size: clamp(20px, 2vw, 26px);
+  color: #f4efe6;
+  margin: 0 0 16px;
+}
+.ctaGold {
+  display: block;
+  width: 100%;
+  text-align: center;
+  background: #dda86a;
+  color: #1a1207;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 12px;
+  padding: 15px 24px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-instrument), sans-serif;
+  text-decoration: none;
+}
+.ctaGold:hover {
+  filter: brightness(0.94);
+}
+
+/* ---------- 7. Nearby ---------- */
+.nearbyGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+.nearbyCard {
+  background: #fffdf9;
+  border: 1px solid #e2d9c8;
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.nearbyImgWrap {
+  display: block;
+  position: relative;
+  height: 118px;
+}
+.nearbyImg {
+  object-fit: cover;
+}
+.nearbyKindBadge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #14313f;
+  background: #fdfbf7;
+  border-radius: 6px;
+  padding: 4px 9px;
+  text-transform: uppercase;
+  z-index: 1;
+}
+.nearbyBody {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.nearbyName {
+  font-family: var(--font-spectral), serif;
+  font-weight: 600;
+  font-size: clamp(15px, 1.4vw, 17.5px);
+  color: #14313f;
+  margin: 0 0 6px;
+}
+.nearbyReason {
+  font-size: 13px;
+  line-height: 1.45;
+  color: #5c6a70;
+  margin: 0;
+  flex: 1;
+}
+.nearbyFoot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+}
+.nearbyDist {
+  font-size: 12px;
+  color: #8a7f6d;
+}
+.nearbyAdd {
+  font-size: 13px;
+  font-weight: 600;
+  color: #b5763a;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: var(--font-instrument), sans-serif;
+}
+.nearbyAddDone {
+  color: #2f7a5e;
+}
+
+/* ---------- 8. Where to stay ---------- */
+.staysGrid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 24px;
+  align-items: stretch;
+}
+.stayCard {
+  background: #fffdf9;
+  border: 1px solid #e2d9c8;
+  border-radius: 18px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.stayImgWrap {
+  position: relative;
+  height: 230px;
+}
+.stayImg {
+  object-fit: cover;
+}
+.featuredBadge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  background: #dda86a;
+  color: #1a1207;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  border-radius: 7px;
+  padding: 5px 10px;
+  text-transform: uppercase;
+  z-index: 1;
+}
+.stayCardBody {
+  padding: 24px 26px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.stayCardHeadRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.stayName {
+  font-family: var(--font-spectral), serif;
+  font-weight: 600;
+  font-size: clamp(20px, 2vw, 26px);
+  color: #14313f;
+  margin: 0;
+}
+.stayDistNote {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #8a7f6d;
+  white-space: nowrap;
+}
+.stayBlurb {
+  font-size: clamp(14px, 1.2vw, 15.5px);
+  line-height: 1.6;
+  color: #4b585e;
+  max-width: 56ch;
+  margin: 12px 0 16px;
+}
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.chip {
+  font-size: 13px;
+  color: #3d4b52;
+  background: #ede5d6;
+  border-radius: 8px;
+  padding: 8px 13px;
+}
+.stayFoot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #ece4d5;
+}
+.stayFootNote {
+  font-size: 13.5px;
+  color: #8a7f6d;
+}
+.btnDark {
+  background: #16394b;
+  color: #f4efe6;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 12px 24px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-instrument), sans-serif;
+  display: inline-block;
+}
+.btnDark:hover {
+  filter: brightness(1.15);
+}
+
+.handoffPanel {
+  background: #16394b;
+  border-radius: 18px;
+  padding: 28px 30px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.handoffLabel {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #dda86a;
+  text-transform: uppercase;
+  margin: 0 0 12px;
+}
+.handoffLead {
+  font-family: var(--font-spectral), serif;
+  font-weight: 600;
+  font-size: clamp(18px, 1.6vw, 22px);
+  line-height: 1.35;
+  color: #f4efe6;
+  margin: 0 0 10px;
+}
+.handoffBody {
+  font-size: 14.5px;
+  color: #b9c6cc;
+  margin: 0 0 18px;
+  line-height: 1.5;
+}
+.adviceRow {
+  display: flex;
+  gap: 12px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+.adviceKey {
+  font-size: 13px;
+  font-weight: 600;
+  color: #dda86a;
+  width: 84px;
+  flex-shrink: 0;
+}
+.adviceValue {
+  font-size: 14px;
+  color: #e6ded1;
+}
+.handoffPending {
+  font-size: 13.5px;
+  color: #8ba1ab;
+  font-style: italic;
+  margin-bottom: 18px;
+}
+.ctaGoldFull {
+  margin-top: auto;
+}
+.disclosure {
+  font-size: 12px;
+  color: #8ba1ab;
+  margin-top: 10px;
+}
+
+/* ---------- Responsive collapse (intended behaviour per handoff, not
+   specified pixel-precisely in the 1440px prototype) ---------- */
+@media (max-width: 1100px) {
+  .stayGrid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .nearbyGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .staysGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .section,
+  .sectionLast {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  .glanceBar {
+    padding: 20px 24px;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .heroContent {
+    left: 24px;
+    right: 24px;
+    bottom: 28px;
+    max-width: none;
+  }
+  .h1 {
+    font-size: 44px;
+  }
+  .hero {
+    height: 420px;
+  }
+  .qualGrid {
+    grid-template-columns: 1fr;
+  }
+  .dayPanelInner {
+    grid-template-columns: 1fr;
+  }
+  .stopsRow {
+    flex-direction: column;
+    gap: 14px;
+  }
+  .stop {
+    border-left: none;
+    padding: 0 0 0 14px;
+    border-left: 2px solid rgba(255, 255, 255, 0.16);
+  }
+  .dayRail {
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
+    padding-left: 0;
+    padding-top: 20px;
+  }
+  .nearbyGrid {
+    grid-template-columns: 1fr;
+  }
+}

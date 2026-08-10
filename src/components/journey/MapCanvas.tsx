@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type Leaflet from "leaflet";
 import type { Distillery, LocalFeature } from "@/lib/types";
 import { truncateSummary } from "@/lib/text";
+import { AREAS } from "@/lib/areas";
+import { generateAreaBlob } from "@/lib/area-blob";
 import { FEATURED_STAYS } from "@/lib/featured-stays";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
@@ -196,6 +198,11 @@ export default function MapCanvas({
   // stay individually visible - see activeDayFeatures' own comment.
   const activeDayFeatureMarkersRef = useRef<Leaflet.Marker[]>([]);
   const highlightMarkersRef = useRef<Leaflet.Marker[]>([]);
+  // The one currently-visible Area highlight blob (organic polygon, not a
+  // circle - see area-blob.ts), or null when no Area is active. Only ever
+  // one at a time, per the "active" prop being a single slug - see the
+  // blob-drawing effect below.
+  const activeAreaBlobRef = useRef<Leaflet.Polygon | null>(null);
   // Keyed by distillery slug - lets the onboarding walkthrough open a
   // specific real marker's popup (e.g. Bowmore) programmatically, rather
   // than requiring an actual click during the passive walkthrough.
@@ -547,8 +554,15 @@ export default function MapCanvas({
             // four curated Featured Stays rather than an Area or a
             // free-text Other place (which have no page to link to).
             const stay = FEATURED_STAYS.find((s) => s.name === accommodation.name);
+            // Same treatment extended to Areas (06 Aug 2026, Port Ellen
+            // first) - only areas with a real /areas/[slug] page built
+            // have `slug` set (see areas.ts), so this degrades to the
+            // plain name-only popup for the others, same as before.
+            const area = !stay ? AREAS.find((a) => a.name === accommodation.name && a.slug) : undefined;
             const link = stay
               ? `<div class="popup-actions"><a class="popup-btn popup-btn-secondary" href="/stays/${stay.slug}">View &rarr;</a></div>`
+              : area
+              ? `<div class="popup-actions"><a class="popup-btn popup-btn-secondary" href="/areas/${area.slug}">View &rarr;</a></div>`
               : "";
             return `<div class="popup-inner"><div class="popup-tag">Staying here</div><div class="popup-name">${accommodation.name}</div>${link}</div>`;
           })()
@@ -768,6 +782,94 @@ export default function MapCanvas({
 
     highlightMarkersRef.current = newHighlights;
   }, [mapReady, highlightedDistillerySlugs, distilleries]);
+
+  // Which Area (by @/lib/areas.ts slug), if any, is currently "active" -
+  // shows its organic highlight blob on the map, and nothing else's.
+  // Derived from the accommodation prop itself (corrected 09 Aug 2026 -
+  // this used to be a separate prop driven by hovering/clicking the
+  // "Where to stay" Area cards below the map, which turned out to be a
+  // misunderstanding of what Mark actually wanted: the blob should follow
+  // whichever Area the visitor has picked as their accommodation via the
+  // map's own Accommodation selector, not the unrelated cards below).
+  // Matched the same way the 🏠 marker popup above identifies an Area
+  // (by accommodation.name, checking FEATURED_STAYS first so a same-named
+  // hotel never gets misread as an Area) rather than inventing a new
+  // matching strategy - null whenever the selected accommodation is a
+  // Featured Stay or a free-text/other place, since only the 3 real Areas
+  // have a blob to show at all.
+  const activeAreaSlug = useMemo(() => {
+    if (!accommodation) return null;
+    const isFeaturedStay = FEATURED_STAYS.some((s) => s.name === accommodation.name);
+    if (isFeaturedStay) return null;
+    const area = AREAS.find((a) => a.name === accommodation.name && a.slug);
+    return area?.slug ?? null;
+  }, [accommodation]);
+
+  // One stable-shaped organic "blob" outline per real Area (Port Ellen,
+  // Bowmore, Port Charlotte), computed once rather than regenerated on
+  // every render/hover - see area-blob.ts for the seeded-PRNG + Chaikin-
+  // smoothing approach and why it needs to be deterministic. AREAS itself
+  // is a static import (not a prop), so this only ever needs to
+  // recompute if the AREAS array reference itself changes.
+  const areaBlobs = useMemo(
+    () =>
+      AREAS.map((a) => ({
+        slug: a.slug ?? a.name,
+        points: generateAreaBlob(a.lat, a.lng, a.slug ?? a.name),
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  // Draws the ONE active Area's highlight blob (organic polygon, not a
+  // circle - see area-blob.ts), or nothing at all when no Area is active.
+  // Replaces the old always-on per-Area L.circle entirely (08 Aug 2026,
+  // per Mark's review): the map itself is deliberately pin-free, per
+  // Mark's follow-up review (an always-on or hoverable pin per Area made
+  // the map look "too busy", Port Ellen especially) - now shows only
+  // while the visitor's chosen accommodation (via the map's own
+  // Accommodation selector) IS one of the 3 real Areas - see
+  // activeAreaSlug above. Still the same brand amber (--amber, #D4A574)
+  // as before, at ~40% fill (~60% transparent, per the reference) with a
+  // more solid ~85%-opacity stroke so the boundary reads clearly through
+  // whatever's underneath.
+  //
+  // Drawn with plain L.polygon rather than a divIcon marker (as the pulse
+  // ring above uses) - Leaflet already renders vector layers like
+  // polygons in its overlayPane (z-index 400), below markerPane (z-index
+  // 600) where every real pin/cluster lives, so this sits behind the pins
+  // by default with no extra pane/z-index wiring needed, and interactive:
+  // false keeps it from ever intercepting a click meant for a pin
+  // underneath/around it.
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !leafletRef.current) return;
+    const L = leafletRef.current;
+    const map = mapRef.current;
+
+    if (activeAreaBlobRef.current) {
+      activeAreaBlobRef.current.remove();
+      activeAreaBlobRef.current = null;
+    }
+
+    if (!activeAreaSlug) return;
+    const blob = areaBlobs.find((b) => b.slug === activeAreaSlug);
+    if (!blob) return;
+
+    const polygon = L.polygon(blob.points, {
+      color: "#D4A574",
+      weight: 2.5,
+      opacity: 0.85,
+      fillColor: "#D4A574",
+      fillOpacity: 0.4,
+      interactive: false,
+    }).addTo(map);
+    activeAreaBlobRef.current = polygon;
+
+    return () => {
+      polygon.remove();
+      activeAreaBlobRef.current = null;
+    };
+  }, [mapReady, activeAreaSlug, areaBlobs]);
 
   // Lets the onboarding walkthrough open (and later close) a specific real
   // distillery's popup programmatically, e.g. to show what "Add it to

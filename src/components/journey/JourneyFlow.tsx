@@ -2,7 +2,7 @@
 
 import { Suspense, use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Distillery, HubDay, InterestCategoryId, JournalPost, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
+import type { Area, Distillery, FeaturedStay, HubDay, InterestCategoryId, JournalPost, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
 import { useTrip } from "@/lib/trip-context";
 import LocationStep from "./LocationStep";
 import TodayLocationStep from "./TodayLocationStep";
@@ -10,7 +10,7 @@ import InterestsStep from "./InterestsStep";
 import Workspace from "./Workspace";
 import { FEATURED_STAYS } from "@/lib/featured-stays";
 import { estimatedDriveMinutes, formatDuration } from "@/lib/drive-time";
-import { TODAY_EXCLUDED_DISTILLERY_SLUGS } from "@/lib/journey-options";
+import { INTEREST_CATEGORIES, TODAY_EXCLUDED_DISTILLERY_SLUGS } from "@/lib/journey-options";
 
 interface JourneyFlowProps {
   timing: TripTiming;
@@ -38,6 +38,16 @@ interface JourneyFlowProps {
    *  and to reset/offer back its original stops (docs/days-trip-flow-
    *  handoff.md §3.5, §10 "Planner"). */
   hubDaysPromise: Promise<HubDay[]>;
+  /** Deferred fetch for the workspace step's "Where to stay" grid - the
+   *  3 real, live Areas (Port Ellen, Bowmore, Port Charlotte). Same
+   *  deferred/use()-in-Suspense treatment as localFeaturesPromise; not
+   *  needed until the workspace renders. */
+  areasPromise: Promise<Area[]>;
+  /** Same deferred treatment as areasPromise, for the same "Where to
+   *  stay" grid's 4 curated hotels - the richer Airtable-backed
+   *  FeaturedStay (image, whyStay, slug), not the static lat/lng-only
+   *  FEATURED_STAYS used for map pins/the accommodation dropdown. */
+  featuredStaysPromise: Promise<FeaturedStay[]>;
   /** True only when arriving via "Back to your journey" (see
    *  DistilleryPageClient's ?resume=1 link) - an explicit signal that
    *  resuming the saved trip is wanted. A fresh homepage Q1 click never
@@ -46,9 +56,23 @@ interface JourneyFlowProps {
    *  option looked like it "skipped" Q2/Q3 straight to the map, because
    *  ANY saved intake was silently resumed regardless of intent. */
   resume: boolean;
+  /** True only via AreaClient's "Everything in {region} on the map" link
+   *  (10 Aug 2026) - a one-time signal to seed every InterestCategoryId
+   *  active (see ALL_INTEREST_CATEGORIES below) instead of the usual
+   *  Distilleries-only default, so that entry point's map opens with
+   *  every layer already switched on rather than needing the visitor to
+   *  toggle each one by hand. */
+  showAll: boolean;
 }
 
 type Step = "location" | "today-location" | "interests" | "workspace";
+
+/** Every InterestCategoryId, derived from the single source of truth
+ *  (INTEREST_CATEGORIES in journey-options.ts) rather than hand-listed
+ *  here, so a category added there is automatically included - used only
+ *  by the showAll entry point (see JourneyFlowProps.showAll) to force
+ *  every map layer active instead of the usual Distilleries-only default. */
+const ALL_INTEREST_CATEGORIES: InterestCategoryId[] = INTEREST_CATEGORIES.map((c) => c.id);
 
 // Q3 ("what matters most to your trip?") is skipped on desktop - the
 // walkthrough already demonstrates that every one of these categories is
@@ -66,6 +90,8 @@ function WorkspaceWithFeatures(props: {
   localFeaturesPromise: Promise<LocalFeature[]>;
   localEventsPromise: Promise<LocalEvent[]>;
   hubDaysPromise: Promise<HubDay[]>;
+  areasPromise: Promise<Area[]>;
+  featuredStaysPromise: Promise<FeaturedStay[]>;
   location: LocationAnswer;
   initialInterests: InterestCategoryId[];
   timing: TripTiming;
@@ -76,12 +102,16 @@ function WorkspaceWithFeatures(props: {
   const localFeatures = use(props.localFeaturesPromise);
   const localEvents = use(props.localEventsPromise);
   const hubDays = use(props.hubDaysPromise);
+  const areas = use(props.areasPromise);
+  const featuredStays = use(props.featuredStaysPromise);
   return (
     <Workspace
       distilleries={distilleries}
       localFeatures={localFeatures}
       localEvents={localEvents}
       hubDays={hubDays}
+      areas={areas}
+      featuredStays={featuredStays}
       location={props.location}
       initialInterests={props.initialInterests}
       timing={props.timing}
@@ -285,7 +315,7 @@ function seedTodayDay(
   return { interests: eveningInterests, notice: eveningExplainer };
 }
 
-export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, hubDaysPromise, resume }: JourneyFlowProps) {
+export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, hubDaysPromise, areasPromise, featuredStaysPromise, resume, showAll }: JourneyFlowProps) {
   const router = useRouter();
   const trip = useTrip();
   const [step, setStep] = useState<Step>("location");
@@ -315,14 +345,14 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
     if (resume && trip.intake) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocation(trip.intake.location);
-      setInterests(trip.intake.interests);
+      setInterests(showAll ? ALL_INTEREST_CATEGORIES : trip.intake.interests);
       setStep("workspace");
       setHandledInitialState(true);
       return;
     }
     if (resume && !trip.intake && trip.days.length > 0) {
       setLocation({ kind: "region", region: "islay" });
-      setInterests(["distilleries"]);
+      setInterests(showAll ? ALL_INTEREST_CATEGORIES : ["distilleries"]);
       setStep("workspace");
       setHandledInitialState(true);
       return;
@@ -332,7 +362,7 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
     if (trip.intake || trip.days.length > 0) trip.resetTrip();
 
     const freshLocation: LocationAnswer = { kind: "region", region: "islay" };
-    const freshInterests: InterestCategoryId[] = ["distilleries"];
+    const freshInterests: InterestCategoryId[] = showAll ? ALL_INTEREST_CATEGORIES : ["distilleries"];
     setLocation(freshLocation);
     setInterests(freshInterests);
 
@@ -465,6 +495,8 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
         localFeaturesPromise={localFeaturesPromise}
         localEventsPromise={localEventsPromise}
         hubDaysPromise={hubDaysPromise}
+        areasPromise={areasPromise}
+        featuredStaysPromise={featuredStaysPromise}
         location={location!}
         initialInterests={interests}
         timing={trip.intake?.timing ?? timing}
