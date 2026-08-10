@@ -39,29 +39,6 @@ function formatMiles(mi: number): string {
   return mi < 0.15 ? "0.1" : mi.toFixed(1);
 }
 
-/** Center + zoom for "Everything in {region} on the map" (fix #2, 10 Aug
- *  2026) - averages this Area's own real distilleries into a midpoint,
- *  with a zoom picked from how spread out they are. a.distilleries is
- *  already filtered to Distillery.region === a.distilleryRegion (see the
- *  Area type's own doc comment on that field), so this works generically
- *  for any Area's region, not just South Islay/Port Ellen. Deliberately
- *  NOT a real fitBounds() calculation - a coarse fixed-zoom lookup per
- *  the design ask ("11-12 is fine, doesn't need to be pixel-perfect").
- *  Falls back to the Area's own lat/lng if it has no distilleries yet. */
-function regionMapView(
-  points: { lat: number; lng: number }[],
-  fallback: { lat: number; lng: number }
-): { lat: number; lng: number; zoom: number } {
-  if (points.length === 0) return { ...fallback, zoom: 12 };
-  const lats = points.map((p) => p.lat);
-  const lngs = points.map((p) => p.lng);
-  const lat = (Math.min(...lats) + Math.max(...lats)) / 2;
-  const lng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
-  const span = Math.max(Math.max(...lats) - Math.min(...lats), Math.max(...lngs) - Math.min(...lngs));
-  const zoom = span > 0.15 ? 10 : span > 0.08 ? 11 : span > 0.03 ? 12 : 13;
-  return { lat, lng, zoom };
-}
-
 const NUMBER_WORDS = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
 
 // Local Features whose Category marks them as somewhere to eat/drink -
@@ -210,9 +187,27 @@ export default function AreaClient({ area: a }: AreaClientProps) {
   // JourneyFlow's initial interests, so every category defaults active
   // here instead of just Distilleries - see JourneyFlow's ALL_INTEREST_
   // CATEGORIES/showAll handling.
+  //
+  // Revised again (10 Aug 2026, same day) per Mark's live-testing
+  // feedback with two more specific asks: (1) a village-level zoom, not
+  // the wider region view the fixed lookup above produced - now centred
+  // on the Area's own coordinate (not the distillery midpoint, which can
+  // sit a mile or two off from the village itself) at a fixed close zoom;
+  // (2) "with port ellen area selected and nothing in the left bar" -
+  // read as wanting the map to open on a genuinely empty exploration day
+  // with this Area set as its accommodation (so AccommodationControl
+  // shows "Staying: Port Ellen"), not whatever the visitor's existing
+  // trip happens to already contain. Always adds a brand-new Day for
+  // this (same newDayIndex-before-addDay pattern as useThisDay() above)
+  // rather than reusing the current day, since that's the only way to
+  // guarantee "nothing in the left bar" regardless of prior trip state.
   function openRegionOnMap() {
     if (!a.distilleryRegion) return;
-    trip.setMapView(regionMapView(a.distilleries, { lat: a.lat, lng: a.lng }));
+    const newDayIndex = trip.days.length;
+    trip.addDay();
+    trip.setAccommodation(newDayIndex, { name: a.name, lat: a.lat, lng: a.lng });
+    trip.setCurrentDayIndex(newDayIndex);
+    trip.setMapView({ lat: a.lat, lng: a.lng, zoom: 14 });
     window.open("/journey?resume=1&showAll=1", "dramstory-journey");
   }
 
@@ -323,9 +318,15 @@ export default function AreaClient({ area: a }: AreaClientProps) {
             <h2 className={styles.h2} style={{ margin: "6px 0 0" }}>
               Base here and day one plans itself
             </h2>
-            <button type="button" className={styles.sectionLink} onClick={useThisDay}>
-              Open the full planner →
-            </button>
+            {/* Was "Open the full planner" -> useThisDay(), duplicating the
+                "Use this day ->" CTA below (both did the identical
+                add-to-trip action). Fix #3 (10 Aug 2026, Mark's live-
+                testing feedback): relabelled "See all days" and pointed at
+                a real Days list instead, sorted by proximity to this Area
+                rather than performing the same action twice. */}
+            <Link href={`/days?near=${a.slug}`} className={styles.sectionLink}>
+              See all days →
+            </Link>
           </div>
           <p className={styles.dayIntro} style={{ marginTop: 14 }}>
             {a.dayPlan.narrative.split(/(?<=[.!?])\s+/)[0]}
