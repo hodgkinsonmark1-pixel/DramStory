@@ -3,7 +3,7 @@
    the reference prototype's own amber-pale palette for this screen
    (distinct from /trip's dark navy hero) - real tokens from
    dramstory-legacy.css throughout, never hardcoded hexes. Reuses
-   trip-review.css's .trip-day-version*/.trip-btn* and journey-extra.css's
+   trip-review.css's .trip-day-version-tag/.trip-btn classes and journey-extra.css's
    .tour-picker-* classes directly (all stylesheets are global) rather
    than redefining equivalents here. */
 
