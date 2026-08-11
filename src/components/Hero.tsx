@@ -16,9 +16,10 @@ import {
 import { AnswersSheets, type AnswersSheetName } from "@/components/home/AnswersSheets";
 import { HeroSentenceSheets, type HeroSentenceSheetName } from "@/components/home/HeroSentenceSheets";
 import { HeroDaysColumn } from "@/components/home/HeroDaysColumn";
+import { HeroDreamingColumn } from "@/components/home/HeroDreamingColumn";
 import { AREAS } from "@/lib/areas";
 import { DREAM_AREAS } from "@/lib/dream-areas";
-import type { Distillery, HubDay } from "@/lib/types";
+import type { Distillery, HubDay, JournalPost } from "@/lib/types";
 
 type SheetName = "timeframe" | "base" | "nights" | "picks" | "dreamArea" | "todayNear" | null;
 
@@ -31,25 +32,35 @@ const TIMEFRAME_LABEL: Record<Timeframe, string> = {
 };
 
 /**
- * The desktop homepage hero (docs/hero-handoff.md). Phase 1 (§9) replaced
- * the old two-question arrangement with one sentence, timeframe folded in
- * as its first clause. Phase 2 (this update) adds state two for the
- * PLANNING timeframe only, per §9: pressing "Show me the days" no longer
- * navigates away for that one branch - the hero reflows in place instead
- * (video narrows to the left 600px and keeps playing, the sentence
- * translates/shrinks in place, the right half fills with a ranked days
- * column) - and every further answer change re-sorts that column live.
+ * The desktop homepage hero (docs/hero-handoff.md, §9's phase order).
+ * Phase 1 replaced the old two-question arrangement with one sentence,
+ * timeframe folded in as its first clause. Phase 2 added state two's
+ * reflow for PLANNING (video narrows to the left 600px and keeps
+ * playing, the sentence shrinks in place, the right half fills with a
+ * ranked days column). Phase 3 (this update) adds DREAMING's own reflow
+ * - the same mechanism, a different right-column component
+ * (HeroDreamingColumn) showing a reading column anchored to one of the
+ * four dream-areas.ts areas instead of a days list.
  *
- * "today"/"dreaming" don't have a built reflow yet (Phases 3/4) - their
- * button keeps Phase 1's behaviour (navigate to /days). If a visitor
- * reveals the planning reflow and then switches the timeframe clause
- * itself to "today"/"dreaming", the reflow drops back to the poster
- * layout for as long as that clause reads something other than
- * "planning" - trip.heroRevealed (whether they've EVER revealed it)
- * stays true underneath, so switching back to "planning" re-shows the
- * column immediately rather than needing the button pressed again.
+ * "today" is still Phase 1's stand-in behaviour (navigate to /days) -
+ * its own reflow (stops with arrival times) is Phase 4. If a visitor
+ * reveals the reflow under either "planning" or "dreaming" and then
+ * switches the timeframe clause to "today", it drops back to the poster
+ * layout for as long as that clause reads "today" -
+ * trip.heroRevealed (whether they've EVER revealed either reflow) stays
+ * true underneath regardless, so switching back to "planning" or
+ * "dreaming" re-shows that one's own column immediately, without the
+ * button needing to be pressed again.
  */
-export default function Hero({ days, distilleries }: { days: HubDay[]; distilleries: Distillery[] }) {
+export default function Hero({
+  days,
+  distilleries,
+  journalPosts,
+}: {
+  days: HubDay[];
+  distilleries: Distillery[];
+  journalPosts: JournalPost[];
+}) {
   const router = useRouter();
   const trip = useTrip();
   const [tagVis, setTagVis] = useState(false);
@@ -70,12 +81,15 @@ export default function Hero({ days, distilleries }: { days: HubDay[]; distiller
   const dreamArea = trip.answers?.dreamArea ?? DREAM_AREAS[0].id;
   const todayNear = trip.answers?.todayNear ?? AREAS[0].slug;
 
-  // State two only exists for planning so far (§9 Phase 2) - trip.ready
-  // gates it too, so a returning visitor's very first client paint still
-  // renders the poster (matching the server) rather than a hydration
-  // mismatch; the reveal effect below applies the real stored answer a
-  // moment later, same "ready" pattern the rest of trip-context uses.
-  const showReflow = trip.ready && trip.heroRevealed && timeframe === "planning";
+  // State two exists for planning and dreaming now (§9 Phases 2/3) -
+  // "today" still falls through to Phase 1's navigate-to-/days behaviour
+  // below. trip.ready gates this too, so a returning visitor's very
+  // first client paint still renders the poster (matching the server)
+  // rather than a hydration mismatch; the reveal effect applies the real
+  // stored answer a moment later, same "ready" pattern trip-context uses
+  // throughout.
+  const showReflow =
+    trip.ready && trip.heroRevealed && (timeframe === "planning" || timeframe === "dreaming");
 
   useBackgroundVideoVisible(true);
   useBackgroundVideoMask(showReflow ? REFLOW_WIDTH_PX : null);
@@ -139,7 +153,9 @@ export default function Hero({ days, distilleries }: { days: HubDay[]; distiller
   }
 
   function handleShowDays() {
-    if (timeframe !== "planning") {
+    // "today" has no reflow yet (Phase 4) - falls back to Phase 1's
+    // original behaviour. planning/dreaming both reveal in place now.
+    if (timeframe === "today") {
       router.push("/days");
       return;
     }
@@ -256,7 +272,9 @@ export default function Hero({ days, distilleries }: { days: HubDay[]; distiller
 
             {showReflow ? (
               <p className="hero-sentence-note">
-                Change anything and the days re-order beside you. Nothing is ever hidden — {days.length}, always.
+                {timeframe === "dreaming"
+                  ? "No dates, no obligation — but a real place, so everything beside it is anchored somewhere and turns into a plan the moment you want one."
+                  : `Change anything and the days re-order beside you. Nothing is ever hidden — ${days.length}, always.`}
               </p>
             ) : (
               <button
@@ -278,7 +296,16 @@ export default function Hero({ days, distilleries }: { days: HubDay[]; distiller
       {showReflow && (
         <div className="hero-right">
           <SiteHeader showLogo={false} panelStyle />
-          <HeroDaysColumn days={days} distilleries={distilleries} announce={justRevealed ? handleAnnounce : undefined} />
+          {timeframe === "planning" ? (
+            <HeroDaysColumn days={days} distilleries={distilleries} announce={justRevealed ? handleAnnounce : undefined} />
+          ) : (
+            <HeroDreamingColumn
+              dreamAreaId={dreamArea}
+              distilleries={distilleries}
+              journalPosts={journalPosts}
+              announce={justRevealed ? handleAnnounce : undefined}
+            />
+          )}
         </div>
       )}
 

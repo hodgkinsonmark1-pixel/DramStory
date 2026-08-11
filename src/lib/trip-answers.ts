@@ -61,6 +61,25 @@ export function baseDisplayName(base: string, baseKind: "hotel" | "area"): strin
   return findBaseAccommodation(base, baseKind)?.name ?? base;
 }
 
+/** "Laphroaig" / "Laphroaig and Lagavulin" / "Laphroaig, Lagavulin and 2
+ *  more" - the general "join a list of names into a sentence" shape
+ *  reused by describePicks below and HeroDreamingColumn.tsx's "the
+ *  others nearby" line, pulled out here (11 Aug 2026) rather than left
+ *  as describePicks' own inline logic, once a second caller needed the
+ *  identical join. `overflowAsCount` controls what happens past two
+ *  items: describePicks wants a count ("and 2 more" - picks can run to
+ *  eleven, spelling every name would overwhelm the sentence), the
+ *  dreaming card wants every real name spelled out (there are at most
+ *  three "others" for any one area, and skipping straight to a distillery
+ *  page a visitor might want by name defeats the point of naming them). */
+export function joinWithAnd(names: string[], overflowAsCount = false): string {
+  if (names.length === 0) return "";
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  if (overflowAsCount) return `${names[0]}, ${names[1]} and ${names.length - 2} more`;
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
 /** "any distillery" / "Laphroaig" / "Laphroaig and Lagavulin" /
  *  "Laphroaig, Lagavulin and 2 more" - matches the prototype's own
  *  wording (join(' and ') for two, no doc guidance given for 3+, so this
@@ -71,9 +90,7 @@ export function describePicks(picks: string[], distilleries: Distillery[]): stri
     .map((slug) => distilleries.find((d) => d.slug === slug)?.name)
     .filter((n): n is string => Boolean(n));
   if (names.length === 0) return "any distillery";
-  if (names.length === 1) return names[0];
-  if (names.length === 2) return `${names[0]} and ${names[1]}`;
-  return `${names[0]}, ${names[1]} and ${names.length - 2} more`;
+  return joinWithAnd(names, true);
 }
 
 /** "the" preposition before the base answer changes with what kind of

@@ -650,6 +650,119 @@
   }
 }
 
+/* Hero state-two dreaming column (docs/hero-handoff.md §4.3, Phase 3) -
+   shares .hero-days-header (same header shape as the planning column,
+   §4.1) but its own card family below, since these are plain
+   kicker/title/body link-cards, not day cards with a pace tag/route
+   line/hit banner. */
+.hero-dream-chip-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 16px;
+}
+.hero-dream-chip-row::-webkit-scrollbar {
+  height: 6px;
+}
+.hero-dream-chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 18px;
+  border-radius: 100px;
+  border: 1.5px solid var(--stone);
+  background: white;
+  color: var(--peat);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.hero-dream-chip:hover {
+  border-color: var(--copper);
+}
+.hero-dream-chip.selected {
+  background: var(--dark);
+  border-color: var(--dark);
+  color: white;
+}
+
+.hero-dream-card {
+  display: block;
+  background: white;
+  border: 1px solid var(--stone);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s;
+}
+a.hero-dream-card:hover {
+  border-color: var(--copper);
+}
+.hero-dream-card-kicker-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.hero-dream-card-kicker {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 4px;
+}
+.hero-dream-card-link {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--copper);
+  white-space: nowrap;
+}
+.hero-dream-card-title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 20px;
+  color: var(--dark);
+  margin: 0 0 4px;
+}
+.hero-dream-card-body {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--peat);
+  margin: 0;
+}
+/* "Or start from nothing / Build it on the map" - the one navy card,
+   §4.3 item 6. Same --dark/--off-white pairing already used for
+   .dist-page-bar and every other dark band on the site. */
+.hero-dream-card.hero-dream-card-navy {
+  background: var(--dark);
+  border-color: var(--dark);
+}
+.hero-dream-card-navy .hero-dream-card-kicker {
+  color: var(--amber);
+}
+.hero-dream-card-navy .hero-dream-card-title {
+  color: white;
+}
+.hero-dream-card-navy .hero-dream-card-body {
+  color: var(--mist);
+}
+a.hero-dream-card-navy:hover {
+  border-color: var(--amber);
+}
+
 /* /days ANSWERS BAR (days-trip-flow Phase 1, §3.2) - sticky dark bar atop
    the existing Pre-Designed Days Hub reading the current TripAnswers, +
    Change. Same --dark/sticky/z-index treatment as .dist-page-bar

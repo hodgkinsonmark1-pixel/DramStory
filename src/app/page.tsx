@@ -18,11 +18,13 @@ export default async function HomePage() {
     <>
       {/* Desktop hero (docs/hero-handoff.md). Phase 1 folded the old
           "Where are you in your story?" + separate "Plan your trip"
-          sentence into one hero sentence. Phase 2 adds the planning
-          timeframe's state-two reflow - the hero needs `days` itself now
-          (not just distilleries) to rank/highlight its own compact days
-          column, same getDays() the /days page already uses. */}
-      <Hero days={days} distilleries={distilleries} />
+          sentence into one hero sentence. Phase 2 added planning's
+          state-two reflow (needs `days`, same getDays() the /days page
+          uses). Phase 3 adds dreaming's own reflow, which reuses this
+          same `journalPosts` fetch (already awaited below for
+          LatestJournal further down the page) rather than fetching it
+          twice. */}
+      <Hero days={days} distilleries={distilleries} journalPosts={journalPosts} />
       <HowToBuildStory />
       <ClassicJourneys distilleries={distilleries} />
       <FeaturedContent distilleries={distilleries} localEvents={localEvents} />
