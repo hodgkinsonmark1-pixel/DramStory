@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { Area, Distillery, FeaturedStay, HubDay, InterestCategoryId, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
+import type { Distillery, HubDay, InterestCategoryId, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
 import { INTEREST_CATEGORIES, REGIONS } from "@/lib/journey-options";
-import { CLASSIC_JOURNEYS, getJourneyDistilleries } from "@/lib/journeys-data";
 import { roundPriceUp } from "@/lib/pricing";
 import { getMonthClimate, MONTH_NAMES } from "@/lib/islay-climate";
 import { estimatedDriveMinutes, formatDuration } from "@/lib/drive-time";
@@ -19,7 +18,6 @@ import Footer from "@/components/Footer";
 import MapCanvas from "./MapCanvas";
 import AccommodationControl from "./AccommodationControl";
 import DateRangePicker from "./DateRangePicker";
-import TripEssentials from "./TripEssentials";
 import OnboardingOverlay from "./OnboardingOverlay";
 import PlannerContextBar from "./PlannerContextBar";
 import MobilePlannerSheet from "./MobilePlannerSheet";
@@ -33,14 +31,6 @@ interface WorkspaceProps {
    *  these to resolve the active day's sourceHubDaySlug back to its
    *  original stops (docs/days-trip-flow-handoff.md §3.5). */
   hubDays: HubDay[];
-  /** The 3 real, live Areas (Port Ellen, Bowmore, Port Charlotte) for the
-   *  "Where to stay" grid below the map - Airtable-backed via getAreas(),
-   *  NOT the static lat/lng-only @/lib/areas.ts used for the map/dropdown. */
-  areas: Area[];
-  /** The 4 curated hotels for the same grid - Airtable-backed via
-   *  getFeaturedStays() (image, whyStay, slug), the same source
-   *  /stays/[slug] itself reads from, not the static FEATURED_STAYS. */
-  featuredStays: FeaturedStay[];
   location: LocationAnswer;
   initialInterests: InterestCategoryId[];
   timing: TripTiming;
@@ -133,8 +123,6 @@ export default function Workspace({
   localFeatures,
   localEvents,
   hubDays,
-  areas,
-  featuredStays,
   location,
   initialInterests,
   timing,
@@ -1522,64 +1510,6 @@ export default function Workspace({
         </div>
       )}
 
-      <div className="below-map-section">
-        <div className="how-eyebrow">Keep exploring</div>
-        <h2 className="how-title">Classic journeys</h2>
-        <div className="journeys-grid">
-          {CLASSIC_JOURNEYS.map((journey) => {
-            const stops = getJourneyDistilleries(journey, distilleries);
-            return (
-              <Link href={`/journeys/${journey.slug}`} className="journey-card" key={journey.slug}>
-                <div className="journey-card-tagline">{journey.tagline}</div>
-                <div className="journey-card-name">{journey.name}</div>
-                <div className="journey-card-stops">{stops.map((d) => d.name).join(", ")}</div>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
-      <TripEssentials />
-
-      <div className="below-map-section">
-        <h2 className="how-title">Where to stay</h2>
-
-        <div className="discover-group-label">Areas</div>
-        <div className="discover-grid">
-          {areas.map((a) => (
-            <Link href={`/areas/${a.slug}`} className="discover-card" key={`area-${a.slug}`}>
-              <div className="discover-card-image" style={a.heroImageUrl ? { backgroundImage: `url(${a.heroImageUrl})` } : undefined} />
-              <div className="discover-card-body">
-                <div className="discover-card-tag">Area</div>
-                <div className="discover-card-name">{a.name}</div>
-                {a.whyHook && <p className="discover-card-desc">{a.whyHook}</p>}
-                <div className="discover-card-footer">
-                  <span className="discover-card-meta">Islay</span>
-                  <span className="discover-card-link">Explore &rarr;</span>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        <div className="discover-group-label">Featured hotels</div>
-        <div className="discover-grid">
-          {featuredStays.map((s) => (
-            <Link href={`/stays/${s.slug}`} className="discover-card" key={`stay-${s.slug}`}>
-              <div className="discover-card-image" style={s.heroImageUrl ? { backgroundImage: `url(${s.heroImageUrl})` } : undefined} />
-              <div className="discover-card-body">
-                <div className="discover-card-tag">Hotel</div>
-                <div className="discover-card-name">{s.name}</div>
-                {s.whyStay && <p className="discover-card-desc">{s.whyStay}</p>}
-                <div className="discover-card-footer">
-                  <span className="discover-card-meta">{s.style || "Featured stay"}</span>
-                  <span className="discover-card-link">View &rarr;</span>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
     </div>
     <Footer />
     </>

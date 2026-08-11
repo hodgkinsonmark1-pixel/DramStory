@@ -1,4 +1,4 @@
-import { getAreas, getDays, getDistilleries, getFeaturedStays, getLocalEvents, getLocalFeatures, getJournalPosts } from "@/lib/data";
+import { getDays, getDistilleries, getLocalEvents, getLocalFeatures, getJournalPosts } from "@/lib/data";
 import type { TripTiming } from "@/lib/types";
 import JourneyFlow from "@/components/journey/JourneyFlow";
 
@@ -38,13 +38,6 @@ export default async function JourneyPage({
   // Q2/Q3 show the homepage's below-the-fold sections (including the
   // Journal preview) beneath their own question, per the July 2026 change.
   const journalPostsPromise = getJournalPosts();
-  // Deliberately not awaited either - same reasoning as journalPostsPromise:
-  // only the workspace step's "Where to stay" grid needs the 3 real Areas
-  // and 4 Featured Stays, so there's no reason to block Q1->Q2 on either
-  // Airtable round-trip. Resolved via use() only once the workspace
-  // actually renders (see JourneyFlow's WorkspaceWithFeatures).
-  const areasPromise = getAreas();
-  const featuredStaysPromise = getFeaturedStays();
 
   return (
     <JourneyFlow
@@ -54,8 +47,6 @@ export default async function JourneyPage({
       localEventsPromise={localEventsPromise}
       journalPostsPromise={journalPostsPromise}
       hubDaysPromise={hubDaysPromise}
-      areasPromise={areasPromise}
-      featuredStaysPromise={featuredStaysPromise}
       resume={resume === "1"}
       // Set only by AreaClient's "Everything in {region} on the map" link
       // (10 Aug 2026 fix) - a one-time signal to seed every interest

@@ -2,7 +2,7 @@
 
 import { Suspense, use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Area, Distillery, FeaturedStay, HubDay, InterestCategoryId, JournalPost, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
+import type { Distillery, HubDay, InterestCategoryId, JournalPost, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
 import { useTrip } from "@/lib/trip-context";
 import LocationStep from "./LocationStep";
 import TodayLocationStep from "./TodayLocationStep";
@@ -37,16 +37,6 @@ interface JourneyFlowProps {
    *  and to reset/offer back its original stops (docs/days-trip-flow-
    *  handoff.md §3.5, §10 "Planner"). */
   hubDaysPromise: Promise<HubDay[]>;
-  /** Deferred fetch for the workspace step's "Where to stay" grid - the
-   *  3 real, live Areas (Port Ellen, Bowmore, Port Charlotte). Same
-   *  deferred/use()-in-Suspense treatment as localFeaturesPromise; not
-   *  needed until the workspace renders. */
-  areasPromise: Promise<Area[]>;
-  /** Same deferred treatment as areasPromise, for the same "Where to
-   *  stay" grid's 4 curated hotels - the richer Airtable-backed
-   *  FeaturedStay (image, whyStay, slug), not the static lat/lng-only
-   *  FEATURED_STAYS used for map pins/the accommodation dropdown. */
-  featuredStaysPromise: Promise<FeaturedStay[]>;
   /** True only when arriving via "Back to your journey" (see
    *  DistilleryPageClient's ?resume=1 link) - an explicit signal that
    *  resuming the saved trip is wanted. A fresh homepage Q1 click never
@@ -94,8 +84,6 @@ function WorkspaceWithFeatures(props: {
   localFeaturesPromise: Promise<LocalFeature[]>;
   localEventsPromise: Promise<LocalEvent[]>;
   hubDaysPromise: Promise<HubDay[]>;
-  areasPromise: Promise<Area[]>;
-  featuredStaysPromise: Promise<FeaturedStay[]>;
   location: LocationAnswer;
   initialInterests: InterestCategoryId[];
   timing: TripTiming;
@@ -107,16 +95,12 @@ function WorkspaceWithFeatures(props: {
   const localFeatures = use(props.localFeaturesPromise);
   const localEvents = use(props.localEventsPromise);
   const hubDays = use(props.hubDaysPromise);
-  const areas = use(props.areasPromise);
-  const featuredStays = use(props.featuredStaysPromise);
   return (
     <Workspace
       distilleries={distilleries}
       localFeatures={localFeatures}
       localEvents={localEvents}
       hubDays={hubDays}
-      areas={areas}
-      featuredStays={featuredStays}
       location={props.location}
       initialInterests={props.initialInterests}
       timing={props.timing}
@@ -292,7 +276,7 @@ function seedTodayDay(
   return { interests: eveningInterests, notice: eveningExplainer };
 }
 
-export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, hubDaysPromise, areasPromise, featuredStaysPromise, resume, showAll, skipWalkthrough }: JourneyFlowProps) {
+export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, hubDaysPromise, resume, showAll, skipWalkthrough }: JourneyFlowProps) {
   const router = useRouter();
   const trip = useTrip();
   const [step, setStep] = useState<Step>("location");
@@ -450,8 +434,6 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
         localFeaturesPromise={localFeaturesPromise}
         localEventsPromise={localEventsPromise}
         hubDaysPromise={hubDaysPromise}
-        areasPromise={areasPromise}
-        featuredStaysPromise={featuredStaysPromise}
         location={location!}
         initialInterests={interests}
         timing={trip.intake?.timing ?? timing}

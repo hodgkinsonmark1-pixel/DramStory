@@ -1,18 +1,21 @@
 import Hero from "@/components/Hero";
-import HowToBuildStory from "@/components/home/HowToBuildStory";
 import ClassicJourneys from "@/components/home/ClassicJourneys";
 import FeaturedContent from "@/components/home/FeaturedContent";
+import WhereToStay from "@/components/home/WhereToStay";
+import TripEssentials from "@/components/journey/TripEssentials";
 import LatestJournal from "@/components/home/LatestJournal";
 import Footer from "@/components/Footer";
-import { getDistilleries, getLocalEvents, getJournalPosts, getDays, getLocalFeatures } from "@/lib/data";
+import { getDistilleries, getLocalEvents, getJournalPosts, getDays, getLocalFeatures, getAreas, getFeaturedStays } from "@/lib/data";
 
 export default async function HomePage() {
-  const [distilleries, localEvents, journalPosts, days, localFeatures] = await Promise.all([
+  const [distilleries, localEvents, journalPosts, days, localFeatures, areas, featuredStays] = await Promise.all([
     getDistilleries(),
     getLocalEvents(),
     getJournalPosts(),
     getDays(),
     getLocalFeatures(),
+    getAreas(),
+    getFeaturedStays(),
   ]);
 
   return (
@@ -27,9 +30,15 @@ export default async function HomePage() {
           cache()-wrapped, so this doesn't cost a second Airtable fetch;
           getDays() already calls it internally too). */}
       <Hero days={days} distilleries={distilleries} journalPosts={journalPosts} localFeatures={localFeatures} />
-      <HowToBuildStory />
       <ClassicJourneys distilleries={distilleries} />
       <FeaturedContent distilleries={distilleries} localEvents={localEvents} />
+      {/* Moved here from the /journey workspace's own below-map section
+          (11 Aug 2026, Mark's request) - that section is hidden now
+          /journey is a secondary page post-pivot, so "Where to stay" and
+          "Before you go" (TripEssentials) live on the homepage instead,
+          right after "Get to know Islay" and before the Journal. */}
+      <WhereToStay areas={areas} featuredStays={featuredStays} />
+      <TripEssentials />
       <LatestJournal posts={journalPosts} />
       <Footer />
     </>
