@@ -252,9 +252,20 @@ export default function Hero({
 
   return (
     <div className={"hero" + (showReflow ? " hero-answered" : "")}>
-      <div className="hero-overlay" />
-
       <div className="hero-left">
+        {/* Moved inside .hero-left (was a direct .hero child, sibling of
+            .hero-right) - 11 Aug 2026, alongside the stuck-transition fix
+            above. .hero-overlay's inset:0 used to size against the WHOLE
+            .hero row once reflowed - both columns - not just the video
+            side it's meant to darken for text legibility. .hero-right has
+            no z-index of its own to lift above .hero-overlay's z-index:1,
+            and the overlay has no pointer-events:none, so the answers
+            column was sitting visually tinted AND click-blocked underneath
+            it. Scoping the overlay to .hero-left's own box (now the same
+            position:relative containing block) fixes both at once -
+            it can now only ever cover the video, never the off-white
+            answers panel, regardless of what width .hero-left settles on. */}
+        <div className="hero-overlay" />
         <SiteHeader transparent logoSize={48} showLinks={!showReflow} />
 
         <div className="hero-content">

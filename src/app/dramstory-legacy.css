@@ -103,7 +103,21 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
    same 450ms/easing) is what carries most of the visible "narrowing"
    motion regardless. */
 .hero.hero-answered{flex-direction:row;align-items:stretch;justify-content:flex-start}
-.hero-left{position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:width 450ms var(--ease-out)}
+/* No `transition` on width here (was `transition:width 450ms var(--ease-out)`,
+   removed 11 Aug 2026) - confirmed via live testing that transitioning
+   `width` on this element while its own flex CONTAINER's flex-direction
+   flips column->row in the SAME class toggle leaves the transition
+   permanently stuck at its start frame (Web Animations API reports
+   playState:"running" but currentTime pinned at 0 forever, in every
+   browser tested) - the left column never actually narrows to 600px, it
+   stays full-width and crushes .hero-right to a sliver. Confirmed the
+   fix directly (forcing the stuck Animation to .finish() snaps the
+   layout to the correct 600px/674px split immediately). Snapping
+   instantly instead of animating is a minor cosmetic downgrade -
+   SiteBackgroundVideo's own clip-path transition (same 450ms/easing)
+   still carries the visible "narrowing" motion on the video itself, so
+   the reflow doesn't read as an abrupt jump cut. */
+.hero-left{position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .hero.hero-answered .hero-left{width:600px;flex:none;align-items:flex-start;padding-left:48px;padding-right:32px}
 .hero.hero-answered .hero-content{align-items:flex-start;text-align:left;padding-left:0}
 .hero.hero-answered .hero-tagline{font-size:32px;transition:font-size 450ms var(--ease-out)}
@@ -112,7 +126,7 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
 .hero.hero-answered .hero-sentence{font-size:25px;transition:font-size 450ms var(--ease-out)}
 .hero-sentence-note{font-size:13px;line-height:1.5;color:rgba(255,255,255,0.75);margin-top:16px;max-width:420px}
 @media(prefers-reduced-motion:reduce){
-  .hero-left,.hero.hero-answered .hero-tagline,.hero.hero-answered .hero-sentence{transition:none}
+  .hero.hero-answered .hero-tagline,.hero.hero-answered .hero-sentence{transition:none}
 }
 
 /* Right column - off-white, holds the relocated nav + HeroDaysColumn.
