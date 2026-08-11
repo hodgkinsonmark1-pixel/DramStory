@@ -172,7 +172,7 @@ Worth genuinely re-testing once real user data exists post-launch, but not worth
 
 **Not yet live (open decisions, in current priority order — see Part A):**
 1. Remaining ~7-8 Hub Days
-2. Site navigation/infrastructure correctness (back behaviour, new-tab links); onboarding walkthrough adjusted for the genuinely-blank workspace default (skips the two stop-dependent steps until a visitor has actually added something)
+2. Site navigation/infrastructure correctness (back behaviour, new-tab links); onboarding walkthrough adjusted for the genuinely-blank workspace default (skips the two stop-dependent steps until a visitor has actually added something) - built and verified programmatically, still needs Mark's own visual walkthrough on desktop before considered fully done
 3. Days Hub added to live navigation; Classic Journeys refactored + expanded to 3 total for Islay
 4. Real accommodation tracking codes wired in; location/dates/type pulled from existing workspace state rather than re-asked
 5. Remaining content completion
