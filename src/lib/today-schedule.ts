@@ -96,27 +96,42 @@ export interface TodaySchedule {
   sunsetMinutes: number;
 }
 
-/** At most this many distillery stops, even if the clock/sunset budget
- *  technically allows more - JUDGEMENT CALL, matching the reference
- *  screenshot's own scale (two) and JourneyFlow's seedTodayDay
- *  precedent (stopBudget tops out at 2) rather than genuinely trying to
- *  pack in every distillery daylight allows. */
-const MAX_DISTILLERY_STOPS = 3;
+/** How many distillery stops to suggest, driven by time of day alone -
+ *  not by season/sunset (11 Aug 2026, Mark: the previous sunset-driven
+ *  budget was suggesting 2 distilleries at 17:20 in midsummer, since
+ *  sunset itself was still hours away - but tours run on their own
+ *  fixed daily schedule regardless of how much daylight is left, so
+ *  "plenty of daylight" isn't the same as "still taking today's
+ *  walk-ins"). Restores the flat clock-hour tiers the site used before
+ *  Phase 4's sunset-based rework: before 13:00, up to two; 13:00 up to
+ *  16:00, one; from 16:00, none - "likely closed for tours", Mark's own
+ *  wording. Same two cutoffs JourneyFlow.tsx's seedTodayDay already
+ *  uses for /journey's own today seed, so the two independent "today"
+ *  implementations agree rather than drifting to different numbers. */
+function distilleryBudget(nowMinutes: number): number {
+  if (nowMinutes < 13 * 60) return 2;
+  if (nowMinutes < 16 * 60) return 1;
+  return 0;
+}
 
-/** How much of a buffer to leave before sunset before ruling a stop out
- *  - hours data is a freeform string (Distillery.hours), not structured
- *  open/close times, so this can't know a real "last entry" time; sunset
- *  itself (minus a flat buffer) is the honest, available proxy. */
+/** How much of a buffer to leave before sunset before ruling out the
+ *  trailing Local Feature stop below - that one genuinely is a daylight
+ *  activity (a beach/viewpoint/walk), unlike a distillery tour, so it
+ *  keeps using sunset rather than the clock-hour tiers above. Hours data
+ *  is a freeform string (Distillery.hours), not structured open/close
+ *  times, so this can't know a real "last entry" time for that case
+ *  either way; sunset itself (minus a flat buffer) is the honest,
+ *  available proxy there. */
 const PRE_SUNSET_BUFFER_MINUTES = 30;
 
 /**
  * Builds today's stop list: nearest-first distilleries from `village`
  * (an AREAS entry's coordinates) that are open today and not
- * appointment-only, each one added while its arrival + tour time still
- * comfortably clears sunset, up to MAX_DISTILLERY_STOPS - then, if
- * there's still daylight left, one more free/no-booking Local Feature
- * nearest the last stop, as the reference screenshot's "if there's
- * light" row shows.
+ * appointment-only, up to however many distilleryBudget(now) allows for
+ * the current clock hour - then, if there's still daylight left after
+ * those, one more free/no-booking Local Feature nearest the last stop,
+ * as the reference screenshot's "if there's light" row shows (that part
+ * still genuinely depends on sunset - see PRE_SUNSET_BUFFER_MINUTES).
  */
 export function buildTodaySchedule(opts: {
   now: Date;
@@ -128,6 +143,7 @@ export function buildTodaySchedule(opts: {
   const nowM = minutesOfDay(now);
   const sunsetM = sunsetMinutes(now);
   const cutoff = sunsetM - PRE_SUNSET_BUFFER_MINUTES;
+  const budget = distilleryBudget(nowM);
 
   const candidates = distilleries
     .filter(
@@ -148,10 +164,9 @@ export function buildTodaySchedule(opts: {
   let lastName: string | null = null;
 
   for (const c of candidates) {
-    if (stops.length >= MAX_DISTILLERY_STOPS) break;
+    if (stops.length >= budget) break;
     const drive = estimatedDriveMinutes(lastPoint, c.distillery);
     const arrive = clock + drive;
-    if (arrive + c.tour.minutes > cutoff) continue;
     stops.push({
       kind: "distillery",
       distillery: c.distillery,

@@ -54,8 +54,13 @@ export function HeroTodayColumn({
 
       {schedule.stops.length === 0 ? (
         <div className="hero-days-empty">
-          Nothing left that would comfortably finish before dark from here - worth checking tomorrow, or see what&apos;s
-          nearby on the map.
+          {/* 11 Aug 2026: reworded off "before dark" - the zero-distillery
+              case is now driven by time-of-day tour scheduling
+              (today-schedule.ts's distilleryBudget), not by sunset, so it
+              can easily be broad daylight (a June evening) when this
+              shows. "For today" instead keeps it honest either way. */}
+          Most tours have wrapped up for today from here - worth checking tomorrow, or see what&apos;s nearby on the
+          map.
         </div>
       ) : (
         schedule.stops.map((stop) => <TodayStopRow key={`${stop.kind}-${stop.slug}`} stop={stop} />)
