@@ -763,6 +763,107 @@ a.hero-dream-card-navy:hover {
   border-color: var(--amber);
 }
 
+/* Hero state-two today column (docs/hero-handoff.md §4.2, Phase 4) -
+   reuses .hero-days-column/.hero-days-header/.hero-days-empty/
+   .hero-days-foot verbatim (same header/foot shape as planning's
+   column, §4.1/§4.2 share that chrome) - only the stop rows and the
+   amber advisory note below are new to this column. */
+.hero-today-row {
+  display: flex;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--stone);
+}
+.hero-today-row:last-of-type {
+  border-bottom: none;
+}
+.hero-today-row-time {
+  flex-shrink: 0;
+  width: 64px;
+  text-align: right;
+}
+.hero-today-row-clock {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--dark);
+}
+.hero-today-row-label {
+  font-size: 11px;
+  color: var(--slate);
+  margin-top: 2px;
+}
+.hero-today-row-body {
+  flex: 1;
+  min-width: 0;
+}
+.hero-today-row-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.hero-today-row-name {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 17px;
+  color: var(--dark);
+}
+.hero-today-row-check {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--copper);
+  white-space: nowrap;
+  text-decoration: none;
+}
+.hero-today-row-check:hover {
+  text-decoration: underline;
+}
+.hero-today-row-meta {
+  font-size: 13.5px;
+  color: var(--peat);
+  margin-top: 2px;
+}
+
+/* Advisory note, §11 copy deck verbatim - amber (--amber-light/--amber
+   already used for callouts elsewhere) rather than the navy dream card,
+   since this is a caution, not a destination link. */
+.hero-today-note {
+  background: var(--amber-pale);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin: 16px 0;
+}
+.hero-today-note-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 4px;
+}
+.hero-today-note-body {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--peat);
+  margin: 0;
+}
+
+/* "Use my location instead" - lives in the hero's left column note area,
+   so it reuses .hero-action-btn/.hero-action-secondary (the existing
+   frosted-glass button already used for the hero's other secondary
+   actions) rather than a new button style; .hero-today-locate only adds
+   the top margin needed since it sits below the sentence, not beside a
+   sibling button. */
+.hero-today-locate {
+  margin-top: 12px;
+}
+.hero-today-locate-error {
+  color: var(--amber);
+}
+
 /* /days ANSWERS BAR (days-trip-flow Phase 1, §3.2) - sticky dark bar atop
    the existing Pre-Designed Days Hub reading the current TripAnswers, +
    Change. Same --dark/sticky/z-index treatment as .dist-page-bar

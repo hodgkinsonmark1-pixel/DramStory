@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import SiteHeader from "./SiteHeader";
 import { useBackgroundVideoVisible, useBackgroundVideoMask } from "@/lib/background-video-context";
 import { useTrip, DEFAULT_TRIP_ANSWERS, type Timeframe } from "@/lib/trip-context";
@@ -17,9 +16,11 @@ import { AnswersSheets, type AnswersSheetName } from "@/components/home/AnswersS
 import { HeroSentenceSheets, type HeroSentenceSheetName } from "@/components/home/HeroSentenceSheets";
 import { HeroDaysColumn } from "@/components/home/HeroDaysColumn";
 import { HeroDreamingColumn } from "@/components/home/HeroDreamingColumn";
+import { HeroTodayColumn } from "@/components/home/HeroTodayColumn";
+import { buildTodaySchedule, formatClockTime } from "@/lib/today-schedule";
 import { AREAS } from "@/lib/areas";
 import { DREAM_AREAS } from "@/lib/dream-areas";
-import type { Distillery, HubDay, JournalPost } from "@/lib/types";
+import type { Distillery, HubDay, JournalPost, LocalFeature } from "@/lib/types";
 
 type SheetName = "timeframe" | "base" | "nights" | "picks" | "dreamArea" | "todayNear" | null;
 
@@ -32,36 +33,36 @@ const TIMEFRAME_LABEL: Record<Timeframe, string> = {
 };
 
 /**
- * The desktop homepage hero (docs/hero-handoff.md, §9's phase order).
- * Phase 1 replaced the old two-question arrangement with one sentence,
- * timeframe folded in as its first clause. Phase 2 added state two's
- * reflow for PLANNING (video narrows to the left 600px and keeps
- * playing, the sentence shrinks in place, the right half fills with a
- * ranked days column). Phase 3 (this update) adds DREAMING's own reflow
- * - the same mechanism, a different right-column component
- * (HeroDreamingColumn) showing a reading column anchored to one of the
- * four dream-areas.ts areas instead of a days list.
+ * The desktop homepage hero (docs/hero-handoff.md, §9's phase order,
+ * now complete). Phase 1 replaced the old two-question arrangement with
+ * one sentence, timeframe folded in as its first clause. Phase 2 added
+ * state two's reflow for PLANNING (video narrows to the left 600px and
+ * keeps playing, the sentence shrinks in place, the right half fills
+ * with a ranked days column). Phase 3 added DREAMING's own reflow - same
+ * mechanism, a reading column (HeroDreamingColumn) anchored to one of
+ * dream-areas.ts's four areas instead. Phase 4 (this update) adds
+ * TODAY's reflow - HeroTodayColumn, stops with arrival times computed
+ * fresh off the device clock (today-schedule.ts) rather than answered.
  *
- * "today" is still Phase 1's stand-in behaviour (navigate to /days) -
- * its own reflow (stops with arrival times) is Phase 4. If a visitor
- * reveals the reflow under either "planning" or "dreaming" and then
- * switches the timeframe clause to "today", it drops back to the poster
- * layout for as long as that clause reads "today" -
- * trip.heroRevealed (whether they've EVER revealed either reflow) stays
- * true underneath regardless, so switching back to "planning" or
- * "dreaming" re-shows that one's own column immediately, without the
- * button needing to be pressed again.
+ * All three timeframes reveal in place now - "Show me the days" never
+ * navigates away any more (handleShowDays always calls
+ * trip.setHeroRevealed, full stop). Switching the timeframe clause
+ * between them just swaps which right-column component shows, without
+ * the button needing to be pressed again for each - trip.heroRevealed is
+ * one shared "has this visitor ever revealed a reflow" flag, not one per
+ * timeframe.
  */
 export default function Hero({
   days,
   distilleries,
   journalPosts,
+  localFeatures,
 }: {
   days: HubDay[];
   distilleries: Distillery[];
   journalPosts: JournalPost[];
+  localFeatures: LocalFeature[];
 }) {
-  const router = useRouter();
   const trip = useTrip();
   const [tagVis, setTagVis] = useState(false);
   const [chevVis, setChevVis] = useState(false);
@@ -81,15 +82,12 @@ export default function Hero({
   const dreamArea = trip.answers?.dreamArea ?? DREAM_AREAS[0].id;
   const todayNear = trip.answers?.todayNear ?? AREAS[0].slug;
 
-  // State two exists for planning and dreaming now (§9 Phases 2/3) -
-  // "today" still falls through to Phase 1's navigate-to-/days behaviour
-  // below. trip.ready gates this too, so a returning visitor's very
-  // first client paint still renders the poster (matching the server)
-  // rather than a hydration mismatch; the reveal effect applies the real
-  // stored answer a moment later, same "ready" pattern trip-context uses
-  // throughout.
-  const showReflow =
-    trip.ready && trip.heroRevealed && (timeframe === "planning" || timeframe === "dreaming");
+  // State two exists for all three timeframes now (§9 Phases 2-4).
+  // trip.ready gates this, so a returning visitor's very first client
+  // paint still renders the poster (matching the server) rather than a
+  // hydration mismatch; the reveal effect applies the real stored answer
+  // a moment later, same "ready" pattern trip-context uses throughout.
+  const showReflow = trip.ready && trip.heroRevealed;
 
   useBackgroundVideoVisible(true);
   useBackgroundVideoMask(showReflow ? REFLOW_WIDTH_PX : null);
@@ -153,17 +151,104 @@ export default function Hero({
   }
 
   function handleShowDays() {
-    // "today" has no reflow yet (Phase 4) - falls back to Phase 1's
-    // original behaviour. planning/dreaming both reveal in place now.
-    if (timeframe === "today") {
-      router.push("/days");
-      return;
-    }
     if (!trip.heroRevealed) setJustRevealed(true);
     trip.setHeroRevealed(true);
   }
 
   const handleAnnounce = useCallback((text: string) => setAnnouncement(text), []);
+
+  // Today's own clock, kept separate from HeroTodayColumn's (§4.2's
+  // "computed, never stored" applies here too - day-derivations.ts's own
+  // precedent is to recompute at each call site rather than pass one
+  // shared value down, so the left column's note and the right column's
+  // schedule are two small, independent computations off the same pure
+  // buildTodaySchedule() rather than one lifted and threaded through
+  // props). Only ticks while the today clause is actually showing.
+  const [todayNow, setTodayNow] = useState<Date | null>(null);
+  useEffect(() => {
+    if (timeframe !== "today") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTodayNow(null);
+      return;
+    }
+    setTodayNow(new Date());
+    const id = setInterval(() => setTodayNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, [timeframe]);
+  const todaySchedule =
+    todayNow != null
+      ? buildTodaySchedule({
+          now: todayNow,
+          village: AREAS.find((a) => a.slug === todayNear) ?? AREAS[0],
+          distilleries,
+          localFeatures,
+        })
+      : null;
+
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  /** "Use my location instead" (seen in the reference screenshot under
+   *  the today note, not written up in the spec's own prose) - same
+   *  geolocation pattern TodayLocationStep.tsx already uses for the
+   *  separate /journey "today" flow, adapted to match VILLAGE rather
+   *  than nearest distillery, since todayNear is an AREAS slug (§7),
+   *  not a distillery. Silent, non-blocking fallback on any failure
+   *  (denied permission, unsupported, timeout) - this is a convenience
+   *  on top of the sheet, never the only way to answer, same reasoning
+   *  as that other component's own version. */
+  function handleUseMyLocation() {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setLocationError("Location isn't available in this browser — pick from the list instead.");
+      return;
+    }
+    setLocating(true);
+    setLocationError(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        let nearest = AREAS[0];
+        let nearestDistSq = Infinity;
+        for (const a of AREAS) {
+          const distSq = (a.lat - latitude) ** 2 + (a.lng - longitude) ** 2;
+          if (distSq < nearestDistSq) {
+            nearestDistSq = distSq;
+            nearest = a;
+          }
+        }
+        setLocating(false);
+        trip.setAnswersTodayNear(nearest.slug);
+      },
+      () => {
+        setLocating(false);
+        setLocationError("Couldn't get your location — pick from the list instead.");
+      },
+      { timeout: 8000 }
+    );
+  }
+
+  // §11 copy deck, "State two, today" note - verbatim template with the
+  // two example numbers (14:20 / two distilleries) swapped for the real
+  // clock and the real stop count computed above. The copy deck's own
+  // trailing clause ("...if you leave now, or one at an unhurried
+  // pace.") is mockup flavour text tied to that one example, not
+  // something derivable for every stop count - dropped rather than
+  // guessed at; flagging this as the one place Phase 4 doesn't reproduce
+  // the deck word-for-word.
+  const todayDistilleryCount = todaySchedule
+    ? todaySchedule.stops.filter((s) => s.kind === "distillery").length
+    : 0;
+  const todayCountNote = todaySchedule
+    ? `One clause fewer than that, even — we read the clock ourselves. It's ${formatClockTime(
+        todaySchedule.nowMinutes
+      )}, so there's ${
+        todayDistilleryCount === 0
+          ? "not really time for a distillery today"
+          : todayDistilleryCount === 1
+            ? "time for one distillery"
+            : `time for ${todayDistilleryCount} distilleries`
+      } if you leave now.`
+    : "One clause fewer than that, even — we read the clock ourselves.";
 
   return (
     <div className={"hero" + (showReflow ? " hero-answered" : "")}>
@@ -271,11 +356,28 @@ export default function Hero({
             </p>
 
             {showReflow ? (
-              <p className="hero-sentence-note">
-                {timeframe === "dreaming"
-                  ? "No dates, no obligation — but a real place, so everything beside it is anchored somewhere and turns into a plan the moment you want one."
-                  : `Change anything and the days re-order beside you. Nothing is ever hidden — ${days.length}, always.`}
-              </p>
+              <>
+                <p className="hero-sentence-note">
+                  {timeframe === "dreaming" &&
+                    "No dates, no obligation — but a real place, so everything beside it is anchored somewhere and turns into a plan the moment you want one."}
+                  {timeframe === "today" && todayCountNote}
+                  {timeframe === "planning" &&
+                    `Change anything and the days re-order beside you. Nothing is ever hidden — ${days.length}, always.`}
+                </p>
+                {timeframe === "today" && (
+                  <>
+                    <button
+                      type="button"
+                      className="hero-action-btn hero-action-secondary hero-today-locate"
+                      onClick={handleUseMyLocation}
+                      disabled={locating}
+                    >
+                      {locating ? "Finding you…" : "📍 Use my location instead"}
+                    </button>
+                    {locationError && <p className="hero-sentence-note hero-today-locate-error">{locationError}</p>}
+                  </>
+                )}
+              </>
             ) : (
               <button
                 type="button"
@@ -296,15 +398,19 @@ export default function Hero({
       {showReflow && (
         <div className="hero-right">
           <SiteHeader showLogo={false} panelStyle />
-          {timeframe === "planning" ? (
+          {timeframe === "planning" && (
             <HeroDaysColumn days={days} distilleries={distilleries} announce={justRevealed ? handleAnnounce : undefined} />
-          ) : (
+          )}
+          {timeframe === "dreaming" && (
             <HeroDreamingColumn
               dreamAreaId={dreamArea}
               distilleries={distilleries}
               journalPosts={journalPosts}
               announce={justRevealed ? handleAnnounce : undefined}
             />
+          )}
+          {timeframe === "today" && (
+            <HeroTodayColumn todayNear={todayNear} distilleries={distilleries} localFeatures={localFeatures} />
           )}
         </div>
       )}
