@@ -692,22 +692,23 @@ a.stay-gh-name:hover{color:var(--copper);text-decoration:underline}
   .stay-layout{grid-template-columns:1fr;padding:0 24px;gap:28px}
   .stay-side-card{position:static}
 
-  /* Homepage hero, state two (docs/hero-handoff.md §9 Phases 1-4) - this
-     reflow (.hero.hero-answered's flex-direction:row + .hero-left's fixed
-     600px width, both above) was built and verified desktop-only across
-     every phase; nothing anywhere in Hero.tsx/this file ever gated it to
-     a wider viewport, so on a real phone it was rendering the exact same
-     fixed 600px-left/flex-right split as desktop - which cannot fit a
-     ~375-430px screen (11 Aug 2026, Mark: "that should never split
-     screen"). This keeps it single-column below 768px: .hero-left goes
-     back to full width (state one already proves this exact box - nav +
-     centered content, min-height 100vh - works fine on mobile, so no
-     other change needed there), and .hero itself grows past 100vh rather
-     than clipping .hero-right off invisibly beneath the fold once it's
-     stacked below rather than beside .hero-left. First working pass, not
-     a bespoke mobile redesign - flagging in case a purpose-built mobile
-     layout for this state is wanted later rather than this stacked
-     version of the desktop content. */
+  /* Homepage hero, state two - DEFENSIVE FALLBACK ONLY, not the real
+     fix. Originally added 11 Aug 2026 believing the split (.hero.
+     hero-answered's flex-direction:row + .hero-left's fixed 600px width,
+     both above) just needed a mobile-friendly stacked layout. Turned out
+     wrong: per docs/hero-handoff.md §8, this reflow was always meant to
+     be "a desktop-only behaviour behind a breakpoint" that mobile never
+     reaches at all - it keeps the single-question hero and navigates to
+     /days instead, same as before Phase 2 ever existed. That breakpoint
+     was simply never wired up (Mark caught it: "everything...thereafter
+     should have been gated for desktop only"). The real fix is now in
+     Hero.tsx (isMobileViewport forces showReflow false, handleShowDays
+     routes to /days on mobile) - .hero-answered should no longer be
+     reachable on a phone at all. This block stays only to catch the
+     brief pre-hydration window before that JS effect resolves (same
+     accepted sub-16ms flash Workspace.tsx's own isMobileViewport
+     already allows for) - a real mobile visitor should never see it
+     apply in practice. */
   .hero.hero-answered{
     flex-direction:column;
     height:auto;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import SiteHeader from "./SiteHeader";
 import { useBackgroundVideoVisible, useBackgroundVideoMask } from "@/lib/background-video-context";
 import { useTrip, DEFAULT_TRIP_ANSWERS, type Timeframe } from "@/lib/trip-context";
@@ -44,13 +45,29 @@ const TIMEFRAME_LABEL: Record<Timeframe, string> = {
  * TODAY's reflow - HeroTodayColumn, stops with arrival times computed
  * fresh off the device clock (today-schedule.ts) rather than answered.
  *
- * All three timeframes reveal in place now - "Show me the days" never
- * navigates away any more (handleShowDays always calls
- * trip.setHeroRevealed, full stop). Switching the timeframe clause
+ * On desktop, all three timeframes reveal in place - "Show me the days"
+ * calls trip.setHeroRevealed, full stop. Switching the timeframe clause
  * between them just swaps which right-column component shows, without
  * the button needing to be pressed again for each - trip.heroRevealed is
  * one shared "has this visitor ever revealed a reflow" flag, not one per
  * timeframe.
+ *
+ * §8 of the design doc: "Mobile does not do this... This is a
+ * desktop-only behaviour behind a breakpoint, not a shared component.
+ * The sentence control itself is shared; the two-state reflow is not."
+ * That breakpoint was never actually wired up when Phases 2-4 shipped -
+ * confirmed 11 Aug 2026 by grepping this file and every hero-* CSS rule
+ * for "mobile"/"@media" and finding nothing, which is what let the fixed
+ * 600px desktop split render unmodified on a phone. Fixed here:
+ * isMobileViewport (same matchMedia pattern as Workspace.tsx) forces
+ * showReflow false and sends handleShowDays to /days instead of
+ * revealing in place, on every timeframe alike - exactly what §8 and
+ * Phase 1's own original spec ("pressing the button still navigates to
+ * /days") describe. dramstory-legacy.css's mobile .hero-answered rules
+ * (added same day, before this was found) stay as a defensive fallback
+ * for the brief pre-hydration window - real, if usually sub-16ms, same
+ * accepted tradeoff Workspace.tsx's own isMobileViewport already makes -
+ * rather than something normally reachable now.
  */
 export default function Hero({
   days,
@@ -64,6 +81,7 @@ export default function Hero({
   localFeatures: LocalFeature[];
 }) {
   const trip = useTrip();
+  const router = useRouter();
   const [tagVis, setTagVis] = useState(false);
   const [chevVis, setChevVis] = useState(false);
   const [sentVis, setSentVis] = useState(false);
@@ -73,6 +91,23 @@ export default function Hero({
   // returning visitor gets, which isn't a reflow they need told about.
   const [justRevealed, setJustRevealed] = useState(false);
   const [announcement, setAnnouncement] = useState("");
+
+  // §8: the two-state reflow is desktop-only, behind a breakpoint - see
+  // this file's header comment. Same matchMedia pattern as
+  // Workspace.tsx's own isMobileViewport (starts false so server and
+  // first client render agree, flips true a moment later on an actual
+  // mobile viewport - same accepted brief-flash tradeoff, same 768px
+  // breakpoint every other responsive rule in this codebase already
+  // uses).
+  const MOBILE_BREAKPOINT = 768;
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
+    const update = () => setIsMobileViewport(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   const timeframe = trip.answers?.timeframe ?? DEFAULT_TRIP_ANSWERS.timeframe;
   const base = trip.answers?.base ?? DEFAULT_TRIP_ANSWERS.base;
@@ -87,7 +122,10 @@ export default function Hero({
   // paint still renders the poster (matching the server) rather than a
   // hydration mismatch; the reveal effect applies the real stored answer
   // a moment later, same "ready" pattern trip-context uses throughout.
-  const showReflow = trip.ready && trip.heroRevealed;
+  // !isMobileViewport is the §8 breakpoint - forces the poster even for
+  // a visitor whose trip.heroRevealed is already true (set on a wider
+  // viewport previously), since mobile never shows this reflow at all.
+  const showReflow = trip.ready && trip.heroRevealed && !isMobileViewport;
 
   useBackgroundVideoVisible(true);
   useBackgroundVideoMask(showReflow ? REFLOW_WIDTH_PX : null);
@@ -151,6 +189,16 @@ export default function Hero({
   }
 
   function handleShowDays() {
+    // §8: mobile keeps the single-question hero and navigates to /days,
+    // same as Phase 1's original behaviour before the desktop-only
+    // reflow existed - for every timeframe alike, not just planning (the
+    // design doc doesn't branch this by timeframe, and /days already
+    // handles "no answers"/defaults gracefully for a dreaming/today
+    // visitor arriving with nothing days-specific set).
+    if (isMobileViewport) {
+      router.push("/days");
+      return;
+    }
     if (!trip.heroRevealed) setJustRevealed(true);
     trip.setHeroRevealed(true);
   }
