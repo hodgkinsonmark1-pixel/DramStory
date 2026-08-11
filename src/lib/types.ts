@@ -644,16 +644,4 @@ export interface ItineraryDay {
    *  added" tracks "this Hub Day still has a day here", not "still
    *  exactly matches what was originally added". */
   sourceHubDaySlug?: string;
-  /** True only for the auto-seeded onboarding day JourneyFlow.tsx builds
-   *  for a genuinely fresh planning/dreaming visit to /journey (the
-   *  "Three Legends, One Road" extended demo route) - never set any other
-   *  way. Lets addDay() replace it in place with the visitor's first real
-   *  curated day pick instead of appending after it (11 Aug 2026, Mark's
-   *  request: hero/DaysHub/Area "add this day" actions were reading as
-   *  Day 2 with this still sitting there untouched). Cleared the moment
-   *  the visitor actually edits this day themselves (any stop/accommodation
-   *  change in trip-context.tsx) - at that point it's their own Day 1,
-   *  same as if they'd built it from scratch, and future adds append
-   *  normally. */
-  isDefaultSeed?: boolean;
 }

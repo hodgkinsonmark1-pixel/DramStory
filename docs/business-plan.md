@@ -166,13 +166,13 @@ Worth genuinely re-testing once real user data exists post-launch, but not worth
 - Islay Grand Tour (existing flagship journey — due for refactor onto the new Day-reference model)
 - Drag-and-drop itinerary builder with day reordering, persisted trip state
 - **Pre-Designed Days Hub** — 8 of ~15-16 Days complete, real Airtable `Days`/`Day Stops` schema, real interactive maps (Leaflet + CartoDB Positron muted basemap) for multi-stop Days, real distillery hero images for solo Days, a "See more" collapse for longer narratives, an "inspiration not bookings" disclaimer
-- **Reworked core planner flow** (built, previewed, not yet live): the old region-picker ("Q2") and preference question ("Q3") are inactivated; a fresh planning/dreaming visit now seeds the workspace with a real pre-built Day (currently "Three Legends, One Road": Laphroaig, Lagavulin, Ardbeg) instead of opening on a blank map. "Today" timing still uses the old no-pre-seed default, flagged as needing its own considered default later
+- **Reworked core planner flow** (built, previewed, not yet live): the old region-picker ("Q2") and preference question ("Q3") are inactivated. A fresh planning/dreaming visit now opens the workspace genuinely blank (a flat default day count, no pre-built demo content) rather than blank map or a seeded example Day - an earlier version of this flow seeded a fixed demo Day ("Three Legends, One Road": Laphroaig, Lagavulin, Ardbeg), removed 11 Aug 2026 once every other design decision on the site had moved to leading with real Days first, and because the seed was also the root cause of a real data-loss bug on revisiting `/journey`. "Today" timing keeps its own considered default: one extra question (nearest distillery), combined with the device clock, seeds something real and specific to that visitor
 - Map default centre corrected to Port Ellen (was a generic island-midpoint near Bowmore)
 - **Accommodation booking UI shell** (built, previewed, using placeholder tracking codes) — select location, select type, generate tracked links to Hotels.com (primary), Vrbo and Booking.com (secondary)
 
 **Not yet live (open decisions, in current priority order — see Part A):**
 1. Remaining ~7-8 Hub Days
-2. Site navigation/infrastructure correctness (back behaviour, new-tab links, onboarding walkthrough rebuilt around the new populated-workspace default)
+2. Site navigation/infrastructure correctness (back behaviour, new-tab links); onboarding walkthrough adjusted for the genuinely-blank workspace default (skips the two stop-dependent steps until a visitor has actually added something)
 3. Days Hub added to live navigation; Classic Journeys refactored + expanded to 3 total for Islay
 4. Real accommodation tracking codes wired in; location/dates/type pulled from existing workspace state rather than re-asked
 5. Remaining content completion

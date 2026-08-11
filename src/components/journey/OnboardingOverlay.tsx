@@ -158,10 +158,19 @@ const LOCAL_FEATURES_OVERLAY_STEP: Step = {
   boxPosition: "right",
 };
 
-function buildSteps(timing: TripTiming): Step[] {
+// hasStops added 11 Aug 2026 - the workspace can now genuinely open with
+// zero stops in any Day (the planning/dreaming demo pre-seed was removed),
+// and EXPAND_STOP_STEP/JOURNEY_TIME_STEP both assume a real first stop
+// exists (#onboard-first-stop, a non-empty journey summary) to point at.
+// Rather than show a walkthrough step pointing at nothing, skip just
+// those two when the trip is genuinely empty - every other step (adding
+// days, accommodation, the demo distillery pin, local features) doesn't
+// depend on the visitor having added anything yet.
+function buildSteps(timing: TripTiming, hasStops: boolean): Step[] {
   const steps: Step[] = [];
   if (timing !== "today") steps.push(TRIP_SO_FAR_STEP);
-  steps.push(EXPAND_STOP_STEP, JOURNEY_TIME_STEP, ADD_DAYS_STEP);
+  if (hasStops) steps.push(EXPAND_STOP_STEP, JOURNEY_TIME_STEP);
+  steps.push(ADD_DAYS_STEP);
   if (timing !== "today") steps.push(DATES_STEP);
   steps.push(ACCOMMODATION_STEP, CUSTOMISE_STEP, DISTILLERY_STEP, LOCAL_FEATURES_HUB_STEP, LOCAL_FEATURES_OVERLAY_STEP);
   return steps;
@@ -202,8 +211,12 @@ function unionRect(a: Rect, b: Rect): Rect {
   return { left, top, width: right - left, height: bottom - top };
 }
 
-export default function OnboardingOverlay({ timing }: { timing: TripTiming }) {
-  const STEPS = useMemo(() => buildSteps(timing), [timing]);
+export default function OnboardingOverlay({ timing, hasStops }: { timing: TripTiming; hasStops: boolean }) {
+  // Captured once, lazily, rather than tracked live - a visitor adding
+  // their first stop mid-walkthrough shouldn't have the step list (and
+  // therefore the dots/step count) reshuffle under them while it's open.
+  const [hasStopsAtStart] = useState(hasStops);
+  const STEPS = useMemo(() => buildSteps(timing, hasStopsAtStart), [timing, hasStopsAtStart]);
   const [step, setStep] = useState(0);
   const [dismissed, setDismissed] = useState(false);
   const [highlightRect, setHighlightRect] = useState<Rect | null>(null);

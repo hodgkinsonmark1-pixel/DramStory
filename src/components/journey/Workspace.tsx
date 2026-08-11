@@ -765,8 +765,11 @@ export default function Workspace({
         nearest to - anywhere on Islay/Jura - so that step (and the map
         position it assumes) can't reliably generalise. Rather than patch
         every step for an arbitrary starting location, "today" skips the
-        walkthrough outright; planning/dreaming keep it since their seeded
-        default day is always the same fixed Port Ellen-area route.
+        walkthrough outright. planning/dreaming keep it - MapCanvas's own
+        default center (ISLAY_CENTER, Port Ellen) is independent of
+        whether any Day actually has stops, so the demo pin step still
+        works even on a genuinely blank trip (11 Aug 2026, since the old
+        seeded default day was removed).
 
         Also skipped on mobile (10 Aug 2026, Mark's call): every step's
         `cutout` targets an #onboard-* id that only exists in the desktop
@@ -778,7 +781,9 @@ export default function Workspace({
         isMobileViewport check Phase 6 already computes above, rather
         than duplicating a second matchMedia listener inside
         OnboardingOverlay itself. Desktop behaviour is unchanged. */}
-    {timing !== "today" && !isMobileViewport && <OnboardingOverlay timing={timing} />}
+    {timing !== "today" && !isMobileViewport && (
+      <OnboardingOverlay timing={timing} hasStops={trip.days.some((d) => d.stops.length > 0)} />
+    )}
     {tourPickerDistillery && (
       <div className="tour-picker-backdrop" onClick={() => setTourPickerDistillery(null)}>
         <div className="tour-picker-modal" role="dialog" aria-label={`Choose a tour at ${tourPickerDistillery.name}`} onClick={(e) => e.stopPropagation()}>

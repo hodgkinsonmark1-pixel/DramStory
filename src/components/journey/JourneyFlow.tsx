@@ -8,7 +8,6 @@ import LocationStep from "./LocationStep";
 import TodayLocationStep from "./TodayLocationStep";
 import InterestsStep from "./InterestsStep";
 import Workspace from "./Workspace";
-import { FEATURED_STAYS } from "@/lib/featured-stays";
 import { estimatedDriveMinutes, formatDuration } from "@/lib/drive-time";
 import { INTEREST_CATEGORIES, TODAY_EXCLUDED_DISTILLERY_SLUGS } from "@/lib/journey-options";
 
@@ -131,54 +130,27 @@ function WorkspaceWithFeatures(props: {
  * was on desktop; "select your preference" is no longer treated as a
  * question worth asking at all, on any breakpoint.
  *
- * For a fresh "planning"/"dreaming" visit (no existing trip, not a
- * resume), the workspace is seeded with a default Day rather than
- * opening blank - see DEFAULT_DAY_STOPS below. Originally just the
- * "Three Legends, One Road" three-distillery Hub Day (Laphroaig,
- * Lagavulin, Ardbeg); extended 21 July 2026 to the fuller Laphroaig ->
- * Lagavulin -> Old Kiln Cafe -> Ardbeg -> Port Ellen Beach route, mixing
- * in two real Local Features stops (lunch + a closing beach) rather than
- * distilleries only. Hardcoded here rather than read live from Airtable
- * - the itinerary data model only knows individual distillery/feature
- * stops, not "Day" records, and building the real Day->itinerary
- * resolution is its own task (same one the Classic Journey refactor
- * needs). Revisit once that's built, so this doesn't drift out of sync
- * with the real Day content by hand.
+ * A fresh "planning"/"dreaming" visit now opens the workspace genuinely
+ * blank rather than seeded with demo content (11 Aug 2026, Mark's call -
+ * removed the old "Three Legends, One Road" default Day). Every other
+ * design decision on the site by this point leads with real Days - the
+ * hero, the Days Hub, Area pages - and the map is only ever reached
+ * after picking one of those, or here on a fresh visit; there's no
+ * longer a case where a visitor needs a pre-built example to orient on.
+ * The pre-seed was also the root cause of a real data-loss bug (revisiting
+ * /journey without resume=1 would silently wipe a visitor's actual trip
+ * and reseed the demo) - removing it fixes that too, rather than just
+ * patching the reset condition. Workspace.tsx's own initDays(3) fallback
+ * (pre-existing, previously dead code) now does the job of giving a fresh
+ * visit some real blank days to work with.
  *
- * Notes on each stop are short and practical - they're seed content, not
- * sourced Airtable facts, so held to a lighter bar than the Location
- * Source/official-source standard. As of 21 July 2026 two of them
- * (Lagavulin, Ardbeg) include specific clock times per Mark's direct
- * input - worth re-confirming against each distillery's current
- * published tour schedule before go-live and periodically after, since
- * tour times do shift (this is exactly the risk the original
- * no-times version was avoiding).
- *
- * Each distillery stop also seeds a specific real tour (tourName below,
- * matched against that distillery's own Tours from Airtable) so the
- * itinerary and the Total Journey cost breakdown both show a real
- * booked tour + price rather than "No tour selected" - 21 July 2026
- * fix. Deliberately the same three tours already linked to the "Three
- * Legends, One Road" Hub Day in Airtable (Laphroaig Experience £22,
- * Classic Distillery Tour £22, Classic Ardbeg Tour £22.50) - this
- * default day started life as that exact Hub Day, so reusing its tours
- * keeps the two in sync rather than picking new ones by hand.
- *
- * "today" now gets its own considered default (added 21 July 2026, see
- * seedTodayDay below) rather than the old no-pre-seed fallback - it asks
- * one lightweight extra question (TodayLocationStep: "which distillery are
- * you nearest to right now?") and combines that with the device's current
- * time to seed something realistic for the rest of the day, rather than
- * reusing the planning/dreaming default verbatim (which assumes a full day
- * still ahead, not true for someone asking at 4pm).
+ * "today" keeps its own considered default (added 21 July 2026, see
+ * seedTodayDay below) - it asks one lightweight extra question
+ * (TodayLocationStep: "which distillery are you nearest to right now?")
+ * and combines that with the device's current time to seed something
+ * real and specific to that visitor, so it's unaffected by the
+ * planning/dreaming demo-seed removal above.
  */
-const DEFAULT_DAY_STOPS: { kind: "distillery" | "feature"; slug: string; note: string; tourName?: string }[] = [
-  { kind: "distillery", slug: "laphroaig", note: "First stop of the day, starts at 10.", tourName: "Laphroaig Experience" },
-  { kind: "distillery", slug: "lagavulin", note: "Just along the coast road, tour at 12.", tourName: "Classic Distillery Tour" },
-  { kind: "feature", slug: "old-kiln-cafe-ardbeg", note: "Right on Ardbeg's pier - a good lunch stop before the tour." },
-  { kind: "distillery", slug: "ardbeg", note: "3pm: Popular tour - worth booking ahead.", tourName: "Classic Ardbeg Tour" },
-  { kind: "feature", slug: "port-ellen-beach", note: "Maybe a picnic on the beach or the pub to finish the day." },
-];
 
 /** 4pm, agreed with Mark 21 July 2026 - conservative on purpose. Tours
  *  aren't tracked with real start/end times in Airtable yet (Distillery.hours
@@ -190,22 +162,20 @@ const DEFAULT_DAY_STOPS: { kind: "distillery" | "feature"; slug: string; note: s
 const EVENING_CUTOFF_HOUR = 16;
 
 /** Seeds today's single Day once TodayLocationStep answers "where" and the
- *  device clock supplies "when" - see the JSDoc above DEFAULT_DAY_STOPS for
- *  why this exists as its own function rather than reusing that default.
+ *  device clock supplies "when" - the only remaining seeding path in this
+ *  file (planning/dreaming's old fixed demo Day was removed 11 Aug 2026).
  *
- * Deliberately does NOT set a specific tour (setTourForStop) or a clock-time
- * note the way DEFAULT_DAY_STOPS does for planning/dreaming - those come
- * from Mark's direct, sourced input for one specific fixed route. This seed
- * is generated fresh from whichever distillery/feature is nearest, so
- * claiming a specific tour or time here would be inventing precision the
- * underlying data can't back up. Notes stay honest about what's actually
- * known: which stop is nearest, and roughly how far the next one is.
+ * Deliberately does NOT set a specific tour (setTourForStop) or a
+ * clock-time note - those would be inventing precision the underlying
+ * data can't back up. This seed is generated fresh from whichever
+ * distillery/feature is nearest, so notes stay honest about what's
+ * actually known: which stop is nearest, and roughly how far the next
+ * one is.
  *
- * Also deliberately does NOT set an accommodation default (unlike
- * planning/dreaming's FEATURED_STAYS[0]) - inventing a place someone's
- * staying tonight isn't ours to assume. Past the evening cutoff, the
- * seeded stop's own note nudges toward the real "Where are you staying?"
- * control instead.
+ * Also deliberately does NOT set an accommodation default - inventing a
+ * place someone's staying tonight isn't ours to assume. Past the evening
+ * cutoff, the seeded stop's own note nudges toward the real "Where are
+ * you staying?" control instead.
  *
  * Returns the interest categories the workspace should open with, and (past
  * the evening cutoff) an explainer notice - both computed here, alongside
@@ -326,41 +296,39 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
   // see seedTodayDay. Undefined for every other path/timing.
   const [todayNotice, setTodayNotice] = useState<string | undefined>(undefined);
 
-  // Runs once trip.ready flips true (localStorage hydration completes):
-  // - resume=1 + a saved intake exists -> jump straight to the workspace
-  //   with those saved answers (the "Back to your journey" case)
-  // - resume=1 + no intake but real stops exist -> a trip started
-  //   directly from a distillery page's "+ Add to Journey" button, which
-  //   never goes through Q1-Q3 and so never sets intake. Jump to the
-  //   workspace anyway with sensible defaults, rather than stranding the
-  //   visitor back at Q1 despite having a real trip with real stops.
-  // - a genuinely fresh visit (no resume, no existing intake/days) with
-  //   timing planning/dreaming -> seed the default Day (see above) and go
-  //   straight to the workspace, skipping Q2/Q3 entirely
-  // - otherwise (fresh "today" visit) -> clear any stale trip, skip
-  //   Q2/Q3, but ask the one lightweight TodayLocationStep question before
-  //   seeding (see seedTodayDay above) and moving to the workspace
+  // Runs once trip.ready flips true (localStorage hydration completes).
+  // Rewritten 11 Aug 2026 (Mark's call) to key off whether real content
+  // actually exists, rather than the resume=1 query param - the old
+  // resume-gated version would silently call trip.resetTrip() and wipe a
+  // visitor's real trip (with a fresh reseed of the old demo Day)
+  // whenever /journey was revisited without resume=1, which happens from
+  // several sitewide entry points. Checking real content directly fixes
+  // that regardless of how the visitor arrived:
+  // - a saved intake exists, or a day has real stops/came from a Hub Day
+  //   -> jump straight to the workspace with sensible answers (covers
+  //   both "Back to your journey" and a trip started via a distillery
+  //   page's "+ Add to Journey" button, which never sets intake)
+  // - otherwise a genuinely fresh visit -> nothing to protect, so skip
+  //   Q2/Q3 and go to "today"'s extra question or straight to a blank
+  //   workspace, exactly as before
   useEffect(() => {
     if (!trip.ready || handledInitialState) return;
-    if (resume && trip.intake) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLocation(trip.intake.location);
-      setInterests(showAll ? ALL_INTEREST_CATEGORIES : trip.intake.interests);
+    const hasRealContent = trip.intake || trip.days.some((d) => d.stops.length > 0 || !!d.sourceHubDaySlug);
+    if (hasRealContent) {
+      if (trip.intake) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setLocation(trip.intake.location);
+        setInterests(showAll ? ALL_INTEREST_CATEGORIES : trip.intake.interests);
+      } else {
+        setLocation({ kind: "region", region: "islay" });
+        setInterests(showAll ? ALL_INTEREST_CATEGORIES : ["distilleries"]);
+      }
       setStep("workspace");
       setHandledInitialState(true);
       return;
     }
-    if (resume && !trip.intake && trip.days.length > 0) {
-      setLocation({ kind: "region", region: "islay" });
-      setInterests(showAll ? ALL_INTEREST_CATEGORIES : ["distilleries"]);
-      setStep("workspace");
-      setHandledInitialState(true);
-      return;
-    }
-    // Genuinely fresh visit past this point - always clear any stale trip
-    // first so this never silently continues an old session.
-    if (trip.intake || trip.days.length > 0) trip.resetTrip();
 
+    // Genuinely fresh visit - nothing real to protect.
     const freshLocation: LocationAnswer = { kind: "region", region: "islay" };
     const freshInterests: InterestCategoryId[] = showAll ? ALL_INTEREST_CATEGORIES : ["distilleries"];
     setLocation(freshLocation);
@@ -375,42 +343,14 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
       return;
     }
 
-    // planning/dreaming: seed the default Day rather than open blank.
-    Promise.all([distilleriesPromise, localFeaturesPromise]).then(([distilleries, localFeatures]) => {
-      trip.initDays(1);
-      for (const entry of DEFAULT_DAY_STOPS) {
-        if (entry.kind === "distillery") {
-          const d = distilleries.find((x) => x.slug === entry.slug);
-          if (!d) continue;
-          trip.addStop(0, d);
-          trip.setStopNote(0, d.slug, entry.note);
-          const tour = entry.tourName ? d.tours.find((t) => t.name === entry.tourName) : undefined;
-          if (tour) trip.setTourForStop(0, d, tour);
-        } else {
-          const f = localFeatures.find((x) => x.slug === entry.slug);
-          if (!f) continue;
-          trip.addFeatureStop(0, f);
-          trip.setStopNote(0, f.id, entry.note);
-        }
-      }
-      // The Machrie as the default accommodation base (21 July 2026 -
-      // supersedes the original Port Ellen default from 19 July). Same
-      // Featured Stay AccommodationControl now defaults to whenever a day
-      // has no stay set - kept in sync via the shared FEATURED_STAYS
-      // export rather than a second hardcoded value here.
-      trip.setAccommodation(0, FEATURED_STAYS[0]);
-      // Flags this Day as the untouched onboarding demo (must run last -
-      // every trip.* call above this line clears the flag as a side
-      // effect of writing to the day, since each one also represents a
-      // genuine visitor edit when called anywhere else). Lets addDay()
-      // replace it in place the moment a visitor picks a real curated day
-      // from the hero/DaysHub/an Area page, instead of appending after it
-      // - see trip-context.tsx's addDay (11 Aug 2026, Mark's request).
-      trip.markDayDefaultSeed(0);
-      trip.completeIntake({ timing, location: freshLocation, interests: freshInterests });
-      setStep("workspace");
-      setHandledInitialState(true);
-    });
+    // planning/dreaming: open the workspace genuinely blank. No demo Day
+    // seeded here any more (removed 11 Aug 2026) - Workspace.tsx's own
+    // initDays(DEFAULT_STARTING_DAYS) effect creates real blank days from
+    // here, so this doesn't even need to await distilleriesPromise/
+    // localFeaturesPromise first.
+    trip.completeIntake({ timing, location: freshLocation, interests: freshInterests });
+    setStep("workspace");
+    setHandledInitialState(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip.ready, handledInitialState]);
 
