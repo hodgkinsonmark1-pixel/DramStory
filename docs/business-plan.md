@@ -176,7 +176,7 @@ Worth genuinely re-testing once real user data exists post-launch, but not worth
 3. Days Hub added to live navigation; Classic Journeys refactored + expanded to 3 total for Islay
 4. Real accommodation tracking codes wired in; location/dates/type pulled from existing workspace state rather than re-asked
 5. Remaining content completion
-6. Mobile design pass
+6. Mobile design pass — the three genuine "browse the map" entry points (dreaming, today, and Area page's "Everything in {region} on the map") now have mobile-friendly map+shortlist pages instead of dropping visitors into the mouse-only /journey planner (built 11 Aug 2026). Still to do: the "resume my journey" group — Area page's "Use this day" (pre-seeds a full curated day, so needs an edit-a-day pattern, not a browse one), "Make this day my own" on /trip and /trip/day/[index], "Add this day/tour to my journey" on Classic Journey pages, "+ Add to my trip" on Featured Stay pages, and the "Back to your journey" links on distillery/local-feature pages — all still send mobile visitors into /journey unconditionally
 7. User accounts / save-trips / login — still not built; trip state lives in-session only (`TripContext`). Deliberately deferred per `deferred-features.md`, revisit once accommodation booking going live makes persistence genuinely necessary
 8. Gamification — deliberately deferred per `deferred-features.md`; one specific idea (a first-Hub-Day-added badge) logged there for whenever this gets revisited properly
 
