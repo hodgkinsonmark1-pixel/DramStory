@@ -302,13 +302,15 @@ function HeroDayCard({
    *  trip as it stood before, then addDay/addStop/setTourForStop/
    *  addFeatureStop, in that order) - 11 Aug 2026, Mark's request: "so
    *  the trip process can begin" from here too, not only once a visitor
-   *  reaches /days. */
+   *  reaches /days. newDayIndex now comes from addDay()'s own return
+   *  value (not a precomputed trip.days.length) since addDay may replace
+   *  /journey's blank starter day in place at index 0 rather than
+   *  appending - see trip-context.tsx's addDay for why. */
   const addedIndex = trip.days.findIndex((d) => d.sourceHubDaySlug === day.slug);
   const isAdded = addedIndex !== -1;
   function handleAddToTrip() {
-    const newDayIndex = trip.days.length;
     onAdd(day);
-    trip.addDay(day.slug);
+    const newDayIndex = trip.addDay(day.slug);
     for (const stop of day.stops) {
       trip.addStop(newDayIndex, stop.distillery, stop.anchor);
       if (stop.tour) trip.setTourForStop(newDayIndex, stop.distillery, stop.tour);

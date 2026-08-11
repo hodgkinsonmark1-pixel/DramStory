@@ -75,15 +75,16 @@ function DayCard({
   const isAdded = addedIndex !== -1;
 
   /** Same add-to-trip mechanism as before Phase 2 (addDay/addStop/
-   *  setTourForStop/addFeatureStop, in that order, newDayIndex captured
-   *  before addDay() for the same "state updates aren't synchronous"
-   *  reason as previously) - onAdd(day) is called first so the parent
-   *  can compute the milestone toast from the trip as it stood BEFORE
-   *  this day was added. */
+   *  setTourForStop/addFeatureStop, in that order) - onAdd(day) is called
+   *  first so the parent can compute the milestone toast from the trip as
+   *  it stood BEFORE this day was added. newDayIndex now comes from
+   *  addDay()'s own return value rather than a precomputed
+   *  trip.days.length, since addDay may replace /journey's blank starter
+   *  day in place at index 0 instead of appending - see trip-context.tsx's
+   *  addDay for why (11 Aug 2026, Mark's request). */
   function handleAddToTrip() {
-    const newDayIndex = trip.days.length;
     onAdd(day);
-    trip.addDay(day.slug);
+    const newDayIndex = trip.addDay(day.slug);
     for (const stop of day.stops) {
       trip.addStop(newDayIndex, stop.distillery, stop.anchor);
       if (stop.tour) trip.setTourForStop(newDayIndex, stop.distillery, stop.tour);

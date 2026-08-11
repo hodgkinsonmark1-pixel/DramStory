@@ -162,8 +162,11 @@ export default function AreaClient({ area: a }: AreaClientProps) {
   function useThisDay() {
     if (!a.dayPlan) return;
     const day = a.dayPlan;
-    const newDayIndex = trip.days.length;
-    trip.addDay(day.slug);
+    // newDayIndex comes from addDay()'s own return value (not a
+    // precomputed trip.days.length) since addDay may replace /journey's
+    // blank starter day in place at index 0 instead of appending - see
+    // trip-context.tsx's addDay for why (11 Aug 2026, Mark's request).
+    const newDayIndex = trip.addDay(day.slug);
     for (const stop of day.stops) {
       trip.addStop(newDayIndex, stop.distillery);
       if (stop.tour) trip.setTourForStop(newDayIndex, stop.distillery, stop.tour);
