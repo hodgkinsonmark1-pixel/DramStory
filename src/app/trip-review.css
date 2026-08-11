@@ -258,6 +258,7 @@
   padding-top: 10px;
 }
 .trip-day-row {
+  position: relative;
   display: flex;
   gap: 12px;
   padding: 14px 0;
@@ -265,6 +266,34 @@
 }
 .trip-day-row:last-child {
   border-bottom: none;
+}
+/* Whole-day remove - top-right corner of the row, same small round
+   destructive-icon treatment as Workspace.tsx's own .day-nav-remove
+   (journey-extra.css), scoped separately here since this page has no
+   equivalent icon-button row to join. */
+.trip-day-remove {
+  position: absolute;
+  top: 12px;
+  right: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid #e0b4ac;
+  background: white;
+  color: #c0392b;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.15s;
+}
+.trip-day-remove:hover {
+  border-color: #c0392b;
+  color: #c0392b;
+  background: #fdf1ef;
 }
 .trip-day-order {
   display: flex;
@@ -302,6 +331,10 @@
   flex: 1;
   min-width: 0;
   padding-top: 2px;
+  /* Clears .trip-day-remove's absolute top-right position so a long day
+     title (these can run to several distillery names) never wraps under
+     the button. */
+  padding-right: 34px;
 }
 .trip-day-title {
   font-family: var(--font-display);

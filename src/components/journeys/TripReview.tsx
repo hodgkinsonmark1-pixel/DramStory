@@ -153,6 +153,7 @@ function DayReviewRow({
   onRemoveStop,
   onOpenPlanner,
   onReset,
+  onRemoveDay,
 }: {
   row: DayRow;
   totalDays: number;
@@ -162,12 +163,32 @@ function DayReviewRow({
   onRemoveStop: (id: string) => void;
   onOpenPlanner: () => void;
   onReset: () => void;
+  onRemoveDay: () => void;
 }) {
   const { day, index, pace, drive, priceLabel, ferry, title, edited } = row;
   const accent = paceAccentColour(pace);
 
   return (
     <div className="trip-day-row">
+      {/* Whole-day removal, only offered once there's a second day to fall
+       *  back to - trip.removeDay() itself already refuses to drop the
+       *  last remaining day, but showing a control that would silently
+       *  no-op isn't worth it (same guard Workspace.tsx's own
+       *  .day-nav-remove uses). Top-right corner per Mark's annotated
+       *  screenshot (11 Aug 2026). No confirm() - matches every other
+       *  single-click remove already on this page/site (stop chips here,
+       *  Workspace's own day remove, DaysHubGrid's day remove). */}
+      {totalDays > 1 && (
+        <button
+          type="button"
+          className="trip-day-remove"
+          onClick={onRemoveDay}
+          title={`Remove ${title} from your trip`}
+          aria-label={`Remove ${title} from your trip`}
+        >
+          &#10005;
+        </button>
+      )}
       <div className="trip-day-order">
         <button
           type="button"
@@ -336,6 +357,9 @@ export default function TripReview({ hubDays, distilleries }: { hubDays: HubDay[
   function resetDay(index: number, hub: HubDay) {
     resetDayToHub(index, trip.days[index]?.stops ?? [], hub, trip);
   }
+  function removeDay(index: number) {
+    trip.removeDay(index);
+  }
 
   // §4.4 "Still to sort" - generated, not written, and only ever
   // includes what's actually true of THIS trip. Two of the design doc's
@@ -482,6 +506,7 @@ export default function TripReview({ hubDays, distilleries }: { hubDays: HubDay[
               onRemoveStop={(id) => removeStopFromDay(row.index, id)}
               onOpenPlanner={() => openInPlanner(row.index)}
               onReset={() => row.hub && resetDay(row.index, row.hub)}
+              onRemoveDay={() => removeDay(row.index)}
             />
           ))}
         </div>
