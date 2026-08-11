@@ -197,6 +197,7 @@
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
+  text-decoration: none;
 }
 .days-hub-card-action.in-trip {
   background: var(--green-light);

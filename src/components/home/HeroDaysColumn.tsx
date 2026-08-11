@@ -207,9 +207,9 @@ export function HeroDaysColumn({
           {headerLabel}
           {picks.length > 0 && ` · ${hitEntries.length}`}
         </span>
-        <span className="hero-days-header-total">
-          {total} {total === 1 ? "day" : "days"} in all
-        </span>
+        <a href="/days" className="hero-days-header-total">
+          {total} {total === 1 ? "day" : "days"} in all →
+        </a>
       </div>
 
       {hitEntries.map((entry, i) => (
@@ -367,14 +367,24 @@ function HeroDayCard({
           </div>
         )}
         {isAdded ? (
-          <button
-            type="button"
-            className="days-hub-card-action in-trip"
-            onClick={() => trip.removeDay(addedIndex)}
-            aria-label={`Remove ${day.name} from your trip`}
-          >
-            ✓ Day {addedIndex + 1} of your trip · remove
-          </button>
+          // Second button (11 Aug 2026, Mark's request) - once a day is
+          // added there was no way from the hero itself to see the trip
+          // it's building, only the per-card remove action. Links to the
+          // same /trip review page DaysTripBar's "Review" button already
+          // points at elsewhere on the site - not a new destination.
+          <div className="days-hub-card-actions">
+            <button
+              type="button"
+              className="days-hub-card-action in-trip"
+              onClick={() => trip.removeDay(addedIndex)}
+              aria-label={`Remove ${day.name} from your trip`}
+            >
+              ✓ Day {addedIndex + 1} of your trip · remove
+            </button>
+            <a href="/trip" className="days-hub-card-action">
+              View trip so far →
+            </a>
+          </div>
         ) : (
           <button type="button" className="days-hub-card-action" onClick={handleAddToTrip}>
             + Add as a day

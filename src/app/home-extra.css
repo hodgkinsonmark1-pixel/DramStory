@@ -628,6 +628,20 @@
   font-size: 12px;
   color: var(--slate);
   white-space: nowrap;
+  text-decoration: none;
+}
+.hero-days-header-total:hover {
+  color: var(--copper);
+  text-decoration: underline;
+}
+/* Two actions once a day's in the trip (11 Aug 2026, Mark's request) -
+   remove stays the primary/green .in-trip button, "View trip so far"
+   reuses the plain (non-in-trip) .days-hub-card-action look as a
+   visually secondary action beside it. */
+.days-hub-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 .hero-days-foot {
   display: inline-block;
