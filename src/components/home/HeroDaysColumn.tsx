@@ -13,6 +13,8 @@ import {
   deriveHook,
   hasMoreNarrative,
   fullNarrativeText,
+  milestoneFor,
+  isFerryDay,
 } from "@/lib/day-derivations";
 import { PacingTag } from "@/components/PacingTag";
 
@@ -84,8 +86,45 @@ export function HeroDaysColumn({
   const base = trip.answers?.base ?? DEFAULT_TRIP_ANSWERS.base;
   const baseKind = trip.answers?.baseKind ?? DEFAULT_TRIP_ANSWERS.baseKind;
   const picks = trip.answers?.picks ?? DEFAULT_TRIP_ANSWERS.picks;
+  const nights = trip.answers?.nights ?? DEFAULT_TRIP_ANSWERS.nights;
   const baseAccommodation = findBaseAccommodation(base, baseKind) ?? FEATURED_STAYS[0];
   const baseName = baseDisplayName(base, baseKind);
+
+  /** Pop animation + milestone toast (11 Aug 2026, Mark's request - back
+   *  in after being left out of the first pass) - same
+   *  justAddedId/milestone/timerRef pattern and same milestoneFor() copy
+   *  DaysHubGrid.tsx's own parent component uses, reusing its
+   *  .days-milestone-toast verbatim (it's position:fixed against the
+   *  viewport, not this column, so it renders correctly regardless of
+   *  being mounted inside the hero's narrower right column). Unlike
+   *  DaysHubGrid, there's no persistent .days-trip-bar here for the
+   *  toast to sit above - the hero has no permanent "your trip so far"
+   *  strip of its own - so the toast is the only new visible element, a
+   *  deliberately smaller footprint than /days's full pairing. */
+  const [justAddedId, setJustAddedId] = useState<string | null>(null);
+  const [milestone, setMilestone] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleMilestone(day: HubDay) {
+    const existingSlugs = new Set(
+      trip.days.flatMap((d) => d.stops.filter((s) => s.kind === "distillery").map((s) => s.distillery.slug))
+    );
+    for (const stop of day.stops) existingSlugs.add(stop.distillery.slug);
+    const dayCount = trip.days.length + 1;
+    const msg = milestoneFor({
+      dayCount,
+      distilleryCount: existingSlugs.size,
+      nights,
+      ferryDay: isFerryDay(day),
+    });
+    setJustAddedId(day.id);
+    setMilestone(msg);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      setJustAddedId(null);
+      setMilestone(null);
+    }, 2800);
+  }
 
   const entries: DayEntry[] = useMemo(
     () =>
@@ -179,6 +218,8 @@ export function HeroDaysColumn({
           entry={entry}
           picks={picks}
           index={i}
+          justAdded={justAddedId === entry.day.id}
+          onAdd={handleMilestone}
           cardRef={(el) => {
             if (el) cardRefs.current.set(entry.day.id, el);
             else cardRefs.current.delete(entry.day.id);
@@ -200,6 +241,8 @@ export function HeroDaysColumn({
           entry={entry}
           picks={picks}
           index={hitEntries.length + i}
+          justAdded={justAddedId === entry.day.id}
+          onAdd={handleMilestone}
           cardRef={(el) => {
             if (el) cardRefs.current.set(entry.day.id, el);
             else cardRefs.current.delete(entry.day.id);
@@ -210,6 +253,12 @@ export function HeroDaysColumn({
       <a href="/days" className="hero-days-foot">
         See all {total} {total === 1 ? "day" : "days"} →
       </a>
+
+      {milestone && (
+        <div className="days-milestone-toast" role="status">
+          {milestone}
+        </div>
+      )}
     </div>
   );
 }
@@ -218,11 +267,20 @@ function HeroDayCard({
   entry,
   picks,
   index,
+  justAdded,
+  onAdd,
   cardRef,
 }: {
   entry: DayEntry;
   picks: string[];
   index: number;
+  /** True for as long as this card's own days-pop animation should be
+   *  playing - mirrors DaysHubGrid's DayCard prop of the same name. */
+  justAdded: boolean;
+  /** Called with the HubDay BEFORE any trip mutation, so the parent can
+   *  compute the milestone toast off the trip as it stood beforehand -
+   *  same contract/reasoning as DaysHubGrid.tsx's own onAdd prop. */
+  onAdd: (day: HubDay) => void;
   cardRef: (el: HTMLDivElement | null) => void;
 }) {
   const trip = useTrip();
@@ -233,25 +291,23 @@ function HeroDayCard({
   const driveLabel = driveMinutes > 0 ? `≈${formatDuration(driveMinutes)} on the road` : "";
   const metaText = [driveLabel, price].filter(Boolean).join(" · ");
 
-  // "Read more" trims the deriveHook() ellipsis and sits inline at the
-  // end of the (unexpanded) teaser text - 11 Aug 2026, Mark's request,
-  // was its own line below the paragraph before. Only matters pre-
-  // expansion; the full narrative never carries a trailing "…" to strip.
-  const hookDisplay = !expanded && hasMore ? hook.replace(/…$/, "") : hook;
+  /** "Read more" sits inline at the end of the (unexpanded) teaser text,
+   *  right after deriveHook()'s own trailing "…" (11 Aug 2026, Mark's
+   *  request - first pass moved it inline AND dropped the "…", he wants
+   *  the "…" kept). Only matters pre-expansion; the full narrative never
+   *  carries a trailing "…" to begin with. */
 
   /** Same add-to-trip mechanism DaysHubGrid.tsx's own DayCard uses
-   *  (addDay/addStop/setTourForStop/addFeatureStop, in that order) -
-   *  11 Aug 2026, Mark's request: "so the trip process can begin" from
-   *  here too, not only once a visitor reaches /days. Deliberately NOT
-   *  porting DaysHubGrid's justAdded-pop-animation/milestone-toast pair
-   *  alongside it - this column has no room for a milestone banner and
-   *  the FLIP re-sort above already gives its own "something happened"
-   *  motion; flagging that omission rather than silently matching
-   *  everything DaysHubGrid does. */
+   *  (onAdd(day) first so the parent can snapshot milestone data off the
+   *  trip as it stood before, then addDay/addStop/setTourForStop/
+   *  addFeatureStop, in that order) - 11 Aug 2026, Mark's request: "so
+   *  the trip process can begin" from here too, not only once a visitor
+   *  reaches /days. */
   const addedIndex = trip.days.findIndex((d) => d.sourceHubDaySlug === day.slug);
   const isAdded = addedIndex !== -1;
   function handleAddToTrip() {
     const newDayIndex = trip.days.length;
+    onAdd(day);
     trip.addDay(day.slug);
     for (const stop of day.stops) {
       trip.addStop(newDayIndex, stop.distillery, stop.anchor);
@@ -265,7 +321,9 @@ function HeroDayCard({
   return (
     <div
       ref={cardRef}
-      className={"days-hub-card hero-days-card-enter" + (hits.length > 0 ? " hit" : "")}
+      className={
+        "days-hub-card hero-days-card-enter" + (hits.length > 0 ? " hit" : "") + (justAdded ? " days-pop" : "")
+      }
       style={{ animationDelay: `${index * 40}ms` }}
     >
       {hits.length > 0 && (
@@ -294,7 +352,7 @@ function HeroDayCard({
         {hook && (
           <div className="days-hub-card-hook-block">
             <p className={`days-hub-card-hook${expanded ? " expanded" : ""}`}>
-              {expanded ? fullNarrativeText(day.narrative) : hookDisplay}
+              {expanded ? fullNarrativeText(day.narrative) : hook}
               {hasMore && (
                 <button
                   type="button"
