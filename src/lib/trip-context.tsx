@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import type { Distillery, ItineraryDay, LocalFeature, Tour, TripAccommodation, TripDateMode, TripDates, TripIntake, TripMapView } from "@/lib/types";
+import type { Distillery, ItineraryDay, ItineraryStop, LocalFeature, Tour, TripAccommodation, TripDateMode, TripDates, TripIntake, TripMapView } from "@/lib/types";
 import { stopId } from "@/lib/itinerary-stop";
 import { FEATURED_STAYS } from "@/lib/featured-stays";
 import { AREAS } from "@/lib/areas";
@@ -98,6 +98,12 @@ interface StoredTrip {
    *  a visitor can open a sheet and change an answer from the poster
    *  without ever pressing the button). */
   heroRevealed?: boolean;
+  /** Dreaming's mobile-only shortlist (11 Aug 2026) - see
+   *  TripContextValue.shortlist for the full story. Reuses ItineraryStop
+   *  verbatim rather than a new type - a shortlisted item is exactly a
+   *  stop's data (distillery/feature, no tour/note/customMinutes set
+   *  yet) before it's been placed on any day. */
+  shortlist?: ItineraryStop[];
 }
 
 interface TripContextValue {
@@ -187,6 +193,19 @@ interface TripContextValue {
   addFeatureStop: (dayIndex: number, feature: LocalFeature) => void;
   /** Removes any stop (distillery or feature) by its stopId(). */
   removeStop: (dayIndex: number, id: string) => void;
+  /** Dreaming's mobile-only shortlist (11 Aug 2026, Mark's request after
+   *  reviewing mobile: the desktop map lets a visitor add straight to a
+   *  day, but that assumes days already exist / are worth committing to
+   *  yet - a "dreaming" mobile visitor is still browsing, not building
+   *  an itinerary. This is a lightweight in-between: tap a pin, shortlist
+   *  it, decide which day it belongs to later (see the commit helpers
+   *  below) rather than being forced to place it immediately. Entirely
+   *  separate from any day's stops until explicitly committed - nothing
+   *  here shows up in /trip or the itinerary panel until then. */
+  shortlist: ItineraryStop[];
+  addDistilleryToShortlist: (distillery: Distillery) => void;
+  addFeatureToShortlist: (feature: LocalFeature) => void;
+  removeFromShortlist: (id: string) => void;
   /** Swaps a stop with its neighbor - lets a visitor reorder a day without
    *  deleting and re-adding (which would also lose any picked tour). */
   moveStop: (dayIndex: number, stopIndex: number, direction: -1 | 1) => void;
@@ -264,6 +283,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   const [tripDates, setTripDates] = useState<TripDates>(defaultTripDates);
   const [answers, setAnswers] = useState<TripAnswers | null>(null);
   const [heroRevealed, setHeroRevealedState] = useState(false);
+  const [shortlist, setShortlist] = useState<ItineraryStop[]>([]);
   const [ready, setReady] = useState(false);
 
   // Reads localStorage after mount rather than in a lazy useState
@@ -283,6 +303,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     setTripDates(parsed.tripDates ?? defaultTripDates());
     setAnswers(parsed.answers ?? null);
     setHeroRevealedState(parsed.heroRevealed ?? false);
+    setShortlist(parsed.shortlist ?? []);
   }
 
   useEffect(() => {
@@ -305,13 +326,13 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     try {
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ days, intake, currentDayIndex, mapView, tripDates, answers, heroRevealed })
+        JSON.stringify({ days, intake, currentDayIndex, mapView, tripDates, answers, heroRevealed, shortlist })
       );
     } catch {
       // Storage full or unavailable - the trip still works for this
       // session, it just won't survive a reload.
     }
-  }, [days, intake, currentDayIndex, mapView, tripDates, answers, heroRevealed, ready]);
+  }, [days, intake, currentDayIndex, mapView, tripDates, answers, heroRevealed, shortlist, ready]);
 
   // Cross-tab live sync (22 July 2026) - added for the Days Hub's
   // "+ Add this day to my trip", which a visitor might reasonably have
@@ -531,6 +552,22 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
+  /** See TripContextValue.shortlist - dedupes the same way addStop/
+   *  addFeatureStop already do for a day's own stops. */
+  const addDistilleryToShortlist = useCallback((distillery: Distillery) => {
+    setShortlist((prev) =>
+      prev.some((s) => stopId(s) === distillery.slug) ? prev : [...prev, { kind: "distillery" as const, distillery }]
+    );
+  }, []);
+
+  const addFeatureToShortlist = useCallback((feature: LocalFeature) => {
+    setShortlist((prev) => (prev.some((s) => stopId(s) === feature.id) ? prev : [...prev, { kind: "feature" as const, feature }]));
+  }, []);
+
+  const removeFromShortlist = useCallback((id: string) => {
+    setShortlist((prev) => prev.filter((s) => stopId(s) !== id));
+  }, []);
+
   /** Swaps a stop with its neighbor in either direction - lets a visitor
    *  fix the order of a day without deleting and re-adding stops (which
    *  also loses any tour already picked for that stop). */
@@ -714,6 +751,10 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         addStop,
         addFeatureStop,
         removeStop,
+        shortlist,
+        addDistilleryToShortlist,
+        addFeatureToShortlist,
+        removeFromShortlist,
         moveStop,
         setStopMinutes,
         setStopNote,

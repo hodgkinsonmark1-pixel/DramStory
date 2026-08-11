@@ -1,12 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTrip } from "@/lib/trip-context";
 import { DREAM_AREAS } from "@/lib/dream-areas";
 import { AREAS } from "@/lib/areas";
 import { joinWithAnd } from "@/lib/trip-answers";
-import type { Distillery, JournalPost } from "@/lib/types";
+import DreamingShortlistSection from "./DreamingShortlistSection";
+import type { Distillery, JournalPost, LocalFeature } from "@/lib/types";
+
+/** Same matchMedia pattern as Workspace.tsx/Hero.tsx - starts false to
+ *  avoid an SSR/hydration mismatch, accepting the same brief pre-effect
+ *  flash those already do. */
+const MOBILE_BREAKPOINT = 768;
 
 /**
  * dreamArea id -> the real Area page it anchors to (areas.ts slug),
@@ -56,11 +62,18 @@ export function HeroDreamingColumn({
   dreamAreaId,
   distilleries,
   journalPosts,
+  localFeatures,
   announce,
 }: {
   dreamAreaId: string;
   distilleries: Distillery[];
   journalPosts: JournalPost[];
+  /** Only used by the mobile-only map+shortlist section (11 Aug 2026) -
+   *  optional so desktop's inline reveal (Hero.tsx) doesn't need to
+   *  fetch/pass this just to satisfy the prop type; undefined there
+   *  renders as an empty array below (see visibleFeatures), which is
+   *  fine since that section never mounts on desktop anyway. */
+  localFeatures?: LocalFeature[];
   /** Same contract as HeroDaysColumn's own `announce` (§6) - called once
    *  with a summary for a screen reader, only when this reveal is the
    *  visitor's own button press this session. */
@@ -69,6 +82,25 @@ export function HeroDreamingColumn({
   const trip = useTrip();
   const announcedRef = useRef(false);
   const area = DREAM_AREAS.find((a) => a.id === dreamAreaId) ?? DREAM_AREAS[0];
+
+  // 11 Aug 2026, Mark's call after reviewing the mobile /dreaming page:
+  // the real day-by-day journey builder (/journey) assumes a mouse for
+  // panning/zooming and isn't fully mobile-refined yet, so mobile gets
+  // its own lighter alternative here instead of "Build it on the map" -
+  // a permanent-pin map (DreamingMap) plus a shortlist section
+  // (DreamingShortlistSection), rather than sending a mobile visitor
+  // into the full itinerary builder. Desktop's own inline reveal (this
+  // same component, split-screen) is completely unaffected - only the
+  // standalone mobile /dreaming page renders through here at a narrow
+  // width.
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
+    const update = () => setIsMobileViewport(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   const areaDistilleries = area.distilleries
     .map((name) => distilleries.find((d) => d.name === name))
@@ -79,6 +111,12 @@ export function HeroDreamingColumn({
   const post = journalPostForArea(journalPosts, area.distilleries);
   const baseSlug = DREAM_AREA_BASE_SLUG[area.id];
   const baseArea = baseSlug ? AREAS.find((a) => a.slug === baseSlug) : undefined;
+  // Centres the mobile map near the selected area when there's a real
+  // Area to anchor to (see DREAM_AREA_BASE_SLUG above); "north-east" has
+  // none, so falls back to the same Port Ellen default MapCanvas itself
+  // uses island-wide.
+  const mapCenter = baseArea ?? AREAS.find((a) => a.slug === "port-ellen") ?? AREAS[0];
+  const visibleFeatures = localFeatures ?? [];
 
   useEffect(() => {
     if (!announce || announcedRef.current) return;
@@ -166,13 +204,17 @@ export function HeroDreamingColumn({
         </Link>
       )}
 
-      <Link href="/journey" className="hero-dream-card hero-dream-card-navy">
-        <div className="hero-dream-card-kicker">Or start from nothing</div>
-        <h3 className="hero-dream-card-title">Build it on the map</h3>
-        <p className="hero-dream-card-body">
-          Every distillery, beach and bar on one map — drop stops where you like.
-        </p>
-      </Link>
+      {isMobileViewport ? (
+        <DreamingShortlistSection distilleries={distilleries} localFeatures={visibleFeatures} center={mapCenter} />
+      ) : (
+        <Link href="/journey" className="hero-dream-card hero-dream-card-navy">
+          <div className="hero-dream-card-kicker">Or start from nothing</div>
+          <h3 className="hero-dream-card-title">Build it on the map</h3>
+          <p className="hero-dream-card-body">
+            Every distillery, beach and bar on one map — drop stops where you like.
+          </p>
+        </Link>
+      )}
     </div>
   );
 }
