@@ -1,12 +1,19 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Distillery, HubDay } from "@/lib/types";
 import { useTrip, DEFAULT_TRIP_ANSWERS } from "@/lib/trip-context";
 import { baseDisplayName, describePicks, findBaseAccommodation } from "@/lib/trip-answers";
 import { FEATURED_STAYS } from "@/lib/featured-stays";
 import { formatDuration } from "@/lib/drive-time";
-import { driveMinutesForDay, pickHitsFor, dayPriceLabel, deriveHook } from "@/lib/day-derivations";
+import {
+  driveMinutesForDay,
+  pickHitsFor,
+  dayPriceLabel,
+  deriveHook,
+  hasMoreNarrative,
+  fullNarrativeText,
+} from "@/lib/day-derivations";
 import { PacingTag } from "@/components/PacingTag";
 
 /** How many non-matching days to preview under "Everything else" before
@@ -45,6 +52,15 @@ interface DayEntry {
  * are keyed by day.id, React itself moves the existing DOM nodes rather
  * than recreating them when order changes, which is what makes measuring
  * their before/after position workable without a library.
+ *
+ * 11 Aug 2026: added the "Read more" narrative toggle back in (Mark's
+ * request) - the header comment above originally listed this as one of
+ * two things deliberately left out of this compact card (the other,
+ * "+ Add as a day", stays out - adding a day for real still only makes
+ * sense once a visitor is on /days itself). Reuses hasMoreNarrative()/
+ * fullNarrativeText() and the exact same .days-hub-card-hook-toggle
+ * markup/CSS DaysHubGrid's own DayCard already uses, so the two stay
+ * visually identical rather than drifting into two implementations.
  */
 export function HeroDaysColumn({
   days,
@@ -211,6 +227,8 @@ function HeroDayCard({
 }) {
   const { day, driveMinutes, hits, price } = entry;
   const hook = deriveHook(day.narrative);
+  const hasMore = hasMoreNarrative(day.narrative);
+  const [expanded, setExpanded] = useState(false);
   const driveLabel = driveMinutes > 0 ? `≈${formatDuration(driveMinutes)} on the road` : "";
   const metaText = [driveLabel, price].filter(Boolean).join(" · ");
 
@@ -245,7 +263,19 @@ function HeroDayCard({
         )}
         {hook && (
           <div className="days-hub-card-hook-block">
-            <p className="days-hub-card-hook">{hook}</p>
+            <p className={`days-hub-card-hook${expanded ? " expanded" : ""}`}>
+              {expanded ? fullNarrativeText(day.narrative) : hook}
+            </p>
+            {hasMore && (
+              <button
+                type="button"
+                className="days-hub-card-hook-toggle"
+                onClick={() => setExpanded((v) => !v)}
+                aria-expanded={expanded}
+              >
+                {expanded ? "Show less" : "Read more"}
+              </button>
+            )}
           </div>
         )}
       </div>

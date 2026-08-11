@@ -83,7 +83,7 @@ export function HeroDreamingColumn({
   useEffect(() => {
     if (!announce || announcedRef.current) return;
     announcedRef.current = true;
-    announce(`Reading about ${area.name}, ${areaDistilleries.length} distilleries`);
+    announce(`Reading about the ${area.name}, ${areaDistilleries.length} distilleries`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [announce]);
 
@@ -119,7 +119,17 @@ export function HeroDreamingColumn({
       )}
 
       {featured && (
-        <div className="hero-dream-card">
+        // Was a plain non-interactive <div> - Mark's report, 11 Aug 2026:
+        // neither this card nor its "All N" link actually went anywhere.
+        // "All N" was already a real Link (/distilleries) so that part
+        // should have worked on its own; the card body (title/tagline)
+        // had no link at all. Can't wrap the WHOLE card in one <a> though
+        // - it would nest <a> inside <a> around "All N", which is invalid
+        // HTML and makes click behaviour inconsistent across browsers.
+        // Kept "All N" as its own separate Link (still -> /distilleries,
+        // the site-wide total) and wrapped just the title/tagline in a
+        // second Link to the featured distillery's own page instead.
+        <div className="hero-dream-card hero-dream-card-clickable">
           <div className="hero-dream-card-kicker-row">
             <span className="hero-dream-card-kicker">
               Distillery · {areaDistilleries.length} in {area.shortName}
@@ -128,17 +138,19 @@ export function HeroDreamingColumn({
               All {distilleries.length} →
             </Link>
           </div>
-          <h3 className="hero-dream-card-title">{featured.name}</h3>
-          <p className="hero-dream-card-body">
-            {featured.tagline}
-            {others.length > 0 && (
-              <>
-                {" "}
-                {joinWithAnd(others.map((o) => o.name))} {others.length === 1 ? "is" : "are"} the{" "}
-                {others.length === 1 ? "other" : "others"} nearby.
-              </>
-            )}
-          </p>
+          <Link href={`/distilleries/${featured.slug}`} className="hero-dream-card-body-link">
+            <h3 className="hero-dream-card-title">{featured.name}</h3>
+            <p className="hero-dream-card-body">
+              {featured.tagline}
+              {others.length > 0 && (
+                <>
+                  {" "}
+                  {joinWithAnd(others.map((o) => o.name))} {others.length === 1 ? "is" : "are"} the{" "}
+                  {others.length === 1 ? "other" : "others"} nearby.
+                </>
+              )}
+            </p>
+          </Link>
         </div>
       )}
 

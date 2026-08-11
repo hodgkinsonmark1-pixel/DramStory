@@ -707,6 +707,21 @@
 a.hero-dream-card:hover {
   border-color: var(--copper);
 }
+/* Distillery card's own link (11 Aug 2026, Mark's fix request) - the
+   outer .hero-dream-card is a plain div here, not an <a>, since it holds
+   TWO separate links (the card body -> the featured distillery, "All N"
+   -> /distilleries) and can't itself be one without illegally nesting
+   <a> inside <a>. .hero-dream-card-clickable:has(...) reproduces the
+   same copper-border hover the other, single-link cards get above, just
+   triggered by the INNER link instead of the outer element itself. */
+.hero-dream-card-body-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+.hero-dream-card-clickable:has(.hero-dream-card-body-link:hover) {
+  border-color: var(--copper);
+}
 .hero-dream-card-kicker-row {
   display: flex;
   align-items: baseline;

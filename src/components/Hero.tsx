@@ -350,7 +350,13 @@ export default function Hero({
 
               {timeframe === "dreaming" && (
                 <>
-                  {" about Islay, and I'm drawn to "}
+                  {/* "the" moved out here from dream-areas.ts's own
+                      `name` field (11 Aug 2026, Mark's request) - so a
+                      chip/header/sheet-option can read a bare "Peated
+                      south" as a short label, while the one place that's
+                      actually a sentence still reads "...drawn to the
+                      peated south." grammatically. */}
+                  {" about Islay, and I'm drawn to the "}
                   <button
                     type="button"
                     className="hero-sentence-clause"

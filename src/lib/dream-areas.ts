@@ -25,17 +25,19 @@ export interface DreamArea extends TripAccommodation {
    *  the copy" order (§4.3) - HeroDreamingColumn.tsx's own featured pick
    *  is always distilleries[0]. */
   distilleries: string[];
-  /** Short form for the distillery card's "N in the {shortName}" kicker
-   *  (§11 copy deck: "DISTILLERY · 4 IN THE SOUTH", not "...in the
-   *  peated south") - only "the peated south" needs one, the other three
-   *  area names already are their own short form. */
+  /** Short form for the distillery card's "N in {shortName}" kicker
+   *  (§11 copy deck: "DISTILLERY · 4 IN THE SOUTH", not "...in peated
+   *  south") - deliberately keeps its own "the" (needed mid-sentence:
+   *  "4 in the south"/"4 in the middle") even though `name` itself
+   *  dropped its leading "the" on 11 Aug 2026 per Mark's request - the
+   *  two fields serve different grammatical spots, not the same one. */
   shortName: string;
 }
 
 export const DREAM_AREAS: DreamArea[] = [
   {
     id: "peated-south",
-    name: "the peated south",
+    name: "peated south",
     shortName: "the south",
     lat: 55.632,
     lng: -6.145,
@@ -43,7 +45,7 @@ export const DREAM_AREAS: DreamArea[] = [
   },
   {
     id: "the-middle",
-    name: "the middle",
+    name: "middle",
     shortName: "the middle",
     lat: 55.758,
     lng: -6.289,
@@ -51,7 +53,7 @@ export const DREAM_AREAS: DreamArea[] = [
   },
   {
     id: "the-west",
-    name: "the west",
+    name: "west",
     shortName: "the west",
     lat: 55.776,
     lng: -6.383,
@@ -59,7 +61,7 @@ export const DREAM_AREAS: DreamArea[] = [
   },
   {
     id: "north-east",
-    name: "the north east",
+    name: "north east",
     shortName: "the north east",
     lat: 55.871,
     lng: -6.118,
