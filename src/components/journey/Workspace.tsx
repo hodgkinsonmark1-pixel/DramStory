@@ -58,6 +58,16 @@ interface WorkspaceProps {
    *  never shows "loaded from a day plan" language it didn't earn - see
    *  the task brief's explicit "resume=1 AND sourceHubDaySlug" gate. */
   resume: boolean;
+  /** True only via HeroTodayColumn's "View on the interactive map" link
+   *  (11 Aug 2026, Mark's request) - that entry point always lands in
+   *  the planning/dreaming branch of JourneyFlow's initial-state effect
+   *  (todayNear is a Hero-only answer, distillery-level granularity
+   *  TodayLocationStep needs isn't available there), so the existing
+   *  `timing !== "today"` walkthrough gate below doesn't naturally cover
+   *  it. This is a narrower, dedicated flag for that one link rather
+   *  than mislabelling the trip's timing just to reuse the existing
+   *  gate. Undefined/false everywhere else - no behaviour change. */
+  skipWalkthrough?: boolean;
 }
 
 function describeLocation(location: LocationAnswer): string {
@@ -130,6 +140,7 @@ export default function Workspace({
   timing,
   todayNotice,
   resume,
+  skipWalkthrough,
 }: WorkspaceProps) {
   // The itinerary/map workspace is the one intake-adjacent screen that
   // should NOT show the shared background video (see SiteBackgroundVideo)
@@ -780,8 +791,14 @@ export default function Workspace({
         black screen rather than a real walkthrough. Reuses the same
         isMobileViewport check Phase 6 already computes above, rather
         than duplicating a second matchMedia listener inside
-        OnboardingOverlay itself. Desktop behaviour is unchanged. */}
-    {timing !== "today" && !isMobileViewport && (
+        OnboardingOverlay itself. Desktop behaviour is unchanged.
+
+        Also skipped whenever skipWalkthrough is set (11 Aug 2026, Mark's
+        request) - currently only HeroTodayColumn's "View on the
+        interactive map" link, which lands here still labelled
+        planning/dreaming (see WorkspaceProps.skipWalkthrough) so the
+        `timing !== "today"` check above doesn't catch it on its own. */}
+    {timing !== "today" && !isMobileViewport && !skipWalkthrough && (
       <OnboardingOverlay timing={timing} hasStops={trip.days.some((d) => d.stops.length > 0)} />
     )}
     {tourPickerDistillery && (

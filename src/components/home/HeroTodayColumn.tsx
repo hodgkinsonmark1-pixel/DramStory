@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Distillery, LocalFeature } from "@/lib/types";
 import { AREAS } from "@/lib/areas";
+import { useTrip } from "@/lib/trip-context";
 import { buildTodaySchedule, formatClockTime, type TodayStop } from "@/lib/today-schedule";
 
 /**
@@ -23,6 +25,8 @@ export function HeroTodayColumn({
   distilleries: Distillery[];
   localFeatures: LocalFeature[];
 }) {
+  const router = useRouter();
+  const trip = useTrip();
   const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -74,7 +78,28 @@ export function HeroTodayColumn({
         </p>
       </div>
 
-      <Link href="/journey" className="hero-days-foot">
+      {/* 11 Aug 2026, Mark's request: zoom the map to where the visitor
+          actually said they are (village, not the site-wide Port Ellen
+          default) and skip the onboarding walkthrough - its demo pin/
+          "customise a day" steps assume a planning/dreaming visit with
+          time to spare, not someone checking what fits right now.
+          showAll=1 so every category (not just Distilleries) shows,
+          matching "see what's nearby" above rather than a narrower
+          default. Sets mapView before navigating (same TripProvider
+          instance survives the client-side route change, so no
+          localStorage round-trip needed) rather than mislabelling this
+          as timing=today, which would need a distillery-level location
+          TodayLocationStep expects but todayNear (village-level) can't
+          honestly provide - see Workspace.tsx's skipWalkthrough prop. */}
+      <Link
+        href="/journey?showAll=1&walkthrough=skip"
+        className="hero-days-foot"
+        onClick={(e) => {
+          e.preventDefault();
+          trip.setMapView({ lat: village.lat, lng: village.lng, zoom: 14 });
+          router.push("/journey?showAll=1&walkthrough=skip");
+        }}
+      >
         View on the interactive map →
       </Link>
     </div>

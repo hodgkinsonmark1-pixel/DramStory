@@ -131,8 +131,13 @@ export function HeroDreamingColumn({
         // second Link to the featured distillery's own page instead.
         <div className="hero-dream-card hero-dream-card-clickable">
           <div className="hero-dream-card-kicker-row">
+            {/* 11 Aug 2026, Mark's request: was "Distillery · N in
+                {area}" - the singular "Distillery" sitting apart from
+                the count read ambiguously (easy to misread as one
+                distillery, not a count). Ties the number and the plural
+                noun together instead. */}
             <span className="hero-dream-card-kicker">
-              Distillery · {areaDistilleries.length} in {area.shortName}
+              {areaDistilleries.length} {areaDistilleries.length === 1 ? "Distillery" : "Distilleries"} in {area.shortName}
             </span>
             <Link href="/distilleries" className="hero-dream-card-link">
               All {distilleries.length} →

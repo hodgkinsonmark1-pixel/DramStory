@@ -62,6 +62,11 @@ interface JourneyFlowProps {
    *  every layer already switched on rather than needing the visitor to
    *  toggle each one by hand. */
   showAll: boolean;
+  /** True only via HeroTodayColumn's "View on the interactive map" link
+   *  (11 Aug 2026, Mark's request) - see the matching comment on
+   *  WorkspaceWithFeatures' own skipWalkthrough prop below for why this
+   *  exists as its own flag rather than being tied to timing==="today". */
+  skipWalkthrough: boolean;
 }
 
 type Step = "location" | "today-location" | "interests" | "workspace";
@@ -96,6 +101,7 @@ function WorkspaceWithFeatures(props: {
   timing: TripTiming;
   todayNotice?: string;
   resume: boolean;
+  skipWalkthrough?: boolean;
 }) {
   const distilleries = use(props.distilleriesPromise);
   const localFeatures = use(props.localFeaturesPromise);
@@ -116,6 +122,7 @@ function WorkspaceWithFeatures(props: {
       timing={props.timing}
       todayNotice={props.todayNotice}
       resume={props.resume}
+      skipWalkthrough={props.skipWalkthrough}
     />
   );
 }
@@ -285,7 +292,7 @@ function seedTodayDay(
   return { interests: eveningInterests, notice: eveningExplainer };
 }
 
-export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, hubDaysPromise, areasPromise, featuredStaysPromise, resume, showAll }: JourneyFlowProps) {
+export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, hubDaysPromise, areasPromise, featuredStaysPromise, resume, showAll, skipWalkthrough }: JourneyFlowProps) {
   const router = useRouter();
   const trip = useTrip();
   const [step, setStep] = useState<Step>("location");
@@ -450,6 +457,7 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
         timing={trip.intake?.timing ?? timing}
         todayNotice={todayNotice}
         resume={resume}
+        skipWalkthrough={skipWalkthrough}
       />
     </Suspense>
   );

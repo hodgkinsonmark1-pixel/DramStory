@@ -11,9 +11,9 @@ function parseTiming(mode: string | string[] | undefined): TripTiming {
 export default async function JourneyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string; resume?: string; showAll?: string }>;
+  searchParams: Promise<{ mode?: string; resume?: string; showAll?: string; walkthrough?: string }>;
 }) {
-  const { mode, resume, showAll } = await searchParams;
+  const { mode, resume, showAll, walkthrough } = await searchParams;
   // Deliberately NOT awaited, same reasoning as Local Features/Events
   // below: Q2's primary region cards don't touch distillery data at all -
   // only the secondary "a specific distillery" dropdown does. Blocking
@@ -62,6 +62,16 @@ export default async function JourneyPage({
       // category active rather than JourneyFlow's usual Distilleries-only
       // default, so the map opens with all layers showing.
       showAll={showAll === "1"}
+      // Set only by HeroTodayColumn's "View on the interactive map" link
+      // (11 Aug 2026, Mark's request) - that link currently always lands
+      // in the planning/dreaming branch of JourneyFlow's initial-state
+      // effect (todayNear is a Hero-only answer, not a full TripIntake,
+      // so it can't cleanly satisfy JourneyFlow's timing="today" path
+      // without also fabricating a fake distillery-level location - not
+      // worth doing for one link). The onboarding walkthrough's demo
+      // content assumes that path though, so it's skipped here on its
+      // own signal rather than piggybacking on timing.
+      skipWalkthrough={walkthrough === "skip"}
     />
   );
 }

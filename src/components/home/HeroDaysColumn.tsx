@@ -383,7 +383,12 @@ function HeroDayCard({
             >
               ✓ Day {addedIndex + 1} of your trip · remove
             </button>
-            <a href="/trip" className="days-hub-card-action">
+            {/* Opens in a new tab (11 Aug 2026, Mark's request) - unlike
+                the "✓ Day N of your trip" button beside it (an in-place
+                edit), this is a read-only look at the trip elsewhere on
+                the site; a new tab keeps the visitor's place in the
+                hero rather than navigating them away from it. */}
+            <a href="/trip" target="_blank" rel="noopener noreferrer" className="days-hub-card-action">
               View trip so far →
             </a>
           </div>
