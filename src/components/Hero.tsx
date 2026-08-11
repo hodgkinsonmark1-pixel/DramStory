@@ -189,13 +189,27 @@ export default function Hero({
   }
 
   function handleShowDays() {
-    // §8: mobile keeps the single-question hero and navigates to /days,
-    // same as Phase 1's original behaviour before the desktop-only
-    // reflow existed - for every timeframe alike, not just planning (the
-    // design doc doesn't branch this by timeframe, and /days already
-    // handles "no answers"/defaults gracefully for a dreaming/today
-    // visitor arriving with nothing days-specific set).
+    // §8: mobile keeps the single-question hero and navigates away
+    // rather than revealing in place. Originally sent every timeframe
+    // to /days regardless (the design doc's Phase 1 scope only ever
+    // built that one destination) - but /days only reads planning's own
+    // answers (base/nights/picks), so a dreaming/today visitor landed
+    // somewhere that silently ignored what they'd just answered.
+    // Fixed 11 Aug 2026 per Mark's live mobile review: each timeframe
+    // now gets its own standalone page hosting the exact same reveal
+    // column desktop shows split-screen (HeroDaysColumn/
+    // HeroDreamingColumn/HeroTodayColumn) - "the logic would be the
+    // same as desktop version... essentially the same as the planning a
+    // trip process" (Mark's own words).
     if (isMobileViewport) {
+      if (timeframe === "dreaming") {
+        router.push("/dreaming");
+        return;
+      }
+      if (timeframe === "today") {
+        router.push("/today");
+        return;
+      }
       router.push("/days");
       return;
     }
@@ -449,7 +463,22 @@ export default function Hero({
                 className="hero-action-btn hero-action-primary hero-sentence-cta"
                 onClick={handleShowDays}
               >
-                Show me the days
+                {/* Desktop keeps the doc's verbatim "Show me the days"
+                    regardless of timeframe - the button only triggers a
+                    reveal there, not a destination choice (state two's
+                    reflow already differs per timeframe once shown).
+                    Mobile actually navigates somewhere different per
+                    timeframe now (11 Aug 2026, see handleShowDays), so
+                    its label says which - matches Mark's live review
+                    request that mobile's answer feel connected to where
+                    it actually takes you, not a fixed generic label. */}
+                {isMobileViewport
+                  ? timeframe === "dreaming"
+                    ? "Show me the area"
+                    : timeframe === "today"
+                      ? "Show me what fits"
+                      : "Show me the days"
+                  : "Show me the days"}
               </button>
             )}
           </div>
