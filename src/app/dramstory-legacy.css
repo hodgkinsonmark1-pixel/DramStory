@@ -64,13 +64,31 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
 .hero-tagline{font-family:var(--font-display);font-size:clamp(42px,6vw,80px);font-weight:300;color:white;line-height:1.1;letter-spacing:-0.01em;opacity:0;transition:opacity 1.2s var(--ease-out),transform 1.2s var(--ease-out);transform:translateY(12px)}
 .hero-tagline.visible{opacity:1;transform:translateY(0)}
 .hero-tagline em{font-style:italic;font-weight:300;color:var(--amber-light)}
-.hero-question{font-family:var(--font-display);font-size:clamp(22px,3vw,36px);font-weight:300;color:rgba(255,255,255,0.92);margin-top:48px;letter-spacing:0.01em;opacity:0;transition:opacity 1.0s var(--ease-out),transform 1.0s var(--ease-out);transform:translateY(8px)}
-.hero-question.visible{opacity:1;transform:translateY(0)}
-.hero-options{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:28px;opacity:0;transition:opacity 0.8s var(--ease-out)}
-.hero-options.visible{opacity:1}
-.hero-option{padding:12px 24px;border-radius:100px;border:1px solid rgba(255,255,255,0.45);background:rgba(255,255,255,0.10);backdrop-filter:blur(8px);color:white;font-family:var(--font-body);font-size:14px;font-weight:400;cursor:pointer;transition:all 0.2s;letter-spacing:0.01em}
-.hero-option:hover{background:rgba(255,255,255,0.22);border-color:rgba(255,255,255,0.7);transform:translateY(-1px)}
-.hero-option.selected{background:var(--amber);border-color:var(--amber);color:white}
+/* Homepage hero sentence control (docs/hero-handoff.md §3, §5) -
+   replaces .hero-question/.hero-options (the old three-button "Where are
+   you in your story?" block, removed - see Hero.tsx's header comment).
+   Standfirst fades with the tagline; the sentence+button fade in
+   together at 0.8s, same two-stage timing the old block used. */
+.hero-standfirst{font-family:var(--font-body);font-size:17px;font-weight:400;color:rgba(255,255,255,0.85);margin-top:14px;opacity:0;transition:opacity 1.0s var(--ease-out),transform 1.0s var(--ease-out);transform:translateY(8px)}
+.hero-standfirst.visible{opacity:1;transform:translateY(0)}
+.hero-sentence-block{margin-top:40px;max-width:720px;opacity:0;transition:opacity 0.8s var(--ease-out),transform 0.8s var(--ease-out);transform:translateY(8px)}
+.hero-sentence-block.visible{opacity:1;transform:translateY(0)}
+.hero-kicker{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--amber);margin-bottom:14px}
+.hero-sentence{font-family:var(--font-display);font-weight:400;font-size:clamp(22px,3vw,32px);line-height:1.85;color:rgba(255,255,255,0.95)}
+/* Sentence triggers read as the sentence's own words, not form controls -
+   copper underline (not navy - a navy line on the navy hero would be
+   invisible, and the underline is the only cue these are editable),
+   amber-light text. The caret is decorative (aria-label already carries
+   the accessible name), so it's safe to add via ::after rather than in
+   the button's text content. */
+/* No min-height here - display:inline can't honour one, which is why
+   §6's 44px target floor is set on .hero-sentence's own line-height
+   (1.85) instead, per "set the floor on the container, not per-control
+   padding". */
+.hero-sentence-clause{display:inline;padding:0 1px;margin:0;border:none;background:none;box-shadow:inset 0 -3px 0 var(--copper);color:var(--amber-light);font:inherit;cursor:pointer;line-height:inherit}
+.hero-sentence-clause:hover{color:var(--amber)}
+.hero-sentence-clause::after{content:" \25BE";font-size:0.7em}
+.hero-sentence-cta{margin-top:28px}
 .scroll-hint{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);z-index:10;display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0;transition:opacity 0.8s;pointer-events:none}
 .scroll-hint.visible{opacity:1}
 .scroll-hint.hidden{opacity:0}

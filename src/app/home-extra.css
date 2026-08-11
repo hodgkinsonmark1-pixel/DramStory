@@ -473,67 +473,19 @@
   text-decoration: underline;
 }
 
-/* ANSWERS BLOCK - homepage "I'm staying at X for N days, and I'd like to
-   see Y" question (days-trip-flow Phase 1, 09 Aug 2026). Dark section
-   directly under Hero, before How to Build Your Story. Uses the same
-   --dark background already established for dark bars/bands elsewhere
-   (.dist-page-bar, .dist-why-visit, .post-related) rather than the
-   prototype's hardcoded hex - see docs/days-trip-flow-handoff.md header
-   note. Sheets reuse the existing .tour-picker-backdrop/.tour-picker-
-   modal pattern from journey-extra.css (same on-brand modal already used
-   for the tour picker) instead of inventing a new sheet mechanism. */
-.answers-section {
-  background: var(--dark);
-  color: var(--off-white);
-  padding: 28px 24px 32px;
-}
-.answers-inner {
-  max-width: 720px;
-  margin: 0 auto;
-}
-.answers-eyebrow {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--amber);
-  margin-bottom: 14px;
-}
-.answers-sentence {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(20px, 2.6vw, 26px);
-  line-height: 1.65;
-  color: white;
-}
-.answers-pill {
-  display: inline-flex;
-  align-items: center;
-  min-height: 36px;
-  padding: 4px 12px;
-  margin: 0 2px;
-  border-radius: 100px;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.08);
-  color: white;
-  font-family: inherit;
-  font-size: inherit;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-  vertical-align: middle;
-}
-.answers-pill:hover {
-  background: rgba(255, 255, 255, 0.18);
-  border-color: rgba(255, 255, 255, 0.7);
-}
-.answers-sub {
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--mist);
-  margin: 16px 0 20px;
-  max-width: 520px;
-}
+/* ANSWERS SHEETS - base/nights/picks/timeframe/dreamArea/todayNear
+   pickers, shared by the homepage hero's sentence control (Hero.tsx,
+   HeroSentenceSheets.tsx) and the /days answers bar's "Change" control
+   (DaysAnswersBar.tsx). The sentence itself (.hero-sentence and friends)
+   lives in dramstory-legacy.css's HERO section now - the old dark
+   "Answers block" section these sheet styles used to sit under
+   (.answers-section/.answers-inner/.answers-eyebrow/.answers-sentence/
+   .answers-pill/.answers-sub) was removed with AnswersBlock.tsx itself
+   (docs/hero-handoff.md Phase 1 - folded into the hero, see Hero.tsx's
+   header comment). Sheets reuse the existing .tour-picker-backdrop/
+   .tour-picker-modal pattern from journey-extra.css (same on-brand modal
+   already used for the tour picker) instead of inventing a new sheet
+   mechanism. */
 .answers-kicker {
   font-size: 11px;
   font-weight: 600;

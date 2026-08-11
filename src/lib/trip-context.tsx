@@ -4,6 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import type { Distillery, ItineraryDay, LocalFeature, Tour, TripAccommodation, TripDateMode, TripDates, TripIntake, TripMapView } from "@/lib/types";
 import { stopId } from "@/lib/itinerary-stop";
 import { FEATURED_STAYS } from "@/lib/featured-stays";
+import { AREAS } from "@/lib/areas";
+import { DREAM_AREAS } from "@/lib/dream-areas";
 
 const STORAGE_KEY = "dramstory-trip-v2";
 
@@ -24,22 +26,47 @@ function defaultTripDates(): TripDates {
  *  docs/days-trip-flow-handoff.md §2.2/§3.1). picks is a RANKING input,
  *  never a filter: this phase only captures and persists it, Phase 2's
  *  /days rebuild is what actually reorders on it. */
+/** The hero sentence's first clause (docs/hero-handoff.md §3.1) - each
+ *  option changes both the shape of the sentence (which later clauses
+ *  apply) and what the eventual two-state column returns. "planning" is
+ *  the only one that uses base/nights/picks; "today"/"dreaming" use
+ *  todayNear/dreamArea instead. */
+export type Timeframe = "planning" | "today" | "dreaming";
+
 export interface TripAnswers {
+  /** Hero sentence clause 1. Defaults to "planning" - the fullest form of
+   *  the sentence, and the only one the rest of the site (picks-ranked
+   *  /days, site-wide base) currently does anything with. */
+  timeframe: Timeframe;
   /** A FEATURED_STAYS slug when baseKind is "hotel", an AREAS slug when
    *  baseKind is "area" - always a real, linkable place. There is
    *  deliberately no "anywhere on Islay" option (per the design doc: an
    *  unranked list is the one thing the homepage question exists to
-   *  avoid). */
+   *  avoid). Only meaningful when timeframe is "planning". */
   base: string;
   baseKind: "hotel" | "area";
   /** Defaults to 3 - matches FEATURED_STAYS[0] (The Machrie) already
    *  being addDay()'s own fallback default, so this formalises an
-   *  existing implicit default rather than introducing a new one. */
+   *  existing implicit default rather than introducing a new one. Only
+   *  meaningful when timeframe is "planning". */
   nights: number;
   /** Distillery slugs the visitor said they'd like to see - reorders
    *  Phase 2's /days list and never hides a day. Empty means "any
-   *  distillery". */
+   *  distillery". Only meaningful when timeframe is "planning". */
   picks: string[];
+  /** Hero sentence's second clause when timeframe is "dreaming" - a
+   *  src/lib/dream-areas.ts id ("I'm drawn to {name}"). Optional in the
+   *  type only because a visitor who has never touched the dreaming
+   *  clause has no answer yet; DEFAULT_TRIP_ANSWERS always supplies one
+   *  once timeframe becomes "dreaming" so the sentence is never blank. */
+  dreamArea?: string;
+  /** Hero sentence's second clause when timeframe is "today" - a
+   *  src/lib/areas.ts slug ("near {name}"). Session-scoped per the design
+   *  doc (§4.2: "persists nowhere - it is a today thing") - kept in this
+   *  same object for now since Phase 1 only needs it to render the
+   *  sentence; a future phase may choose to exclude it from persistence
+   *  rather than add a second store. */
+  todayNear?: string;
 }
 
 /** What the homepage block and the /days answers bar show before a
@@ -47,10 +74,13 @@ export interface TripAnswers {
  *  defaults; never blank" per the design doc's §3.2. Matches addDay()'s
  *  own existing fallback (FEATURED_STAYS[0], 3 nights). */
 export const DEFAULT_TRIP_ANSWERS: TripAnswers = {
+  timeframe: "planning",
   base: FEATURED_STAYS[0].slug,
   baseKind: "hotel",
   nights: 3,
   picks: [],
+  dreamArea: DREAM_AREAS[0].id,
+  todayNear: AREAS[0].slug,
 };
 
 interface StoredTrip {
@@ -178,14 +208,23 @@ interface TripContextValue {
    *  so the stated answer and the actual itinerary never disagree (per
    *  the design doc's §2.2). accommodation is the full place (name/lat/
    *  lng) the caller already has from FEATURED_STAYS or AREAS. Fills in
-   *  nights/picks from the current answers (or the defaults, if unset)
-   *  so setting the base alone doesn't reset them. */
+   *  every other answer from the current answers (or the defaults, if
+   *  unset) so setting the base alone doesn't reset them. */
   setAnswersBase: (base: string, baseKind: "hotel" | "area", accommodation: TripAccommodation) => void;
-  /** Sets the nights answer, leaving base/picks untouched. */
+  /** Sets the nights answer, leaving everything else untouched. */
   setAnswersNights: (nights: number) => void;
   /** Replaces the picks answer wholesale - callers own their own
    *  toggle/multi-select logic and pass the resulting full array. */
   setAnswersPicks: (picks: string[]) => void;
+  /** Sets the hero sentence's first clause. Leaves base/nights/picks/
+   *  dreamArea/todayNear untouched even when they stop applying to the
+   *  new timeframe - switching back preserves what was there before,
+   *  rather than resetting it to the default each time. */
+  setAnswersTimeframe: (timeframe: Timeframe) => void;
+  /** Sets the dreaming clause's area (a dream-areas.ts id). */
+  setAnswersDreamArea: (dreamArea: string) => void;
+  /** Sets the today clause's village (an areas.ts slug). */
+  setAnswersTodayNear: (todayNear: string) => void;
 }
 
 const TripContext = createContext<TripContextValue | null>(null);
@@ -504,10 +543,13 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   const setAnswersBase = useCallback(
     (base: string, baseKind: "hotel" | "area", accommodation: TripAccommodation) => {
       setAnswers((prev) => ({
+        timeframe: prev?.timeframe ?? DEFAULT_TRIP_ANSWERS.timeframe,
         base,
         baseKind,
         nights: prev?.nights ?? DEFAULT_TRIP_ANSWERS.nights,
         picks: prev?.picks ?? DEFAULT_TRIP_ANSWERS.picks,
+        dreamArea: prev?.dreamArea ?? DEFAULT_TRIP_ANSWERS.dreamArea,
+        todayNear: prev?.todayNear ?? DEFAULT_TRIP_ANSWERS.todayNear,
       }));
       // Keeps the stated answer and the actual itinerary in sync (per
       // the design doc's §2.2) - a no-op if day 0 doesn't exist yet
@@ -520,19 +562,61 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
 
   const setAnswersNights = useCallback((nights: number) => {
     setAnswers((prev) => ({
+      timeframe: prev?.timeframe ?? DEFAULT_TRIP_ANSWERS.timeframe,
       base: prev?.base ?? DEFAULT_TRIP_ANSWERS.base,
       baseKind: prev?.baseKind ?? DEFAULT_TRIP_ANSWERS.baseKind,
       nights,
       picks: prev?.picks ?? DEFAULT_TRIP_ANSWERS.picks,
+      dreamArea: prev?.dreamArea ?? DEFAULT_TRIP_ANSWERS.dreamArea,
+      todayNear: prev?.todayNear ?? DEFAULT_TRIP_ANSWERS.todayNear,
     }));
   }, []);
 
   const setAnswersPicks = useCallback((picks: string[]) => {
     setAnswers((prev) => ({
+      timeframe: prev?.timeframe ?? DEFAULT_TRIP_ANSWERS.timeframe,
       base: prev?.base ?? DEFAULT_TRIP_ANSWERS.base,
       baseKind: prev?.baseKind ?? DEFAULT_TRIP_ANSWERS.baseKind,
       nights: prev?.nights ?? DEFAULT_TRIP_ANSWERS.nights,
       picks,
+      dreamArea: prev?.dreamArea ?? DEFAULT_TRIP_ANSWERS.dreamArea,
+      todayNear: prev?.todayNear ?? DEFAULT_TRIP_ANSWERS.todayNear,
+    }));
+  }, []);
+
+  const setAnswersTimeframe = useCallback((timeframe: Timeframe) => {
+    setAnswers((prev) => ({
+      timeframe,
+      base: prev?.base ?? DEFAULT_TRIP_ANSWERS.base,
+      baseKind: prev?.baseKind ?? DEFAULT_TRIP_ANSWERS.baseKind,
+      nights: prev?.nights ?? DEFAULT_TRIP_ANSWERS.nights,
+      picks: prev?.picks ?? DEFAULT_TRIP_ANSWERS.picks,
+      dreamArea: prev?.dreamArea ?? DEFAULT_TRIP_ANSWERS.dreamArea,
+      todayNear: prev?.todayNear ?? DEFAULT_TRIP_ANSWERS.todayNear,
+    }));
+  }, []);
+
+  const setAnswersDreamArea = useCallback((dreamArea: string) => {
+    setAnswers((prev) => ({
+      timeframe: prev?.timeframe ?? DEFAULT_TRIP_ANSWERS.timeframe,
+      base: prev?.base ?? DEFAULT_TRIP_ANSWERS.base,
+      baseKind: prev?.baseKind ?? DEFAULT_TRIP_ANSWERS.baseKind,
+      nights: prev?.nights ?? DEFAULT_TRIP_ANSWERS.nights,
+      picks: prev?.picks ?? DEFAULT_TRIP_ANSWERS.picks,
+      dreamArea,
+      todayNear: prev?.todayNear ?? DEFAULT_TRIP_ANSWERS.todayNear,
+    }));
+  }, []);
+
+  const setAnswersTodayNear = useCallback((todayNear: string) => {
+    setAnswers((prev) => ({
+      timeframe: prev?.timeframe ?? DEFAULT_TRIP_ANSWERS.timeframe,
+      base: prev?.base ?? DEFAULT_TRIP_ANSWERS.base,
+      baseKind: prev?.baseKind ?? DEFAULT_TRIP_ANSWERS.baseKind,
+      nights: prev?.nights ?? DEFAULT_TRIP_ANSWERS.nights,
+      picks: prev?.picks ?? DEFAULT_TRIP_ANSWERS.picks,
+      dreamArea: prev?.dreamArea ?? DEFAULT_TRIP_ANSWERS.dreamArea,
+      todayNear,
     }));
   }, []);
 
@@ -571,6 +655,9 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         setAnswersBase,
         setAnswersNights,
         setAnswersPicks,
+        setAnswersTimeframe,
+        setAnswersDreamArea,
+        setAnswersTodayNear,
       }}
     >
       {children}

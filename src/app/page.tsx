@@ -1,27 +1,27 @@
 import Hero from "@/components/Hero";
-import AnswersBlock from "@/components/home/AnswersBlock";
 import HowToBuildStory from "@/components/home/HowToBuildStory";
 import ClassicJourneys from "@/components/home/ClassicJourneys";
 import FeaturedContent from "@/components/home/FeaturedContent";
 import LatestJournal from "@/components/home/LatestJournal";
 import Footer from "@/components/Footer";
-import { getDistilleries, getLocalEvents, getJournalPosts, getDays } from "@/lib/data";
+import { getDistilleries, getLocalEvents, getJournalPosts } from "@/lib/data";
 
 export default async function HomePage() {
-  const [distilleries, localEvents, journalPosts, days] = await Promise.all([
+  const [distilleries, localEvents, journalPosts] = await Promise.all([
     getDistilleries(),
     getLocalEvents(),
     getJournalPosts(),
-    getDays(),
   ]);
 
   return (
     <>
-      <Hero />
-      {/* days-trip-flow Phase 1 (§3.1): the homepage question block -
-          "I'm staying at X for N days, and I'd like to see Y" - directly
-          under Hero, before How to Build Your Story. */}
-      <AnswersBlock distilleries={distilleries} hubDayCount={days.length} />
+      {/* Desktop hero rebuild (docs/hero-handoff.md, Phase 1): the old
+          "Where are you in your story?" timeframe picker + separate
+          "Plan your trip" sentence block (AnswersBlock, now removed)
+          both landed on /days - one door with two locks. The hero now
+          asks it once, timeframe folded in as the sentence's first
+          clause. */}
+      <Hero distilleries={distilleries} />
       <HowToBuildStory />
       <ClassicJourneys distilleries={distilleries} />
       <FeaturedContent distilleries={distilleries} localEvents={localEvents} />

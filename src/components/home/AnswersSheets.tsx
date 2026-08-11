@@ -9,11 +9,11 @@ export type AnswersSheetName = "base" | "nights" | "picks" | null;
 
 /**
  * The three TripAnswers sheets (base / nights / picks) - shared between
- * the homepage question block (AnswersBlock.tsx) and the /days answers
+ * the homepage hero's sentence control (Hero.tsx) and the /days answers
  * bar's "Change" control (DaysAnswersBar.tsx) so both edit the same
  * answer the same way instead of two hand-rolled copies drifting apart.
  * Reuses the existing .tour-picker-backdrop/.tour-picker-modal pattern
- * (journey-extra.css) - see AnswersBlock's own header comment for why.
+ * (journey-extra.css) - see Hero.tsx's own header comment for why.
  */
 export function AnswersSheets({
   openSheet,

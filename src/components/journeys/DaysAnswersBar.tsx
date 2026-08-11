@@ -13,7 +13,7 @@ import { AnswersSheets, type AnswersSheetName } from "@/components/home/AnswersS
  *
  * "Deep links from search show defaults; never blank" (design doc) - so
  * this reads trip.answers with the same DEFAULT_TRIP_ANSWERS fallback
- * AnswersBlock uses, rather than rendering nothing when a visitor lands
+ * the homepage hero uses, rather than rendering nothing when a visitor lands
  * here without ever having touched the homepage block.
  *
  * "Change" opens a small menu (which of the three answers to edit), then

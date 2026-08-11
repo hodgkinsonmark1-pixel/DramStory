@@ -1,10 +1,11 @@
 import type { Distillery } from "@/lib/types";
 import { FEATURED_STAYS } from "@/lib/featured-stays";
 import { AREAS } from "@/lib/areas";
+import { DREAM_AREAS } from "@/lib/dream-areas";
 
 /**
  * Shared read helpers for TripAnswers (see trip-context.tsx) - used by
- * both the homepage question block (AnswersBlock.tsx) and the /days
+ * both the homepage hero's sentence control (Hero.tsx) and the /days
  * answers bar (DaysAnswersBar.tsx) so the two don't drift on how a
  * base/nights/picks answer gets turned into words.
  */
@@ -73,4 +74,30 @@ export function describePicks(picks: string[], distilleries: Distillery[]): stri
   if (names.length === 1) return names[0];
   if (names.length === 2) return `${names[0]} and ${names[1]}`;
   return `${names[0]}, ${names[1]} and ${names.length - 2} more`;
+}
+
+/** "the" preposition before the base answer changes with what kind of
+ *  place it is (docs/hero-handoff.md §3.2) - "at The Machrie" (a named
+ *  hotel) vs "in Port Ellen" (an area). Getting this wrong reads as a
+ *  typo, not a design choice, so it is worth its own small helper rather
+ *  than inlining the ternary at every call site. */
+export function basePreposition(baseKind: "hotel" | "area"): "at" | "in" {
+  return baseKind === "hotel" ? "at" : "in";
+}
+
+/** The dreaming clause's area name, e.g. "the peated south". Falls back
+ *  to the id itself if somehow not found. */
+export function dreamAreaDisplayName(dreamArea: string): string {
+  return DREAM_AREAS.find((a) => a.id === dreamArea)?.name ?? dreamArea;
+}
+
+/** The today clause's village name, e.g. "Port Ellen". Reuses the same
+ *  three real Areas as the base sheet's "or just an area" group (see
+ *  BASE_SHEET_AREAS above) rather than inventing a second village list -
+ *  docs/hero-handoff.md §10 flags "which villages does the near clause
+ *  offer" as an open decision; this is the judgment call made for Phase
+ *  1, easy to swap for a dedicated list later if that decision lands
+ *  differently. */
+export function villageDisplayName(todayNear: string): string {
+  return AREAS.find((a) => a.slug === todayNear)?.name ?? todayNear;
 }
