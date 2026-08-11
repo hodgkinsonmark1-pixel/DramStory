@@ -6,8 +6,7 @@ import { useTrip } from "@/lib/trip-context";
 import { DREAM_AREAS } from "@/lib/dream-areas";
 import { AREAS } from "@/lib/areas";
 import { joinWithAnd } from "@/lib/trip-answers";
-import DreamingShortlistSection from "./DreamingShortlistSection";
-import type { Distillery, JournalPost, LocalFeature } from "@/lib/types";
+import type { Distillery, JournalPost } from "@/lib/types";
 
 /** Same matchMedia pattern as Workspace.tsx/Hero.tsx - starts false to
  *  avoid an SSR/hydration mismatch, accepting the same brief pre-effect
@@ -62,18 +61,11 @@ export function HeroDreamingColumn({
   dreamAreaId,
   distilleries,
   journalPosts,
-  localFeatures,
   announce,
 }: {
   dreamAreaId: string;
   distilleries: Distillery[];
   journalPosts: JournalPost[];
-  /** Only used by the mobile-only map+shortlist section (11 Aug 2026) -
-   *  optional so desktop's inline reveal (Hero.tsx) doesn't need to
-   *  fetch/pass this just to satisfy the prop type; undefined there
-   *  renders as an empty array below (see visibleFeatures), which is
-   *  fine since that section never mounts on desktop anyway. */
-  localFeatures?: LocalFeature[];
   /** Same contract as HeroDaysColumn's own `announce` (§6) - called once
    *  with a summary for a screen reader, only when this reveal is the
    *  visitor's own button press this session. */
@@ -86,13 +78,14 @@ export function HeroDreamingColumn({
   // 11 Aug 2026, Mark's call after reviewing the mobile /dreaming page:
   // the real day-by-day journey builder (/journey) assumes a mouse for
   // panning/zooming and isn't fully mobile-refined yet, so mobile gets
-  // its own lighter alternative here instead of "Build it on the map" -
-  // a permanent-pin map (DreamingMap) plus a shortlist section
-  // (DreamingShortlistSection), rather than sending a mobile visitor
-  // into the full itinerary builder. Desktop's own inline reveal (this
-  // same component, split-screen) is completely unaffected - only the
-  // standalone mobile /dreaming page renders through here at a narrow
-  // width.
+  // its own lighter alternative instead of "Build it on the map" - a
+  // permanent-pin map plus a shortlist (DreamingShortlistSection). First
+  // built inline as a section on this page, then moved to its own
+  // standalone /dreaming/build page (same day, Mark's follow-up: wanted
+  // it as a separate destination via a "Create my trip" button, not
+  // embedded here) - see that route for the actual map+shortlist.
+  // Desktop's own inline reveal (this same component, split-screen) is
+  // completely unaffected either way.
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
@@ -111,12 +104,6 @@ export function HeroDreamingColumn({
   const post = journalPostForArea(journalPosts, area.distilleries);
   const baseSlug = DREAM_AREA_BASE_SLUG[area.id];
   const baseArea = baseSlug ? AREAS.find((a) => a.slug === baseSlug) : undefined;
-  // Centres the mobile map near the selected area when there's a real
-  // Area to anchor to (see DREAM_AREA_BASE_SLUG above); "north-east" has
-  // none, so falls back to the same Port Ellen default MapCanvas itself
-  // uses island-wide.
-  const mapCenter = baseArea ?? AREAS.find((a) => a.slug === "port-ellen") ?? AREAS[0];
-  const visibleFeatures = localFeatures ?? [];
 
   useEffect(() => {
     if (!announce || announcedRef.current) return;
@@ -205,7 +192,13 @@ export function HeroDreamingColumn({
       )}
 
       {isMobileViewport ? (
-        <DreamingShortlistSection distilleries={distilleries} localFeatures={visibleFeatures} center={mapCenter} />
+        <Link href="/dreaming/build" className="hero-dream-card hero-dream-card-navy">
+          <div className="hero-dream-card-kicker">Or start from nothing</div>
+          <h3 className="hero-dream-card-title">Create my trip</h3>
+          <p className="hero-dream-card-body">
+            Tap distilleries and local spots on the map, shortlist the ones you like, then add them to a day.
+          </p>
+        </Link>
       ) : (
         <Link href="/journey" className="hero-dream-card hero-dream-card-navy">
           <div className="hero-dream-card-kicker">Or start from nothing</div>

@@ -5,7 +5,7 @@ import { useTrip } from "@/lib/trip-context";
 import { dreamAreaDisplayName } from "@/lib/trip-answers";
 import { HeroDreamingColumn } from "@/components/home/HeroDreamingColumn";
 import { DREAM_AREAS } from "@/lib/dream-areas";
-import type { Distillery, JournalPost, LocalFeature } from "@/lib/types";
+import type { Distillery, JournalPost } from "@/lib/types";
 
 /**
  * Mobile's standalone "dreaming" destination (11 Aug 2026, Mark's
@@ -31,11 +31,9 @@ import type { Distillery, JournalPost, LocalFeature } from "@/lib/types";
 export default function DreamingPageClient({
   distilleries,
   journalPosts,
-  localFeatures,
 }: {
   distilleries: Distillery[];
   journalPosts: JournalPost[];
-  localFeatures: LocalFeature[];
 }) {
   const trip = useTrip();
   // Same fallback Hero.tsx itself uses (DREAM_AREAS[0].id, not
@@ -60,12 +58,7 @@ export default function DreamingPageClient({
         </Link>
       </div>
 
-      <HeroDreamingColumn
-        dreamAreaId={dreamArea}
-        distilleries={distilleries}
-        journalPosts={journalPosts}
-        localFeatures={localFeatures}
-      />
+      <HeroDreamingColumn dreamAreaId={dreamArea} distilleries={distilleries} journalPosts={journalPosts} />
     </div>
   );
 }
