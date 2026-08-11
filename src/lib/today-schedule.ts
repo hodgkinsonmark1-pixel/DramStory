@@ -184,12 +184,25 @@ export function buildTodaySchedule(opts: {
   }
 
   // Trailing free/no-booking stop once the distillery day is done, same
-  // "quiet end" shape as the reference screenshot - only the categories
-  // that genuinely read as free-and-drop-in (a viewpoint/beach/gem/
-  // historic site), never a pub/cafe/restaurant/golf/spa/transport
-  // listing, which all imply a booking, a bill, or aren't a "stop" at
-  // all in that sense.
-  const FREE_CATEGORIES = new Set(["beach", "walk", "bike-route", "local-gem", "historic-site", "attraction-gem"]);
+  // "quiet end" shape as the reference screenshot - only categories that
+  // are genuinely always-open outdoors, with no real "closing time" to
+  // get wrong. Narrowed 11 Aug 2026 (Mark: a museum was being suggested
+  // at 18:05, likely shut by then) to exactly journey-options.ts's own
+  // "Natural Features" bucket (beach/walk/bike-route/local-gem - Beaches/
+  // Walks/Bike Rides/Local Gems). historic-site and attraction-gem
+  // dropped - those sit in journey-options.ts's separate "Local
+  // Attractions" bucket, grouped there alongside Golf & Spa and
+  // Transport, i.e. things with real staffed hours/schedules, not
+  // freely-accessible-anytime outdoor features. Same underlying honesty
+  // problem as the old sunset-driven distillery budget: LocalFeature.
+  // openingHours is a freeform string same as Distillery.hours, so
+  // there's no reliable "is this actually open right now" check
+  // possible for an hours-bound venue - staying to categories that
+  // never have that question in the first place is the safe answer,
+  // same as never a pub/cafe/restaurant/golf/spa/transport listing,
+  // which all imply a booking, a bill, or aren't a "stop" in that sense
+  // either.
+  const FREE_CATEGORIES = new Set(["beach", "walk", "bike-route", "local-gem"]);
   if (clock < cutoff) {
     const feature = localFeatures
       .filter((f) => FREE_CATEGORIES.has(f.category))
