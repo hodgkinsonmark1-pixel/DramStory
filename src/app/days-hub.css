@@ -129,6 +129,23 @@
   color: var(--dark);
   margin: 0 0 6px;
 }
+/* 11 Aug 2026, Mark's request - once a Hub Day is already in the trip,
+   its card title links through to that day's own /trip/day/[index]
+   screen. Same additive-class pattern as trip-review.css's own
+   .trip-day-title-link (applied to the <a> wrapper, .days-hub-card-title
+   still applied to the <h3> inside it so the heading's own look is
+   unchanged) - just adds link affordances/hover colour, no layout
+   change. Only wired up for the "already added" state for now - there's
+   no standalone page yet for a not-yet-added Hub Day to link to. */
+.days-hub-card-title-link {
+  display: block;
+  text-decoration: none;
+  cursor: pointer;
+}
+.days-hub-card-title-link:hover .days-hub-card-title,
+.days-hub-card-title-link:focus-visible .days-hub-card-title {
+  color: var(--copper);
+}
 .days-hub-card-route {
   font-family: var(--font-display);
   font-size: 14.5px;

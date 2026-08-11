@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import type { Distillery, HubDay } from "@/lib/types";
 import { useTrip, DEFAULT_TRIP_ANSWERS } from "@/lib/trip-context";
 import { baseDisplayName, describePicks, findBaseAccommodation } from "@/lib/trip-answers";
@@ -338,7 +339,13 @@ function HeroDayCard({
           <PacingTag pacing={day.pacing} />
           {metaText && <span className="days-hub-card-meta-text">{metaText}</span>}
         </div>
-        <h3 className="days-hub-card-title">{day.name}</h3>
+        {isAdded ? (
+          <Link href={`/trip/day/${addedIndex}`} className="days-hub-card-title-link">
+            <h3 className="days-hub-card-title">{day.name}</h3>
+          </Link>
+        ) : (
+          <h3 className="days-hub-card-title">{day.name}</h3>
+        )}
         {day.stops.length > 0 && (
           <div className="days-hub-card-route">
             {day.stops.map((stop, i) => (
