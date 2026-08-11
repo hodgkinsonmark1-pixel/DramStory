@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Spectral, Instrument_Sans } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Area, LocalFeature } from "@/lib/types";
 import { useTrip } from "@/lib/trip-context";
 import { buildAccommodationBookingLink } from "@/lib/accommodation-links";
@@ -40,6 +41,10 @@ function formatMiles(mi: number): string {
 }
 
 const NUMBER_WORDS = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
+
+/** Same matchMedia pattern as HeroDreamingColumn.tsx/HeroTodayColumn.tsx -
+ *  starts false to avoid an SSR/hydration mismatch. */
+const MOBILE_BREAKPOINT = 768;
 
 // Local Features whose Category marks them as somewhere to eat/drink -
 // used both to size the glance bar's "Eating out" fact and to keep the
@@ -113,6 +118,15 @@ interface AreaClientProps {
  *  expected per field. */
 export default function AreaClient({ area: a }: AreaClientProps) {
   const trip = useTrip();
+  const router = useRouter();
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
+    const update = () => setIsMobileViewport(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   const foodDrink = useMemo(
     () => a.nearbyLocalFeatures.filter((f) => FOOD_DRINK_CATEGORIES.has(f.category)),
@@ -204,8 +218,22 @@ export default function AreaClient({ area: a }: AreaClientProps) {
   // this (same newDayIndex-before-addDay pattern as useThisDay() above)
   // rather than reusing the current day, since that's the only way to
   // guarantee "nothing in the left bar" regardless of prior trip state.
+  // Mobile branch (11 Aug 2026, Mark's follow-up after the dreaming/
+  // today map fixes): the real /journey map assumes a mouse, and
+  // window.open's "keep this tab open" benefit the desktop version
+  // relies on doesn't hold on mobile browsers anyway (a named-target
+  // popup commonly just navigates the current tab, or gets blocked) - so
+  // there's no reason to preserve that pattern here. Routes to a
+  // dedicated map+shortlist page instead (same DreamingMap/
+  // DreamingShortlistSection pair as /dreaming/build and /today/build),
+  // same-tab, no upfront day/accommodation seeding - shortlisted items
+  // get committed to a day from that page itself, same as the other two.
   function openRegionOnMap() {
     if (!a.distilleryRegion) return;
+    if (isMobileViewport) {
+      router.push(`/areas/${a.slug}/build`);
+      return;
+    }
     const newDayIndex = trip.days.length;
     trip.addDay();
     trip.setAccommodation(newDayIndex, { name: a.name, lat: a.lat, lng: a.lng });

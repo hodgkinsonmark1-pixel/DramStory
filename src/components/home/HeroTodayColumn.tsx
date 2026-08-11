@@ -8,6 +8,11 @@ import { AREAS } from "@/lib/areas";
 import { useTrip } from "@/lib/trip-context";
 import { buildTodaySchedule, formatClockTime, type TodayStop } from "@/lib/today-schedule";
 
+/** Same matchMedia pattern as HeroDreamingColumn.tsx - starts false to
+ *  avoid an SSR/hydration mismatch, accepting the same brief pre-effect
+ *  flash those already do. */
+const MOBILE_BREAKPOINT = 768;
+
 /**
  * State two's "on Islay today" column (docs/hero-handoff.md §4.2, Phase
  * 4 of §9) - stops with the arrival time each would have if the visitor
@@ -28,6 +33,14 @@ export function HeroTodayColumn({
   const router = useRouter();
   const trip = useTrip();
   const [now, setNow] = useState<Date | null>(null);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
+    const update = () => setIsMobileViewport(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -91,17 +104,29 @@ export function HeroTodayColumn({
           as timing=today, which would need a distillery-level location
           TodayLocationStep expects but todayNear (village-level) can't
           honestly provide - see Workspace.tsx's skipWalkthrough prop. */}
-      <Link
-        href="/journey?showAll=1&walkthrough=skip"
-        className="hero-days-foot"
-        onClick={(e) => {
-          e.preventDefault();
-          trip.setMapView({ lat: village.lat, lng: village.lng, zoom: 14 });
-          router.push("/journey?showAll=1&walkthrough=skip");
-        }}
-      >
-        View on the interactive map →
-      </Link>
+      {isMobileViewport ? (
+        // 11 Aug 2026, Mark's follow-up after the dreaming map fix:
+        // this link had the exact same problem - the real /journey map
+        // assumes a mouse. Same treatment as HeroDreamingColumn's mobile
+        // branch: reuse the DreamingMap/DreamingShortlistSection pair via
+        // a dedicated page instead, centred on today's own village
+        // rather than a dream area. See /today/build.
+        <Link href="/today/build" className="hero-days-foot">
+          See what&apos;s nearby on the map →
+        </Link>
+      ) : (
+        <Link
+          href="/journey?showAll=1&walkthrough=skip"
+          className="hero-days-foot"
+          onClick={(e) => {
+            e.preventDefault();
+            trip.setMapView({ lat: village.lat, lng: village.lng, zoom: 14 });
+            router.push("/journey?showAll=1&walkthrough=skip");
+          }}
+        >
+          View on the interactive map →
+        </Link>
+      )}
     </div>
   );
 }
