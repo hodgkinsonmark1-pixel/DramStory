@@ -6,6 +6,7 @@ import { useTrip, DEFAULT_TRIP_ANSWERS } from "@/lib/trip-context";
 import { findBaseAccommodation, baseDisplayName } from "@/lib/trip-answers";
 import { FEATURED_STAYS } from "@/lib/featured-stays";
 import { formatDuration } from "@/lib/drive-time";
+import { PacingTag } from "@/components/PacingTag";
 import {
   type DayGroupId,
   GROUP_ORDER,
@@ -19,7 +20,6 @@ import {
   fullNarrativeText,
   isFerryDay,
   milestoneFor,
-  paceTone,
 } from "@/lib/day-derivations";
 import DaysTripBar from "@/components/journeys/DaysTripBar";
 
@@ -44,32 +44,6 @@ import DaysTripBar from "@/components/journeys/DaysTripBar";
  * added)" quiet pill - the new persistent trip bar (always visible,
  * richer) supersedes it rather than sitting alongside it.
  */
-
-export function PacingTag({ pacing }: { pacing: HubDay["pacing"] }) {
-  // Colour mapping lives in day-derivations.ts's paceTone (Days/Trip
-  // flow Phase 3) - trip review's own pace badges import the same
-  // function so both places share one source of truth instead of two
-  // hand-copied colour tables drifting apart.
-  const tone = paceTone(pacing);
-
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "4px 12px",
-        borderRadius: 100,
-        fontSize: 11,
-        fontWeight: 600,
-        letterSpacing: "0.04em",
-        textTransform: "uppercase",
-        background: tone.bg,
-        color: tone.fg,
-      }}
-    >
-      {pacing}
-    </span>
-  );
-}
 
 interface DayEntry {
   day: HubDay;

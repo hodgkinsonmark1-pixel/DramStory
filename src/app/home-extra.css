@@ -574,6 +574,82 @@
   font-weight: 600;
 }
 
+/* Hero state-two planning column (docs/hero-handoff.md §4.1) - header +
+   cards + foot link. Cards themselves reuse days-hub.css's
+   .days-hub-card family verbatim (same component, more room, not a
+   second implementation - see HeroDaysColumn.tsx's header comment) minus
+   the add-to-trip action button, which the reference screenshots don't
+   show on this compact preview card - "+ Add as a day" only exists once
+   a visitor is actually on /days. */
+.hero-days-column {
+  max-width: 640px;
+}
+.hero-days-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--navy);
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.hero-days-header-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dark);
+  white-space: nowrap;
+}
+.hero-days-header-total {
+  font-size: 12px;
+  color: var(--slate);
+  white-space: nowrap;
+}
+.hero-days-foot {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--copper);
+  text-decoration: none;
+  min-height: 44px;
+  line-height: 44px;
+}
+.hero-days-foot:hover {
+  text-decoration: underline;
+}
+.hero-days-empty {
+  font-size: 14px;
+  color: var(--slate);
+  padding: 24px 0;
+}
+
+/* Cards enter with a short stagger once the right column first appears
+   (§2.3: "Cards enter AFTER the left settles, ~40ms stagger") -
+   animation-delay set per-card via inline style (index * 40ms), see
+   HeroDaysColumn.tsx. Re-sorting afterwards is handled separately, by
+   FLIP (measured transforms in JS), not this entrance keyframe. */
+@keyframes hero-days-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.hero-days-card-enter {
+  animation: hero-days-card-in 0.4s var(--ease-out) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-days-card-enter {
+    animation: none;
+  }
+}
+
 /* /days ANSWERS BAR (days-trip-flow Phase 1, §3.2) - sticky dark bar atop
    the existing Pre-Designed Days Hub reading the current TripAnswers, +
    Change. Same --dark/sticky/z-index treatment as .dist-page-bar

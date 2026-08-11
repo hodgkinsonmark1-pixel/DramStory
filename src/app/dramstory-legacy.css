@@ -43,7 +43,8 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
    trailing down the homepage past Hero, well past where it should have
    scrolled away. Absolute + a real height scrolls it off naturally with
    the rest of the top-of-page content, same as Hero itself. */
-.site-background-video{position:absolute;top:0;left:0;width:100%;height:100vh;object-fit:cover;z-index:-1;transition:opacity 0.4s ease}
+.site-background-video{position:absolute;top:0;left:0;width:100%;height:100vh;object-fit:cover;z-index:-1;transition:opacity 0.4s ease,clip-path 450ms cubic-bezier(.22,.68,.32,1)}
+@media(prefers-reduced-motion:reduce){.site-background-video{transition:opacity 0.4s ease}}
 
 /* CC BY credit for the background video's source footage. Positioned the
    same way as .journey-hero-credit (small, bottom-right, low-emphasis) -
@@ -89,6 +90,42 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
 .hero-sentence-clause:hover{color:var(--amber)}
 .hero-sentence-clause::after{content:" \25BE";font-size:0.7em}
 .hero-sentence-cta{margin-top:28px}
+
+/* State two - the planning reflow (docs/hero-handoff.md §2.2/§2.3/§9
+   Phase 2). .hero-answered is added to .hero once
+   trip.heroRevealed && timeframe === "planning". Width/font-size are
+   the properties that actually animate (transition below); the
+   center->left alignment flip is instant, not interpolated - a true
+   FLIP transform for the text itself would need measuring/inverting the
+   sentence's own bounding box, which is a materially bigger lift than
+   this phase's budget - flagged rather than silently shipped as
+   pixel-perfect. The video's own clip-path transition (SiteBackgroundVideo,
+   same 450ms/easing) is what carries most of the visible "narrowing"
+   motion regardless. */
+.hero.hero-answered{flex-direction:row;align-items:stretch;justify-content:flex-start}
+.hero-left{position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:width 450ms var(--ease-out)}
+.hero.hero-answered .hero-left{width:600px;flex:none;align-items:flex-start;padding-left:48px;padding-right:32px}
+.hero.hero-answered .hero-content{align-items:flex-start;text-align:left;padding-left:0}
+.hero.hero-answered .hero-tagline{font-size:32px;transition:font-size 450ms var(--ease-out)}
+.hero.hero-answered .hero-standfirst{display:none}
+.hero.hero-answered .hero-sentence-block{max-width:none}
+.hero.hero-answered .hero-sentence{font-size:25px;transition:font-size 450ms var(--ease-out)}
+.hero-sentence-note{font-size:13px;line-height:1.5;color:rgba(255,255,255,0.75);margin-top:16px;max-width:420px}
+@media(prefers-reduced-motion:reduce){
+  .hero-left,.hero.hero-answered .hero-tagline,.hero.hero-answered .hero-sentence{transition:none}
+}
+
+/* Right column - off-white, holds the relocated nav + HeroDaysColumn.
+   Only rendered once state two is showing (not just CSS-hidden), so it
+   never sits in the tab order or announces itself to a screen reader
+   while state one is current. */
+.hero-right{flex:1;min-width:0;height:100%;background:var(--off-white);overflow-y:auto;padding:24px 32px 40px;box-sizing:border-box}
+.hero-right-nav{display:flex;align-items:center;padding:0 0 20px;margin:0}
+.hero-right-nav-links{display:flex;gap:28px}
+.hero-right-nav-links a{font-family:var(--font-body);text-decoration:none}
+
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
 .scroll-hint{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);z-index:10;display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0;transition:opacity 0.8s;pointer-events:none}
 .scroll-hint.visible{opacity:1}
 .scroll-hint.hidden{opacity:0}

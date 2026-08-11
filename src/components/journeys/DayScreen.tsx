@@ -26,7 +26,7 @@ import {
   type ScheduleRow,
   type PartOfDay,
 } from "@/lib/day-derivations";
-import { PacingTag } from "@/components/journeys/DaysHubGrid";
+import { PacingTag } from "@/components/PacingTag";
 
 /**
  * Day screen (Days/Trip flow Phase 4, docs/days-trip-flow-handoff.md

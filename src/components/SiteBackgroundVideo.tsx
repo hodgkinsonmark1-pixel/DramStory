@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { useBackgroundVideoStepState } from "@/lib/background-video-context";
+import { useBackgroundVideoStepState, useBackgroundVideoMaskState } from "@/lib/background-video-context";
 
 /**
  * The single, persistent background video for the intake experience -
@@ -35,6 +35,7 @@ import { useBackgroundVideoStepState } from "@/lib/background-video-context";
 export default function SiteBackgroundVideo() {
   const pathname = usePathname();
   const stepVisible = useBackgroundVideoStepState();
+  const maskWidthPx = useBackgroundVideoMaskState();
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const routeAllows = pathname === "/" || pathname === "/journey";
@@ -82,8 +83,19 @@ export default function SiteBackgroundVideo() {
           pausing/resuming on step and route changes. */}
       <video
         ref={videoRef}
-        className="site-background-video"
-        style={{ opacity: visible ? 1 : 0 }}
+        // Hero's state-two reflow (docs/hero-handoff.md §2.2/§2.3): masks
+        // the SAME playing video down to its left maskWidthPx rather than
+        // swapping in a cropped clip or a static frame - "masked, not
+        // swapped, and never cuts". clip-path (not width, which would
+        // change the video's own layout box and could affect other
+        // absolutely-positioned siblings) - the element keeps its full
+        // width and position, only the painted region changes, which is
+        // also what makes this smoothly transition-able.
+        className={"site-background-video" + (maskWidthPx != null ? " masked" : "")}
+        style={{
+          opacity: visible ? 1 : 0,
+          ...(maskWidthPx != null ? { clipPath: `inset(0 calc(100% - ${maskWidthPx}px) 0 0)` } : {}),
+        }}
         aria-hidden="true"
         tabIndex={-1}
         muted

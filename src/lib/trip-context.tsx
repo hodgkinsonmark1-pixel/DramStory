@@ -90,6 +90,14 @@ interface StoredTrip {
   mapView: TripMapView | null;
   tripDates: TripDates | null;
   answers: TripAnswers | null;
+  /** Has this visitor ever pressed "Show me the days" from the planning
+   *  hero (docs/hero-handoff.md §2.4)? Once true, the hero renders
+   *  straight into state two on every future visit - "once you've seen
+   *  days, the poster is a downgrade." Separate from `answers` itself
+   *  (which can be null/default with no reveal, or set with no reveal -
+   *  a visitor can open a sheet and change an answer from the poster
+   *  without ever pressing the button). */
+  heroRevealed?: boolean;
 }
 
 interface TripContextValue {
@@ -225,6 +233,11 @@ interface TripContextValue {
   setAnswersDreamArea: (dreamArea: string) => void;
   /** Sets the today clause's village (an areas.ts slug). */
   setAnswersTodayNear: (todayNear: string) => void;
+  /** See StoredTrip.heroRevealed - whether the planning hero has ever
+   *  reflowed into state two for this visitor. Write-only in the sense
+   *  that nothing currently sets it back to false except resetTrip. */
+  heroRevealed: boolean;
+  setHeroRevealed: (revealed: boolean) => void;
 }
 
 const TripContext = createContext<TripContextValue | null>(null);
@@ -236,6 +249,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   const [mapView, setMapView] = useState<TripMapView | null>(null);
   const [tripDates, setTripDates] = useState<TripDates>(defaultTripDates);
   const [answers, setAnswers] = useState<TripAnswers | null>(null);
+  const [heroRevealed, setHeroRevealedState] = useState(false);
   const [ready, setReady] = useState(false);
 
   // Reads localStorage after mount rather than in a lazy useState
@@ -254,6 +268,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     setMapView(parsed.mapView ?? null);
     setTripDates(parsed.tripDates ?? defaultTripDates());
     setAnswers(parsed.answers ?? null);
+    setHeroRevealedState(parsed.heroRevealed ?? false);
   }
 
   useEffect(() => {
@@ -276,13 +291,13 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     try {
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ days, intake, currentDayIndex, mapView, tripDates, answers })
+        JSON.stringify({ days, intake, currentDayIndex, mapView, tripDates, answers, heroRevealed })
       );
     } catch {
       // Storage full or unavailable - the trip still works for this
       // session, it just won't survive a reload.
     }
-  }, [days, intake, currentDayIndex, mapView, tripDates, answers, ready]);
+  }, [days, intake, currentDayIndex, mapView, tripDates, answers, heroRevealed, ready]);
 
   // Cross-tab live sync (22 July 2026) - added for the Days Hub's
   // "+ Add this day to my trip", which a visitor might reasonably have
@@ -367,7 +382,11 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     // picks pointing at a trip that no longer exists. Flagging this
     // since the design doc doesn't explicitly say whether answers should
     // survive a trip reset - easy to change if that's not the intent.
+    // Same reasoning extended to heroRevealed (Phase 2): starting over
+    // puts the homepage hero back at the poster too, consistent with
+    // there being no trip/answers left for state two to show.
     setAnswers(null);
+    setHeroRevealedState(false);
   }, []);
 
   const setDateMode = useCallback((mode: TripDateMode) => {
@@ -620,6 +639,10 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const setHeroRevealed = useCallback((revealed: boolean) => {
+    setHeroRevealedState(revealed);
+  }, []);
+
   return (
     <TripContext.Provider
       value={{
@@ -658,6 +681,8 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         setAnswersTimeframe,
         setAnswersDreamArea,
         setAnswersTodayNear,
+        heroRevealed,
+        setHeroRevealed,
       }}
     >
       {children}

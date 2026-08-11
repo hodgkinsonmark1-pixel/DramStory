@@ -4,24 +4,25 @@ import ClassicJourneys from "@/components/home/ClassicJourneys";
 import FeaturedContent from "@/components/home/FeaturedContent";
 import LatestJournal from "@/components/home/LatestJournal";
 import Footer from "@/components/Footer";
-import { getDistilleries, getLocalEvents, getJournalPosts } from "@/lib/data";
+import { getDistilleries, getLocalEvents, getJournalPosts, getDays } from "@/lib/data";
 
 export default async function HomePage() {
-  const [distilleries, localEvents, journalPosts] = await Promise.all([
+  const [distilleries, localEvents, journalPosts, days] = await Promise.all([
     getDistilleries(),
     getLocalEvents(),
     getJournalPosts(),
+    getDays(),
   ]);
 
   return (
     <>
-      {/* Desktop hero rebuild (docs/hero-handoff.md, Phase 1): the old
-          "Where are you in your story?" timeframe picker + separate
-          "Plan your trip" sentence block (AnswersBlock, now removed)
-          both landed on /days - one door with two locks. The hero now
-          asks it once, timeframe folded in as the sentence's first
-          clause. */}
-      <Hero distilleries={distilleries} />
+      {/* Desktop hero (docs/hero-handoff.md). Phase 1 folded the old
+          "Where are you in your story?" + separate "Plan your trip"
+          sentence into one hero sentence. Phase 2 adds the planning
+          timeframe's state-two reflow - the hero needs `days` itself now
+          (not just distilleries) to rank/highlight its own compact days
+          column, same getDays() the /days page already uses. */}
+      <Hero days={days} distilleries={distilleries} />
       <HowToBuildStory />
       <ClassicJourneys distilleries={distilleries} />
       <FeaturedContent distilleries={distilleries} localEvents={localEvents} />
