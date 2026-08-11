@@ -157,15 +157,22 @@ interface TripContextValue {
    *  (addStop/setTourForStop/addFeatureStop) don't have to separately
    *  guess where it went. Normally that's just the old length (appended
    *  at the end) - but if sourceHubDaySlug is given AND the trip's only
-   *  day is still the untouched blank placeholder /journey seeds for its
-   *  "start from nothing" entry point (no stops, no sourceHubDaySlug of
-   *  its own), that placeholder is replaced in place at index 0 instead
-   *  of appended after (11 Aug 2026, Mark's request: hero/DaysHub/Area
-   *  "add this real day" actions were landing as Day 2 because that
-   *  still-empty seeded day counted as Day 1 first). A manual, slug-less
-   *  "+ Add day" always appends as before - only adding an actual
-   *  curated day replaces the placeholder. */
+   *  day is still JourneyFlow.tsx's untouched onboarding demo day
+   *  (isDefaultSeed - see ItineraryDay), that day is replaced in place at
+   *  index 0 instead of appended after (11 Aug 2026, Mark's request:
+   *  hero/DaysHub/Area "add this real day" actions were landing as Day 2
+   *  because that still-untouched demo day counted as Day 1 first). A
+   *  manual, slug-less "+ Add day" always appends as before - only adding
+   *  an actual curated day replaces the demo day, and only while it's
+   *  still untouched. */
   addDay: (sourceHubDaySlug?: string) => number;
+  /** Flags a day as the onboarding demo day JourneyFlow.tsx just finished
+   *  seeding, so a later addDay() can replace it in place - see
+   *  ItineraryDay.isDefaultSeed. Called once, as the last step after all
+   *  of that seeding's addStop/addFeatureStop/setStopNote/setTourForStop
+   *  calls (each of those clears the flag if it happens to already be set,
+   *  so it must run last). No-op for any index that doesn't exist. */
+  markDayDefaultSeed: (index: number) => void;
   removeDay: (index: number) => void;
   /** Moves a day earlier/later in the trip without touching what's inside
    *  it - re-labels every day by its new position afterwards (labels are
@@ -430,9 +437,8 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   // matches, but the two are expected to agree since both read off the
   // same render's days.
   const addDay = useCallback((sourceHubDaySlug?: string) => {
-    const isReplacingBlankStarter =
-      !!sourceHubDaySlug && days.length === 1 && days[0].stops.length === 0 && !days[0].sourceHubDaySlug;
-    const resolvedIndex = isReplacingBlankStarter ? 0 : days.length;
+    const isReplacingDefaultSeed = !!sourceHubDaySlug && days.length === 1 && days[0].isDefaultSeed === true;
+    const resolvedIndex = isReplacingDefaultSeed ? 0 : days.length;
     // Every new day needs a real accommodation from the moment it exists
     // (so its route/drive-time totals aren't blank), but it should default
     // to wherever the visitor's ALREADY staying, not reset back to The
@@ -446,18 +452,18 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     setDays((prev) => {
       const carriedAccommodation = prev.length > 0 ? prev[prev.length - 1].accommodation : undefined;
       const { name, lat, lng } = carriedAccommodation ?? FEATURED_STAYS[0];
-      // /journey seeds a single blank day (initDays, below) so its own
-      // "start from nothing" entry point never opens on a broken/empty
-      // page. If a visitor never touches that day and then adds a REAL
-      // curated day here instead (a Hub Day, always passed via
-      // sourceHubDaySlug), replace the placeholder in place rather than
-      // appending after it - otherwise every hero/DaysHub/Area "add this
-      // day" reads as Day 2 even though nothing was actually there yet.
-      // A manual, slug-less "+ Add day" (Workspace toolbar, mobile sheet,
-      // AreaClient's blank-day actions) always appends as before, since
-      // there's no placeholder to replace in that case.
-      if (!!sourceHubDaySlug && prev.length === 1 && prev[0].stops.length === 0 && !prev[0].sourceHubDaySlug) {
-        return [{ ...prev[0], accommodation: { name, lat, lng }, sourceHubDaySlug }];
+      // JourneyFlow.tsx seeds a full onboarding demo day (not a blank one)
+      // for a fresh /journey visit, flagged isDefaultSeed. If a visitor
+      // never touches that day and then adds a REAL curated day here
+      // instead (a Hub Day, always passed via sourceHubDaySlug), replace
+      // the demo day in place rather than appending after it - otherwise
+      // every hero/DaysHub/Area "add this day" reads as Day 2 even though
+      // the visitor never asked for that demo content. A manual, slug-less
+      // "+ Add day" (Workspace toolbar, mobile sheet, AreaClient's
+      // blank-day actions) always appends as before, since there's
+      // nothing to replace in that case.
+      if (!!sourceHubDaySlug && prev.length === 1 && prev[0].isDefaultSeed === true) {
+        return [{ ...prev[0], accommodation: { name, lat, lng }, sourceHubDaySlug, isDefaultSeed: false }];
       }
       return [
         ...prev,
@@ -472,6 +478,13 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     });
     return resolvedIndex;
   }, [days]);
+
+  /** See TripContextValue.markDayDefaultSeed - flags a day as the
+   *  onboarding demo content JourneyFlow.tsx just seeded, so a later
+   *  addDay() knows it's safe to replace. */
+  const markDayDefaultSeed = useCallback((index: number) => {
+    setDays((prev) => prev.map((day, i) => (i === index ? { ...day, isDefaultSeed: true } : day)));
+  }, []);
 
   const removeDay = useCallback((index: number) => {
     setDays((prev) => {
@@ -502,7 +515,11 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     setDays((prev) =>
       prev.map((day, i) =>
         i === dayIndex && !day.stops.some((s) => stopId(s) === distillery.slug)
-          ? { ...day, stops: [...day.stops, { kind: "distillery" as const, distillery, ...(anchor ? { anchor: true } : {}) }] }
+          ? {
+              ...day,
+              stops: [...day.stops, { kind: "distillery" as const, distillery, ...(anchor ? { anchor: true } : {}) }],
+              isDefaultSeed: false,
+            }
           : day
       )
     );
@@ -512,7 +529,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     setDays((prev) =>
       prev.map((day, i) =>
         i === dayIndex && !day.stops.some((s) => stopId(s) === feature.id)
-          ? { ...day, stops: [...day.stops, { kind: "feature" as const, feature }] }
+          ? { ...day, stops: [...day.stops, { kind: "feature" as const, feature }], isDefaultSeed: false }
           : day
       )
     );
@@ -520,7 +537,9 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
 
   const removeStop = useCallback((dayIndex: number, id: string) => {
     setDays((prev) =>
-      prev.map((day, i) => (i === dayIndex ? { ...day, stops: day.stops.filter((s) => stopId(s) !== id) } : day))
+      prev.map((day, i) =>
+        i === dayIndex ? { ...day, stops: day.stops.filter((s) => stopId(s) !== id), isDefaultSeed: false } : day
+      )
     );
   }, []);
 
@@ -535,7 +554,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         if (target < 0 || target >= day.stops.length) return day;
         const stops = [...day.stops];
         [stops[stopIndex], stops[target]] = [stops[target], stops[stopIndex]];
-        return { ...day, stops };
+        return { ...day, stops, isDefaultSeed: false };
       })
     );
   }, []);
@@ -544,7 +563,11 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     setDays((prev) =>
       prev.map((day, i) =>
         i === dayIndex
-          ? { ...day, stops: day.stops.map((s) => (stopId(s) === id ? { ...s, customMinutes: minutes } : s)) }
+          ? {
+              ...day,
+              stops: day.stops.map((s) => (stopId(s) === id ? { ...s, customMinutes: minutes } : s)),
+              isDefaultSeed: false,
+            }
           : day
       )
     );
@@ -553,7 +576,9 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   const setStopNote = useCallback((dayIndex: number, id: string, note: string) => {
     setDays((prev) =>
       prev.map((day, i) =>
-        i === dayIndex ? { ...day, stops: day.stops.map((s) => (stopId(s) === id ? { ...s, note } : s)) } : day
+        i === dayIndex
+          ? { ...day, stops: day.stops.map((s) => (stopId(s) === id ? { ...s, note } : s)), isDefaultSeed: false }
+          : day
       )
     );
   }, []);
@@ -568,7 +593,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
               s.kind === "distillery" && s.distillery.slug === distillery.slug ? { ...s, tour } : s
             )
           : [...day.stops, { kind: "distillery" as const, distillery, tour }];
-        return { ...day, stops };
+        return { ...day, stops, isDefaultSeed: false };
       })
     );
   }, []);
@@ -585,13 +610,15 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   );
 
   const setAccommodation = useCallback((dayIndex: number, accommodation: TripAccommodation | undefined) => {
-    setDays((prev) => prev.map((day, i) => (i === dayIndex ? { ...day, accommodation } : day)));
+    setDays((prev) => prev.map((day, i) => (i === dayIndex ? { ...day, accommodation, isDefaultSeed: false } : day)));
   }, []);
 
   const setAccommodationFromDay = useCallback(
     (dayIndex: number, accommodation: TripAccommodation, scope: "all" | "fromHere") => {
       setDays((prev) =>
-        prev.map((day, i) => ((scope === "all" || i >= dayIndex) ? { ...day, accommodation } : day))
+        prev.map((day, i) =>
+          (scope === "all" || i >= dayIndex) ? { ...day, accommodation, isDefaultSeed: false } : day
+        )
       );
     },
     []
@@ -700,6 +727,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         completeIntake,
         resetTrip,
         addDay,
+        markDayDefaultSeed,
         removeDay,
         moveDay,
         addStop,

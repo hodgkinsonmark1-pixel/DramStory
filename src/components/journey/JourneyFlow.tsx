@@ -399,6 +399,14 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
       // has no stay set - kept in sync via the shared FEATURED_STAYS
       // export rather than a second hardcoded value here.
       trip.setAccommodation(0, FEATURED_STAYS[0]);
+      // Flags this Day as the untouched onboarding demo (must run last -
+      // every trip.* call above this line clears the flag as a side
+      // effect of writing to the day, since each one also represents a
+      // genuine visitor edit when called anywhere else). Lets addDay()
+      // replace it in place the moment a visitor picks a real curated day
+      // from the hero/DaysHub/an Area page, instead of appending after it
+      // - see trip-context.tsx's addDay (11 Aug 2026, Mark's request).
+      trip.markDayDefaultSeed(0);
       trip.completeIntake({ timing, location: freshLocation, interests: freshInterests });
       setStep("workspace");
       setHandledInitialState(true);
