@@ -577,12 +577,34 @@
 /* Hero state-two planning column (docs/hero-handoff.md §4.1) - header +
    cards + foot link. Cards themselves reuse days-hub.css's
    .days-hub-card family verbatim (same component, more room, not a
-   second implementation - see HeroDaysColumn.tsx's header comment) minus
-   the add-to-trip action button, which the reference screenshots don't
-   show on this compact preview card - "+ Add as a day" only exists once
-   a visitor is actually on /days. */
+   second implementation - see HeroDaysColumn.tsx's header comment),
+   including the add-to-trip action button (added here 11 Aug 2026, per
+   Mark's request - the reference screenshots didn't show it on this
+   compact preview card, but he wants the trip process startable from
+   the hero directly rather than only once a visitor reaches /days). */
 .hero-days-column {
   max-width: 640px;
+}
+/* Two hero-only overrides on top of the shared .days-hub-card-* rules
+   above (both scoped to .hero-days-column so /days's own grid, which
+   uses the identical classes, is untouched):
+   - "Read more" moves inline at the end of the teaser paragraph instead
+     of sitting on its own line below it (11 Aug 2026, Mark's request) -
+     dropping the shared class's 44px touch-target min-height here since
+     a same-line text link doesn't want to force the whole line that
+     tall; still comfortably tappable at this font-size/padding.
+   - Card body's bottom padding trimmed slightly, since the hook block
+     already ends in a tight inline "Read more"/action button rather
+     than open whitespace. */
+.hero-days-column .days-hub-card-hook-toggle {
+  display: inline;
+  min-height: auto;
+  margin-top: 0;
+  margin-left: 2px;
+  padding: 2px 0;
+}
+.hero-days-column .days-hub-card-body {
+  padding-bottom: 14px;
 }
 .hero-days-header {
   display: flex;

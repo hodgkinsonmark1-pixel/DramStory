@@ -225,12 +225,42 @@ function HeroDayCard({
   index: number;
   cardRef: (el: HTMLDivElement | null) => void;
 }) {
+  const trip = useTrip();
   const { day, driveMinutes, hits, price } = entry;
   const hook = deriveHook(day.narrative);
   const hasMore = hasMoreNarrative(day.narrative);
   const [expanded, setExpanded] = useState(false);
   const driveLabel = driveMinutes > 0 ? `≈${formatDuration(driveMinutes)} on the road` : "";
   const metaText = [driveLabel, price].filter(Boolean).join(" · ");
+
+  // "Read more" trims the deriveHook() ellipsis and sits inline at the
+  // end of the (unexpanded) teaser text - 11 Aug 2026, Mark's request,
+  // was its own line below the paragraph before. Only matters pre-
+  // expansion; the full narrative never carries a trailing "…" to strip.
+  const hookDisplay = !expanded && hasMore ? hook.replace(/…$/, "") : hook;
+
+  /** Same add-to-trip mechanism DaysHubGrid.tsx's own DayCard uses
+   *  (addDay/addStop/setTourForStop/addFeatureStop, in that order) -
+   *  11 Aug 2026, Mark's request: "so the trip process can begin" from
+   *  here too, not only once a visitor reaches /days. Deliberately NOT
+   *  porting DaysHubGrid's justAdded-pop-animation/milestone-toast pair
+   *  alongside it - this column has no room for a milestone banner and
+   *  the FLIP re-sort above already gives its own "something happened"
+   *  motion; flagging that omission rather than silently matching
+   *  everything DaysHubGrid does. */
+  const addedIndex = trip.days.findIndex((d) => d.sourceHubDaySlug === day.slug);
+  const isAdded = addedIndex !== -1;
+  function handleAddToTrip() {
+    const newDayIndex = trip.days.length;
+    trip.addDay(day.slug);
+    for (const stop of day.stops) {
+      trip.addStop(newDayIndex, stop.distillery, stop.anchor);
+      if (stop.tour) trip.setTourForStop(newDayIndex, stop.distillery, stop.tour);
+    }
+    for (const feature of day.featureStops) {
+      trip.addFeatureStop(newDayIndex, feature);
+    }
+  }
 
   return (
     <div
@@ -264,19 +294,33 @@ function HeroDayCard({
         {hook && (
           <div className="days-hub-card-hook-block">
             <p className={`days-hub-card-hook${expanded ? " expanded" : ""}`}>
-              {expanded ? fullNarrativeText(day.narrative) : hook}
+              {expanded ? fullNarrativeText(day.narrative) : hookDisplay}
+              {hasMore && (
+                <button
+                  type="button"
+                  className="days-hub-card-hook-toggle"
+                  onClick={() => setExpanded((v) => !v)}
+                  aria-expanded={expanded}
+                >
+                  {expanded ? " Show less" : " Read more"}
+                </button>
+              )}
             </p>
-            {hasMore && (
-              <button
-                type="button"
-                className="days-hub-card-hook-toggle"
-                onClick={() => setExpanded((v) => !v)}
-                aria-expanded={expanded}
-              >
-                {expanded ? "Show less" : "Read more"}
-              </button>
-            )}
           </div>
+        )}
+        {isAdded ? (
+          <button
+            type="button"
+            className="days-hub-card-action in-trip"
+            onClick={() => trip.removeDay(addedIndex)}
+            aria-label={`Remove ${day.name} from your trip`}
+          >
+            ✓ Day {addedIndex + 1} of your trip · remove
+          </button>
+        ) : (
+          <button type="button" className="days-hub-card-action" onClick={handleAddToTrip}>
+            + Add as a day
+          </button>
         )}
       </div>
     </div>
