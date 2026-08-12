@@ -1,4 +1,4 @@
-import type { AirtableAttachment } from "@/lib/airtable";
+import type { AirtableAttachment, AirtableRecord } from "@/lib/airtable";
 import type { Area, Distillery, FeaturedStay, HubDay, JournalPost, LocalEvent, LocalFeature, NearbyFeature, Tour } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -616,6 +616,122 @@ export interface AirtableDayStopFields {
    *  real Day Stop record already - see Distillery/HubDay.stops'
    *  `anchor` in types.ts). Undefined/false otherwise. */
   Anchor?: boolean;
+}
+
+// Matches the [label](/path) inline links already used in Day narratives
+// (same renderWithLinks pattern as the Distillery/Explore pages) - reused
+// here (and in src/lib/data/index.ts's own copy for getDays' Hub gating)
+// to resolve which real Local Features a Day's map should pin, since Day
+// Stops only links Day -> Distillery -> Tour, not Day -> Local Feature.
+// Whatever the narrative actually links to under /explore/ is exactly the
+// set of Local Features that Day cares about.
+const EXPLORE_LINK_RE = /\[([^\]]+)\]\(\/explore\/([a-z0-9-]+)\)/g;
+
+/** Everything mapAirtableDayRecord needs already resolved/looked-up, so it
+ *  stays a pure per-record mapper (same shape as mapTour/mapToLocalFeature
+ *  etc. elsewhere in this file) rather than doing its own Airtable calls. */
+export interface DayResolutionContext {
+  dayStopById: Map<string, AirtableDayStopFields>;
+  tourById: Map<string, Tour>;
+  distilleryById: Map<string, Distillery>;
+  localFeatureBySlug: Map<string, LocalFeature>;
+}
+
+/** Maps one raw Days table record (+ its resolved Day Stops) into a
+ *  HubDay - the single shared join/mapping logic behind both /days
+ *  (getDays, Status: Live only, stops.length > 0 required - see that
+ *  caller) and /journeys/[slug] (getJourneys, no such gating - a Journey
+ *  and the Days inside it render regardless of Status, per Mark's own
+ *  pre-launch review process). Extracted 12 Aug 2026 from what used to be
+ *  inline logic in fetchDaysFromAirtable, specifically so the Journeys
+ *  rebuild could reuse the exact same day-detail data shape instead of
+ *  building a second, parallel one - see docs/content-structure-
+ *  conventions.md's "Classic Journey day-by-day template".
+ *
+ *  Returns null for a blank placeholder row (no Name/Slug) - same
+ *  "skip anything not a real record" pattern used everywhere else this
+ *  file maps a table with a few empty seed rows mixed in. */
+export function mapAirtableDayRecord(
+  record: AirtableRecord<AirtableDayFields>,
+  ctx: DayResolutionContext
+): HubDay | null {
+  const f = record.fields;
+  if (!f.Name || !f.Slug) return null;
+
+  const stopIds = f["Day Stops"] ?? [];
+  const resolvedStops = stopIds
+    .map((id) => ctx.dayStopById.get(id))
+    .filter((s): s is AirtableDayStopFields => !!s)
+    .map((s) => ({
+      distillery: s.Distillery?.[0] ? ctx.distilleryById.get(s.Distillery[0]) : undefined,
+      tour: s.Tour?.[0] ? ctx.tourById.get(s.Tour[0]) : undefined,
+      order: s.Order ?? 0,
+      anchor: s.Anchor === true,
+    }))
+    .filter(
+      (s): s is { distillery: Distillery; tour: Tour | undefined; order: number; anchor: boolean } =>
+        !!s.distillery
+    )
+    .sort((a, b) => a.order - b.order);
+
+  const totalCost = resolvedStops.reduce((sum, s) => sum + (s.tour?.price ?? 0), 0);
+
+  const mapFeatures: NonNullable<HubDay["mapFeatures"]> = [];
+  const featureStops: HubDay["featureStops"] = [];
+  const narrative = f.Narrative ?? "";
+  for (const match of narrative.matchAll(EXPLORE_LINK_RE)) {
+    const feature = ctx.localFeatureBySlug.get(match[2]);
+    if (feature) {
+      mapFeatures.push({ name: feature.name, slug: feature.slug, lat: feature.lat, lng: feature.lng, icon: feature.icon });
+      featureStops.push(feature);
+    }
+  }
+
+  const mapDistilleries: NonNullable<HubDay["mapDistilleries"]> = resolvedStops.map((s) => ({
+    name: s.distillery.name,
+    slug: s.distillery.slug,
+    lat: s.distillery.lat,
+    lng: s.distillery.lng,
+  }));
+
+  return {
+    id: record.id,
+    slug: f.Slug,
+    name: f.Name,
+    type: f.Type === "Multi" ? "Multi" : "Solo",
+    distilleries: resolvedStops.map((s) => s.distillery.name),
+    narrative,
+    transportNote: f["Transport Note"] ?? "",
+    pacing: f.Pacing ?? "",
+    durationPortEllen: f["Duration from Port Ellen"] ?? "",
+    durationBowmore: f["Duration from Bowmore"] ?? "",
+    cost: totalCost > 0 ? `£${totalCost}pp` : "",
+    mapDistilleries,
+    mapFeatures: mapFeatures.length > 0 ? mapFeatures : undefined,
+    stops: resolvedStops.map((s) => ({ distillery: s.distillery, tour: s.tour, anchor: s.anchor })),
+    featureStops,
+    source: "airtable",
+  };
+}
+
+export interface AirtableJourneyFields {
+  Name?: string;
+  Slug?: string;
+  Status?: string;
+  "Card Description"?: string;
+  Intro?: string;
+  "Hero Image"?: AirtableAttachment[];
+  "Hero Image Credit"?: string;
+  "Getting There Note"?: string;
+  "Accommodation Note"?: string;
+  "Journey Days"?: string[]; // linked record IDs -> Journey Days table
+}
+
+export interface AirtableJourneyDayFields {
+  Name?: string;
+  Journey?: string[]; // linked record ID -> Journeys table
+  Day?: string[]; // linked record ID -> Days table
+  Order?: number;
 }
 
 export interface AirtableEventFields {

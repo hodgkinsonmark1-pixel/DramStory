@@ -2,37 +2,39 @@
 
 import { useRouter } from "next/navigation";
 import { useTrip } from "@/lib/trip-context";
-import type { JourneyDay } from "@/lib/journeys-data";
-import type { Distillery } from "@/lib/types";
+import type { HubDay } from "@/lib/types";
 
 /**
  * Per-day sibling of AddJourneyToTripButton - appends just this one day's
  * distillery stops to the visitor's existing trip (starting a fresh one
  * with sensible defaults if they don't have one yet), rather than
- * resetting everything to seed the whole multi-day journey at once. Same
- * "distilleries only" scoping as the whole-journey button - non-distillery
- * activities (the pool, the bike hire, the beach) stay descriptive
- * content on this page rather than being silently dropped or
- * half-represented in the workspace.
+ * resetting everything to seed the whole multi-day journey at once.
+ *
+ * UPDATE 12 Aug 2026 (Journeys/Airtable rebuild): takes a real HubDay now
+ * instead of the old hardcoded JourneyDay shape - day.stops already
+ * carries real Distillery records (resolved via Day Stops), so there's
+ * no separate `distilleries` list to cross-reference against any more.
+ * `day.slug` is passed into addDay() so an added day traces back to its
+ * source Hub Day, same as DaysHubGrid's own "+ Add as a day" - lets
+ * /trip and /trip/day/[index] show this day's real narrative/pacing
+ * later, if it's also Status: Live on /days (Draft-only Days degrade
+ * gracefully to no narrative there, same as any other sourceHubDaySlug
+ * miss).
+ *
+ * Non-distillery activities (a walk, a beach, a swim) aren't seeded here
+ * - the Days data model only resolves Local Feature "activities" as
+ * featureStops, not itinerary-stop-shaped trip stops, matching the same
+ * scoping AddJourneyToTripButton already used. Flagged as a decision,
+ * not silently dropped.
  */
-export default function AddDayToTripButton({
-  day,
-  distilleries,
-}: {
-  day: JourneyDay;
-  distilleries: Distillery[];
-}) {
+export default function AddDayToTripButton({ day }: { day: HubDay }) {
   const trip = useTrip();
   const router = useRouter();
 
-  const dayDistilleries = [...day.morning, ...day.afternoon]
-    .filter((s) => s.kind === "distillery")
-    .map((s) => distilleries.find((x) => x.slug === s.distillerySlug))
-    .filter((d): d is Distillery => !!d);
+  const dayDistilleries = day.stops.map((s) => s.distillery);
 
-  // A day with no distillery stops (e.g. a pure ferry/departure day) has
-  // nothing to add to the workspace - no button rather than a button
-  // that silently does nothing.
+  // A day with no distillery stops has nothing to add to the workspace -
+  // no button rather than a button that silently does nothing.
   if (dayDistilleries.length === 0) return null;
 
   function handleClick() {
@@ -43,17 +45,9 @@ export default function AddDayToTripButton({
         interests: ["distilleries"],
       });
     }
-    const newDayIndex = trip.days.length;
-    trip.addDay();
+    const newDayIndex = trip.addDay(day.slug);
     for (const d of dayDistilleries) {
       trip.addStop(newDayIndex, d);
-    }
-    if (day.overnight) {
-      trip.setAccommodation(newDayIndex, {
-        name: day.overnight.village,
-        lat: day.overnight.lat,
-        lng: day.overnight.lng,
-      });
     }
     router.push("/journey?resume=1");
   }

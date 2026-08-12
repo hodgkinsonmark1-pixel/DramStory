@@ -7,7 +7,17 @@ import type { Distillery } from "@/lib/types";
 import { fetchRouteSegments, type LatLng } from "@/lib/route-geometry";
 
 interface JourneyDayMapProps {
-  base: LatLng & { village: string };
+  /** Home marker for the day (an overnight village with real
+   *  coordinates). Optional as of 12 Aug 2026 - the Airtable-backed
+   *  Journeys rebuild has no per-day overnight coordinates (only a
+   *  free-text, journey-level Accommodation Note - see Journey.
+   *  accommodationNote in types.ts), and fabricating coordinates for a
+   *  village isn't something this codebase does (see content-sourcing-
+   *  standards.md's coordinate verification rules). When omitted, the
+   *  map simply has no home pin and routes only between the day's own
+   *  stops - same behaviour HubDayMap already uses for the /days Hub
+   *  cards, for the same underlying reason (no single fixed base). */
+  base?: LatLng & { village: string };
   /** That day's distillery stops, in visiting order. */
   stops: Distillery[];
   /** Non-distillery activity stops that happen to have a real, verified
@@ -47,16 +57,18 @@ export default function JourneyDayMap({ base, stops, featureStops = [] }: Journe
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       }).addTo(map);
 
-      L.marker([base.lat, base.lng], {
-        icon: L.divIcon({
-          className: "",
-          html: `<div style="background:#5C7A99;color:white;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);font-size:13px">🏠</div>`,
-          iconSize: [26, 26],
-          iconAnchor: [13, 13],
-        }),
-      })
-        .bindPopup(base.village)
-        .addTo(map);
+      if (base) {
+        L.marker([base.lat, base.lng], {
+          icon: L.divIcon({
+            className: "",
+            html: `<div style="background:#5C7A99;color:white;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);font-size:13px">🏠</div>`,
+            iconSize: [26, 26],
+            iconAnchor: [13, 13],
+          }),
+        })
+          .bindPopup(base.village)
+          .addTo(map);
+      }
 
       for (const d of stops) {
         if (!d.lat || !d.lng) continue;
@@ -108,23 +120,29 @@ export default function JourneyDayMap({ base, stops, featureStops = [] }: Journe
       }
 
       const points: LatLng[] = [
-        { lat: base.lat, lng: base.lng },
+        ...(base ? [{ lat: base.lat, lng: base.lng }] : []),
         ...stops.filter((d) => d.lat && d.lng).map((d) => ({ lat: d.lat, lng: d.lng })),
         ...featureStops.map((f) => ({ lat: f.lat, lng: f.lng })),
-        { lat: base.lat, lng: base.lng },
+        ...(base ? [{ lat: base.lat, lng: base.lng }] : []),
       ];
+      if (points.length === 0) return;
 
       const bounds = L.latLngBounds(points.map((p) => [p.lat, p.lng] as [number, number]));
       map.fitBounds(bounds, { padding: [28, 28] });
 
-      const segments = await fetchRouteSegments(points);
-      if (cancelled) return;
-      for (const seg of segments) {
-        if (!seg) continue;
-        L.polyline(
-          seg.points.map((p) => [p.lat, p.lng] as [number, number]),
-          { color: "#C4862A", weight: 4, opacity: 0.85 }
-        ).addTo(map);
+      // Fewer than two points (a base-less single-distillery day, e.g.)
+      // has nothing to route between - same guard HubDayMap already uses
+      // for its own no-base case.
+      if (points.length > 1) {
+        const segments = await fetchRouteSegments(points);
+        if (cancelled) return;
+        for (const seg of segments) {
+          if (!seg) continue;
+          L.polyline(
+            seg.points.map((p) => [p.lat, p.lng] as [number, number]),
+            { color: "#C4862A", weight: 4, opacity: 0.85 }
+          ).addTo(map);
+        }
       }
     }
 

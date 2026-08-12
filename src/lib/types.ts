@@ -359,6 +359,14 @@ export interface HubDay {
   /** Indicative distillery cost - sum of the Day's stop tours' prices,
    *  formatted e.g. "£60pp". Empty string if no priced tours resolved. */
   cost: string;
+  /** Practical "how you actually get around" detail for the day (bus
+   *  timetables, single-track road warnings, booking-ahead notices) -
+   *  sourced from the Days table's own "Transport Note" field. Present
+   *  on the underlying Airtable record but not read into HubDay anywhere
+   *  until now - wired up 12 Aug 2026 for the Journeys rebuild
+   *  (docs/content-structure-conventions.md's "Classic Journey day-by-day
+   *  template" calls for exactly this). Empty string if blank. */
+  transportNote: string;
   mapDistilleries?: { name: string; slug: string; lat: number; lng: number }[];
   mapFeatures?: { name: string; slug: string; lat: number; lng: number; icon: string }[];
   /** Resolved stops in visiting order - the real Distillery record plus
@@ -379,6 +387,50 @@ export interface HubDay {
    *  what its own narrative actually describes, not just the
    *  distillery/tour part of it. */
   featureStops: LocalFeature[];
+  source: DataSource;
+}
+
+/** A Classic Journey - a curated multi-day route, assembled from linked
+ *  Days records via the Journeys/Journey Days tables (added 12 Aug 2026,
+ *  replacing the previous hardcoded CLASSIC_JOURNEYS array - see
+ *  journeys-data.ts, still used for tourPriceRange/cheapestTourPrice
+ *  helpers and the homepage's Classic Journeys section, which this
+ *  rebuild deliberately leaves untouched for now). Rendered by
+ *  /journeys/[slug], one Day at a time, reusing HubDay's own shape for
+ *  each day so the exact same day-detail rendering (narrative, grouped
+ *  stops, transport note, map, "add this day" button) applies whether a
+ *  Day is reached from /days or from inside a Journey. */
+export interface Journey {
+  id: string;
+  slug: string;
+  name: string;
+  /** Short one-sentence teaser for the homepage Classic Journeys card -
+   *  not shown on this Journey's own detail page, per the site's
+   *  no-duplication content rule (project-conventions.md) - Intro below
+   *  covers the same ground at full length there. */
+  cardDescription: string;
+  /** Longer standfirst shown at the top of the Journey's own page. */
+  intro: string;
+  /** Routed through /api/attachment, same pattern as Distilleries' Hero
+   *  Image - empty string when no image is set (all four Journeys as of
+   *  12 Aug 2026), in which case the page falls back to a plain
+   *  navy header rather than fabricating or guessing an image. */
+  heroImage: string;
+  /** Same [label](url) markdown-link convention as Distilleries/Local
+   *  Features' own Hero Image Credit fields. */
+  heroImageCredit?: string;
+  /** Logistics for arriving before Day 1 begins - ferry/flight, transfer
+   *  to base. */
+  gettingThereNote: string;
+  /** Where the visitor bases themselves for this Journey and why - shown
+   *  once, above the day-by-day list (there's no per-day overnight
+   *  village/coordinates in the Days data model, so this replaces the
+   *  old hardcoded per-day "Overnight: X" line rather than trying to
+   *  fabricate coordinates for one). */
+  accommodationNote: string;
+  /** This Journey's Days, resolved via Journey Days and sorted by Order -
+   *  each a real HubDay, not a Journey-specific duplicate shape. */
+  days: HubDay[];
   source: DataSource;
 }
 
