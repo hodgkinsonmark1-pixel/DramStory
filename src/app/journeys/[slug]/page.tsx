@@ -62,8 +62,10 @@ import type { HubDay, Journey } from "@/lib/types";
  *    already painted in).
  *  - The old "Getting there:" paragraph is gone, replaced by the Getting
  *    Here Rows panel at the foot, per the brief.
- *  - Intro is still not rendered anywhere on this page (Card Description
- *    is the hero standfirst) - no slot for it in the mockup.
+ *  - The hero standfirst is Intro (the short single-sentence standfirst),
+ *    falling back to Card Description when Intro is empty. Card
+ *    Description is the homepage teaser and was duplicating the opening
+ *    of the Claim band directly below the hero.
  */
 
 /** Same [label](url) markdown-link parsing as PhotoCredit in
@@ -193,10 +195,14 @@ function NightConnector({
 }) {
   const note = nightNoteFor(journey, nightNumber);
   const { lead, last } = splitFinalSentence(note);
+  // One label, one case: the whole string ("night one" ... "night six")
+  // enters the DOM lower-case and .jr-night-label uppercases it, so the
+  // word and its ordinal can never render in clashing cases.
+  const nightLabel = `Night ${ordinalWord(nightNumber)}`.toLowerCase();
   return (
     <div className="jr-night-card">
       <div className="jr-night-when">
-        <span className="jr-eyebrow">Night {ordinalWord(nightNumber)}</span>
+        <span className="jr-eyebrow jr-night-label">{nightLabel}</span>
         {journey.base && <span className="jr-night-base">{journey.base}</span>}
       </div>
       {note && (
@@ -227,7 +233,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!journey) return {};
   return {
     title: `${journey.name} | DramStory`,
-    description: journey.cardDescription || journey.intro,
+    description: journey.intro || journey.cardDescription,
   };
 }
 
@@ -305,7 +311,9 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
             Classic Journey{journey.regionLabel ? ` · ${journey.regionLabel}` : ""}
           </div>
           <h1 className="jr-hero-title">{journey.name}</h1>
-          {journey.cardDescription && <p className="jr-hero-standfirst">{journey.cardDescription}</p>}
+          {(journey.intro || journey.cardDescription) && (
+            <p className="jr-hero-standfirst">{journey.intro || journey.cardDescription}</p>
+          )}
         </div>
         {journey.heroImageCredit && <JourneyHeroCredit credit={journey.heroImageCredit} />}
       </section>
