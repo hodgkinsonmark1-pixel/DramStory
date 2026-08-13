@@ -603,6 +603,14 @@ export interface AirtableDayFields {
   "Duration from Bowmore"?: string;
   "Transport Note"?: string;
   "Day Stops"?: string[]; // linked record IDs -> Day Stops table
+  /** One-line teaser for the compact day card (journey spine, /days hub
+   *  card) - shorter than and distinct from Narrative. Added 13 Aug 2026
+   *  for the Journeys page rebuild. */
+  Hook?: string;
+  /** Only populated for days genuinely walkable end-to-end, e.g.
+   *  "2 miles". Blank means "not a walking day" - callers fall back to
+   *  "Duration from Port Ellen" instead. Added 13 Aug 2026. */
+  "Distance on Foot"?: string;
 }
 
 export interface AirtableDayStopFields {
@@ -710,6 +718,8 @@ export function mapAirtableDayRecord(
     mapFeatures: mapFeatures.length > 0 ? mapFeatures : undefined,
     stops: resolvedStops.map((s) => ({ distillery: s.distillery, tour: s.tour, anchor: s.anchor })),
     featureStops,
+    hook: f.Hook ?? "",
+    distanceOnFoot: f["Distance on Foot"] || undefined,
     source: "airtable",
   };
 }
@@ -725,6 +735,22 @@ export interface AirtableJourneyFields {
   "Getting There Note"?: string;
   "Accommodation Note"?: string;
   "Journey Days"?: string[]; // linked record IDs -> Journey Days table
+  /** One-sentence claim shown in the dark band under the hero - markdown
+   *  `**bold**` for emphasis on the payoff clause. Added 13 Aug 2026. */
+  Claim?: string;
+  /** Short region/theme kicker above the journey title, e.g. "The Peated
+   *  South". Added 13 Aug 2026. */
+  "Region Label"?: string;
+  /** Total nights for this journey - an explicit editorial call, not
+   *  always Day count ± 1. Added 13 Aug 2026. */
+  Nights?: number;
+  /** Where the visitor sleeps, e.g. "Port Ellen" - shown on each night
+   *  connector between day cards. Added 13 Aug 2026. */
+  Base?: string;
+  /** One line per night, in order. Fewer lines than Nights repeats the
+   *  last line; blank falls back to Accommodation Note. Added 13 Aug
+   *  2026. */
+  "Night Notes"?: string;
 }
 
 export interface AirtableJourneyDayFields {

@@ -387,6 +387,14 @@ export interface HubDay {
    *  what its own narrative actually describes, not just the
    *  distillery/tour part of it. */
   featureStops: LocalFeature[];
+  /** One-line teaser for the compact day card (journey spine, /days hub
+   *  card) - shorter than and distinct from `narrative`. Empty string if
+   *  unset in Airtable. Added 13 Aug 2026 for the Journeys page rebuild. */
+  hook: string;
+  /** Only set for days genuinely walkable end-to-end, e.g. "2 miles".
+   *  Undefined for driving days - callers fall back to durationPortEllen
+   *  instead. Added 13 Aug 2026. */
+  distanceOnFoot?: string;
   source: DataSource;
 }
 
@@ -431,6 +439,23 @@ export interface Journey {
   /** This Journey's Days, resolved via Journey Days and sorted by Order -
    *  each a real HubDay, not a Journey-specific duplicate shape. */
   days: HubDay[];
+  /** One-sentence "why this route" argument for the dark claim band under
+   *  the hero - markdown `**bold**` for emphasis. Empty string if unset.
+   *  Added 13 Aug 2026 for the Journeys page rebuild. */
+  claim: string;
+  /** Short region/theme kicker shown above the title, e.g. "The Peated
+   *  South". Added 13 Aug 2026. */
+  regionLabel: string;
+  /** Total nights for this journey - an explicit editorial call (not
+   *  always Day count ± 1). Added 13 Aug 2026. */
+  nights: number;
+  /** Where the visitor sleeps for this journey, e.g. "Port Ellen" - shown
+   *  on each night connector. Added 13 Aug 2026. */
+  base: string;
+  /** One line per night, in order, already split/trimmed from the raw
+   *  Airtable field - empty array if unset (callers fall back to
+   *  accommodationNote, repeated). Added 13 Aug 2026. */
+  nightNotesLines: string[];
   source: DataSource;
 }
 

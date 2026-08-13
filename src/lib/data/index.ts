@@ -307,6 +307,48 @@ async function fetchDaysFromAirtable(): Promise<HubDay[]> {
   return days;
 }
 
+/** Every Day record, mapped regardless of Status - powers /days/[slug]
+ *  (the new per-day detail page, added 13 Aug 2026). Deliberately
+ *  ungated, unlike getDays() above: a Day reachable from inside a Journey
+ *  (via its "Open the day →" link) can itself be Status: Draft - "The
+ *  South Coast Walk"'s Day 1 ("Two Miles Apart") is exactly this case
+ *  (see /journeys/[slug]'s own doc comment on the same reasoning) - so
+ *  gating this page on Status would silently 404 a day a Journey page
+ *  just linked to. Same "never leak a draft onto the live site" concern
+ *  doesn't apply here the way it does to an index page (getDays/getAreas/
+ *  getFeaturedStays): nothing lists/links to a Draft Day's detail page
+ *  except a Journey that itself already renders regardless of Status for
+ *  Mark's own pre-launch review - a real Status gate belongs here once
+ *  Journeys go public, not yet. React's cache() again (see getDistilleries
+ *  above), so this can't persist stale data across separate requests. */
+export const getAllDaysAnyStatus = cache(async (): Promise<HubDay[]> => {
+  const [dayRecords, dayStopRecords, tourRecords, distilleries, localFeatures] = await Promise.all([
+    airtableFetchAll<AirtableDayFields>("Days"),
+    airtableFetchAll<AirtableDayStopFields>("Day Stops"),
+    airtableFetchAll<AirtableTourFields>("Tours"),
+    getDistilleries(),
+    getLocalFeatures(),
+  ]);
+
+  const dayStopById = new Map(dayStopRecords.map((r) => [r.id, r.fields]));
+  const tourById = new Map(tourRecords.map((r) => [r.id, mapTour(r.fields)]));
+  const distilleryById = new Map(distilleries.map((d) => [d.id, d]));
+  const localFeatureBySlug = new Map(localFeatures.map((f) => [f.slug, f]));
+  const ctx = { dayStopById, tourById, distilleryById, localFeatureBySlug };
+
+  const days: HubDay[] = [];
+  for (const record of dayRecords) {
+    const day = mapAirtableDayRecord(record, ctx);
+    if (day) days.push(day);
+  }
+  return days;
+});
+
+export async function getDayBySlug(slug: string): Promise<HubDay | undefined> {
+  const days = await getAllDaysAnyStatus();
+  return days.find((d) => d.slug === slug);
+}
+
 /** Every Journey Day junction row is fetched once and reused by both
  *  getJourneys() (list) and getJourneyBySlug() (detail) - same shape as
  *  every other "fetch once, resolve in memory" join in this file. Kept
@@ -385,6 +427,14 @@ async function fetchJourneysFromAirtable(): Promise<Journey[]> {
       gettingThereNote: f["Getting There Note"] ?? "",
       accommodationNote: f["Accommodation Note"] ?? "",
       days,
+      claim: f.Claim ?? "",
+      regionLabel: f["Region Label"] ?? "",
+      nights: f.Nights ?? 0,
+      base: f.Base ?? "",
+      nightNotesLines: (f["Night Notes"] ?? "")
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean),
       source: "airtable",
     });
   }

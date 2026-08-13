@@ -48,18 +48,19 @@ export default function AddJourneyToTripButton({ journey }: { journey: Journey }
     <button
       onClick={handleClick}
       style={{
-        display: "inline-block",
+        display: "block",
+        width: "100%",
         padding: "14px 28px",
         background: "var(--copper)",
         color: "white",
         border: "none",
         borderRadius: "var(--radius-sm)",
         fontSize: 14,
-        fontWeight: 500,
+        fontWeight: 600,
         cursor: "pointer",
       }}
     >
-      Add this tour to my journey &rarr;
+      Start this as my trip &rarr;
     </button>
   );
 }

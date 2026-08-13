@@ -148,16 +148,26 @@ function DayCard({
             <p className={`days-hub-card-hook${expanded ? " expanded" : ""}`}>
               {expanded ? fullNarrativeText(day.narrative) : hook}
             </p>
-            {hasMore && (
-              <button
-                type="button"
-                className="days-hub-card-hook-toggle"
-                onClick={() => setExpanded((v) => !v)}
-                aria-expanded={expanded}
-              >
-                {expanded ? "Show less" : "Read more"}
-              </button>
-            )}
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              {hasMore && (
+                <button
+                  type="button"
+                  className="days-hub-card-hook-toggle"
+                  onClick={() => setExpanded((v) => !v)}
+                  aria-expanded={expanded}
+                >
+                  {expanded ? "Show less" : "Read more"}
+                </button>
+              )}
+              {/* Added 13 Aug 2026 alongside the new /days/[slug] page -
+                  the inline "Read more" toggle above is quick scanning
+                  in place, this is a real navigation to that Day's own
+                  full page (narrative, stops, transport note, map).
+                  Both kept: neither replaces the other. */}
+              <Link href={`/days/${day.slug}`} className="days-hub-card-hook-toggle">
+                Full day &rarr;
+              </Link>
+            </div>
           </div>
         )}
         {isAdded ? (

@@ -77,7 +77,17 @@ function StopsRow({
   );
 }
 
-export default function JourneyDayDetail({ day, dayNumber }: { day: HubDay; dayNumber: number }) {
+export default function JourneyDayDetail({
+  day,
+  dayNumber,
+}: {
+  day: HubDay;
+  /** Omit on a standalone /days/[slug] page (no journey context to number
+   *  against) - the heading then shows just the Day's own name. Added
+   *  13 Aug 2026 so this component could be reused there without a fake
+   *  "Day 1" prefix. */
+  dayNumber?: number;
+}) {
   return (
     <div
       style={{
@@ -96,7 +106,7 @@ export default function JourneyDayDetail({ day, dayNumber }: { day: HubDay; dayN
           marginBottom: 10,
         }}
       >
-        Day {dayNumber} · {day.name}
+        {dayNumber != null ? `Day ${dayNumber} · ${day.name}` : day.name}
       </div>
 
       {day.narrative && (
