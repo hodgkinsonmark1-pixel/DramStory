@@ -395,6 +395,12 @@ export interface HubDay {
    *  Undefined for driving days - callers fall back to durationPortEllen
    *  instead. Added 13 Aug 2026. */
   distanceOnFoot?: string;
+  /** The compact "THE DAY" strip on a journey page's day card, already
+   *  split into ordered segments. `time` set only for timed stops
+   *  ("13:00"); segments without one are muted connectors ("40 min
+   *  walk"). Empty array when the Day has no Day Timeline - the strip is
+   *  omitted entirely rather than faked. Added 13 Aug 2026. */
+  timeline: { time?: string; label: string }[];
   source: DataSource;
 }
 
@@ -456,6 +462,23 @@ export interface Journey {
    *  Airtable field - empty array if unset (callers fall back to
    *  accommodationNote, repeated). Added 13 Aug 2026. */
   nightNotesLines: string[];
+  /** "Make it yours" variation cards (max 3), parsed from the pipe-
+   *  delimited Airtable field. `linkSlug` is still a bare slug here - the
+   *  page resolves it to /days/[slug] or /journeys/[slug] depending on
+   *  which record actually exists. Empty array omits the whole section. */
+  makeItYours: { eyebrow: string; title: string; body: string; linkSlug: string }[];
+  /** "Getting here and away" rows, same "Label: Value" parse as Areas'
+   *  inTheVillage. Empty array omits the card. */
+  gettingHereRows: { key: string; value: string }[];
+  /** "Before you book" rows, same shape. Empty array omits the card. */
+  beforeYouBookRows: { key: string; value: string }[];
+  /** Indicative lowest per-night room rate at `base`. Undefined on every
+   *  Journey as of 13 Aug 2026 (no real rate sourced yet) - the sidebar
+   *  shows "Not yet confirmed" rather than a fabricated total. */
+  accommodationFromPerNight?: number;
+  /** The one-sentence route summary under the sidebar map. Authored in
+   *  Airtable, never composed in code. Empty string renders nothing. */
+  routeSummary: string;
   source: DataSource;
 }
 

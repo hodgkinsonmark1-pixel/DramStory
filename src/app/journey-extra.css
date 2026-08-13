@@ -1879,230 +1879,687 @@ select.location-inline-input {
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   /journeys/[slug] REBUILD (13 Aug 2026) - claim band, day-by-day spine
-   (cards + night connectors), sidebar "Take this Journey" box. Colours/
-   radii/shadows use the same real tokens as everywhere else in this file
-   - never hardcoded hexes. New CSS here (rather than more inline styles,
-   which the previous version of this page leaned on) because this pass
-   needs a real two-column layout with a responsive collapse, which
-   inline styles alone can't express (no media queries).
+   /journeys/[slug] — REBUILT 13 Aug 2026 to Mark's design mockup.
+   Replaces the earlier `journey-claim-*`/`journey-day-card-*`/
+   `journey-sidebar-*` block from the same day (right data, wrong layout),
+   which is why every class here carries a fresh `jr-` prefix rather than
+   being edited in place — nothing else in the codebase used those.
+
+   Every colour, radius and shadow is a :root token from
+   dramstory-legacy.css (docs/hero-handoff.md §5) — no literal hexes, and
+   no second green: "Car hire: Not needed" uses --green-light on the CTA
+   box's --green-deep, exactly the pairing PacingTag already uses.
    ───────────────────────────────────────────────────────────────────── */
 
-.journey-claim-band {
-  background: var(--navy);
-  color: white;
-  padding: 32px 24px;
-}
-.journey-claim-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 32px;
-  justify-content: space-between;
-}
-.journey-claim-text {
-  flex: 1 1 380px;
-  font-family: var(--font-display);
-  font-size: clamp(17px, 2.2vw, 21px);
-  font-weight: 300;
-  line-height: 1.5;
-  max-width: 640px;
-}
-.journey-claim-text strong {
-  font-weight: 600;
-  color: var(--amber-light);
-}
-.journey-claim-stats {
-  display: flex;
-  gap: 28px;
-  flex-wrap: wrap;
-}
-.journey-claim-stat {
-  text-align: center;
-  min-width: 76px;
-}
-.journey-claim-stat-value {
-  font-family: var(--font-display);
-  font-size: 28px;
-  font-weight: 600;
-  color: var(--amber-light);
-  line-height: 1;
-}
-.journey-claim-stat-label {
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.65);
-  margin-top: 6px;
-}
-
-.journey-page-layout {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 40px 24px 64px;
-  display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 40px;
-  align-items: start;
-}
-@media (max-width: 860px) {
-  .journey-page-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-.journey-spine {
+/* 1 · HERO — full-bleed photo (or plain navy when Hero Image is empty,
+   which is every Journey today), navy gradient, content on the lower
+   third and LEFT-aligned (the old .journey-hero centred it). */
+.jr-hero {
+  position: relative;
+  min-height: 58vh;
   display: flex;
   flex-direction: column;
-}
-
-.journey-day-card {
-  display: flex;
-  gap: 16px;
-  background: white;
-  border: 1px solid var(--stone);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-card);
-  padding: 16px;
-  text-decoration: none;
-  color: inherit;
-}
-.journey-day-card-media {
-  flex: 0 0 120px;
-  width: 120px;
-  height: 120px;
-  border-radius: var(--radius-sm);
+  justify-content: flex-end;
   overflow: hidden;
-  background: var(--stone);
-  position: relative;
+  background: var(--navy);
 }
-.journey-day-card-media img {
+.jr-hero-img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.journey-day-card-body {
-  flex: 1;
-  min-width: 0;
+.jr-hero-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(to top, rgba(26, 58, 74, 0.92) 0%, rgba(26, 58, 74, 0.6) 50%, rgba(26, 58, 74, 0.35) 100%);
 }
-.journey-day-card-meta {
+.jr-hero-inner {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 24px 56px;
+}
+.jr-hero-kicker {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 16px;
+}
+.jr-hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(34px, 5.4vw, 62px);
+  font-weight: 300;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  color: var(--white);
+  margin: 0;
+}
+.jr-hero-standfirst {
+  margin: 16px 0 0;
+  max-width: 620px;
+  font-size: 17px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+/* 2 · CLAIM BAND — flush under the hero, no gap. Claim left (~60%),
+   three ruled stat columns right (~40%). */
+.jr-claim {
+  background: var(--navy);
+  color: var(--white);
+  padding: 30px 24px 34px;
+}
+.jr-claim-inner {
+  max-width: 1120px;
+  margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
+  gap: 44px;
 }
-.journey-day-card-meta-text {
-  font-size: 12.5px;
-  color: var(--slate);
-}
-.journey-day-card-title {
+.jr-claim-text {
+  flex: 0 1 60%;
   font-family: var(--font-display);
-  font-size: 19px;
-  font-weight: 600;
-  color: var(--dark);
-  margin: 0 0 6px;
-}
-.journey-day-card-hook {
-  font-size: 13.5px;
-  color: var(--peat);
+  font-size: 20px;
+  font-weight: 300;
   line-height: 1.55;
-  margin: 0 0 10px;
+  color: var(--white);
 }
-.journey-day-card-chips {
+/* The Claim field's markdown **bold** run — coloured, not bolded. */
+.jr-claim-em {
+  font-style: normal;
+  color: var(--amber);
+}
+.jr-claim-stats {
+  flex: 0 0 40%;
   display: flex;
+  align-items: stretch;
+}
+.jr-stat {
+  flex: 1 1 0;
+  padding: 0 16px;
+  border-left: 1px solid rgba(255, 255, 255, 0.22);
+  text-align: left;
+}
+.jr-stat:first-child {
+  border-left: none;
+  padding-left: 0;
+}
+.jr-stat-value {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--white);
+}
+.jr-stat-label {
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+@media (max-width: 900px) {
+  .jr-claim-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 26px;
+  }
+  .jr-claim-text,
+  .jr-claim-stats {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+}
+
+/* 3 · MAIN — spine left (~62%), map + CTA right (~35%). One column on
+   mobile, CTA box first. */
+.jr-main {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 44px 24px 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.78fr) minmax(0, 1fr);
+  gap: 44px;
+  align-items: start;
+}
+.jr-col-side {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: sticky;
+  top: 20px;
+}
+@media (max-width: 900px) {
+  .jr-main {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+  .jr-col-side {
+    order: -1;
+    position: static;
+  }
+  /* CTA box first on mobile, map under it. */
+  .jr-col-side .jr-cta {
+    order: -1;
+  }
+}
+
+/* Section head — serif title, 2px navy rule, right-aligned note on the
+   same baseline. Shared by "Day by day" and "Make it yours". */
+.jr-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  border-bottom: 2px solid var(--navy);
+  padding-bottom: 10px;
+  margin-bottom: 26px;
+}
+.jr-section-title {
+  font-family: var(--font-display);
+  font-size: 27px;
+  font-weight: 400;
+  color: var(--dark);
+  margin: 0;
+}
+.jr-section-note {
+  font-size: 11.5px;
+  color: var(--slate);
+  text-align: right;
+}
+
+/* 3b · THE SPINE — hairline down the left edge, a numbered navy disc per
+   day and a smaller moon disc per night, both centred on the line. */
+.jr-spine {
+  position: relative;
+  padding-left: 46px;
+}
+.jr-spine::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: var(--mist);
+}
+.jr-spine-item {
+  position: relative;
+  margin-bottom: 16px;
+}
+.jr-spine-marker {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+.jr-spine-marker-day {
+  left: -46px;
+  top: 14px;
+  width: 32px;
+  height: 32px;
+  background: var(--navy);
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 600;
+}
+.jr-spine-marker-night {
+  left: -40px;
+  top: 14px;
+  width: 20px;
+  height: 20px;
+  background: var(--stone);
+  color: var(--peat);
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* Day card — white, --stone border, --shadow-card, on the --off-white
+   page (docs/hero-handoff.md §5's reference treatment). */
+.jr-day-card {
+  background: var(--white);
+  border: 1px solid var(--stone);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.jr-day-card-top {
+  display: flex;
+  gap: 18px;
+  padding: 16px;
+}
+.jr-day-card-media {
+  position: relative;
+  flex: 0 0 30%;
+  max-width: 200px;
+  min-height: 148px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--stone);
+}
+.jr-day-card-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.jr-day-card-meta {
+  display: flex;
+  align-items: center;
   gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 10px;
 }
-.journey-chip {
+.jr-day-card-meta-text {
+  font-size: 12.5px;
+  color: var(--slate);
+}
+.jr-day-card-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--dark);
+  margin: 0 0 7px;
+}
+.jr-day-card-hook {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--peat);
+  margin: 0 0 14px;
+}
+.jr-day-card-foot {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.jr-chips {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.jr-chip {
   display: inline-block;
   padding: 3px 10px;
   border-radius: 100px;
   font-size: 11px;
   font-weight: 500;
-  background: var(--amber-pale);
-  color: var(--copper);
-  border: 1px solid var(--amber-light);
-}
-.journey-day-card-link {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--copper);
-}
-
-.journey-night-connector {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 12px 16px 12px 20px;
-  margin: 4px 0;
-  border-left: 2px dashed var(--mist);
-  flex-wrap: wrap;
-}
-.journey-night-connector-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--slate);
-  white-space: nowrap;
-}
-.journey-night-connector-base {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--dark);
-}
-.journey-night-connector-note {
-  font-size: 13px;
+  background: var(--off-white);
   color: var(--peat);
-  flex: 1 1 240px;
+  border: 1px solid var(--stone);
 }
-.journey-night-connector-link {
+.jr-day-open {
   font-size: 12.5px;
   font-weight: 600;
   color: var(--copper);
+  text-decoration: none;
   white-space: nowrap;
 }
-
-.journey-sidebar-box {
-  position: sticky;
-  top: 24px;
-  background: var(--cream);
-  border: 1px solid var(--stone);
-  border-radius: var(--radius);
-  padding: 22px;
+.jr-day-open:hover {
+  text-decoration: underline;
 }
-.journey-sidebar-title {
-  font-family: var(--font-display);
-  font-size: 18px;
+
+/* "THE DAY" strip — same card, separated by a hairline. */
+.jr-day-timeline {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 11px 16px 13px;
+  border-top: 1px solid var(--stone);
+  flex-wrap: wrap;
+}
+.jr-day-timeline-label {
+  flex: 0 0 auto;
+}
+.jr-day-timeline-row {
+  flex: 1 1 260px;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+.jr-timeline-seg-wrap {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.jr-timeline-arrow {
+  color: var(--mist);
+}
+.jr-timeline-time {
   font-weight: 600;
   color: var(--dark);
-  margin: 0 0 14px;
 }
-.journey-sidebar-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--stone);
-  font-size: 13.5px;
-}
-.journey-sidebar-row:last-of-type {
-  border-bottom: none;
-}
-.journey-sidebar-row-label {
+.jr-timeline-label {
   color: var(--slate);
 }
-.journey-sidebar-row-value {
+.jr-timeline-connector {
+  color: var(--mist);
+  font-style: italic;
+}
+
+/* Night connector — quieter than a day card: --stone (the sand tone) with
+   no border and no photo, one row. Deliberately NOT white and NOT
+   --green-light: white would read as another day card, and --green-light
+   is reserved for Relaxed pace / in-trip states (hero-handoff.md §5). */
+.jr-night-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  background: var(--stone);
+  border-radius: var(--radius-sm);
+  padding: 13px 16px;
+}
+.jr-night-when {
+  flex: 0 0 auto;
+  min-width: 116px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.jr-night-base {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dark);
+}
+.jr-night-note {
+  flex: 1 1 260px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--peat);
+}
+.jr-night-note strong {
   color: var(--dark);
   font-weight: 600;
 }
-.journey-sidebar-actions {
+.jr-night-link {
+  flex: 0 0 auto;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--copper);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.jr-night-link:hover {
+  text-decoration: underline;
+}
+
+/* Shared bits — white card surface, tiny grey caps eyebrow. */
+.jr-card {
+  background: var(--white);
+  border: 1px solid var(--stone);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+.jr-eyebrow {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--slate);
+}
+.jr-eyebrow-copper {
+  color: var(--copper);
+}
+
+/* 3c · ROUTE MAP CARD */
+.jr-map-card {
+  overflow: hidden;
+}
+.jr-map-holder {
+  position: relative;
+}
+.jr-map-canvas {
+  height: 230px;
+  width: 100%;
+}
+.jr-map-caption {
+  position: absolute;
+  z-index: 500;
+  left: 10px;
+  bottom: 10px;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(26, 58, 74, 0.82);
+  color: rgba(255, 255, 255, 0.92);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+}
+.jr-map-body {
+  padding: 14px 16px 16px;
+}
+.jr-map-summary {
+  margin: 7px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--peat);
+}
+
+/* 3d · CTA BOX */
+.jr-cta {
+  background: var(--green-deep);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.jr-cta-eyebrow {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 14px;
+}
+.jr-cta-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 13px;
+}
+.jr-cta-row:last-of-type {
+  border-bottom: none;
+}
+.jr-cta-label {
+  color: rgba(255, 255, 255, 0.62);
+}
+.jr-cta-value {
+  color: var(--white);
+  font-weight: 600;
+  text-align: right;
+}
+/* No real room rate is sourced yet — muted, never a number. */
+.jr-cta-pending {
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 400;
+}
+/* The one sanctioned green pairing: --green-light on --green-deep. */
+.jr-cta-value-good {
+  color: var(--green-light);
+}
+.jr-cta-actions {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 16px;
+  margin-top: 18px;
+}
+.jr-cta-help {
+  margin: 14px 0 0;
+  font-size: 11px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.5);
+}
+/* The two Add buttons' own styling (they were inline-styled before) —
+   amber fill, then a navy-outlined white secondary. */
+.jr-btn-primary,
+.jr-btn-secondary {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+}
+.jr-btn-primary {
+  padding: 13px 20px;
+  background: var(--amber);
+  color: var(--navy);
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+}
+.jr-btn-primary:hover {
+  background: var(--amber-light);
+}
+.jr-btn-secondary {
+  padding: 12px 20px;
+  background: var(--white);
+  color: var(--navy);
+  border: 1px solid var(--navy);
+  font-size: 13px;
+  font-weight: 600;
+}
+.jr-btn-secondary:hover {
+  background: var(--off-white);
+}
+
+/* 4 · MAKE IT YOURS + 5 · GETTING HERE / BEFORE YOU BOOK */
+.jr-wide {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 34px 24px 0;
+}
+.jr-wide:last-of-type {
+  padding-bottom: 64px;
+}
+.jr-variations {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+@media (max-width: 900px) {
+  .jr-variations {
+    grid-template-columns: 1fr;
+  }
+}
+.jr-variation {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+}
+.jr-variation-title {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 500;
+  color: var(--dark);
+  margin: 9px 0 8px;
+}
+.jr-variation-body {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--peat);
+  margin: 0 0 14px;
+}
+.jr-variation-link {
+  margin-top: auto;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--copper);
+  text-decoration: none;
+}
+.jr-variation-link:hover {
+  text-decoration: underline;
+}
+
+.jr-panels {
+  display: grid;
+  grid-template-columns: minmax(0, 45fr) minmax(0, 55fr);
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .jr-panels {
+    grid-template-columns: 1fr;
+  }
+}
+.jr-panel {
+  padding: 20px 22px;
+}
+.jr-panel-title {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 500;
+  color: var(--dark);
+  margin: 0 0 6px;
+}
+.jr-panel-row {
+  display: flex;
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--stone);
+}
+.jr-panel-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.jr-panel-row-key {
+  flex: 0 0 88px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--dark);
+}
+.jr-panel-row-value {
+  flex: 1 1 auto;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--slate);
+}
+
+@media (max-width: 640px) {
+  .jr-day-card-top {
+    flex-direction: column;
+  }
+  .jr-day-card-media {
+    flex: 1 1 auto;
+    max-width: none;
+    width: 100%;
+    min-height: 170px;
+  }
+  .jr-spine {
+    padding-left: 34px;
+  }
+  .jr-spine::before {
+    left: 11px;
+  }
+  .jr-spine-marker-day {
+    left: -34px;
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+  .jr-spine-marker-night {
+    left: -30px;
+    width: 16px;
+    height: 16px;
+    font-size: 9px;
+  }
 }

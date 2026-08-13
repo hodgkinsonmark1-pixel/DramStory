@@ -45,21 +45,7 @@ export default function AddJourneyToTripButton({ journey }: { journey: Journey }
   }
 
   return (
-    <button
-      onClick={handleClick}
-      style={{
-        display: "block",
-        width: "100%",
-        padding: "14px 28px",
-        background: "var(--copper)",
-        color: "white",
-        border: "none",
-        borderRadius: "var(--radius-sm)",
-        fontSize: 14,
-        fontWeight: 600,
-        cursor: "pointer",
-      }}
-    >
+    <button onClick={handleClick} className="jr-btn-primary">
       Start this as my trip &rarr;
     </button>
   );

@@ -611,6 +611,31 @@ export interface AirtableDayFields {
    *  "2 miles". Blank means "not a walking day" - callers fall back to
    *  "Duration from Port Ellen" instead. Added 13 Aug 2026. */
   "Distance on Foot"?: string;
+  /** The compact "THE DAY" strip on a journey page's day card - one
+   *  segment per line, in order. A line beginning HH:MM is a timed stop;
+   *  a line with no leading time is a muted connector between stops
+   *  ("40 min walk"). Indicative timings only, per the field's own
+   *  Airtable description. Added 13 Aug 2026. */
+  "Day Timeline"?: string;
+}
+
+/** Splits a Day Timeline field into ordered segments. A line starting
+ *  HH:MM (or H:MM) is a timed stop - the time is separated from its
+ *  label so the card can render the time dark/bold and the label grey;
+ *  anything else is an untimed connector, rendered muted. Blank lines
+ *  skipped. Deliberately tolerant: a timed line with no label after the
+ *  time still renders (just the time), rather than being dropped. */
+export function parseDayTimeline(text?: string): { time?: string; label: string }[] {
+  if (!text) return [];
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const m = line.match(/^(\d{1,2}:\d{2})\s*(.*)$/);
+      if (m) return { time: m[1], label: m[2].trim() };
+      return { label: line };
+    });
 }
 
 export interface AirtableDayStopFields {
@@ -720,6 +745,7 @@ export function mapAirtableDayRecord(
     featureStops,
     hook: f.Hook ?? "",
     distanceOnFoot: f["Distance on Foot"] || undefined,
+    timeline: parseDayTimeline(f["Day Timeline"]),
     source: "airtable",
   };
 }
@@ -751,6 +777,49 @@ export interface AirtableJourneyFields {
    *  last line; blank falls back to Accommodation Note. Added 13 Aug
    *  2026. */
   "Night Notes"?: string;
+  /** Up to 3 "Make it yours" variation cards, one per line, pipe-
+   *  delimited: EYEBROW | Title | Body | link-slug. Added 13 Aug 2026. */
+  "Make It Yours"?: string;
+  /** "Getting here and away" panel rows - "Label: Value" per line, same
+   *  convention as Areas' In The Village. Added 13 Aug 2026. */
+  "Getting Here Rows"?: string;
+  /** "Before you book" panel rows - same convention. Added 13 Aug 2026. */
+  "Before You Book Rows"?: string;
+  /** Indicative lowest per-night room rate at this Journey's Base.
+   *  Deliberately blank on every Journey as of 13 Aug 2026 - no real
+   *  room rate has been sourced, so the sidebar renders a pending state
+   *  rather than a fabricated number. Added 13 Aug 2026. */
+  "Accommodation From (per night)"?: number;
+  /** One factual sentence under the sidebar route map. Written in
+   *  Airtable (never composed in code) so it can be reviewed like any
+   *  other editorial line. Added 13 Aug 2026. */
+  "Route Summary"?: string;
+}
+
+/** Parses the "Make It Yours" field - one card per line, pipe-delimited
+ *  EYEBROW | Title | Body | link-slug. A line missing any of the four
+ *  parts is skipped rather than rendered half-built; the slug is
+ *  resolved to a real /days or /journeys URL by the page itself (it
+ *  needs both tables to know which), not here. */
+export function parseMakeItYours(
+  text?: string
+): { eyebrow: string; title: string; body: string; linkSlug: string }[] {
+  if (!text) return [];
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const parts = line.split("|").map((p) => p.trim());
+      if (parts.length < 4) return null;
+      const [eyebrow, title, body, linkSlug] = parts;
+      if (!eyebrow || !title || !body || !linkSlug) return null;
+      return { eyebrow, title, body, linkSlug };
+    })
+    .filter(
+      (c): c is { eyebrow: string; title: string; body: string; linkSlug: string } => c !== null
+    )
+    .slice(0, 3);
 }
 
 export interface AirtableJourneyDayFields {

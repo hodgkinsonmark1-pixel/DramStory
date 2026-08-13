@@ -60,14 +60,83 @@ function parseMiles(text: string | undefined): number | undefined {
  *  fully walkable (some days are driving days), per the task brief's own
  *  "fall back to something sensible like day count" instruction. */
 export function journeyThirdStat(journey: Journey): { value: string; label: string } {
+  const dayCount = journey.days.length;
   if (journeyFullyWalkable(journey)) {
     const totalMiles = journey.days.reduce((sum, d) => sum + (parseMiles(d.distanceOnFoot) ?? 0), 0);
     if (totalMiles > 0) {
-      return { value: `${totalMiles}`, label: totalMiles === 1 ? "mile on foot" : "miles on foot" };
+      return {
+        value: `${totalMiles}`,
+        label: `${totalMiles === 1 ? "mile" : "miles"} on foot across ${dayCount} ${
+          dayCount === 1 ? "day" : "days"
+        }`,
+      };
     }
   }
-  const dayCount = journey.days.length;
-  return { value: `${dayCount}`, label: dayCount === 1 ? "day on the road" : "days on the road" };
+  // Not fully walkable: a mileage here would have to be invented, so the
+  // stat becomes the day count instead, qualified by the real pacing mix
+  // already on each Day record.
+  const pacing = journeyPacingSummary(journey);
+  return {
+    value: `${dayCount}`,
+    label: pacing ? `${dayCount === 1 ? "day" : "days"}, ${pacing}` : dayCount === 1 ? "day" : "days",
+  };
+}
+
+/** Plain-English summary of the pacing mix across a Journey's Days, from
+ *  each Day's own Pacing field - "all relaxed" when they agree, otherwise
+ *  the span ("relaxed to packed"). Empty string when no Day has a pacing
+ *  set, so callers can drop the clause rather than print an empty one. */
+export function journeyPacingSummary(journey: Journey): string {
+  const ORDER = ["Relaxed", "Moderate", "Packed"];
+  const present = ORDER.filter((p) => journey.days.some((d) => d.pacing === p));
+  const unknown = journey.days.some((d) => !ORDER.includes(d.pacing));
+  if (present.length === 0) return "";
+  if (present.length === 1) return unknown ? present[0].toLowerCase() : `all ${present[0].toLowerCase()}`;
+  return `${present[0].toLowerCase()} to ${present[present.length - 1].toLowerCase()}`;
+}
+
+/** Claim-band stat 1's two-line label. Two nights in one place is worth
+ *  saying out loud ("both in Port Ellen"); three or more isn't. */
+export function journeyNightsStatLabel(journey: Journey): string {
+  const noun = journey.nights === 1 ? "night" : "nights";
+  if (!journey.base) return noun;
+  if (journey.nights === 2) return `nights, both in ${journey.base}`;
+  return `${noun} in ${journey.base}`;
+}
+
+/** Claim-band stat 2's two-line label - "all within walking" is only ever
+ *  claimed when every single Day has a real Distance on Foot. */
+export function journeyDistilleryStatLabel(journey: Journey): string {
+  const noun = journeyDistilleryCount(journey) === 1 ? "distillery" : "distilleries";
+  return journeyFullyWalkable(journey) ? `${noun}, all within walking` : `${noun} across the route`;
+}
+
+/** Sum of a single Day's linked Tour prices - the "£Npp in tours" half of
+ *  a day card's meta line. Zero when nothing on the day is priced, in
+ *  which case the card omits the clause rather than printing "£0pp". */
+export function dayTourTotal(day: HubDay): number {
+  return day.stops.reduce((sum, stop) => sum + (stop.tour?.price ?? 0), 0);
+}
+
+/** "NIGHT ONE"/"NIGHT TWO" - the night connector spells its ordinal out
+ *  rather than showing a numeral. Falls back to the numeral past ten,
+ *  which no real Journey reaches (the longest is 6 nights). */
+export function ordinalWord(n: number): string {
+  const WORDS = ["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "TEN"];
+  return WORDS[n - 1] ?? `${n}`;
+}
+
+/** Splits a night note so its final sentence can be rendered bold, per
+ *  the design - the emphasis is the last actionable beat ("Book it when
+ *  you book the room."). Returns the whole note as `lead` with no `last`
+ *  when there's only one sentence, so nothing is emphasised by default. */
+export function splitFinalSentence(note: string): { lead: string; last: string } {
+  const trimmed = note.trim();
+  const matches = [...trimmed.matchAll(/[^.!?]+[.!?]+(\s|$)/g)];
+  if (matches.length < 2) return { lead: trimmed, last: "" };
+  const lastMatch = matches[matches.length - 1];
+  const start = lastMatch.index ?? 0;
+  return { lead: trimmed.slice(0, start), last: trimmed.slice(start).trim() };
 }
 
 /** Sum of every Day Stop's linked Tour price, across every Day in the

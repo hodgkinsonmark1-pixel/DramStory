@@ -13,6 +13,8 @@ import {
   mapToJournalPost,
   mapToLocalEvent,
   mapToLocalFeature,
+  parseLabelValueLines,
+  parseMakeItYours,
   type AirtableAreaFields,
   type AirtableDayFields,
   type AirtableDayStopFields,
@@ -435,6 +437,17 @@ async function fetchJourneysFromAirtable(): Promise<Journey[]> {
         .split("\n")
         .map((line) => line.trim())
         .filter(Boolean),
+      makeItYours: parseMakeItYours(f["Make It Yours"]),
+      gettingHereRows: parseLabelValueLines(f["Getting Here Rows"]),
+      beforeYouBookRows: parseLabelValueLines(f["Before You Book Rows"]),
+      // Deliberately blank on all four Journeys - see the field's own
+      // doc comment in airtable-mappers.ts. Undefined (not 0) so the
+      // sidebar can tell "no rate sourced yet" from a real £0.
+      accommodationFromPerNight:
+        typeof f["Accommodation From (per night)"] === "number"
+          ? f["Accommodation From (per night)"]
+          : undefined,
+      routeSummary: f["Route Summary"] ?? "",
       source: "airtable",
     });
   }

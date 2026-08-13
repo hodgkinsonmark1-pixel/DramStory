@@ -43,21 +43,7 @@ export default function AddJourneyDaysButton({ journey }: { journey: Journey }) 
   }
 
   return (
-    <button
-      onClick={handleClick}
-      style={{
-        display: "block",
-        width: "100%",
-        padding: "12px 20px",
-        background: "white",
-        color: "var(--copper)",
-        border: "1px solid var(--copper)",
-        borderRadius: "var(--radius-sm)",
-        fontSize: 13,
-        fontWeight: 500,
-        cursor: "pointer",
-      }}
-    >
+    <button onClick={handleClick} className="jr-btn-secondary">
       Add just the days &rarr;
     </button>
   );
