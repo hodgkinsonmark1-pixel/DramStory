@@ -344,7 +344,7 @@
   line-height: 1.2;
 }
 /* Days/Trip flow Phase 4 - the title is now a link into the day screen
-   (/trip/day/[index]). Additive to .trip-day-title above (both classes
+   (/days/[slug]?trip=N). Additive to .trip-day-title above (both classes
    applied together) - just adds link affordances/tap-target sizing. */
 .trip-day-title-link {
   display: inline-flex;

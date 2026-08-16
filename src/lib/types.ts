@@ -395,12 +395,15 @@ export interface HubDay {
    *  Undefined for driving days - callers fall back to durationPortEllen
    *  instead. Added 13 Aug 2026. */
   distanceOnFoot?: string;
-  /** The compact "THE DAY" strip on a journey page's day card, already
-   *  split into ordered segments. `time` set only for timed stops
-   *  ("13:00"); segments without one are muted connectors ("40 min
-   *  walk"). Empty array when the Day has no Day Timeline - the strip is
-   *  omitted entirely rather than faked. Added 13 Aug 2026. */
-  timeline: { time?: string; label: string }[];
+  /** When this Day starts, as authored in Airtable's `Start Time`
+   *  (singleLineText, "HH:MM" - e.g. "13:00"). Undefined/blank means the
+   *  09:30 default from docs/days-trip-flow-handoff.md §2.2. Feeds
+   *  scheduleForItineraryDay()'s start, which is the ONE source of the
+   *  times shown on /days/[slug] and in the "THE DAY" strip on
+   *  /journeys/[slug]. Added 16 Aug 2026, replacing the retired,
+   *  hand-written `Day Timeline` field - two hand-written times and a
+   *  computed schedule could and did disagree about the same day. */
+  startTime?: string;
   source: DataSource;
 }
 

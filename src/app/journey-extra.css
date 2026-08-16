@@ -2246,11 +2246,6 @@ select.location-inline-input {
 .jr-timeline-label {
   color: var(--slate);
 }
-.jr-timeline-connector {
-  color: var(--mist);
-  font-style: italic;
-}
-
 /* Night connector — quieter than a day card: --stone (the sand tone) with
    no border and no photo, one row. Deliberately NOT white and NOT
    --green-light: white would read as another day card, and --green-light

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useTrip } from "@/lib/trip-context";
 import type { LocalFeature } from "@/lib/types";
 import DetailPageBar from "@/components/DetailPageBar";
+import { renderWithLinks } from "@/lib/render-links";
 
 // Simple line-style icons for the Quick Facts strip - pick up the brand
 // copper colour via currentColor/CSS `color`, unlike emoji which render
@@ -157,22 +158,6 @@ function PhotoCredit({ credit }: { credit?: string }) {
       )}
     </div>
   );
-}
-
-/** Renders plain text containing [label](/path) markdown-style links as
- *  real internal <Link>s. */
-function renderWithLinks(text: string) {
-  const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g);
-  return parts.map((part, i) => {
-    const match = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-    if (!match) return part;
-    const [, label, href] = match;
-    return (
-      <Link href={href} key={i} className="dist-inline-link">
-        {label}
-      </Link>
-    );
-  });
 }
 
 export default function ExploreFeatureClient({ feature: f }: ExploreFeatureClientProps) {

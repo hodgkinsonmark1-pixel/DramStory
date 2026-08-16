@@ -500,7 +500,26 @@ export function dateForDayIndex(tripDates: TripDates, index: number): Date | nul
  *  feature's own duration / the flat feature default, or a visitor's
  *  customMinutes override - itinerary-stop.ts's existing single source of
  *  truth for "how long is this stop", reused rather than re-derived). */
-const SCHEDULE_START_MINUTES = 9 * 60 + 30; // 09:30, per §2.2/§3.4 - not adjustable (§8 open question 4)
+/** The 09:30 in §2.2/§3.4 - now only the FALLBACK, used for any Day whose
+ *  Airtable `Start Time` is blank. §8 open question 4 ("Start time - the
+ *  schedule assumes 09:30. Should that be adjustable?") is answered: yes,
+ *  per Day, in Airtable. */
+export const DEFAULT_SCHEDULE_START_MINUTES = 9 * 60 + 30;
+
+/** Parses a Day's `Start Time` ("13:00", "9:30") into minutes after
+ *  midnight. Anything unparseable or out of range falls back to 09:30
+ *  rather than throwing or silently producing a nonsense clock - a bad
+ *  cell in Airtable should degrade to the documented default, not break
+ *  the page. */
+export function parseStartTimeMinutes(startTime?: string): number {
+  if (!startTime) return DEFAULT_SCHEDULE_START_MINUTES;
+  const m = startTime.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return DEFAULT_SCHEDULE_START_MINUTES;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 23 || min > 59) return DEFAULT_SCHEDULE_START_MINUTES;
+  return h * 60 + min;
+}
 
 export interface ScheduleRow {
   stop: ItineraryStop;
@@ -519,10 +538,23 @@ export interface DaySchedule {
   home: number;
 }
 
-export function scheduleForItineraryDay(day: ItineraryDay): DaySchedule {
+/**
+ * `startMinutes` is the moment the day BEGINS - i.e. when the visitor
+ * leaves their base, exactly as the original fixed 09:30 constant meant.
+ * With a base set, the first stop's arrival is therefore start + the
+ * first drive leg; with no base (a published Day being read by someone
+ * who hasn't added it to a trip, so there is no honest "your door" to
+ * drive from), the first stop's arrival IS the start time. Callers pass
+ * parseStartTimeMinutes(hub.startTime) - see scheduleForHubDay below,
+ * which is the single entry point for the un-added case.
+ */
+export function scheduleForItineraryDay(
+  day: ItineraryDay,
+  startMinutes: number = DEFAULT_SCHEDULE_START_MINUTES
+): DaySchedule {
   const acc = day.accommodation;
   const base = acc ? { lat: acc.lat, lng: acc.lng } : undefined;
-  let t = SCHEDULE_START_MINUTES;
+  let t = startMinutes;
   let prevPoint = base;
   const rows: ScheduleRow[] = day.stops.map((stop, index) => {
     const point = stopCoords(stop);
@@ -536,6 +568,53 @@ export function scheduleForItineraryDay(day: ItineraryDay): DaySchedule {
   });
   const home = base && prevPoint && day.stops.length > 0 ? t + estimatedDriveMinutes(prevPoint, base) : t;
   return { rows, home };
+}
+
+/**
+ * A published HubDay expressed in the ItineraryDay shape, so that ONE
+ * schedule/drive/grouping implementation serves both "this day is in my
+ * trip" and "I'm just reading this day". Deliberately no accommodation:
+ * a Day nobody has added to a trip has no base to drive from or home to,
+ * and inventing one (the default Machrie, say) would print a departure
+ * time for a journey the visitor never said they were making.
+ *
+ * Stop ORDER is distilleries first (in their curated Day Stops order),
+ * then feature stops in the order the narrative links them - the same
+ * approximation, and the same reason for it, as driveMinutesForDay()
+ * above: the data model has no single combined visiting order spanning
+ * both. Flagged rather than papered over.
+ *
+ * `anchor` is carried straight through from the Day Stop's own Anchor
+ * checkbox, so the un-added view marks the same stops undroppable as the
+ * in-trip one does.
+ */
+export function itineraryDayFromHubDay(hub: HubDay): ItineraryDay {
+  return {
+    id: `hub-${hub.slug}`,
+    label: hub.name,
+    sourceHubDaySlug: hub.slug,
+    stops: [
+      ...hub.stops.map((s): ItineraryStop => ({
+        kind: "distillery",
+        distillery: s.distillery,
+        tour: s.tour,
+        anchor: s.anchor,
+      })),
+      ...hub.featureStops.map((f): ItineraryStop => ({ kind: "feature", feature: f })),
+    ],
+  };
+}
+
+/**
+ * The schedule for a published Day, computed from its own `Start Time`.
+ * This is what both /days/[slug] (for a day not in the visitor's trip)
+ * and the "THE DAY" strip on /journeys/[slug] render - one function, so
+ * the two pages cannot print different times for the same day. That
+ * disagreement is exactly what the retired, hand-written `Day Timeline`
+ * Airtable field used to cause.
+ */
+export function scheduleForHubDay(hub: HubDay): DaySchedule {
+  return scheduleForItineraryDay(itineraryDayFromHubDay(hub), parseStartTimeMinutes(hub.startTime));
 }
 
 /** Formats minutes-after-midnight as "9:30", "13:10" - rounded to the

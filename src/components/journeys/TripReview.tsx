@@ -220,9 +220,22 @@ function DayReviewRow({
             stays a distinct action below (the hand-off into /journey),
             so the two affordances remain legible as different things:
             "look at this day" vs "go edit it properly". */}
-        <Link href={`/trip/day/${index}`} className="trip-day-title trip-day-title-link">
-          {title}
-        </Link>
+        {/* 16 Aug 2026: links straight at the merged day page rather
+            than the old /trip/day/[index] route (now only a redirect).
+            ?trip={index} says WHICH instance of this Day - the same Day
+            can be in a trip twice. A day built freehand in the planner
+            has no published Day behind it and so has no page to open;
+            its title stays plain text rather than a link that dead-ends. */}
+        {day.sourceHubDaySlug ? (
+          <Link
+            href={`/days/${day.sourceHubDaySlug}?trip=${index}`}
+            className="trip-day-title trip-day-title-link"
+          >
+            {title}
+          </Link>
+        ) : (
+          <div className="trip-day-title">{title}</div>
+        )}
         {edited && (
           <div className="trip-day-version">
             <span className="trip-day-version-tag">YOUR VERSION</span>

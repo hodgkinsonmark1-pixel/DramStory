@@ -611,31 +611,19 @@ export interface AirtableDayFields {
    *  "2 miles". Blank means "not a walking day" - callers fall back to
    *  "Duration from Port Ellen" instead. Added 13 Aug 2026. */
   "Distance on Foot"?: string;
-  /** The compact "THE DAY" strip on a journey page's day card - one
-   *  segment per line, in order. A line beginning HH:MM is a timed stop;
-   *  a line with no leading time is a muted connector between stops
-   *  ("40 min walk"). Indicative timings only, per the field's own
-   *  Airtable description. Added 13 Aug 2026. */
-  "Day Timeline"?: string;
-}
-
-/** Splits a Day Timeline field into ordered segments. A line starting
- *  HH:MM (or H:MM) is a timed stop - the time is separated from its
- *  label so the card can render the time dark/bold and the label grey;
- *  anything else is an untimed connector, rendered muted. Blank lines
- *  skipped. Deliberately tolerant: a timed line with no label after the
- *  time still renders (just the time), rather than being dropped. */
-export function parseDayTimeline(text?: string): { time?: string; label: string }[] {
-  if (!text) return [];
-  return text
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const m = line.match(/^(\d{1,2}:\d{2})\s*(.*)$/);
-      if (m) return { time: m[1], label: m[2].trim() };
-      return { label: line };
-    });
+  /** When this Day starts, "HH:MM" (e.g. "13:00"). Blank means the 09:30
+   *  default (docs/days-trip-flow-handoff.md §2.2). Added 16 Aug 2026.
+   *
+   *  This REPLACES the retired "Day Timeline" field, which held a
+   *  hand-written run of times for the journey page's "THE DAY" strip.
+   *  That field has been deleted from the Days table (confirmed against
+   *  Airtable, 16 Aug 2026 - a read naming it now 422s), and with it the
+   *  bug it caused: a hand-written timeline and the computed schedule on
+   *  the day screen were two independent sources for the same fact, and
+   *  showed the same day starting at two different times. Everything is
+   *  computed from Start Time now - see scheduleForHubDay() in
+   *  day-derivations.ts. */
+  "Start Time"?: string;
 }
 
 export interface AirtableDayStopFields {
@@ -745,7 +733,7 @@ export function mapAirtableDayRecord(
     featureStops,
     hook: f.Hook ?? "",
     distanceOnFoot: f["Distance on Foot"] || undefined,
-    timeline: parseDayTimeline(f["Day Timeline"]),
+    startTime: f["Start Time"]?.trim() || undefined,
     source: "airtable",
   };
 }

@@ -27,6 +27,16 @@ interface JourneyDayMapProps {
    *  mappable location (e.g. "browse the high street") simply aren't
    *  passed here and don't appear on the map at all. */
   featureStops?: { name: string; slug: string; lat: number; lng: number }[];
+  /** False renders the same map as a flat, non-interactive preview: no
+   *  drag, no zoom, no tappable markers. Used below 768px on
+   *  /days/[slug], where a full-height interactive Leaflet canvas in the
+   *  middle of a scrolling article swallows the scroll gesture - the
+   *  visitor's thumb pans the map instead of the page and the article
+   *  becomes a trap. Callers pairing this with `false` are expected to
+   *  offer a real way through to the map instead (the "Open the map ->"
+   *  target on the day screen). Defaults true so every existing caller
+   *  is unchanged. */
+  interactive?: boolean;
 }
 
 /**
@@ -38,7 +48,7 @@ interface JourneyDayMapProps {
  * between them - reusing the same Leaflet setup and OSRM routing utility
  * the main map uses, at a much smaller scope.
  */
-export default function JourneyDayMap({ base, stops, featureStops = [] }: JourneyDayMapProps) {
+export default function JourneyDayMap({ base, stops, featureStops = [], interactive = true }: JourneyDayMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Leaflet.Map | null>(null);
 
@@ -49,7 +59,21 @@ export default function JourneyDayMap({ base, stops, featureStops = [] }: Journe
       const L = (await import("leaflet")).default;
       if (cancelled || !containerRef.current || mapRef.current) return;
 
-      const map = L.map(containerRef.current, { scrollWheelZoom: false });
+      const map = L.map(containerRef.current, {
+        scrollWheelZoom: false,
+        // Every gesture handler off in preview mode, plus `keyboard` so
+        // the container never takes focus in a tab order it can't be
+        // used from. (Leaflet's own `tap` touch-click emulation option
+        // is gone from the installed typings - the wrapping element's
+        // pointer-events: none, see the return below, is what actually
+        // guarantees no touch reaches the canvas at all.)
+        dragging: interactive,
+        touchZoom: interactive,
+        doubleClickZoom: interactive,
+        boxZoom: interactive,
+        keyboard: interactive,
+        zoomControl: interactive,
+      });
       mapRef.current = map;
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -93,9 +117,11 @@ export default function JourneyDayMap({ base, stops, featureStops = [] }: Journe
         // Opens the distillery's own page in a new tab rather than
         // navigating away from the journey page the visitor is
         // currently reading.
-        marker.on("click", () => {
-          window.open(`/distilleries/${d.slug}`, "_blank", "noopener,noreferrer");
-        });
+        if (interactive) {
+          marker.on("click", () => {
+            window.open(`/distilleries/${d.slug}`, "_blank", "noopener,noreferrer");
+          });
+        }
       }
 
       for (const f of featureStops) {
@@ -114,9 +140,11 @@ export default function JourneyDayMap({ base, stops, featureStops = [] }: Journe
             className: "journey-day-map-label",
           })
           .addTo(map);
-        marker.on("click", () => {
-          window.open(`/explore/${f.slug}`, "_blank", "noopener,noreferrer");
-        });
+        if (interactive) {
+          marker.on("click", () => {
+            window.open(`/explore/${f.slug}`, "_blank", "noopener,noreferrer");
+          });
+        }
       }
 
       const points: LatLng[] = [
@@ -154,7 +182,18 @@ export default function JourneyDayMap({ base, stops, featureStops = [] }: Journe
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [interactive]);
 
-  return <div ref={containerRef} style={{ height: 220, borderRadius: "var(--radius)", overflow: "hidden" }} />;
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        height: 220,
+        borderRadius: "var(--radius)",
+        overflow: "hidden",
+        pointerEvents: interactive ? undefined : "none",
+      }}
+      aria-hidden={interactive ? undefined : true}
+    />
+  );
 }

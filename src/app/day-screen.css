@@ -1,4 +1,4 @@
-/* Day screen (/trip/day/[index]) - Days/Trip flow Phase 4
+/* Day screen (/days/[slug]) - Days/Trip flow Phase 4
    (docs/days-trip-flow-handoff.md §3.4, §10 "Day"). Header/body follow
    the reference prototype's own amber-pale palette for this screen
    (distinct from /trip's dark navy hero) - real tokens from
@@ -287,7 +287,78 @@
   margin-bottom: 10px;
 }
 
+/* ---- map ---- */
+.day-map-block {
+  margin: 16px 0 4px;
+}
+/* Below 768px the map is a flat preview with every Leaflet handler off
+   (see DayScreen.tsx) - a live canvas mid-article swallows the scroll
+   gesture. The preview is inert; this is the way through to a real map. */
+.day-map-preview {
+  position: relative;
+}
+.day-map-open {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  background: var(--dark);
+  color: var(--off-white);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: var(--shadow-card);
+}
+
+/* ---- "Distilleries visited" / "Other features visited" ---- */
+.day-visited {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 32px;
+  margin-top: 20px;
+}
+.day-visited-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+}
+.day-visited-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 2px;
+}
+.day-visited-link {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--dark);
+  text-decoration: none;
+}
+.day-visited-link:hover,
+.day-visited-link:focus-visible {
+  color: var(--copper);
+}
+
+.day-transport-note {
+  font-size: 12px;
+  color: var(--slate);
+  font-style: italic;
+  margin-top: 16px;
+}
+
 /* ---- swap sheet (reuses .tour-picker-backdrop/.tour-picker-modal shell) ---- */
+.day-swap-intro {
+  font-size: 13px;
+  color: var(--slate);
+  margin: 4px 0 14px;
+}
 .day-swap-list {
   display: flex;
   flex-direction: column;
@@ -343,14 +414,6 @@
   margin-top: 16px;
 }
 
-/* ---- not-found (bad/stale index) ---- */
-.day-not-found {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 80px 24px 120px;
-  text-align: center;
-}
-
 /* §7 accessibility: "Visible focus: outline: 3px solid at 2px offset."
    No site-wide focus-visible rule exists to inherit (see Phase 5's own
    identical note in journey-extra.css) - each phase scopes this to its
@@ -360,7 +423,9 @@
 .day-stop-main:focus-visible,
 .day-stop-btn:focus-visible,
 .day-ghost-undo:focus-visible,
-.day-swap-option:focus-visible {
+.day-swap-option:focus-visible,
+.day-map-open:focus-visible,
+.day-visited-link:focus-visible {
   outline: 3px solid var(--copper);
   outline-offset: 2px;
 }

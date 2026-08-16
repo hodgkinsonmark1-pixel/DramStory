@@ -8,7 +8,8 @@ import { PacingTag } from "@/components/PacingTag";
 import AddJourneyToTripButton from "@/components/journeys/AddJourneyToTripButton";
 import AddJourneyDaysButton from "@/components/journeys/AddJourneyDaysButton";
 import JourneyRouteMap, { type RouteMapStop } from "@/components/journeys/JourneyRouteMap";
-import { formatMoney } from "@/lib/day-derivations";
+import { formatClockTime, formatMoney, scheduleForHubDay } from "@/lib/day-derivations";
+import { stopName } from "@/lib/itinerary-stop";
 import {
   dayChips,
   dayTourTotal,
@@ -108,27 +109,30 @@ function renderClaim(text: string) {
   });
 }
 
-/** The compact "THE DAY" strip - one horizontal run of the Day Timeline
- *  segments, arrows between them. Timed segments show the time dark and
- *  its label grey; untimed connectors ("40 min walk") are muted
- *  throughout. Wraps rather than scrolls on narrow widths. */
+/** The compact "THE DAY" strip - one horizontal run of this Day's stops
+ *  with their arrival times, arrows between them. Wraps rather than
+ *  scrolls on narrow widths.
+ *
+ *  REWIRED 16 Aug 2026: these times used to come from a hand-written
+ *  `Day Timeline` field in Airtable, entirely independent of the
+ *  schedule the day screen computed - so the same Day could (and did)
+ *  advertise 09:30 here and 10:05 on /days/[slug]. Both now read the one
+ *  computed schedule, started from the Day's own `Start Time`. The field
+ *  is retired and deleted; nothing reads it any more. */
 function DayTimelineStrip({ day }: { day: HubDay }) {
-  if (day.timeline.length === 0) return null;
+  const rows = scheduleForHubDay(day).rows;
+  if (rows.length === 0) return null;
   return (
     <div className="jr-day-timeline">
       <span className="jr-eyebrow jr-day-timeline-label">The day</span>
       <div className="jr-day-timeline-row">
-        {day.timeline.map((seg, i) => (
-          <span key={i} className="jr-timeline-seg-wrap">
-            {i > 0 && <span className="jr-timeline-arrow">&rarr;</span>}
-            {seg.time ? (
-              <span className="jr-timeline-seg">
-                <span className="jr-timeline-time">{seg.time}</span>
-                {seg.label && <span className="jr-timeline-label"> {seg.label}</span>}
-              </span>
-            ) : (
-              <span className="jr-timeline-connector">{seg.label}</span>
-            )}
+        {rows.map((row) => (
+          <span key={`${row.index}-${stopName(row.stop)}`} className="jr-timeline-seg-wrap">
+            {row.index > 0 && <span className="jr-timeline-arrow">&rarr;</span>}
+            <span className="jr-timeline-seg">
+              <span className="jr-timeline-time">{formatClockTime(row.arrive)}</span>
+              <span className="jr-timeline-label"> {stopName(row.stop)}</span>
+            </span>
           </span>
         ))}
       </div>

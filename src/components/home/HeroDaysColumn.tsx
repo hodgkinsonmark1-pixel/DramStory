@@ -340,7 +340,7 @@ function HeroDayCard({
           {metaText && <span className="days-hub-card-meta-text">{metaText}</span>}
         </div>
         {isAdded ? (
-          <Link href={`/trip/day/${addedIndex}`} className="days-hub-card-title-link">
+          <Link href={`/days/${day.slug}?trip=${addedIndex}`} className="days-hub-card-title-link">
             <h3 className="days-hub-card-title">{day.name}</h3>
           </Link>
         ) : (
