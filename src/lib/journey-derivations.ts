@@ -96,7 +96,11 @@ export function journeyPacingSummary(journey: Journey): string {
 }
 
 /** Claim-band stat 1's two-line label. Two nights in one place is worth
- *  saying out loud ("both in Port Ellen"); three or more isn't. */
+ *  saying out loud ("both in Port Ellen"); three or more isn't.
+ *
+ *  Counts PRICED nights only (`Nights`), never the authored Night Notes
+ *  lines - the Grand Tour's stat reads five, and its optional sixth
+ *  night appears in the spine without being counted here. */
 export function journeyNightsStatLabel(journey: Journey): string {
   const noun = journey.nights === 1 ? "night" : "nights";
   if (!journey.base) return noun;
@@ -180,8 +184,26 @@ export function nightNoteFor(journey: Journey, n: number): string {
 }
 
 /** One night's slot in the spine - its 1-indexed number, and whether it
- *  is the trailing night the visitor may simply not take. */
+ *  is a night the visitor may simply not take (and is not charged for). */
 export type NightSlot = { night: number; optional: boolean };
+
+/** How many nights a journey RENDERS, and how many of them it PRICES.
+ *
+ *  `Nights` on the Journeys table is the number of PRICED nights (17 Aug
+ *  2026 - the site owner's own definition). `Night Notes` is one line per
+ *  night the journey actually offers, which can be one longer: the Grand
+ *  Tour prices five and offers six, the sixth being a genuine choice
+ *  ("the ferry runs after the Port Ellen tour if you want it").
+ *
+ *  So the spine renders one night per authored line, and everything past
+ *  `priced` is optional. Where there are FEWER lines than priced nights
+ *  the count still comes from `Nights` and nightNoteFor repeats the last
+ *  line, which is that field's own documented fallback - a journey never
+ *  renders fewer beds than it charges for. */
+export function journeyNightCounts(journey: Journey): { total: number; priced: number } {
+  const priced = Math.max(0, journey.nights);
+  return { total: Math.max(priced, journey.nightNotesLines.length), priced };
+}
 
 /**
  * WHERE THE NIGHTS GO (rewritten 17 Aug 2026, to the site owner's own
@@ -192,51 +214,70 @@ export type NightSlot = { night: number; optional: boolean };
  *                 you eat, tomorrow starts early. Every journey's first
  *                 Night Notes line is now written that way.
  *   night n+1  -> after day n, for every day EXCEPT the last.
- *   one more   -> after the last day, and ONLY where the journey's
- *                 Nights exceeds its day count. That night is optional:
- *                 the ferry goes after the last tour if you want it.
+ *   any more   -> after the last day, and only where the journey has
+ *                 more nights than that structure needs. Those are the
+ *                 optional ones: the ferry goes after the last tour if
+ *                 you want it.
  *
- * So a journey needs exactly dayCount nights to fill the plan, and a
- * (dayCount + 1)th night is the optional one. All four real journeys
- * satisfy that: Grand Tour 5/6 (the only one with the optional night),
- * South Coast Walk 2/2, Rhinns Trail 3/3, Hidden Coast 2/2.
+ * OPTIONAL is a PRICING fact, not a positional one (17 Aug 2026): a slot
+ * is optional when its number is past `Nights`, the count of priced
+ * nights - which is also what the sidebar's accommodation range and the
+ * claim band's nights stat are built from, so a night nobody has to take
+ * is never billed and never counted. Placement is separate, and comes
+ * from the day count above.
  *
- * What this replaces, and why: the previous version packed the nights
- * into the gaps BETWEEN day cards and then appended whatever was left
- * over after the last one. On the Grand Tour that put nights five AND
- * six after day five, and since nightNoteFor repeats the last authored
- * line once it runs out, both printed the same sentence. There was no
- * arrival night at all, so every note sat one day later than the copy
- * it was written for.
+ * All four real journeys line up: Grand Tour 5 days, 6 authored nights,
+ * 5 priced (the sixth sits after day five and is optional); South Coast
+ * Walk 2/2/2; Rhinns Trail 3/3/3; Hidden Coast 2/2/2.
+ *
+ * What this replaces, and why: the first version packed the nights into
+ * the gaps BETWEEN day cards and then appended whatever was left over
+ * after the last one. On the Grand Tour that put nights five AND six
+ * after day five, and since nightNoteFor repeats the last authored line
+ * once it runs out, both printed the same sentence. There was no arrival
+ * night at all, so every note sat one day later than the copy it was
+ * written for. The pass after that fixed the order but drove the count
+ * from `Nights` alone, which - now that `Nights` means priced nights -
+ * dropped the Grand Tour's sixth note off the page entirely.
  *
  * Deliberately tolerant of numbers no journey currently has: fewer
- * Nights than days simply runs out of connectors (a day with no night
+ * nights than days simply runs out of connectors (a day with no night
  * after it renders none), and more than dayCount + 1 renders each
- * surplus night as a separate optional card rather than silently
+ * surplus night as its own card after the last day rather than silently
  * dropping copy that was written for it.
  */
 
 /** Nights rendered BEFORE the day card at `dayIndex`. Only day one ever
  *  has one, and it is night one - the night you arrive. */
-export function nightsBeforeDay(dayIndex: number, dayCount: number, nights: number): NightSlot[] {
-  if (dayIndex !== 0 || dayCount < 1 || nights < 1) return [];
-  return [{ night: 1, optional: false }];
+export function nightsBeforeDay(
+  dayIndex: number,
+  dayCount: number,
+  nights: { total: number; priced: number }
+): NightSlot[] {
+  if (dayIndex !== 0 || dayCount < 1 || nights.total < 1) return [];
+  return [{ night: 1, optional: 1 > nights.priced }];
 }
 
 /** Nights rendered AFTER the day card at `dayIndex`. */
-export function nightsAfterDay(dayIndex: number, dayCount: number, nights: number): NightSlot[] {
+export function nightsAfterDay(
+  dayIndex: number,
+  dayCount: number,
+  nights: { total: number; priced: number }
+): NightSlot[] {
   if (dayCount < 1) return [];
   if (dayIndex < dayCount - 1) {
     // Day one is followed by night two, day two by night three, and so
     // on - night one having already been spent before day one.
     const night = dayIndex + 2;
-    return night <= nights ? [{ night, optional: false }] : [];
+    return night <= nights.total ? [{ night, optional: night > nights.priced }] : [];
   }
   // The last day. There is no night after it in the plan; anything the
   // journey still has left is the choice between one more night and the
   // boat home, and is marked as such rather than presented as a step.
   const slots: NightSlot[] = [];
-  for (let night = dayCount + 1; night <= nights; night++) slots.push({ night, optional: true });
+  for (let night = dayCount + 1; night <= nights.total; night++) {
+    slots.push({ night, optional: night > nights.priced });
+  }
   return slots;
 }
 
@@ -302,7 +343,13 @@ export function journeyBaseFor(
  *  × nights to peak rate × nights. Undefined unless BOTH ends are real
  *  and there is at least one night: half a range is not a range, and a
  *  single number here would read as "the price" for something that
- *  genuinely doubles between February and the Islay Festival. */
+ *  genuinely doubles between February and the Islay Festival.
+ *
+ *  `nights` here is the Journey's `Nights`, which is the count of PRICED
+ *  nights and deliberately not the number of nights the spine renders
+ *  (17 Aug 2026). The Grand Tour offers six and prices five, so this
+ *  quotes five - charging for a night the page itself calls optional
+ *  would be the sort of quiet padding this sidebar exists to avoid. */
 export function journeyAccommodationRange(
   journey: Journey
 ): { low: number; high: number; nights: number } | undefined {

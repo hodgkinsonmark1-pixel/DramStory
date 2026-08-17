@@ -29,6 +29,7 @@ import {
   journeyCarHire,
   journeyDistilleryCount,
   journeyDistilleryStatLabel,
+  journeyNightCounts,
   journeyNightsStatLabel,
   journeyThirdStat,
   journeyTourTotal,
@@ -85,12 +86,13 @@ import type { HubDay, Journey } from "@/lib/types";
  *    falling back to Card Description when Intro is empty. Card
  *    Description is the homepage teaser and was duplicating the opening
  *    of the Claim band directly below the hero.
- *  - NIGHT PLACEMENT was rewritten 17 Aug 2026 to the structure Mark
- *    defined: night one before day one (the arrival night), a night
- *    after every day but the last, and - only where Nights exceeds the
- *    day count - one optional night after it. The gap-filling version
- *    this replaces is described, with what it got wrong, in
- *    nightsAfterDay's own comment.
+ *  - NIGHT PLACEMENT is the structure Mark defined: night one before
+ *    day one (the arrival night), a night after every day but the last,
+ *    and any night past that after the last day. A night beyond the
+ *    Journey's `Nights` - the count of PRICED nights - renders as
+ *    optional and is left out of both the sidebar's accommodation range
+ *    and the claim band's stat. The Grand Tour offers six nights and
+ *    prices five. See journeyNightCounts/nightsAfterDay.
  *  - DAY CARD IMAGERY is unchanged where a photo exists. The pace tile
  *    added 17 Aug 2026 is only what fills the same slot when there
  *    isn't one - see DayPaceTile, including why its Relaxed tile is
@@ -502,6 +504,11 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
 
   const accommodation = journeyAccommodationRange(journey);
   const carHire = journeyCarHire(journey);
+  // How many nights this journey SHOWS, and how many of them it CHARGES
+  // for. The two differ by the optional night at the end - see
+  // journeyNightCounts.
+  const nightCounts = journeyNightCounts(journey);
+  const optionalNights = nightCounts.total - nightCounts.priced;
 
   return (
     <>
@@ -577,7 +584,9 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
             {journey.days.map((day, i) => {
               // Night one sits BEFORE day one - it is the night you
               // arrive, and every journey's first Night Notes line is
-              // written as one. See nightsBeforeDay/nightsAfterDay.
+              // written as one. Any night past the journey's PRICED
+              // count comes back marked optional. See
+              // nightsBeforeDay/nightsAfterDay/journeyNightCounts.
               const renderNight = (slot: NightSlot) => (
                 <div key={slot.night} className="jr-spine-item">
                   <span
@@ -600,7 +609,7 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
               );
               return (
                 <div key={day.id}>
-                  {nightsBeforeDay(i, journey.days.length, journey.nights).map(renderNight)}
+                  {nightsBeforeDay(i, journey.days.length, nightCounts).map(renderNight)}
                   <div className="jr-spine-item">
                     <span className="jr-spine-marker jr-spine-marker-day">{i + 1}</span>
                     <DaySpineCard
@@ -610,7 +619,7 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
                       base={journeyBaseFor(journey, i, baseCoords)}
                     />
                   </div>
-                  {nightsAfterDay(i, journey.days.length, journey.nights).map(renderNight)}
+                  {nightsAfterDay(i, journey.days.length, nightCounts).map(renderNight)}
                 </div>
               );
             })}
@@ -696,6 +705,13 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
             <p className="jr-cta-excludes">
               Indicative, not a quote. Tours are per person; room and car are for the party. Ferry, food and
               fuel aren&apos;t in these figures.
+              {/* Said out loud rather than left to be inferred from a row
+                  that reads "5 nights" beside a spine showing six: the
+                  last one is a choice, and it is not in this total. */}
+              {optionalNights === 1 &&
+                ` Night ${ordinalWord(nightCounts.total).toLowerCase()} is optional and isn't priced in.`}
+              {optionalNights > 1 &&
+                ` The last ${optionalNights} nights are optional and aren't priced in.`}
             </p>
             <div className="jr-cta-actions">
               <AddJourneyToTripButton journey={journey} />
