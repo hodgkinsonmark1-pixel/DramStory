@@ -20,7 +20,10 @@
 //   calling OSRM live.
 //
 // WHAT IT WRITES (Day Stops table, tbl9WmZxgEXGzzrxp)
-//   Leg Minutes         routed travel time from the PREVIOUS stop, minutes
+//   Leg Minutes         travel time from the PREVIOUS stop, minutes
+//                       (driving: the router's own duration; walking:
+//                       derived from the distance below — see
+//                       WALKING_SPEED_KMH)
 //   Leg Distance (km)   routed distance for the same leg, 1dp
 //   Leg Computed        today's date, ISO — so a stale leg is spottable
 //
@@ -52,6 +55,11 @@
 //   quietly substitute a driving time. Self-hosting OSRM with both
 //   profiles is the right answer once this matters commercially.
 //
+//   We keep the foot router's DISTANCE (it follows the real path, which
+//   is the whole reason for routing at all) but not its duration: walking
+//   minutes are computed here at WALKING_SPEED_KMH instead. See that
+//   constant for why. Driving legs are unchanged.
+//
 // USAGE
 //   AIRTABLE_API_KEY=pat...  (needs data.records:read AND :write)
 //   AIRTABLE_BASE_ID=app14n7N50HZGglqV
@@ -72,6 +80,14 @@ const PROFILES = {
   // which silently answers with car routing.
   walk: "https://routing.openstreetmap.de/routed-foot/route/v1/foot",
 };
+
+/** Walking pace, km/h, used to turn a routed foot DISTANCE into a
+ *  duration. An editorial choice by the site owner, NOT a routing-engine
+ *  figure: this is a whisky trip and people dawdle, so the foot router's
+ *  own ~4.5km/h is a brisk pace that would under-promise how long a
+ *  walking day really takes. Driving legs are untouched — they still
+ *  store OSRM's own duration. */
+const WALKING_SPEED_KMH = 3.75;
 
 /** Space requests out. Both hosts are free public services asking for
  *  reasonable use; ~1 request/sec is well inside that and this whole run
@@ -127,11 +143,23 @@ async function routeLeg(from, to, mode) {
     const data = await res.json();
     const route = data?.routes?.[0];
     if (data?.code !== "Ok" || !route) return { error: `OSRM code ${data?.code ?? "none"}` };
+    // Always the router's own distance: it follows the real road/path,
+    // which is the entire point of routing rather than measuring a
+    // straight line.
+    const km = Math.round((route.distance / 1000) * 10) / 10;
     return {
-      // Matches route-geometry.ts's own rounding, so a stored leg and a
-      // live-planner leg for the same pair read the same.
-      minutes: Math.max(1, Math.round(route.duration / 60)),
-      km: Math.round((route.distance / 1000) * 10) / 10,
+      minutes:
+        mode === "walk"
+          // Walking: our own pace applied to the km we are about to
+          // store, so the two stored fields can never contradict each
+          // other (2.0km → 32 min, not 31, which is what a re-run has to
+          // agree with).
+          ? Math.max(1, Math.round((km / WALKING_SPEED_KMH) * 60))
+          // Driving: OSRM's own duration. Matches route-geometry.ts's
+          // rounding, so a stored leg and a live-planner leg for the same
+          // pair read the same.
+          : Math.max(1, Math.round(route.duration / 60)),
+      km,
     };
   } catch (e) {
     return { error: e instanceof Error ? e.message : String(e) };

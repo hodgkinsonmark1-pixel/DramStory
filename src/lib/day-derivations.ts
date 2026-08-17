@@ -41,7 +41,13 @@ export function isFerryDay(day: HubDay): boolean {
 // dragging stops around needs an answer for an order nobody precomputed.
 //
 // The stored value is already mode-correct - a Walk day's legs were routed
-// on a foot profile - so nothing downstream needs a walking-speed branch.
+// on a foot profile, with the walking duration derived from that routed
+// distance at the script's own WALKING_SPEED_KMH (3.75km/h, an editorial
+// pace set by the site owner) - so nothing downstream needs a
+// walking-speed branch, and there is deliberately no second copy of that
+// number here. Note the blank-leg fallback below is mode-blind: it is the
+// 40km/h haversine drive estimate whatever the day's Travel Mode, exactly
+// as it was before legs were precomputed.
 // ─────────────────────────────────────────────────────────────────────────
 
 /** Travel minutes for one leg: the precomputed routed value if this stop
