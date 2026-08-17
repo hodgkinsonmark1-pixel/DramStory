@@ -50,19 +50,39 @@
 //   used.
 //
 // BASE RESOLUTION, in order — reported per journey, never guessed
-//   1. The Journey's `Base Stay` link, resolved to that Featured Stay's
-//      own coordinates. PREFERRED: it is the actual building the visitor
-//      sleeps in, and it is what this Journey's accommodation rates
-//      refer to. A transfer starts at a door, not at a village.
-//   2. An Areas record whose Name matches the Journey's `Base` text.
-//      The fallback when no Base Stay is linked — a village centroid,
-//      which is honest but coarser.
+//
+//   REVERSED 17 Aug 2026, and the reasoning it replaced is worth stating
+//   because it read convincingly. This script shipped preferring the
+//   Journey's `Base Stay` link on the grounds that "a transfer starts at
+//   a door, not at a village". The site owner has ruled that wrong. A
+//   journey is described as being based at Port Ellen — the VILLAGE. The
+//   featured hotel exists to supply one indicative room rate for the
+//   sidebar; it is not where the visitor is told to sleep, and they may
+//   book anywhere in that village. Measuring every transfer from one
+//   particular front door claims a precision the journey never made, and
+//   it moves as soon as the featured hotel is swapped.
+//
+//   1. An Areas record whose Name matches the Journey's `Base` text —
+//      that village's own centroid. PREFERRED, per the above.
+//   2. The Journey's `Base Stay` link, resolved to that Featured Stay's
+//      own coordinates. The fallback where the Base names a place with
+//      no Areas row: Bridgend has none, so The Rhinns Trail and The
+//      Hidden Coast both land here and are measured from the Bridgend
+//      Hotel. Coarse in the opposite direction — one building standing
+//      in for a village — but it is a real, verified coordinate inside
+//      the right place, which beats not routing the leg at all.
 //   3. A Featured Stay whose Nearest Area, or whose own Name, starts with
-//      the Base text. For a village with no Areas row at all.
+//      the Base text. For a village with neither an Areas row nor a
+//      linked Base Stay.
 //   4. Nothing. The journey is skipped and named in the run summary. No
 //      geocoding, no "close enough" coordinates — the site's coordinate
 //      verification hierarchy (docs/project-conventions.md) makes that a
 //      deliberate manual step, not something a script does at 1am.
+//
+//   `Base Stay` on the Journeys table is untouched by this reordering.
+//   It still names the featured hotel and still drives the sidebar's
+//   accommodation range (journeyAccommodationRange). All that changed is
+//   that it no longer decides where a transfer is measured FROM.
 //
 // WHAT IT WRITES (Journey Days table, tblzTeYWOTDPZyzRZ)
 //   Leg From Base Minutes   base → this day's FIRST stop, minutes
@@ -105,6 +125,29 @@ const norm = (s) => (s ?? "").trim().toLowerCase();
  *  came from — see the BASE RESOLUTION block above. Null when nothing
  *  matches. */
 function resolveBase(journeyFields, stayById, areas, stays) {
+  const wanted = norm(journeyFields.Base);
+
+  // 1. The village itself. See BASE RESOLUTION above for why this now
+  //    outranks the Base Stay link rather than backing it up.
+  if (wanted) {
+    const area = areas.find(
+      (r) =>
+        norm(r.fields.Name) === wanted &&
+        typeof r.fields.Latitude === "number" &&
+        typeof r.fields.Longitude === "number"
+    );
+    if (area) {
+      return {
+        lat: area.fields.Latitude,
+        lng: area.fields.Longitude,
+        source: `Areas → ${area.fields.Name} (village centroid)`,
+      };
+    }
+  }
+
+  // 2. No Areas row for this Base — fall back to the featured stay's own
+  //    coordinates. Bridgend is the real case: no Areas record exists, so
+  //    both journeys based there measure from the Bridgend Hotel.
   const stayId = journeyFields["Base Stay"]?.[0];
   if (stayId) {
     const stay = stayById.get(stayId);
@@ -112,33 +155,19 @@ function resolveBase(journeyFields, stayById, areas, stays) {
       return {
         lat: stay.Latitude,
         lng: stay.Longitude,
-        source: `Base Stay → ${stay.Name ?? stayId} (the building itself)`,
+        source: `Base Stay → ${stay.Name ?? stayId} (no Areas record for "${journeyFields.Base ?? ""}")`,
       };
     }
     // A linked stay with no coordinates is worth saying out loud rather
-    // than silently sliding down to the village centroid.
+    // than silently sliding down to the looser name match.
     console.log(
-      `  NOTE: Base Stay "${stay?.Name ?? stayId}" has no coordinates — falling back to the Base text field`
+      `  NOTE: Base Stay "${stay?.Name ?? stayId}" has no coordinates — falling back to a name match on the Base text`
     );
   }
 
-  const wanted = norm(journeyFields.Base);
   if (!wanted) return null;
 
-  const area = areas.find(
-    (r) =>
-      norm(r.fields.Name) === wanted &&
-      typeof r.fields.Latitude === "number" &&
-      typeof r.fields.Longitude === "number"
-  );
-  if (area) {
-    return {
-      lat: area.fields.Latitude,
-      lng: area.fields.Longitude,
-      source: `Areas → ${area.fields.Name} (village centroid; no Base Stay linked)`,
-    };
-  }
-
+  // 3. The looser name match, unchanged.
   const stay = stays.find(
     (r) =>
       typeof r.fields.Latitude === "number" &&
@@ -211,9 +240,9 @@ async function main() {
     const base = resolveBase(journey, stayById, areas, stays);
     if (!base) {
       skipped.push(
-        `${label}: neither a Base Stay with coordinates nor a Base ${
+        `${label}: neither a Base ${
           journey.Base ? `"${journey.Base}"` : "(blank)"
-        } that resolves — left blank`
+        } that resolves nor a Base Stay with coordinates — left blank`
       );
       continue;
     }
