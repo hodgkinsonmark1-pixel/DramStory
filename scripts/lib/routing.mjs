@@ -7,18 +7,20 @@
 // rate limiting. Two copies of the "OSRM's /foot/ profile is fake" note
 // would be two copies to get wrong later.
 //
-// TRAVEL MODE / ROUTING PROFILES  (verified 17 Aug 2026)
+// TRAVEL MODE / ROUTING PROFILES  (verified 17 Aug 2026, and re-verified
+// the same day against Laphroaig's corrected coordinate — the figures
+// below moved a few metres, the conclusion did not)
 //   router.project-osrm.org DOES respond 200 to /route/v1/foot/... but it
 //   does NOT actually have the foot profile loaded: the response is
 //   byte-for-byte identical to the /driving/ response for the same
 //   coordinates (verified on Laphroaig→Lagavulin: both return
-//   duration 189.8s / distance 1971.9m, i.e. ~37km/h, which is not a
+//   duration 197.8s / distance 1979.0m, i.e. ~36km/h, which is not a
 //   walking pace). Writing those numbers onto a walking day would be
 //   exactly the silent error these scripts exist to remove.
 //
 //   So walking legs are routed against FOSSGIS's public OSRM instance,
 //   routing.openstreetmap.de/routed-foot, which does have a real foot
-//   profile (same leg: 1566.3s / 1964.7m, ~4.5km/h). If that host is ever
+//   profile (same leg: 1571.9s / 1971.7m, ~4.5km/h). If that host is ever
 //   unavailable, the leg fails and is left blank — nothing here quietly
 //   substitutes a driving time. Self-hosting OSRM with both profiles is
 //   the right answer once this matters commercially.
