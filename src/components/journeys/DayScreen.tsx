@@ -427,12 +427,15 @@ export default function DayScreen({
               {formatClockTime(schedule.home)}
               {inTrip ? " — reorder, swap or drop anything" : ""}
             </div>
-            {/* On a walking day, how much of it is actually walked -
-                stated in minutes so nobody meets it for the first time on
-                the day itself. Every figure is a stored routed leg; the
-                line simply doesn't render when they can't answer it, and
-                the mileage in the meta row above stands alone as before.
-                See walkingLineFor. */}
+            {/* How much of this day is actually on foot - stated in
+                minutes so nobody meets it for the first time on the day
+                itself. Driving days included: what counts is each leg's
+                own mode, so the walk out to Rubha Bhachlaig is said out
+                loud on a day you drive to. Every figure is a stored
+                routed leg; the line simply doesn't render when they
+                can't answer it, or when the total is too small to be
+                worth a sentence, and the mileage in the meta row above
+                stands alone as before. See walkingLineFor. */}
             {walkingLine && <div className="day-shape-line day-shape-walk">{walkingLine}</div>}
             {/* A published time this day cannot physically reach. Shown,
                 not swallowed: the schedule below keeps the time that

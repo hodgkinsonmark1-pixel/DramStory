@@ -240,6 +240,14 @@ export function travelCopy(mode: TravelMode | undefined): { betweenStops: string
 // so carrying on and coming back is exactly twice those legs. Nothing is
 // invented - it is the same routed legs, counted both ways, which is
 // what "and back" means.
+//
+// AND IT IS NO LONGER ONLY WALKING DAYS (17 Aug 2026). Once a stop could
+// say how you arrive at it, most days became mixed: you drive to
+// Bunnahabhain and then walk an hour to Rubha Bhachlaig and back, you
+// drive to Kilchoman and then walk to Machir Bay. Gating the sentence on
+// the DAY's Travel Mode hid every one of those. The gate is now the sum
+// of the legs whose OWN mode is Walk, and a threshold under which the
+// day says nothing - see MINIMUM_WALKING_LINE_MINUTES.
 // ─────────────────────────────────────────────────────────────────────────
 
 /** Minutes as prose - "50 minutes", "1 hour", "2 hours 25 minutes".
@@ -256,19 +264,25 @@ function spellMinutes(total: number): string {
 }
 
 /**
- * One sentence stating how much of a walking day is actually walked, or
- * undefined when the stored legs can't answer it.
+ * One sentence stating how much of a day is actually spent on foot, or
+ * undefined when the stored legs can't answer it, or when the answer is
+ * too small to be worth a sentence.
  *
- * Undefined in three honest cases, all of which leave the existing
+ * NOT just walking days (17 Aug 2026). It used to return early unless
+ * the DAY's Travel Mode was Walk, which meant a driving day containing a
+ * real walk printed nothing at all: "Bunnahabhain, Back from Silence"
+ * drives out and then walks 34 minutes each way to Rubha Bhachlaig,
+ * because there is no road, and the page said nothing about it. What
+ * counts now is each LEG's own resolved mode - legModeFor, the stop's
+ * `Arrive By` falling back to the day's Travel Mode - which is the same
+ * question the router was asked when the leg was measured.
+ *
+ * Undefined in four honest cases, all of which leave the existing
  * mileage/duration copy in place:
- *  - the Day isn't a walking day at all;
- *  - a leg it would need was never routed;
- *  - nothing measurable is walked (a one-stop Walk day reached by car -
- *    "Bowmore, Unhurried" is walked AROUND the village, and no stored leg
- *    describes wandering a village, so no figure is invented for it).
- *    Note this is now decided per leg: "Port Ellen, Rebuilt" is also a
- *    one-stop Walk day, but its transfer is under 600m and so is itself
- *    walked, which IS a measurable, stored, routed figure.
+ *  - nothing on this day is walked at all;
+ *  - a leg it would need was walked but never routed;
+ *  - every stop is optional, so there is no plan to state;
+ *  - the total is at or under MINIMUM_WALKING_LINE_MINUTES - see there.
  *
  * `Distance on Foot` is appended only when the figure and the distance
  * describe the SAME walking. Where a walked transfer is included, the
@@ -276,6 +290,15 @@ function spellMinutes(total: number): string {
  * read as a much slower walk than it is - so it is left where it already
  * renders, in the day's meta row.
  */
+/** Under this - the site owner's line, in minutes - the day says nothing
+ *  about walking rather than printing a figure too small to plan around.
+ *  Deliberate, not a rounding artefact: "Bowmore, Unhurried" computes
+ *  seven minutes because only three of the village stops are modelled,
+ *  and "About 5 minutes on foot" reads as a precise claim about a day
+ *  that is genuinely spent wandering. Days below the line keep their
+ *  mileage and pacing copy, which promise less and are true. */
+const MINIMUM_WALKING_LINE_MINUTES = 20;
+
 /** A detour worth its own clause. Below this the two figures round to
  *  almost the same sentence, and "or 15 minutes if you carry on" is
  *  noise where the whole point is a decision someone has to make. */
@@ -288,11 +311,14 @@ function joinNames(names: string[]): string {
 }
 
 export function walkingLineFor(day: HubDay, base?: DayBase): string | undefined {
-  if (day.travelMode !== "walk") return undefined;
-
   // The Day's whole authored order, features included - the same list the
   // schedule and the map are built from, so the three cannot disagree.
   const stops = itineraryDayFromHubDay(day).stops;
+
+  // Is the WHOLE day walked, or is this a driving day with walking in
+  // it? Only the wording turns on this; the figure is the same sum
+  // either way.
+  const wholeDayWalked = day.travelMode === "walk";
 
   // Everything after the LAST stop that is part of the plan is the
   // optional tail. Deliberately "after the last", not "every optional
@@ -305,25 +331,37 @@ export function walkingLineFor(day: HubDay, base?: DayBase): string | undefined 
   });
   if (lastCore < 0) return undefined; // every stop optional: no plan to state
 
-  // Stop 0 has nothing before it, so it never carries a leg; every later
-  // stop must, or there is no honest total to state.
+  // Stop 0 has nothing before it, so it never carries a leg. Every LATER
+  // leg that is made on foot must have a stored figure, or there is no
+  // honest total to state; a leg made in the car is simply not part of
+  // this sentence and a missing figure for it costs nothing.
   let minutes = 0;
   for (const stop of stops.slice(1, lastCore + 1)) {
+    if (legModeFor(stop, day.travelMode) !== "walk") continue;
     if (stop.legMinutes === undefined) return undefined;
     minutes += stop.legMinutes;
   }
 
-  // The detour, out and back. Missing a leg here loses only the second
-  // sentence - the plan's own figure is still true and still printed.
-  const tail = stops.slice(lastCore + 1);
-  const tailLegs = tail.map((s) => s.legMinutes);
-  const detourOneWay = tailLegs.every((m) => m !== undefined)
-    ? (tailLegs as number[]).reduce((a, b) => a + b, 0)
+  // The detour, out and back, and on foot only - same rule as above.
+  // Missing a leg here loses only the second sentence; the plan's own
+  // figure is still true and still printed.
+  const tailOnFoot = stops
+    .slice(lastCore + 1)
+    .filter((s) => legModeFor(s, day.travelMode) === "walk");
+  const detourOneWay = tailOnFoot.every((s) => s.legMinutes !== undefined)
+    ? tailOnFoot.reduce((sum, s) => sum + (s.legMinutes as number), 0)
     : undefined;
 
-  // Per leg, not per journey: a Drive journey can still have a walked
+  // The transfer counts only on a day that is walked end to end. Per
+  // leg, not per journey: a Drive journey can still have a walked
   // transfer once the 600m rule has been applied to it.
-  const walked = transferLegsWalked(base);
+  //
+  // On a DRIVING day it is deliberately left out even when the stored
+  // leg says it was walked. The figure that day prints is what you walk
+  // once the car is parked, and a transfer - by definition - happens
+  // before that. Adding it would put the sentence's own "once you're
+  // there" out by however long the transfer took.
+  const walked = wholeDayWalked ? transferLegsWalked(base) : { out: false, back: false };
   if (walked.out) {
     if (base?.fromBaseMinutes === undefined) return undefined;
     minutes += base.fromBaseMinutes;
@@ -332,22 +370,32 @@ export function walkingLineFor(day: HubDay, base?: DayBase): string | undefined 
     if (base?.toBaseMinutes === undefined) return undefined;
     minutes += base.toBaseMinutes;
   }
-  if (minutes <= 0) return undefined;
+  if (minutes <= MINIMUM_WALKING_LINE_MINUTES) return undefined;
 
   // Rounded to the nearest five so "about" means it. The underlying
   // figures are routed to the minute, but a walking pace is an editorial
   // 3.75km/h and printing "about 46 minutes" claims a precision the pace
   // itself doesn't have.
-  const rounded = Math.max(5, Math.round(minutes / 5) * 5);
+  const rounded = Math.round(minutes / 5) * 5;
   const withDetour =
-    detourOneWay !== undefined ? Math.round((minutes + detourOneWay * 2) / 5) * 5 : undefined;
+    detourOneWay !== undefined && detourOneWay > 0
+      ? Math.round((minutes + detourOneWay * 2) / 5) * 5
+      : undefined;
   const detourClause =
     withDetour !== undefined && withDetour - rounded >= MEANINGFUL_DETOUR_MINUTES
-      ? ` Carrying on to ${joinNames(tail.map(stopName))} and back makes it nearer ${spellMinutes(
+      ? ` Carrying on to ${joinNames(tailOnFoot.map(stopName))} and back makes it nearer ${spellMinutes(
           withDetour
         )}.`
       : "";
   const lead = `About ${spellMinutes(rounded)} on foot`;
+
+  // A driving day with walking in it. The walking happens after you
+  // park, so the sentence says so and names no transfer at all - the
+  // drive out and back is the day's travel time, stated elsewhere, and
+  // folding it in here would describe neither.
+  if (!wholeDayWalked) {
+    return `${lead} once you're there — the walking is all after you park.${detourClause}`;
+  }
 
   // Where the transfers were measured from, said in the visitor's words.
   // The authored origin label wins over the Base name because it is the

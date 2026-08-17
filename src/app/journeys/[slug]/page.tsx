@@ -217,10 +217,12 @@ function DaySpineCard({ day, journeySlug, base }: { day: HubDay; journeySlug: st
   const distanceOrDuration = day.distanceOnFoot || day.durationPortEllen;
   const tours = dayTourTotal(day);
   const chips = dayChips(day);
-  // A walking day says so in minutes, not just miles - and on a journey
-  // whose transfers are walked too, that figure includes getting there
-  // and back. Undefined (and so nothing rendered) whenever the stored
-  // legs can't answer it; see walkingLineFor.
+  // A day with real walking in it says so in minutes, not just miles -
+  // a driving day included, where the figure is what you walk once you
+  // have parked. On a journey whose transfers are walked too, it covers
+  // getting there and back. Undefined (and so nothing rendered) whenever
+  // the stored legs can't answer it, or the total is under the
+  // threshold; see walkingLineFor.
   const walking = walkingLineFor(day, base);
 
   return (
