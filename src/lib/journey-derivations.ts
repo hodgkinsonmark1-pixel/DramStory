@@ -251,6 +251,11 @@ export function journeyBaseFor(
     // Journey.transferMode. It is what those two stored legs were routed
     // with, so it is the only mode that describes them.
     transferMode: journey.transferMode,
+    // The authored origin these legs were routed from, where the journey
+    // has one - so every sentence built on them can say what it measured
+    // rather than letting the reader assume the Base. Undefined for the
+    // three journeys with no override, which keeps their existing copy.
+    transferOriginLabel: journey.transferOriginLabel,
   };
 }
 

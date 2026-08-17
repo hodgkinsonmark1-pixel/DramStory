@@ -550,6 +550,23 @@ export interface Journey {
    *  precompute script did. Undefined when no stay is linked, in which
    *  case callers fall back to the Base text field's Area centroid. */
   baseStayId?: string;
+  /** An authored coordinate the TRANSFER legs are measured from, in place
+   *  of `base`'s own centroid - see the Airtable field's own note. Both
+   *  halves present or neither. Undefined on every journey but The South
+   *  Coast Walk as of 17 Aug 2026, and undefined is the normal state.
+   *
+   *  Used by the site only as the fallback origin for a leg that was
+   *  never routed, so that an estimated leg starts from the same point
+   *  scripts/compute-journey-base-legs.mjs routed the real ones from. */
+  transferOriginLat?: number;
+  transferOriginLng?: number;
+  /** What that origin is called on the page - "the pathway start by Port
+   *  Ellen Primary School". Wherever a transfer time or a walking total
+   *  is rendered for this journey, the copy names this instead of leaving
+   *  the reader to assume the figure runs from the Base. Undefined keeps
+   *  the existing "from {base}" wording, which is correct where no
+   *  override exists. */
+  transferOriginLabel?: string;
   /** The one-sentence route summary under the sidebar map. Authored in
    *  Airtable, never composed in code. Empty string renders nothing. */
   routeSummary: string;

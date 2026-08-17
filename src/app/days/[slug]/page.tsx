@@ -117,5 +117,17 @@ async function resolveJourneyBase(journeySlug: string, daySlug: string): Promise
   );
   const coords = baseStay ?? area ?? namedStay;
 
-  return journeyBaseFor(journey, dayIndex, coords ? { lat: coords.lat, lng: coords.lng } : undefined);
+  // The journey's authored transfer origin first, when it has one - the
+  // same precedence scripts/compute-journey-base-legs.mjs uses, so a leg
+  // this page has to estimate is estimated from the point the routed legs
+  // were measured from rather than from a centroid a few hundred metres
+  // away. Everything else falls through unchanged.
+  const origin =
+    journey.transferOriginLat !== undefined && journey.transferOriginLng !== undefined
+      ? { lat: journey.transferOriginLat, lng: journey.transferOriginLng }
+      : coords
+        ? { lat: coords.lat, lng: coords.lng }
+        : undefined;
+
+  return journeyBaseFor(journey, dayIndex, origin);
 }

@@ -135,7 +135,14 @@ function renderClaim(text: string) {
  *  ends appear only when the schedule could establish both (see
  *  DaySchedule.base); a day whose base legs were never routed and whose
  *  Base has no coordinates keeps the old stop-to-stop strip rather than
- *  showing half a round trip. */
+ *  showing half a round trip.
+ *
+ *  NAMED, not assumed (17 Aug 2026): where the journey authors a
+ *  `Transfer Origin Label` the two end segments say that instead of the
+ *  Base, because that is the point these clock times were actually
+ *  measured to and from. The South Coast Walk leaves the pathway start by
+ *  Port Ellen Primary School, not the middle of Port Ellen, and the
+ *  strip would otherwise imply the wrong one. */
 function DayTimelineStrip({ day, base }: { day: HubDay; base?: DayBase }) {
   const schedule = scheduleForHubDay(day, base);
   if (schedule.rows.length === 0) return null;
@@ -145,14 +152,23 @@ function DayTimelineStrip({ day, base }: { day: HubDay; base?: DayBase }) {
     segments.push({
       key: "leave-base",
       time: parseStartTimeMinutes(day.startTime),
-      label: `Leave ${schedule.base.name}`,
+      label: `Leave ${schedule.base.originLabel ?? schedule.base.name}`,
     });
   }
   for (const row of schedule.rows) {
     segments.push({ key: `stop-${row.index}`, time: row.arrive, label: stopName(row.stop) });
   }
   if (schedule.base) {
-    segments.push({ key: "back-base", time: schedule.home, label: `Back in ${schedule.base.name}` });
+    // "Back at" for an authored origin, "Back in" for a village - you are
+    // back IN Port Ellen but back AT a pathway start, and the label is a
+    // place-thing rather than a settlement.
+    segments.push({
+      key: "back-base",
+      time: schedule.home,
+      label: schedule.base.originLabel
+        ? `Back at ${schedule.base.originLabel}`
+        : `Back in ${schedule.base.name}`,
+    });
   }
 
   return (
@@ -330,11 +346,19 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
             stay.name.toLowerCase().startsWith(journey.base.toLowerCase())
         )
       : undefined);
-  const baseCoords = baseStay
-    ? { lat: baseStay.lat, lng: baseStay.lng }
-    : baseMarker
-      ? { lat: baseMarker.lat, lng: baseMarker.lng }
-      : undefined;
+  // An authored transfer origin outranks all of the above, exactly as it
+  // does in scripts/compute-journey-base-legs.mjs - so an ESTIMATED leg
+  // (one that was never routed) starts from the same point the routed
+  // ones did, instead of quietly reverting to the village centroid the
+  // override exists to replace.
+  const baseCoords =
+    journey.transferOriginLat !== undefined && journey.transferOriginLng !== undefined
+      ? { lat: journey.transferOriginLat, lng: journey.transferOriginLng }
+      : baseStay
+        ? { lat: baseStay.lat, lng: baseStay.lng }
+        : baseMarker
+          ? { lat: baseMarker.lat, lng: baseMarker.lng }
+          : undefined;
 
   const routeStops: RouteMapStop[] = journey.days.flatMap((day, i) =>
     (day.mapDistilleries ?? []).map((d) => ({ ...d, dayNumber: i + 1 }))

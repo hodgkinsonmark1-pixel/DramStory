@@ -103,6 +103,19 @@ export interface DayBase {
    *  that rule, and the mode above stands in. */
   fromBaseWalked?: boolean;
   toBaseWalked?: boolean;
+  /** What the two legs above were actually measured FROM, when that is
+   *  not simply `name` - "the pathway start by Port Ellen Primary
+   *  School" for The South Coast Walk, whose transfers run from where the
+   *  Three Distilleries Pathway begins rather than from Port Ellen's
+   *  centroid (Journey.transferOriginLabel, authored in Airtable).
+   *
+   *  Every sentence below that prints one of these figures names this
+   *  when it is set. That is the whole reason the override is allowed to
+   *  exist: a reader must never have to guess which of two points a
+   *  transfer time runs from. Undefined - every other journey, and every
+   *  trip's own accommodation - keeps the "from {name}" phrasing, which
+   *  is accurate there. */
+  transferOriginLabel?: string;
 }
 
 /** Was each transfer leg walked? The stored per-leg fact where there is
@@ -244,8 +257,19 @@ export function walkingLineFor(day: HubDay, base?: DayBase): string | undefined 
   const rounded = Math.max(5, Math.round(minutes / 5) * 5);
   const lead = `About ${spellMinutes(rounded)} on foot`;
 
+  // Where the transfers were measured from, said in the visitor's words.
+  // The authored origin label wins over the Base name because it is the
+  // more precise of the two AND because it is the one the figure is
+  // actually true of - see DayBase.transferOriginLabel.
+  const origin = base?.transferOriginLabel ?? base?.name;
+
   if (walked.out && walked.back) {
-    return `${lead} across the day — that counts walking out from ${base!.name} and back again.`;
+    // "measured from ..." rather than "walking out from ...": with an
+    // authored origin the sentence has to survive being read next to the
+    // journey's Base, which is a different (larger) place.
+    return base?.transferOriginLabel
+      ? `${lead} across the day — measured from ${origin}, there and back.`
+      : `${lead} across the day — that counts walking out from ${origin} and back again.`;
   }
   // One end walked and the other not. No published journey does this
   // today, but the two legs are stored and routed independently and
@@ -253,12 +277,12 @@ export function walkingLineFor(day: HubDay, base?: DayBase): string | undefined 
   // the sentence up to a round trip.
   if (walked.out || walked.back) {
     return `${lead} across the day — that counts the walk one way ${
-      walked.out ? `from ${base!.name}` : `back to ${base!.name}`
+      walked.out ? `from ${origin}` : `back to ${origin}`
     }.`;
   }
   if (base?.transferMode === "drive") {
     const miles = day.distanceOnFoot ? ` (${day.distanceOnFoot})` : "";
-    return `${lead} once you are there${miles} — you drive out from ${base.name} and back.`;
+    return `${lead} once you are there${miles} — you drive out from ${origin} and back.`;
   }
   const miles = day.distanceOnFoot ? ` (${day.distanceOnFoot})` : "";
   return `${lead} between the stops${miles}.`;
@@ -781,7 +805,7 @@ export interface DaySchedule {
    *  Ellen at 9:30, back by 17:20" without re-deriving any of it, and
    *  lets one that has no base say nothing at all rather than printing a
    *  door-to-door claim it can't support. */
-  base?: { name: string; out: number; back: number };
+  base?: { name: string; out: number; back: number; originLabel?: string };
 }
 
 /**
@@ -828,7 +852,15 @@ export function scheduleForItineraryDay(
   // Only claim a door-to-door day when both ends of it are real.
   const baseSummary =
     resolved && legs.out !== undefined && legs.back !== undefined
-      ? { name: resolved.name, out: legs.out, back: legs.back }
+      ? {
+          name: resolved.name,
+          out: legs.out,
+          back: legs.back,
+          // Carried so that anything printing these two legs' clock times
+          // can name the point they run from, rather than implying the
+          // Base. See DayBase.transferOriginLabel.
+          originLabel: resolved.transferOriginLabel,
+        }
       : undefined;
   return { rows, home, base: baseSummary };
 }

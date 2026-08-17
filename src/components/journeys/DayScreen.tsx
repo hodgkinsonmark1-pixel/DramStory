@@ -412,8 +412,13 @@ export default function DayScreen({
           <div className="day-shape">
             <div className="trip-kicker">The day&apos;s shape</div>
             <div className="day-shape-line">
+              {/* Named, not assumed: a journey with an authored transfer
+                  origin says that, because it is what the leg out of this
+                  clock time was measured from. Without one this is the
+                  Base (or the trip's own accommodation) exactly as
+                  before. See DayBase.transferOriginLabel. */}
               Starting {formatClockTime(parseStartTimeMinutes(day.startTime))}
-              {schedule.base ? ` from ${schedule.base.name}` : ""}, back by{" "}
+              {schedule.base ? ` from ${schedule.base.originLabel ?? schedule.base.name}` : ""}, back by{" "}
               {formatClockTime(schedule.home)}
               {inTrip ? " — reorder, swap or drop anything" : ""}
             </div>

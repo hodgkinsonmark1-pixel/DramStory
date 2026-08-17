@@ -852,6 +852,31 @@ export interface AirtableJourneyFields {
    *  what this record's accommodation rates refer to. One stay only;
    *  first link used. Added 17 Aug 2026. */
   "Base Stay"?: string[];
+  /** An explicit coordinate to measure this journey's TRANSFER legs from,
+   *  overriding both the `Base` village's Areas centroid and `Base Stay`.
+   *  Both halves are required; one on its own is ignored.
+   *
+   *  Populated 17 Aug 2026 for The South Coast Walk only. Port Ellen's
+   *  Areas centroid (55.629332, -6.188077) sits about 360m west of where
+   *  the Three Distilleries Pathway actually starts, so every transfer on
+   *  that journey was being measured across half a village the visitor
+   *  never walks - and the site printed a longer figure than the signage
+   *  in front of them. The override is PA42 7BW via postcodes.io, next to
+   *  Port Ellen Primary School, which is where Walkhighlands and
+   *  islayjura.com both put the pathway's start.
+   *
+   *  Blank on the other three journeys, which is the normal case and
+   *  changes nothing about how they resolve. */
+  "Transfer Origin Latitude"?: number;
+  "Transfer Origin Longitude"?: number;
+  /** What that coordinate IS, in the visitor's words - "the pathway start
+   *  by Port Ellen Primary School". Editorial copy, never composed in
+   *  code, and the reason the override is safe to make at all: a transfer
+   *  time measured from somewhere other than the named Base has to say so
+   *  on the page, or it is a number that silently disagrees with the map.
+   *  Blank (the other three journeys) keeps the existing "from {Base}"
+   *  phrasing everywhere. */
+  "Transfer Origin Label"?: string;
 }
 
 /** Parses the "Make It Yours" field - one card per line, pipe-delimited

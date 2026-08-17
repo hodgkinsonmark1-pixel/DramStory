@@ -455,6 +455,23 @@ async function fetchJourneysFromAirtable(): Promise<Journey[]> {
       // "unknown" state, and never inherited from the Days inside it.
       transferMode: f["Transfer Mode"] === "Walk" ? "walk" : "drive",
       baseStayId: f["Base Stay"]?.[0],
+      // Both halves or neither: one coordinate is not a position, and
+      // pairing a stray latitude with a centroid's longitude would put
+      // the origin somewhere nobody authored. Same rule the precompute
+      // script applies, so the two can never disagree about whether an
+      // override is in force.
+      transferOriginLat:
+        typeof f["Transfer Origin Latitude"] === "number" && typeof f["Transfer Origin Longitude"] === "number"
+          ? f["Transfer Origin Latitude"]
+          : undefined,
+      transferOriginLng:
+        typeof f["Transfer Origin Latitude"] === "number" && typeof f["Transfer Origin Longitude"] === "number"
+          ? f["Transfer Origin Longitude"]
+          : undefined,
+      // The label stands on its own - it describes what the STORED legs
+      // were measured from, which stays true even if someone later blanks
+      // the coordinates without recomputing.
+      transferOriginLabel: f["Transfer Origin Label"]?.trim() || undefined,
       claim: f.Claim ?? "",
       regionLabel: f["Region Label"] ?? "",
       nights: f.Nights ?? 0,
