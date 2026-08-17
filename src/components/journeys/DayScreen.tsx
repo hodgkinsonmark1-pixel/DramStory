@@ -12,6 +12,7 @@ import {
   dateForDayIndex,
   formatDayDate,
   driveMinutesForItineraryDay,
+  travelCopy,
   itineraryDayPriceLabel,
   isFerryDayItinerary,
   isDayEdited,
@@ -332,11 +333,16 @@ export default function DayScreen({
             // round trip from the door. Not in the trip there is no
             // honest base to measure from (the same reason the schedule
             // below starts at the first stop), so this counts only the
-            // driving between the stops themselves and says so, rather
+            // travel between the stops themselves and says so, rather
             // than quietly printing a smaller number under the same
             // words the /days card uses.
+            //
+            // The verb follows the Day's own Travel Mode (17 Aug 2026):
+            // "Three Legends, One Road" and "Two Miles Apart" are walking
+            // days and were being described as driving.
             <span>
-              &asymp;{formatDuration(drive)} {inTrip ? "on the road" : "driving between stops"}
+              &asymp;{formatDuration(drive)}{" "}
+              {inTrip ? travelCopy(day.travelMode).wholeDay : travelCopy(day.travelMode).betweenStops}
             </span>
           )}
           {priceLabel && <span>{priceLabel}</span>}

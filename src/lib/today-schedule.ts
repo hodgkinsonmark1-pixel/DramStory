@@ -1,5 +1,5 @@
 import type { Distillery, LocalFeature } from "@/lib/types";
-import { estimatedDriveMinutes, formatDuration, parseAvgVisitMinutes } from "@/lib/drive-time";
+import { estimatedDriveMinutes, formatDuration, parseAvgVisitMinutes, parseTourDurationMinutes } from "@/lib/drive-time";
 import { formatMoney, isAppointmentOnly, isDistilleryClosedOn, formatClockTime } from "@/lib/day-derivations";
 import { TODAY_EXCLUDED_DISTILLERY_SLUGS } from "@/lib/journey-options";
 
@@ -65,7 +65,17 @@ export { formatClockTime };
  *  tours listed at all. */
 function representativeTour(distillery: Distillery): { minutes: number; label: string } | undefined {
   if (!distillery.tours || distillery.tours.length === 0) return undefined;
-  const withMinutes = distillery.tours.map((t) => ({ tour: t, minutes: parseAvgVisitMinutes(t.duration) }));
+  // The tour's OWN stated Duration, falling back to the distillery's Avg
+  // Visit only where the Tours table doesn't state one in a parseable
+  // form - same rule, and the same reason for it, as stopVisitMinutes in
+  // itinerary-stop.ts (17 Aug 2026). Previously this ran every tour
+  // duration through parseAvgVisitMinutes, whose unparseable-value
+  // fallback is a flat 90 minutes, so an "Unconfirmed" Port Ellen tour
+  // could be picked as "shortest" ahead of a real 50-minute one.
+  const withMinutes = distillery.tours.map((t) => ({
+    tour: t,
+    minutes: parseTourDurationMinutes(t.duration) ?? parseAvgVisitMinutes(distillery.avgVisit),
+  }));
   const shortest = withMinutes.reduce((a, b) => (b.minutes < a.minutes ? b : a));
   const cheapest = Math.min(...distillery.tours.map((t) => t.price));
   const priceLabel = distillery.tours.length > 1 ? `from ${formatMoney(cheapest)}` : formatMoney(cheapest);

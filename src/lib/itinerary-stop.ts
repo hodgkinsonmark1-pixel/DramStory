@@ -1,5 +1,5 @@
 import type { ItineraryStop } from "@/lib/types";
-import { parseAvgVisitMinutes, parseFeatureDurationMinutes } from "@/lib/drive-time";
+import { parseAvgVisitMinutes, parseFeatureDurationMinutes, parseTourDurationMinutes } from "@/lib/drive-time";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Small helpers so the rest of the app doesn't need an if/else on
@@ -33,13 +33,31 @@ export function stopName(stop: ItineraryStop): string {
 
 /** The visit duration to use for this stop in minutes - the visitor's
  *  custom override if they've adjusted it via +/-, otherwise the default
- *  estimate: distillery avgVisit, the feature's own duration field (walks/
- *  bike routes - see parseFeatureDurationMinutes) if it has one, or the
- *  flat feature estimate as a last resort (beaches, pubs, viewpoints etc.
- *  don't have a duration field of their own). */
+ *  estimate, most specific source first:
+ *
+ *    distillery + a chosen tour -> that TOUR's own Duration
+ *    distillery, no tour (or an unparseable one) -> the distillery's Avg Visit
+ *    feature with a duration field (walks/bike routes) -> that duration
+ *    anything else -> the flat feature estimate
+ *
+ *  FIXED 17 Aug 2026: this used to size every distillery stop by the
+ *  distillery's Avg Visit even when the Day Stop named a specific tour,
+ *  so the chosen tour's real length was ignored and every clock time
+ *  after that stop inherited the error. Two verified examples: the
+ *  "Laphroaig Experience" is 1.5 hrs but scheduled as 75m (Laphroaig's
+ *  Avg Visit is 1.25 hrs), and Bunnahabhain's "Production Tour" is
+ *  50 min but scheduled as 90m (Avg Visit 1.5 hrs).
+ *
+ *  Avg Visit remains the fallback rather than being retired: a Day Stop
+ *  need not name a tour at all (Jura's doesn't), and several Port Ellen
+ *  tours state "Unconfirmed - not publicly listed" for their duration,
+ *  which parseTourDurationMinutes deliberately returns null for rather
+ *  than inventing a number. */
 export function stopVisitMinutes(stop: ItineraryStop): number {
   if (stop.customMinutes != null) return stop.customMinutes;
-  if (stop.kind === "distillery") return parseAvgVisitMinutes(stop.distillery.avgVisit);
+  if (stop.kind === "distillery") {
+    return parseTourDurationMinutes(stop.tour?.duration) ?? parseAvgVisitMinutes(stop.distillery.avgVisit);
+  }
   return parseFeatureDurationMinutes(stop.feature.duration) ?? DEFAULT_FEATURE_VISIT_MINUTES;
 }
 

@@ -13,6 +13,7 @@ import {
   GROUP_ORDER,
   GROUP_LABELS,
   driveMinutesForDay,
+  travelCopy,
   dayGroupFor,
   pickHitsFor,
   dayPriceLabel,
@@ -99,7 +100,9 @@ function DayCard({
   const hook = deriveHook(day.narrative);
   const hasMore = hasMoreNarrative(day.narrative);
   const [expanded, setExpanded] = useState(false);
-  const driveLabel = driveMinutes > 0 ? `≈${formatDuration(driveMinutes)} on the road` : "";
+  // Verb follows the Day's own Travel Mode - a walking day shouldn't be
+  // labelled "on the road" (17 Aug 2026).
+  const driveLabel = driveMinutes > 0 ? `≈${formatDuration(driveMinutes)} ${travelCopy(day.travelMode).wholeDay}` : "";
   const metaText = [driveLabel, price].filter(Boolean).join(" · ");
 
   return (

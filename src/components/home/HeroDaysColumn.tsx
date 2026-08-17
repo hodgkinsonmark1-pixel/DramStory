@@ -9,6 +9,7 @@ import { FEATURED_STAYS } from "@/lib/featured-stays";
 import { formatDuration } from "@/lib/drive-time";
 import {
   driveMinutesForDay,
+  travelCopy,
   pickHitsFor,
   dayPriceLabel,
   deriveHook,
@@ -289,7 +290,9 @@ function HeroDayCard({
   const hook = deriveHook(day.narrative);
   const hasMore = hasMoreNarrative(day.narrative);
   const [expanded, setExpanded] = useState(false);
-  const driveLabel = driveMinutes > 0 ? `≈${formatDuration(driveMinutes)} on the road` : "";
+  // Verb follows the Day's own Travel Mode - see DaysHubGrid's own copy
+  // of this line, which this deliberately mirrors (17 Aug 2026).
+  const driveLabel = driveMinutes > 0 ? `≈${formatDuration(driveMinutes)} ${travelCopy(day.travelMode).wholeDay}` : "";
   const metaText = [driveLabel, price].filter(Boolean).join(" · ");
 
   /** "Read more" sits inline at the end of the (unexpanded) teaser text,

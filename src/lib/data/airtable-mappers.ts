@@ -624,6 +624,13 @@ export interface AirtableDayFields {
    *  computed from Start Time now - see scheduleForHubDay() in
    *  day-derivations.ts. */
   "Start Time"?: string;
+  /** "Drive" | "Walk" - how the visitor gets between this Day's stops.
+   *  Blank is treated as Drive (every Day was implicitly a driving day
+   *  before this field existed). Added 17 Aug 2026; populated on all 16
+   *  real Days. Chooses the OSRM profile in
+   *  scripts/compute-day-stop-legs.mjs and the site's own drive/walk
+   *  wording - see HubDay.travelMode. */
+  "Travel Mode"?: string;
 }
 
 export interface AirtableDayStopFields {
@@ -637,6 +644,22 @@ export interface AirtableDayStopFields {
    *  real Day Stop record already - see Distillery/HubDay.stops'
    *  `anchor` in types.ts). Undefined/false otherwise. */
   Anchor?: boolean;
+  /** Real routed travel time IN MINUTES from the previous stop in this
+   *  Day (by Order) to this one, precomputed once by
+   *  scripts/compute-day-stop-legs.mjs rather than at render time - the
+   *  OSRM public demo server is explicitly non-commercial with no SLA,
+   *  so it is not something to call on every page view. Blank on the
+   *  first stop of a Day (nothing precedes it) and blank wherever
+   *  routing failed; blank means the site falls back to its own
+   *  straight-line estimate for that leg. Added 17 Aug 2026. */
+  "Leg Minutes"?: number;
+  /** Real routed distance in km for the same leg. Not rendered anywhere
+   *  yet - stored so a leg can be sanity-checked against the map without
+   *  re-routing. */
+  "Leg Distance (km)"?: number;
+  /** Internal only. ISO date the two fields above were last computed, so
+   *  a leg left stale by a reorder/coordinate change can be spotted. */
+  "Leg Computed"?: string;
 }
 
 // Matches the [label](/path) inline links already used in Day narratives
@@ -688,10 +711,21 @@ export function mapAirtableDayRecord(
       tour: s.Tour?.[0] ? ctx.tourById.get(s.Tour[0]) : undefined,
       order: s.Order ?? 0,
       anchor: s.Anchor === true,
+      // Read straight through, never recomputed here: this is the
+      // precomputed routed leg from the PREVIOUS stop in this Day. A
+      // blank cell (first stop of the day, or a leg whose routing
+      // failed) stays undefined so the schedule falls back to its own
+      // estimate for that leg alone.
+      legMinutes: typeof s["Leg Minutes"] === "number" ? s["Leg Minutes"] : undefined,
     }))
     .filter(
-      (s): s is { distillery: Distillery; tour: Tour | undefined; order: number; anchor: boolean } =>
-        !!s.distillery
+      (s): s is {
+        distillery: Distillery;
+        tour: Tour | undefined;
+        order: number;
+        anchor: boolean;
+        legMinutes: number | undefined;
+      } => !!s.distillery
     )
     .sort((a, b) => a.order - b.order);
 
@@ -729,11 +763,20 @@ export function mapAirtableDayRecord(
     cost: totalCost > 0 ? `£${totalCost}pp` : "",
     mapDistilleries,
     mapFeatures: mapFeatures.length > 0 ? mapFeatures : undefined,
-    stops: resolvedStops.map((s) => ({ distillery: s.distillery, tour: s.tour, anchor: s.anchor })),
+    stops: resolvedStops.map((s) => ({
+      distillery: s.distillery,
+      tour: s.tour,
+      anchor: s.anchor,
+      legMinutes: s.legMinutes,
+    })),
     featureStops,
     hook: f.Hook ?? "",
     distanceOnFoot: f["Distance on Foot"] || undefined,
     startTime: f["Start Time"]?.trim() || undefined,
+    // Blank is Drive, per the field's own description - not a third
+    // "unknown" state. Anything other than the exact "Walk" option falls
+    // to drive rather than throwing on an unexpected select value.
+    travelMode: f["Travel Mode"] === "Walk" ? "walk" : "drive",
     source: "airtable",
   };
 }

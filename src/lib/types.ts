@@ -6,6 +6,14 @@
 
 export type DataSource = "airtable" | "google" | "booking" | "mock";
 
+/** How a visitor gets between a Day's stops. Sourced from the Days
+ *  table's `Travel Mode` singleSelect (Drive/Walk); a blank cell is
+ *  treated as "drive", which is what every Day was implicitly assumed to
+ *  be before the field existed. Drives two things: which OSRM profile
+ *  scripts/compute-day-stop-legs.mjs routes a Day's legs with, and
+ *  whether the site's own copy says "driving" or "walking". */
+export type TravelMode = "drive" | "walk";
+
 export interface Tour {
   name: string;
   duration: string;
@@ -380,7 +388,7 @@ export interface HubDay {
    *  the day screen's editing UI - sourced from Day Stops' own "Anchor"
    *  checkbox (added 9 Aug 2026, docs/days-trip-flow-handoff.md §2.2),
    *  read straight through, not recomputed here. */
-  stops: { distillery: Distillery; tour?: Tour; anchor: boolean }[];
+  stops: { distillery: Distillery; tour?: Tour; anchor: boolean; legMinutes?: number }[];
   /** The real Local Feature records behind mapFeatures above (walks,
    *  viewpoints, pubs the narrative links to) - same "+ Add this day"
    *  flow also adds these via addFeatureStop, so a Day's trip stops match
@@ -404,6 +412,13 @@ export interface HubDay {
    *  hand-written `Day Timeline` field - two hand-written times and a
    *  computed schedule could and did disagree about the same day. */
   startTime?: string;
+  /** Drive or Walk, from the Day's own `Travel Mode` (blank = drive).
+   *  Added 17 Aug 2026 alongside the precomputed `Leg Minutes` on Day
+   *  Stops: the stored legs are already routed with the matching OSRM
+   *  profile, so this is NOT needed to pick a travel time - only to keep
+   *  the surrounding copy honest ("walking between stops", not
+   *  "driving between stops"). */
+  travelMode: TravelMode;
   source: DataSource;
 }
 
@@ -710,6 +725,18 @@ export type ItineraryStop = (
    *  freehand in the planner - an anchor is never droppable or swappable
    *  in the day screen's editing UI. */
   anchor?: boolean;
+  /** Real routed travel time in minutes from the PREVIOUS stop in this
+   *  day to this one, precomputed into Airtable's Day Stops table (see
+   *  scripts/compute-day-stop-legs.mjs) and read straight through by
+   *  itineraryDayFromHubDay. Undefined means "no stored leg" - the
+   *  schedule falls back to estimatedDriveMinutes() for that leg only.
+   *
+   *  Deliberately only ever set on a PUBLISHED day rendered as-authored.
+   *  Nothing in trip-context.tsx carries it onto a stop the visitor adds
+   *  or reorders themselves, because a stored leg is only true for the
+   *  stop order it was computed against - an edited day silently keeping
+   *  an old leg time would be worse than an honest estimate. */
+  legMinutes?: number;
 };
 
 /** Where a day's trip starts/ends - a real, verifiable place (a village,
@@ -747,4 +774,8 @@ export interface ItineraryDay {
    *  added" tracks "this Hub Day still has a day here", not "still
    *  exactly matches what was originally added". */
   sourceHubDaySlug?: string;
+  /** Carried over from the source HubDay so the day's copy can say
+   *  "on foot" rather than "on the road" - see TravelMode. Undefined
+   *  (a day built freehand in the planner) is treated as driving. */
+  travelMode?: TravelMode;
 }
