@@ -281,6 +281,19 @@ export function nightsAfterDay(
   return slots;
 }
 
+/** The pace tile's caption split into its two rendered lines: the noun
+ *  ("distilleries") and the phrase after it ("one road"). Both halves
+ *  are the Day's own authored `Tile Caption` - this only decides where
+ *  the line breaks, so the tile's two lines can't drift from the copy
+ *  the way a generated noun did. A one-word caption renders as one line
+ *  rather than one line and an empty one. */
+export function splitTileCaption(caption: string): { head: string; tail: string } {
+  const trimmed = caption.trim();
+  const space = trimmed.indexOf(" ");
+  if (space === -1) return { head: trimmed, tail: "" };
+  return { head: trimmed.slice(0, space), tail: trimmed.slice(space + 1).trim() };
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 // Base legs (17 Aug 2026). A Journey states where the visitor sleeps, so
 // inside a Journey a day genuinely does start and end at a bed - and the

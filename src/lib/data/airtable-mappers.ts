@@ -611,12 +611,17 @@ export interface AirtableDayFields {
    *  "2 miles". Blank means "not a walking day" - callers fall back to
    *  "Duration from Port Ellen" instead. Added 13 Aug 2026. */
   "Distance on Foot"?: string;
-  /** Second line of the pace tile's label on a journey spine day card -
-   *  the editorial half ("one road", "and a beach"). See
-   *  HubDay.tileLabel. Blank is a supported state, not a gap to fill:
-   *  the tile drops to the count and noun alone. Added 17 Aug 2026,
-   *  populated on all 16 real Days. */
-  "Tile Label"?: string;
+  /** The whole caption under the numeral on a journey spine day card's
+   *  pace tile - noun and phrase together ("distilleries one road",
+   *  "distillery and a beach"). See HubDay.tileCaption. Blank is a
+   *  supported state, not a gap to fill: the tile shows the numeral
+   *  alone. Added 17 Aug 2026, populated on all 16 real Days.
+   *
+   *  REPLACES `Tile Label`, which held only the second line and left the
+   *  noun to be generated in code. That field is no longer read by
+   *  anything; it is left on the table rather than deleted only because
+   *  field deletion isn't available over the API this project uses. */
+  "Tile Caption"?: string;
   /** When this Day starts, "HH:MM" (e.g. "13:00"). Blank means the 09:30
    *  default (docs/days-trip-flow-handoff.md §2.2). Added 16 Aug 2026.
    *
@@ -864,7 +869,7 @@ export function mapAirtableDayRecord(
     featureStops,
     hook: f.Hook ?? "",
     distanceOnFoot: f["Distance on Foot"] || undefined,
-    tileLabel: f["Tile Label"]?.trim() || undefined,
+    tileCaption: f["Tile Caption"]?.trim() || undefined,
     startTime: f["Start Time"]?.trim() || undefined,
     // Blank is Drive, per the field's own description - not a third
     // "unknown" state. Anything other than the exact "Walk" option falls

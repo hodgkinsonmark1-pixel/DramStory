@@ -431,15 +431,20 @@ export interface HubDay {
    *  Undefined for driving days - callers fall back to durationPortEllen
    *  instead. Added 13 Aug 2026. */
   distanceOnFoot?: string;
-  /** The editorial SECOND line of the pace tile's label on a journey
-   *  spine day card - "one road", "and a beach", "four miles on foot".
-   *  The first line is generated from the day's own distillery count
-   *  ("distilleries"/"distillery"); this half says what kind of day it
-   *  is and cannot be derived from any other field, so it is authored
-   *  per Day in Airtable's `Tile Label`. Undefined when blank, in which
-   *  case the tile renders the count and the noun alone rather than
-   *  inventing a phrase. Added 17 Aug 2026. */
-  tileLabel?: string;
+  /** The WHOLE caption under the numeral on a journey spine day card's
+   *  pace tile - noun first, then the phrase: "distilleries one road",
+   *  "distillery and a beach". Authored per Day in Airtable's `Tile
+   *  Caption` and rendered exactly as written (first word on line one,
+   *  the rest on line two); nothing in it is composed in code, including
+   *  the singular/plural noun, which is part of the authored line and
+   *  agrees with the day's own distillery count in the record.
+   *
+   *  Undefined when blank, in which case the tile shows the numeral
+   *  alone rather than a phrase invented to fill the space. Added 17 Aug
+   *  2026, replacing the second-line-only `Tile Label` - the noun used
+   *  to be generated here, which is exactly the half the site owner
+   *  asked to come from the record instead. */
+  tileCaption?: string;
   /** When this Day starts, as authored in Airtable's `Start Time`
    *  (singleLineText, "HH:MM" - e.g. "13:00"). Undefined/blank means the
    *  09:30 default from docs/days-trip-flow-handoff.md §2.2. Feeds

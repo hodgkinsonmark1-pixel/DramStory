@@ -2142,57 +2142,56 @@ select.location-inline-input {
 }
 
 /* Day card — white, --stone border, --shadow-card, on the --off-white
-   page (docs/hero-handoff.md §5's reference treatment). */
+   page (docs/hero-handoff.md §5's reference treatment).
+
+   One flex ROW at the top level (17 Aug 2026): the pace tile down the
+   left, everything else - meta, title, hook, chips, and the timeline
+   strip under them - stacked in the body beside it. That is what makes
+   the tile full card height rather than the height of the top block,
+   and it is why the card itself carries no padding: the tile is flush to
+   three of its edges, and the body brings its own. */
 .jr-day-card {
+  display: flex;
+  align-items: stretch;
   background: var(--white);
   border: 1px solid var(--stone);
   border-radius: var(--radius);
   box-shadow: var(--shadow-card);
   overflow: hidden;
 }
-.jr-day-card-top {
-  display: flex;
-  gap: 18px;
-  padding: 16px;
-}
-.jr-day-card-media {
-  position: relative;
-  flex: 0 0 30%;
-  max-width: 200px;
-  min-height: 148px;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  background: var(--stone);
-}
-/* PACE TILE (17 Aug 2026) — what fills the media slot when a day has no
-   photograph. Fills it exactly: absolutely positioned to the slot's own
-   box, so it inherits the slot's size and corner radius and the card's
-   proportions don't change depending on whether a photo exists.
-
-   The fill colour is set inline from paceAccentColour (the same solid
-   pace colour /days already paints its shape strip and day badges with),
-   the way PacingTag sets its own pair - it is per-day data, not a fixed
-   style. Everything else here is tokens; the type is light because the
-   fill is one of the three dark pace colours. */
-.jr-pace-tile {
-  position: absolute;
-  inset: 0;
+.jr-day-card-body {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  padding: 13px 14px;
-  color: var(--white);
+}
+/* PACE TILE (17 Aug 2026) — the card's left column, and its primary
+   treatment: there is no photograph on a day card any more.
+
+   Roughly 200px on a desktop card and never wider, shrinking with the
+   card down to 140px before the layout stacks. Fill and text colour are
+   set inline from paceTone (the same pair PacingTag paints its pill
+   with, inverted - dark tone behind, light tone on it), the way that
+   component does it: this is per-day data, not a fixed style. Everything
+   else here is tokens. */
+.jr-pace-tile {
+  flex: 0 1 200px;
+  min-width: 140px;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 18px 18px;
 }
 .jr-pace-tile-day {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  /* Quieter than the number and the label without introducing a fourth
-     tone per pace - the tile has three different fills behind it, and a
-     fixed grey would read as dirt on one of them. */
-  opacity: 0.72;
+  /* No opacity, deliberately: two of the three fills are mid-tone
+     enough that fading this line would put it under any usable
+     contrast. Size and letter-spacing carry the hierarchy instead. */
 }
-/* Number and label sit together at the foot of the tile, with the day
+/* Numeral and caption sit together at the foot of the tile, with the day
    kicker pinned to the top - the mockup's own arrangement. */
 .jr-pace-tile-body {
   margin-top: auto;
@@ -2200,25 +2199,28 @@ select.location-inline-input {
 .jr-pace-tile-count {
   display: block;
   font-family: var(--font-display);
-  font-size: 40px;
+  font-size: 44px;
   font-weight: 300;
   line-height: 1;
   margin-bottom: 9px;
 }
-/* Two short lines, one per span: the generated noun, then the Day's own
-   Tile Label. A day with neither renders an empty block rather than a
-   stray gap, since both spans are conditional. */
-.jr-pace-tile-label span {
+/* Two lines, one per span: the caption's noun, then the rest of the
+   authored phrase. A one-word caption renders one span and no gap. */
+.jr-pace-tile-caption span {
   display: block;
-  font-size: 12px;
-  line-height: 1.45;
-  opacity: 0.88;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
 }
+/* The card itself has no padding (the tile is flush to its edges), so
+   the body's own blocks carry it - this one and the timeline strip
+   below it, which shares its horizontal inset. */
 .jr-day-card-content {
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  padding: 16px 18px;
 }
 .jr-day-card-meta {
   display: flex;
@@ -2295,7 +2297,7 @@ select.location-inline-input {
   display: flex;
   align-items: baseline;
   gap: 14px;
-  padding: 11px 16px 13px;
+  padding: 11px 18px 14px;
   border-top: 1px solid var(--stone);
   flex-wrap: wrap;
 }
@@ -2663,14 +2665,35 @@ select.location-inline-input {
 }
 
 @media (max-width: 640px) {
-  .jr-day-card-top {
+  /* Phone: the tile becomes a band across the top of the card rather
+     than a column beside it - a 200px column on a 320px screen leaves
+     the title nowhere to go. Same contents, laid out in a row so the
+     band stays shallow. */
+  .jr-day-card {
     flex-direction: column;
   }
-  .jr-day-card-media {
-    flex: 1 1 auto;
-    max-width: none;
+  .jr-pace-tile {
+    flex: 0 0 auto;
+    min-width: 0;
     width: 100%;
-    min-height: 170px;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px 16px 14px;
+  }
+  .jr-pace-tile-day {
+    align-self: flex-start;
+  }
+  .jr-pace-tile-body {
+    margin-top: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .jr-pace-tile-count {
+    font-size: 34px;
+    margin-bottom: 0;
   }
   .jr-spine {
     padding-left: 34px;

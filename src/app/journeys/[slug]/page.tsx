@@ -12,7 +12,7 @@ import {
   formatClockTime,
   formatMoney,
   MEANINGFUL_GAP_MINUTES,
-  paceAccentColour,
+  paceTone,
   scheduleForHubDay,
   scheduleWarningLine,
   spellGapMinutes,
@@ -38,6 +38,7 @@ import {
   nightsBeforeDay,
   ordinalWord,
   splitFinalSentence,
+  splitTileCaption,
   type NightSlot,
 } from "@/lib/journey-derivations";
 import type { HubDay, Journey } from "@/lib/types";
@@ -93,10 +94,11 @@ import type { HubDay, Journey } from "@/lib/types";
  *    optional and is left out of both the sidebar's accommodation range
  *    and the claim band's stat. The Grand Tour offers six nights and
  *    prices five. See journeyNightCounts/nightsAfterDay.
- *  - DAY CARD IMAGERY is unchanged where a photo exists. The pace tile
- *    added 17 Aug 2026 is only what fills the same slot when there
- *    isn't one - see DayPaceTile, including why its Relaxed tile is
- *    navy rather than the mockup's green.
+ *  - DAY CARD IMAGERY is gone (17 Aug 2026). The card's left column is
+ *    the pace tile, always - not a fallback for a missing photograph.
+ *    The first linked distillery's Hero Image used to fill it, which
+ *    said only which distillery came first and repeated across days
+ *    that share one. See DayPaceTile.
  */
 
 /** Same [label](url) markdown-link parsing as PhotoCredit in
@@ -231,40 +233,54 @@ function DayTimelineStrip({ day, base }: { day: HubDay; base?: DayBase }) {
   );
 }
 
-/** The coloured pace tile a day card falls back to when there is no
- *  photograph to put in its media slot (17 Aug 2026, to Mark's mockup).
- *  Same slot, same size, same corner radius as the photo - this is a
- *  fallback, not a replacement, and a day whose first distillery has a
- *  Hero Image still shows it.
+/** The pace tile - the solid colour block down the left of every day
+ *  card (17 Aug 2026, to Mark's mockup). This is the card's PRIMARY
+ *  treatment, not a fallback: the photograph that used to sit here (the
+ *  first linked distillery's Hero Image) is gone, along with the two
+ *  problems it had - it said only which distillery happened to be first,
+ *  and two days that share one showed the same picture.
  *
  *  What it says is only ever what the record already knows: which day of
  *  the journey this is, how many distilleries are on it, and the Day's
- *  own authored `Tile Label` for the second line. A day with no Tile
- *  Label renders the count and the noun alone rather than a phrase
- *  invented to fill the space, and a day with no distilleries on it at
- *  all (none today, but Days can be built that way) drops the numeral
- *  rather than printing a large "0".
+ *  own authored `Tile Caption` beneath - noun and phrase together
+ *  ("distilleries one road"), broken across two lines by
+ *  splitTileCaption. Nothing here, including the singular/plural, is
+ *  composed in code. A day with no caption shows the numeral alone
+ *  rather than a phrase invented to fill the space, and a day with no
+ *  distilleries at all (none today, but Days can be built that way)
+ *  drops the numeral rather than printing a large "0".
  *
- *  COLOUR, and the one place this departs from the mockup: the tile is
- *  painted with paceAccentColour - the same solid pace colour the /days
- *  shape strip and its numbered day badges already use - so Relaxed is
- *  --green-deep, Moderate --copper, Packed the sanctioned #B5502E. The
- *  mockup's Relaxed tile is a sage green (#4B7860) that exists nowhere
- *  in this palette; docs/hero-handoff.md section 5 is explicit that
- *  --green-light on --green-deep is the only green in the system and no
- *  other may be introduced, so inventing one for this tile would have
- *  been the one thing that document warns against. */
+ *  COLOUR is PacingTag's own pair, inverted: the tile is painted in the
+ *  pace's dark tone and lettered in its light one - Relaxed
+ *  --green-deep/--green-light, Moderate --copper/--amber-pale, Packed
+ *  the sanctioned #B5502E/#F7E6E0 pair that paceTone already carries as
+ *  this system's one hardcoded exception (see days-hub.css's own note).
+ *  Taken from paceTone rather than restated, so the tiles and the pace
+ *  pill beside them can never disagree.
+ *
+ *  JUDGEMENT CALL, flagged: light-on-copper is the weakest of the three
+ *  for contrast (roughly 2.8:1 for the Moderate tile's small text). It
+ *  is the pairing Mark specified, so it stands - but the tile carries no
+ *  dimmed type at all as a result: hierarchy here is size and weight
+ *  only, where an earlier version faded the "DAY 4" kicker to 72%. */
 function DayPaceTile({ day, dayNumber }: { day: HubDay; dayNumber: number }) {
+  // `stops` is the day's DISTILLERY stops - its beaches, cafes and ruins
+  // are featureStops and deliberately uncounted here, since the numeral
+  // is the distillery count the caption's noun agrees with.
   const count = day.stops.length;
+  const tone = paceTone(day.pacing);
+  const caption = day.tileCaption ? splitTileCaption(day.tileCaption) : undefined;
   return (
-    <div className="jr-pace-tile" style={{ background: paceAccentColour(day.pacing) }}>
+    <div className="jr-pace-tile" style={{ background: tone.fg, color: tone.bg }}>
       <span className="jr-pace-tile-day">Day {dayNumber}</span>
       <div className="jr-pace-tile-body">
         {count > 0 && <span className="jr-pace-tile-count">{count}</span>}
-        <span className="jr-pace-tile-label">
-          {count > 0 && <span>{count === 1 ? "distillery" : "distilleries"}</span>}
-          {day.tileLabel && <span>{day.tileLabel}</span>}
-        </span>
+        {caption && (
+          <span className="jr-pace-tile-caption">
+            <span>{caption.head}</span>
+            {caption.tail && <span>{caption.tail}</span>}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -281,7 +297,6 @@ function DaySpineCard({
   journeySlug: string;
   base?: DayBase;
 }) {
-  const image = day.stops[0]?.distillery.image;
   const distanceOrDuration = day.distanceOnFoot || day.durationPortEllen;
   const tours = dayTourTotal(day);
   const chips = dayChips(day);
@@ -294,22 +309,12 @@ function DaySpineCard({
   const walking = walkingLineFor(day, base);
 
   return (
+    // The tile is a sibling of the whole right-hand column, not a cell
+    // inside the top row - that is what lets it run the FULL height of
+    // the card, past the timeline strip, the way the mockup draws it.
     <article className="jr-day-card">
-      <div className="jr-day-card-top">
-        <div className="jr-day-card-media">
-          {image ? (
-            <Image
-              src={image}
-              alt={day.stops[0].distillery.name}
-              fill
-              sizes="180px"
-              style={{ objectFit: "cover" }}
-              unoptimized
-            />
-          ) : (
-            <DayPaceTile day={day} dayNumber={dayNumber} />
-          )}
-        </div>
+      <DayPaceTile day={day} dayNumber={dayNumber} />
+      <div className="jr-day-card-body">
         <div className="jr-day-card-content">
           <div className="jr-day-card-meta">
             <PacingTag pacing={day.pacing} />
@@ -336,8 +341,8 @@ function DaySpineCard({
             </Link>
           </div>
         </div>
+        <DayTimelineStrip day={day} base={base} />
       </div>
-      <DayTimelineStrip day={day} base={base} />
     </article>
   );
 }
