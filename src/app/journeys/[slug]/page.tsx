@@ -12,6 +12,7 @@ import {
   formatClockTime,
   formatMoney,
   MEANINGFUL_GAP_MINUTES,
+  paceAccentColour,
   scheduleForHubDay,
   scheduleWarningLine,
   spellGapMinutes,
@@ -32,9 +33,11 @@ import {
   journeyThirdStat,
   journeyTourTotal,
   nightNoteFor,
-  nightSlotsForDay,
+  nightsAfterDay,
+  nightsBeforeDay,
   ordinalWord,
   splitFinalSentence,
+  type NightSlot,
 } from "@/lib/journey-derivations";
 import type { HubDay, Journey } from "@/lib/types";
 
@@ -82,6 +85,16 @@ import type { HubDay, Journey } from "@/lib/types";
  *    falling back to Card Description when Intro is empty. Card
  *    Description is the homepage teaser and was duplicating the opening
  *    of the Claim band directly below the hero.
+ *  - NIGHT PLACEMENT was rewritten 17 Aug 2026 to the structure Mark
+ *    defined: night one before day one (the arrival night), a night
+ *    after every day but the last, and - only where Nights exceeds the
+ *    day count - one optional night after it. The gap-filling version
+ *    this replaces is described, with what it got wrong, in
+ *    nightsAfterDay's own comment.
+ *  - DAY CARD IMAGERY is unchanged where a photo exists. The pace tile
+ *    added 17 Aug 2026 is only what fills the same slot when there
+ *    isn't one - see DayPaceTile, including why its Relaxed tile is
+ *    navy rather than the mockup's green.
  */
 
 /** Same [label](url) markdown-link parsing as PhotoCredit in
@@ -216,7 +229,56 @@ function DayTimelineStrip({ day, base }: { day: HubDay; base?: DayBase }) {
   );
 }
 
-function DaySpineCard({ day, journeySlug, base }: { day: HubDay; journeySlug: string; base?: DayBase }) {
+/** The coloured pace tile a day card falls back to when there is no
+ *  photograph to put in its media slot (17 Aug 2026, to Mark's mockup).
+ *  Same slot, same size, same corner radius as the photo - this is a
+ *  fallback, not a replacement, and a day whose first distillery has a
+ *  Hero Image still shows it.
+ *
+ *  What it says is only ever what the record already knows: which day of
+ *  the journey this is, how many distilleries are on it, and the Day's
+ *  own authored `Tile Label` for the second line. A day with no Tile
+ *  Label renders the count and the noun alone rather than a phrase
+ *  invented to fill the space, and a day with no distilleries on it at
+ *  all (none today, but Days can be built that way) drops the numeral
+ *  rather than printing a large "0".
+ *
+ *  COLOUR, and the one place this departs from the mockup: the tile is
+ *  painted with paceAccentColour - the same solid pace colour the /days
+ *  shape strip and its numbered day badges already use - so Relaxed is
+ *  --green-deep, Moderate --copper, Packed the sanctioned #B5502E. The
+ *  mockup's Relaxed tile is a sage green (#4B7860) that exists nowhere
+ *  in this palette; docs/hero-handoff.md section 5 is explicit that
+ *  --green-light on --green-deep is the only green in the system and no
+ *  other may be introduced, so inventing one for this tile would have
+ *  been the one thing that document warns against. */
+function DayPaceTile({ day, dayNumber }: { day: HubDay; dayNumber: number }) {
+  const count = day.stops.length;
+  return (
+    <div className="jr-pace-tile" style={{ background: paceAccentColour(day.pacing) }}>
+      <span className="jr-pace-tile-day">Day {dayNumber}</span>
+      <div className="jr-pace-tile-body">
+        {count > 0 && <span className="jr-pace-tile-count">{count}</span>}
+        <span className="jr-pace-tile-label">
+          {count > 0 && <span>{count === 1 ? "distillery" : "distilleries"}</span>}
+          {day.tileLabel && <span>{day.tileLabel}</span>}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function DaySpineCard({
+  day,
+  dayNumber,
+  journeySlug,
+  base,
+}: {
+  day: HubDay;
+  dayNumber: number;
+  journeySlug: string;
+  base?: DayBase;
+}) {
   const image = day.stops[0]?.distillery.image;
   const distanceOrDuration = day.distanceOnFoot || day.durationPortEllen;
   const tours = dayTourTotal(day);
@@ -242,7 +304,9 @@ function DaySpineCard({ day, journeySlug, base }: { day: HubDay; journeySlug: st
               style={{ objectFit: "cover" }}
               unoptimized
             />
-          ) : null}
+          ) : (
+            <DayPaceTile day={day} dayNumber={dayNumber} />
+          )}
         </div>
         <div className="jr-day-card-content">
           <div className="jr-day-card-meta">
@@ -276,13 +340,29 @@ function DaySpineCard({ day, journeySlug, base }: { day: HubDay; journeySlug: st
   );
 }
 
+/** `optional` is the trailing night a journey offers instead of the boat
+ *  home - see nightsAfterDay. It renders as an unfilled, dashed card
+ *  rather than the solid --stone one every planned night gets, because
+ *  it is a choice and not a step, and it drops the final-sentence
+ *  emphasis every other night carries: the bold there is the night's
+ *  one actionable beat ("Book it when you book the room."), and on a
+ *  night nobody has to take there is nothing to instruct.
+ *
+ *  The card says nothing the note doesn't - the same way an `Optional`
+ *  Day Stop is stated in the day's own copy and nowhere else in the
+ *  markup (see walkingLineFor). The Grand Tour's sixth note opens
+ *  "Optional.", and it is left exactly as written rather than moved
+ *  into a label, so a reader who never sees the styling still reads the
+ *  word. */
 function NightConnector({
   journey,
   nightNumber,
+  optional,
   areaSlug,
 }: {
   journey: Journey;
   nightNumber: number;
+  optional: boolean;
   areaSlug?: string;
 }) {
   const note = nightNoteFor(journey, nightNumber);
@@ -292,15 +372,15 @@ function NightConnector({
   // word and its ordinal can never render in clashing cases.
   const nightLabel = `Night ${ordinalWord(nightNumber)}`.toLowerCase();
   return (
-    <div className="jr-night-card">
+    <div className={optional ? "jr-night-card jr-night-card-optional" : "jr-night-card"}>
       <div className="jr-night-when">
         <span className="jr-eyebrow jr-night-label">{nightLabel}</span>
         {journey.base && <span className="jr-night-base">{journey.base}</span>}
       </div>
       {note && (
         <p className="jr-night-note">
-          {lead}
-          {last && <strong>{last}</strong>}
+          {optional ? note : lead}
+          {!optional && last && <strong>{last}</strong>}
         </p>
       )}
       {areaSlug && (
@@ -495,21 +575,42 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
 
           <div className="jr-spine">
             {journey.days.map((day, i) => {
-              const nightNumbers = nightSlotsForDay(i, journey.days.length, journey.nights);
+              // Night one sits BEFORE day one - it is the night you
+              // arrive, and every journey's first Night Notes line is
+              // written as one. See nightsBeforeDay/nightsAfterDay.
+              const renderNight = (slot: NightSlot) => (
+                <div key={slot.night} className="jr-spine-item">
+                  <span
+                    className={
+                      slot.optional
+                        ? "jr-spine-marker jr-spine-marker-night jr-spine-marker-night-optional"
+                        : "jr-spine-marker jr-spine-marker-night"
+                    }
+                    aria-hidden
+                  >
+                    &#9790;
+                  </span>
+                  <NightConnector
+                    journey={journey}
+                    nightNumber={slot.night}
+                    optional={slot.optional}
+                    areaSlug={baseArea?.slug}
+                  />
+                </div>
+              );
               return (
                 <div key={day.id}>
+                  {nightsBeforeDay(i, journey.days.length, journey.nights).map(renderNight)}
                   <div className="jr-spine-item">
                     <span className="jr-spine-marker jr-spine-marker-day">{i + 1}</span>
-                    <DaySpineCard day={day} journeySlug={journey.slug} base={journeyBaseFor(journey, i, baseCoords)} />
+                    <DaySpineCard
+                      day={day}
+                      dayNumber={i + 1}
+                      journeySlug={journey.slug}
+                      base={journeyBaseFor(journey, i, baseCoords)}
+                    />
                   </div>
-                  {nightNumbers.map((n) => (
-                    <div key={n} className="jr-spine-item">
-                      <span className="jr-spine-marker jr-spine-marker-night" aria-hidden>
-                        &#9790;
-                      </span>
-                      <NightConnector journey={journey} nightNumber={n} areaSlug={baseArea?.slug} />
-                    </div>
-                  ))}
+                  {nightsAfterDay(i, journey.days.length, journey.nights).map(renderNight)}
                 </div>
               );
             })}

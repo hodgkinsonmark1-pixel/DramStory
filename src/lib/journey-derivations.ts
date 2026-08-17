@@ -179,35 +179,65 @@ export function nightNoteFor(journey: Journey, n: number): string {
   return journey.accommodationNote;
 }
 
-/** Which night numbers (1-indexed) should be shown as a connector AFTER
- *  the day card at `dayIndex` (0-indexed), for a Journey with `dayCount`
- *  days and `nights` total nights.
+/** One night's slot in the spine - its 1-indexed number, and whether it
+ *  is the trailing night the visitor may simply not take. */
+export type NightSlot = { night: number; optional: boolean };
+
+/**
+ * WHERE THE NIGHTS GO (rewritten 17 Aug 2026, to the site owner's own
+ * structure). The order is not a guess any more, and the two functions
+ * below are the whole of it:
  *
- *  JUDGEMENT CALL, flagged: the task brief says connectors go "between
- *  day cards, for each night" but Nights is an independent editorial
- *  number that doesn't always equal dayCount - 1 (e.g. The Islay Grand
- *  Tour: 5 days, 6 nights; The South Coast Walk: 2 days, 2 nights - both
- *  confirmed against the real Airtable records, not assumed). A purely
- *  literal "one connector per gap" reading would silently drop real,
- *  already-written Night Notes content (South Coast Walk's second line,
- *  "Same bed both nights...", has nowhere to go if only 1 gap is
- *  rendered for its 2 nights). This fills each of the (dayCount - 1) gaps
- *  between cards first (Night 1, 2, ...), then appends any remaining
- *  nights after the LAST day card - read as the trailing night(s) before
- *  departure, which is the one placement that doesn't require inventing
- *  an unstated arrival night before Day 1. */
-export function nightSlotsForDay(dayIndex: number, dayCount: number, nights: number): number[] {
-  const gaps = Math.max(dayCount - 1, 0);
-  const slots: number[][] = Array.from({ length: dayCount }, () => []);
-  let n = 1;
-  for (let g = 0; g < gaps && n <= nights; g++, n++) {
-    slots[g].push(n);
+ *   night one  -> BEFORE day one. It is the arrival night: you land,
+ *                 you eat, tomorrow starts early. Every journey's first
+ *                 Night Notes line is now written that way.
+ *   night n+1  -> after day n, for every day EXCEPT the last.
+ *   one more   -> after the last day, and ONLY where the journey's
+ *                 Nights exceeds its day count. That night is optional:
+ *                 the ferry goes after the last tour if you want it.
+ *
+ * So a journey needs exactly dayCount nights to fill the plan, and a
+ * (dayCount + 1)th night is the optional one. All four real journeys
+ * satisfy that: Grand Tour 5/6 (the only one with the optional night),
+ * South Coast Walk 2/2, Rhinns Trail 3/3, Hidden Coast 2/2.
+ *
+ * What this replaces, and why: the previous version packed the nights
+ * into the gaps BETWEEN day cards and then appended whatever was left
+ * over after the last one. On the Grand Tour that put nights five AND
+ * six after day five, and since nightNoteFor repeats the last authored
+ * line once it runs out, both printed the same sentence. There was no
+ * arrival night at all, so every note sat one day later than the copy
+ * it was written for.
+ *
+ * Deliberately tolerant of numbers no journey currently has: fewer
+ * Nights than days simply runs out of connectors (a day with no night
+ * after it renders none), and more than dayCount + 1 renders each
+ * surplus night as a separate optional card rather than silently
+ * dropping copy that was written for it.
+ */
+
+/** Nights rendered BEFORE the day card at `dayIndex`. Only day one ever
+ *  has one, and it is night one - the night you arrive. */
+export function nightsBeforeDay(dayIndex: number, dayCount: number, nights: number): NightSlot[] {
+  if (dayIndex !== 0 || dayCount < 1 || nights < 1) return [];
+  return [{ night: 1, optional: false }];
+}
+
+/** Nights rendered AFTER the day card at `dayIndex`. */
+export function nightsAfterDay(dayIndex: number, dayCount: number, nights: number): NightSlot[] {
+  if (dayCount < 1) return [];
+  if (dayIndex < dayCount - 1) {
+    // Day one is followed by night two, day two by night three, and so
+    // on - night one having already been spent before day one.
+    const night = dayIndex + 2;
+    return night <= nights ? [{ night, optional: false }] : [];
   }
-  while (n <= nights) {
-    slots[dayCount - 1].push(n);
-    n++;
-  }
-  return slots[dayIndex] ?? [];
+  // The last day. There is no night after it in the plan; anything the
+  // journey still has left is the choice between one more night and the
+  // boat home, and is marked as such rather than presented as a step.
+  const slots: NightSlot[] = [];
+  for (let night = dayCount + 1; night <= nights; night++) slots.push({ night, optional: true });
+  return slots;
 }
 
 // ─────────────────────────────────────────────────────────────────────────

@@ -2132,6 +2132,14 @@ select.location-inline-input {
   font-size: 11px;
   line-height: 1;
 }
+/* The optional night's marker is a hollow disc, matching its hollow
+   card - the spine reads as a filled run of steps with one open one at
+   the end, which is exactly what the journey is. */
+.jr-spine-marker-night-optional {
+  background: transparent;
+  border: 1px dashed var(--mist);
+  color: var(--slate);
+}
 
 /* Day card — white, --stone border, --shadow-card, on the --off-white
    page (docs/hero-handoff.md §5's reference treatment). */
@@ -2155,6 +2163,56 @@ select.location-inline-input {
   border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--stone);
+}
+/* PACE TILE (17 Aug 2026) — what fills the media slot when a day has no
+   photograph. Fills it exactly: absolutely positioned to the slot's own
+   box, so it inherits the slot's size and corner radius and the card's
+   proportions don't change depending on whether a photo exists.
+
+   The fill colour is set inline from paceAccentColour (the same solid
+   pace colour /days already paints its shape strip and day badges with),
+   the way PacingTag sets its own pair - it is per-day data, not a fixed
+   style. Everything else here is tokens; the type is light because the
+   fill is one of the three dark pace colours. */
+.jr-pace-tile {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 13px 14px;
+  color: var(--white);
+}
+.jr-pace-tile-day {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  /* Quieter than the number and the label without introducing a fourth
+     tone per pace - the tile has three different fills behind it, and a
+     fixed grey would read as dirt on one of them. */
+  opacity: 0.72;
+}
+/* Number and label sit together at the foot of the tile, with the day
+   kicker pinned to the top - the mockup's own arrangement. */
+.jr-pace-tile-body {
+  margin-top: auto;
+}
+.jr-pace-tile-count {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 300;
+  line-height: 1;
+  margin-bottom: 9px;
+}
+/* Two short lines, one per span: the generated noun, then the Day's own
+   Tile Label. A day with neither renders an empty block rather than a
+   stray gap, since both spans are conditional. */
+.jr-pace-tile-label span {
+  display: block;
+  font-size: 12px;
+  line-height: 1.45;
+  opacity: 0.88;
 }
 .jr-day-card-content {
   flex: 1 1 auto;
@@ -2332,6 +2390,23 @@ select.location-inline-input {
 }
 .jr-night-link:hover {
   text-decoration: underline;
+}
+/* The optional trailing night (17 Aug 2026) — the one a visitor can take
+   or replace with the boat home. Quieter again than a planned night:
+   unfilled rather than --stone, with a dashed --mist outline, because an
+   empty outline is what "not filled in yet" looks like everywhere else.
+   Deliberately NOT smaller and NOT lower-contrast body text - it is a
+   real choice with real copy, and it still has to be readable. */
+.jr-night-card-optional {
+  background: transparent;
+  border: 1px dashed var(--mist);
+  /* Keeps the dashed box the same overall size as the filled cards
+     either side of it, so the spine's rhythm doesn't shift. */
+  padding: 12px 15px;
+}
+.jr-night-card-optional .jr-night-base,
+.jr-night-card-optional .jr-night-note {
+  color: var(--slate);
 }
 
 /* Shared bits — white card surface, tiny grey caps eyebrow. */
