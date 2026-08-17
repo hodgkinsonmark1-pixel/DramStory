@@ -263,6 +263,24 @@ function spellMinutes(total: number): string {
   return m === 0 ? hours : `${hours} ${mins}`;
 }
 
+/** The same minutes, shorter, for a line that has to fit on a phone -
+ *  "45 minutes", "1 hour", "2 hours 10". Under an hour it keeps the unit
+ *  (a bare "45" says nothing); above one, the trailing minutes ride on
+ *  the hours the way anyone saying it out loud would say it.
+ *
+ *  Separate from spellMinutes rather than replacing it: that one still
+ *  spells a schedule gap out in full ("1 hour 30 minutes before Ardbeg"),
+ *  where there is room for it and where the sentence has no second
+ *  figure to be confused with. Also not drive-time.ts's formatDuration
+ *  ("2h 25m"), which is a meta-row abbreviation, not prose. */
+function spellMinutesShort(total: number): string {
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h === 0) return `${m} ${m === 1 ? "minute" : "minutes"}`;
+  const hours = `${h} ${h === 1 ? "hour" : "hours"}`;
+  return m === 0 ? hours : `${hours} ${m}`;
+}
+
 /**
  * One sentence stating how much of a day is actually spent on foot, or
  * undefined when the stored legs can't answer it, or when the answer is
@@ -282,13 +300,16 @@ function spellMinutes(total: number): string {
  *  - nothing on this day is walked at all;
  *  - a leg it would need was walked but never routed;
  *  - every stop is optional, so there is no plan to state;
- *  - the total is at or under MINIMUM_WALKING_LINE_MINUTES - see there.
+ *  - the plan AND any optional detour are both at or under
+ *    MINIMUM_WALKING_LINE_MINUTES - see there, and see the optional-only
+ *    line below for the case where only the plan is.
  *
- * `Distance on Foot` is appended only when the figure and the distance
- * describe the SAME walking. Where a walked transfer is included, the
- * mileage covers just the between-stops part and pairing the two would
- * read as a much slower walk than it is - so it is left where it already
- * renders, in the day's meta row.
+ * SHORT ENOUGH TO READ (17 Aug 2026). Every variant here is written to
+ * land under WALKING_LINE_MAX_CHARS - one line on a phone. That is what
+ * retired the `Distance on Foot` brackets this used to append (the
+ * mileage still renders in the day's meta row, where it always has) and
+ * what moved the authored transfer origin out of the sentence and onto
+ * the page once - see walkingOriginNote.
  */
 /** Under this - the site owner's line, in minutes - the day says nothing
  *  about walking rather than printing a figure too small to plan around.
@@ -304,10 +325,35 @@ const MINIMUM_WALKING_LINE_MINUTES = 20;
  *  noise where the whole point is a decision someone has to make. */
 const MEANINGFUL_DETOUR_MINUTES = 15;
 
-/** "A", "A and B", "A, B and C" - the same list an editor would write. */
-function joinNames(names: string[]): string {
-  if (names.length <= 1) return names[0] ?? "";
-  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+/** The site owner's line, in characters, for how long a walking line may
+ *  be (17 Aug 2026). The old wording ran to 125 characters and wrapped to
+ *  three lines on a phone, which is how a sentence meant to warn someone
+ *  about two hours on their feet ends up being skipped. Every variant
+ *  below is written to land under this; the two places that can still
+ *  blow it - a long authored origin label, and a day's own name inside a
+ *  clause - are measured against it rather than trusted. */
+const WALKING_LINE_MAX_CHARS = 60;
+
+/** Connectors that start the "and where is that, exactly" half of an
+ *  authored transfer origin - "the pathway start BY Port Ellen Primary
+ *  School". Cutting there leaves the head phrase, which is still the
+ *  visitor's own words and still true; it is only less precise, and the
+ *  full label is stated once on the page (see walkingOriginNote) so the
+ *  precision is never actually lost. Deliberately conservative: anything
+ *  not in this list is left whole and simply dropped if it won't fit. */
+const ORIGIN_HEAD_RE = /,|\s+(?:by|next to|beside|outside|opposite|behind|near)\s+/i;
+
+/** The longest form of `label` that leaves the finished line under
+ *  WALKING_LINE_MAX_CHARS - the label itself, else its head phrase, else
+ *  nothing at all, in which case the caller says the sentence without an
+ *  origin and the page's own note carries it. */
+function fittedOrigin(label: string | undefined, before: string, after: string): string | undefined {
+  if (!label) return undefined;
+  const head = label.split(ORIGIN_HEAD_RE)[0].trim();
+  for (const candidate of [label, head]) {
+    if (candidate && (before + candidate + after).length <= WALKING_LINE_MAX_CHARS) return candidate;
+  }
+  return undefined;
 }
 
 export function walkingLineFor(day: HubDay, base?: DayBase): string | undefined {
@@ -370,8 +416,6 @@ export function walkingLineFor(day: HubDay, base?: DayBase): string | undefined 
     if (base?.toBaseMinutes === undefined) return undefined;
     minutes += base.toBaseMinutes;
   }
-  if (minutes <= MINIMUM_WALKING_LINE_MINUTES) return undefined;
-
   // Rounded to the nearest five so "about" means it. The underlying
   // figures are routed to the minute, but a walking pace is an editorial
   // 3.75km/h and printing "about 46 minutes" claims a precision the pace
@@ -381,51 +425,108 @@ export function walkingLineFor(day: HubDay, base?: DayBase): string | undefined 
     detourOneWay !== undefined && detourOneWay > 0
       ? Math.round((minutes + detourOneWay * 2) / 5) * 5
       : undefined;
-  const detourClause =
-    withDetour !== undefined && withDetour - rounded >= MEANINGFUL_DETOUR_MINUTES
-      ? ` Carrying on to ${joinNames(tailOnFoot.map(stopName))} and back makes it nearer ${spellMinutes(
-          withDetour
-        )}.`
-      : "";
-  const lead = `About ${spellMinutes(rounded)} on foot`;
+
+  // OPTIONAL WALKING ON ITS OWN (17 Aug 2026). The threshold used to end
+  // the sentence here whatever the detour was, so "Bruichladdich, by the
+  // Loch" - two minutes of core walking, and an optional Museum of Islay
+  // Life leg of 51 minutes each way - printed nothing at all. Anyone who
+  // took the leg the narrative offers walked the best part of two hours
+  // on a page that had said nothing about walking.
+  //
+  // So: a core under the line and a detour over it says the detour, and
+  // says it as the detour - "Little on foot", because that is exactly
+  // what the plan itself is. Both under the line still says nothing,
+  // unchanged. The figure quoted is the same one the two-figure variant
+  // below quotes (core plus the detour there and back), so "with the
+  // detour" means the same thing wherever a reader meets it.
+  if (minutes <= MINIMUM_WALKING_LINE_MINUTES) {
+    if (withDetour === undefined || (detourOneWay as number) * 2 <= MINIMUM_WALKING_LINE_MINUTES) {
+      return undefined;
+    }
+    return `Little on foot — ${spellMinutesShort(withDetour)} with the detour.`;
+  }
+
+  // A detour worth a decision takes the whole sentence: two figures and
+  // nothing else. What the first figure is measured from is said once on
+  // the page (walkingOriginNote) rather than in a line that has to carry
+  // two numbers as well.
+  //
+  // "the detour" and not the stops' own names, deliberately: the names
+  // are right there in the day's own stop list, and dropping them into
+  // this clause needs an article ("the Museum of Islay Life", but not
+  // "the Kildalton Cross") that no rule can pick correctly for every
+  // name a Local Feature might have.
+  if (withDetour !== undefined && withDetour - rounded >= MEANINGFUL_DETOUR_MINUTES) {
+    return `${spellMinutesShort(rounded)} on foot — ${spellMinutesShort(withDetour)} with the detour.`;
+  }
+
+  const lead = `About ${spellMinutesShort(rounded)} on foot`;
 
   // A driving day with walking in it. The walking happens after you
   // park, so the sentence says so and names no transfer at all - the
   // drive out and back is the day's travel time, stated elsewhere, and
   // folding it in here would describe neither.
   if (!wholeDayWalked) {
-    return `${lead} once you're there — the walking is all after you park.${detourClause}`;
+    return `${lead} once you've parked.`;
   }
 
-  // Where the transfers were measured from, said in the visitor's words.
-  // The authored origin label wins over the Base name because it is the
-  // more precise of the two AND because it is the one the figure is
-  // actually true of - see DayBase.transferOriginLabel.
-  const origin = base?.transferOriginLabel ?? base?.name;
-
   if (walked.out && walked.back) {
-    // "measured from ..." rather than "walking out from ...": with an
-    // authored origin the sentence has to survive being read next to the
-    // journey's Base, which is a different (larger) place.
-    return base?.transferOriginLabel
-      ? `${lead} across the day — measured from ${origin}, there and back.${detourClause}`
-      : `${lead} across the day — that counts walking out from ${origin} and back again.${detourClause}`;
+    // Where the transfers were measured from, said in the visitor's
+    // words and only as far as the line has room for - see
+    // fittedOrigin. Without an authored origin this says nothing about
+    // where it started: the Base is what a reader assumes anyway, and
+    // naming it costs characters that buy nothing.
+    const before = `${spellMinutesShort(rounded)} on foot from `;
+    const origin = fittedOrigin(base?.transferOriginLabel, before, ", there and back.");
+    return origin ? `${before}${origin}, there and back.` : `${lead}, there and back.`;
   }
   // One end walked and the other not. No published journey does this
   // today, but the two legs are stored and routed independently and
   // nothing stops it, so it says what it counted rather than rounding
   // the sentence up to a round trip.
   if (walked.out || walked.back) {
-    return `${lead} across the day — that counts the walk one way ${
-      walked.out ? `from ${origin}` : `back to ${origin}`
-    }.${detourClause}`;
+    const before = `${lead}, one way ${walked.out ? "from " : "back to "}`;
+    const origin = fittedOrigin(base?.transferOriginLabel ?? base?.name, before, ".");
+    return origin ? `${before}${origin}.` : `${lead}, counted one way.`;
   }
+  // The transfer is driven, so this is the walking once the car is
+  // parked - the same thing a driving day's figure describes, said the
+  // same way.
   if (base?.transferMode === "drive") {
-    const miles = day.distanceOnFoot ? ` (${day.distanceOnFoot})` : "";
-    return `${lead} once you are there${miles} — you drive out from ${origin} and back.${detourClause}`;
+    return `${lead} once you've parked.`;
   }
-  const miles = day.distanceOnFoot ? ` (${day.distanceOnFoot})` : "";
-  return `${lead} between the stops${miles}.${detourClause}`;
+  // No base at all: nothing has been said about getting there, so this
+  // is only what the day walks between its own stops. The mileage that
+  // used to ride along in brackets stays in the day's meta row, where it
+  // already renders - it bought characters this line no longer has.
+  return `${lead} between the stops.`;
+}
+
+/**
+ * The one thing a walking line no longer has room to say: what its
+ * figure was measured from, where that is not simply the Base.
+ *
+ * Every variant above is written to fit a phone, and the full authored
+ * origin - "the pathway start by Port Ellen Primary School" - does not
+ * fit inside any of them. It cannot just vanish: it exists so that a
+ * reader cannot mistake a transfer measured from the pathway start for
+ * one measured from the middle of Port Ellen, which is half a village
+ * further on. So the page states it ONCE, next to the day's shape (or
+ * once above a journey's days), and the lines themselves stay short.
+ *
+ * Undefined unless all of it is true at once: an authored origin exists,
+ * this day actually prints a walking line, and that line's figure really
+ * does include a walked transfer. On a driving day the figure is what
+ * you walk once you have parked and the transfer is not in it, so the
+ * note would be describing a number that isn't on the page.
+ */
+export function walkingOriginNote(day: HubDay, base?: DayBase): string | undefined {
+  if (!base?.transferOriginLabel) return undefined;
+  if (day.travelMode !== "walk") return undefined;
+  const walked = transferLegsWalked(base);
+  if (!walked.out && !walked.back) return undefined;
+  if (!walkingLineFor(day, base)) return undefined;
+  return `Times on foot are measured from ${base.transferOriginLabel}.`;
 }
 
 /**
