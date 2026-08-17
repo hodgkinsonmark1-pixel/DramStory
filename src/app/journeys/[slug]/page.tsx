@@ -13,6 +13,7 @@ import {
   formatMoney,
   parseStartTimeMinutes,
   scheduleForHubDay,
+  walkingLineFor,
   type DayBase,
 } from "@/lib/day-derivations";
 import { stopName } from "@/lib/itinerary-stop";
@@ -177,6 +178,11 @@ function DaySpineCard({ day, journeySlug, base }: { day: HubDay; journeySlug: st
   const distanceOrDuration = day.distanceOnFoot || day.durationPortEllen;
   const tours = dayTourTotal(day);
   const chips = dayChips(day);
+  // A walking day says so in minutes, not just miles - and on a journey
+  // whose transfers are walked too, that figure includes getting there
+  // and back. Undefined (and so nothing rendered) whenever the stored
+  // legs can't answer it; see walkingLineFor.
+  const walking = walkingLineFor(day, base);
 
   return (
     <article className="jr-day-card">
@@ -201,6 +207,7 @@ function DaySpineCard({ day, journeySlug, base }: { day: HubDay; journeySlug: st
           </div>
           <h3 className="jr-day-card-title">{day.name}</h3>
           {day.hook && <p className="jr-day-card-hook">{day.hook}</p>}
+          {walking && <p className="jr-day-card-walk">{walking}</p>}
           <div className="jr-day-card-foot">
             <div className="jr-chips">
               {chips.map((c) => (
@@ -305,21 +312,29 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
       : undefined;
 
   // Coordinates to fall back on for a base leg that was never routed -
-  // Areas first, then a Featured Stay in that village, which is the same
-  // order scripts/compute-journey-base-legs.mjs resolves a Base in.
+  // the Journey's own Base Stay first, then Areas, then a Featured Stay
+  // matched on the Base text. Same order scripts/compute-journey-base-
+  // legs.mjs resolves a Base in (17 Aug 2026), so an estimated leg starts
+  // from the same door a routed one did rather than from a village
+  // centroid a few hundred metres away.
   // Deliberately SEPARATE from baseMarker above: the white map pin and
   // the "Where to stay ->" link still require a real Area record, which
   // is a pre-existing, deliberate rule this change doesn't touch. A base
-  // with neither still gets no estimated leg - only the routed ones.
+  // with none of the three still gets no estimated leg - only routed ones.
   const baseStay =
-    !baseMarker && journey.base
+    (journey.baseStayId ? stays.find((stay) => stay.id === journey.baseStayId) : undefined) ??
+    (journey.base
       ? stays.find(
           (stay) =>
             (stay.nearestArea ?? "").toLowerCase().startsWith(journey.base.toLowerCase()) ||
             stay.name.toLowerCase().startsWith(journey.base.toLowerCase())
         )
+      : undefined);
+  const baseCoords = baseStay
+    ? { lat: baseStay.lat, lng: baseStay.lng }
+    : baseMarker
+      ? { lat: baseMarker.lat, lng: baseMarker.lng }
       : undefined;
-  const baseCoords = baseMarker ?? (baseStay ? { lat: baseStay.lat, lng: baseStay.lng } : undefined);
 
   const routeStops: RouteMapStop[] = journey.days.flatMap((day, i) =>
     (day.mapDistilleries ?? []).map((d) => ({ ...d, dayNumber: i + 1 }))

@@ -525,6 +525,19 @@ export interface Journey {
    *  to the straight-line estimate from the Base's own coordinates - or,
    *  with no coordinates either, counts no base leg at all. */
   dayBaseLegs: { fromBaseMinutes?: number; toBaseMinutes?: number }[];
+  /** How the visitor gets from `base` to where each day starts, and back
+   *  - the TRANSFER legs only, from the Journey's own `Transfer Mode`
+   *  (blank = drive). Distinct from HubDay.travelMode, which describes
+   *  movement between that day's stops: The Islay Grand Tour drives to
+   *  Bowmore and then walks the village, so its transfer mode is drive
+   *  while that day's travel mode is walk. Added 17 Aug 2026. */
+  transferMode: TravelMode;
+  /** Record ID of the Featured Stay in `Base Stay` - the building the
+   *  transfer legs were actually measured from, so the site's fallback
+   *  estimate for an unrouted leg starts from the same point the
+   *  precompute script did. Undefined when no stay is linked, in which
+   *  case callers fall back to the Base text field's Area centroid. */
+  baseStayId?: string;
   /** The one-sentence route summary under the sidebar map. Authored in
    *  Airtable, never composed in code. Empty string renders nothing. */
   routeSummary: string;

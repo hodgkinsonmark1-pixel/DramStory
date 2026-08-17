@@ -2176,6 +2176,18 @@ select.location-inline-input {
   color: var(--peat);
   margin: 0 0 14px;
 }
+/* How much of a walking day is actually on foot - sits directly under
+   the hook, ahead of the chips, so it reads as part of what the day IS
+   rather than as a tag. Copper rule and --peat text match the same line
+   on /days/[slug] (.day-shape-walk in day-screen.css); tokens only. */
+.jr-day-card-walk {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--peat);
+  border-left: 2px solid var(--copper);
+  padding-left: 9px;
+  margin: -6px 0 14px;
+}
 .jr-day-card-foot {
   margin-top: auto;
   display: flex;

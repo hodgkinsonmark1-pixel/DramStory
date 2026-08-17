@@ -245,6 +245,10 @@ export function journeyBaseFor(
     lng: coords?.lng,
     fromBaseMinutes: legs?.fromBaseMinutes,
     toBaseMinutes: legs?.toBaseMinutes,
+    // The JOURNEY's transfer mode, never the Day's travel mode - see
+    // Journey.transferMode. It is what those two stored legs were routed
+    // with, so it is the only mode that describes them.
+    transferMode: journey.transferMode,
   };
 }
 

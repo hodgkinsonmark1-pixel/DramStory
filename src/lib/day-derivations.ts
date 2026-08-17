@@ -88,6 +88,12 @@ export interface DayBase {
   lng?: number;
   fromBaseMinutes?: number;
   toBaseMinutes?: number;
+  /** How the two legs above are actually made - the JOURNEY's own
+   *  `Transfer Mode`, not the Day's `Travel Mode`. Undefined where the
+   *  base isn't a journey's (a trip's own chosen accommodation), which
+   *  means "we don't know how you'd get there" and stops the walking
+   *  line below claiming either way. */
+  transferMode?: TravelMode;
 }
 
 /** The two base legs in minutes, each undefined when neither a routed
@@ -123,6 +129,101 @@ export function travelCopy(mode: TravelMode | undefined): { betweenStops: string
   return mode === "walk"
     ? { betweenStops: "walking between stops", wholeDay: "on foot" }
     : { betweenStops: "driving between stops", wholeDay: "on the road" };
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Saying the walking out loud (17 Aug 2026). A Walk day currently
+// advertises a mileage ("4 miles") and a pacing tag, and nothing else -
+// so "Ardbeg, on Foot" inside The South Coast Walk reads like a gentle
+// morning when it is really three hours on your feet, most of it getting
+// there and back. This turns the legs that were routed anyway into one
+// plain sentence.
+//
+// EVERY minute in it is a stored, routed figure. Nothing is estimated
+// here and nothing is converted from a mileage:
+//   - within-day legs come from Day Stops' `Leg Minutes`, routed on a
+//     real foot profile at the editorial WALKING_SPEED_KMH;
+//   - the transfer, when it is walked, comes from Journey Days' `Leg
+//     From/To Base Minutes`, routed the same way.
+// If any leg needed is missing, this returns undefined and the page keeps
+// its existing clearly-labelled estimate rather than printing a confident
+// wrong number. It deliberately does NOT fall back to
+// estimatedDriveMinutes: that is a 40km/h haversine, and a driving
+// estimate dressed up as walking minutes is the exact error this whole
+// precompute exists to remove.
+//
+// KNOWN GAP, flagged rather than papered over: only distillery stops
+// carry routed legs. A Day's feature stops (the beach, the viewpoint its
+// narrative links to) have no leg field at all, so any walking between
+// those is not in this total. The sentence says "about", and the figure
+// it gives is a floor, never an overstatement.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Minutes as prose - "50 minutes", "1 hour", "2 hours 25 minutes".
+ *  Deliberately not drive-time.ts's formatDuration ("50m", "2h 25m"),
+ *  which is a meta-row abbreviation: "About 50m on foot" reads as fifty
+ *  metres in the middle of a sentence. */
+function spellMinutes(total: number): string {
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  const hours = `${h} ${h === 1 ? "hour" : "hours"}`;
+  const mins = `${m} ${m === 1 ? "minute" : "minutes"}`;
+  if (h === 0) return mins;
+  return m === 0 ? hours : `${hours} ${mins}`;
+}
+
+/**
+ * One sentence stating how much of a walking day is actually walked, or
+ * undefined when the stored legs can't answer it.
+ *
+ * Undefined in three honest cases, all of which leave the existing
+ * mileage/duration copy in place:
+ *  - the Day isn't a walking day at all;
+ *  - a leg it would need was never routed;
+ *  - nothing measurable is walked (a one-stop Walk day reached by car -
+ *    "Bowmore, Unhurried" is walked AROUND the village, and no stored leg
+ *    describes wandering a village, so no figure is invented for it).
+ *
+ * `Distance on Foot` is appended only when the figure and the distance
+ * describe the SAME walking. Where a walked transfer is included, the
+ * mileage covers just the between-stops part and pairing the two would
+ * read as a much slower walk than it is - so it is left where it already
+ * renders, in the day's meta row.
+ */
+export function walkingLineFor(day: HubDay, base?: DayBase): string | undefined {
+  if (day.travelMode !== "walk") return undefined;
+
+  // Stop 0 has nothing before it, so it never carries a leg; every later
+  // stop must, or there is no honest total to state.
+  let minutes = 0;
+  for (const stop of day.stops.slice(1)) {
+    if (stop.legMinutes === undefined) return undefined;
+    minutes += stop.legMinutes;
+  }
+
+  const walkedTransfer = base?.transferMode === "walk";
+  if (walkedTransfer) {
+    if (base?.fromBaseMinutes === undefined || base?.toBaseMinutes === undefined) return undefined;
+    minutes += base.fromBaseMinutes + base.toBaseMinutes;
+  }
+  if (minutes <= 0) return undefined;
+
+  // Rounded to the nearest five so "about" means it. The underlying
+  // figures are routed to the minute, but a walking pace is an editorial
+  // 3.75km/h and printing "about 46 minutes" claims a precision the pace
+  // itself doesn't have.
+  const rounded = Math.max(5, Math.round(minutes / 5) * 5);
+  const lead = `About ${spellMinutes(rounded)} on foot`;
+
+  if (walkedTransfer) {
+    return `${lead} across the day — that counts walking out from ${base!.name} and back again.`;
+  }
+  if (base?.transferMode === "drive") {
+    const miles = day.distanceOnFoot ? ` (${day.distanceOnFoot})` : "";
+    return `${lead} once you are there${miles} — you drive out from ${base.name} and back.`;
+  }
+  const miles = day.distanceOnFoot ? ` (${day.distanceOnFoot})` : "";
+  return `${lead} between the stops${miles}.`;
 }
 
 /**

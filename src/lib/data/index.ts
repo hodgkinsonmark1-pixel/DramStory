@@ -443,6 +443,10 @@ async function fetchJourneysFromAirtable(): Promise<Journey[]> {
       accommodationNote: f["Accommodation Note"] ?? "",
       days,
       dayBaseLegs,
+      // Blank is Drive, per the field's own description - not a third
+      // "unknown" state, and never inherited from the Days inside it.
+      transferMode: f["Transfer Mode"] === "Walk" ? "walk" : "drive",
+      baseStayId: f["Base Stay"]?.[0],
       claim: f.Claim ?? "",
       regionLabel: f["Region Label"] ?? "",
       nights: f.Nights ?? 0,

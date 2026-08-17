@@ -1,22 +1,68 @@
 #!/usr/bin/env node
 // ─────────────────────────────────────────────────────────────────────────
-// compute-journey-base-legs.mjs — precompute the travel from a journey's
-// BASE to each day's first stop, and from that day's last stop back
-// again, and store both on the Journey Days junction record.
+// compute-journey-base-legs.mjs — precompute the TRANSFER legs of a
+// journey: base → each day's first stop, and that day's last stop → base.
+// Stored on the Journey Days junction record.
 //
 // WHY THIS EXISTS
 //   compute-day-stop-legs.mjs routes the legs BETWEEN a day's stops, so a
 //   day's schedule and travel total used to start at its first stop and
-//   end at its last one — the drive out of bed in the morning and back to
-//   it at night simply weren't counted. On /days/[slug] read cold that is
-//   the honest answer (nobody has said where they're sleeping). Inside a
-//   Journey it isn't: the Journey states its Base.
+//   end at its last one — the travel out of bed in the morning and back
+//   to it at night simply weren't counted. On /days/[slug] read cold that
+//   is the honest answer (nobody has said where they're sleeping). Inside
+//   a Journey it isn't: the Journey states where the visitor sleeps.
 //
 // WHY THE JUNCTION TABLE
 //   The same Day appears in journeys with different bases — "Bowmore,
 //   Unhurried" is The Islay Grand Tour's Day 2 (from Port Ellen) and The
 //   Rhinns Trail's Day 3 (from Bridgend). The leg is a fact about the
 //   pairing, not about the Day, so it lives on Journey Days.
+//
+// ─────────────────────────────────────────────────────────────────────────
+// THE TWO MODES ARE DIFFERENT QUESTIONS  (corrected 17 Aug 2026)
+//
+//   TRANSFER legs — base → first stop, last stop → base — use the
+//   JOURNEY's own `Transfer Mode` (Drive/Walk, blank = Drive).
+//
+//   WITHIN-DAY legs — stop → stop — use the DAY's `Travel Mode`, and are
+//   computed by the sibling script. Nothing here touches them.
+//
+//   These are genuinely independent facts and the previous version of
+//   this script conflated them: it routed the transfer with the Day's
+//   Travel Mode. On a car-based journey you DRIVE to where the day starts
+//   even if the day itself is walked once you arrive — The Islay Grand
+//   Tour drives the ~16 minutes from Port Ellen to Bowmore, and only then
+//   is "Bowmore, Unhurried" walked around the village. Routing that
+//   transfer on foot returned 269 minutes.
+//
+//   The workaround that error forced — "a Walk day whose Transport Note
+//   mentions a bus/taxi/ferry has its base legs left blank" — is GONE as
+//   of this pass. It was a free-text regex standing in for a field that
+//   did not exist yet. `Transfer Mode` is that field, it is authored per
+//   journey, and it answers the question directly, so there is nothing
+//   left for the regex to guard against. Days whose legs it used to
+//   suppress (both appearances of "Bowmore, Unhurried") now carry real
+//   routed drives.
+//
+//   The routing profiles themselves, the walking-pace rule and the rate
+//   limiting all live in lib/routing.mjs, shared with the stop-to-stop
+//   script — including the note on why OSRM's own /foot/ profile is not
+//   used.
+//
+// BASE RESOLUTION, in order — reported per journey, never guessed
+//   1. The Journey's `Base Stay` link, resolved to that Featured Stay's
+//      own coordinates. PREFERRED: it is the actual building the visitor
+//      sleeps in, and it is what this Journey's accommodation rates
+//      refer to. A transfer starts at a door, not at a village.
+//   2. An Areas record whose Name matches the Journey's `Base` text.
+//      The fallback when no Base Stay is linked — a village centroid,
+//      which is honest but coarser.
+//   3. A Featured Stay whose Nearest Area, or whose own Name, starts with
+//      the Base text. For a village with no Areas row at all.
+//   4. Nothing. The journey is skipped and named in the run summary. No
+//      geocoding, no "close enough" coordinates — the site's coordinate
+//      verification hierarchy (docs/project-conventions.md) makes that a
+//      deliberate manual step, not something a script does at 1am.
 //
 // WHAT IT WRITES (Journey Days table, tblzTeYWOTDPZyzRZ)
 //   Leg From Base Minutes   base → this day's FIRST stop, minutes
@@ -35,48 +81,6 @@
 //   2026), and adding one is a schema change, not a code one. Worth
 //   adding when these legs start going stale often enough to need it.
 //
-// BASE RESOLUTION, in order — reported per journey, never guessed
-//   1. An Areas record whose Name matches the Journey's Base. Preferred:
-//      Base names a place ("Port Ellen"), not a hotel, so the village
-//      centroid is the honest point to measure from.
-//   2. A Featured Stay whose Nearest Area, or whose own Name, starts with
-//      the Base. The fallback for a village with no Area record yet —
-//      Bridgend has no Areas row, but Bridgend Hotel sits in it.
-//   3. Nothing. The journey is skipped and named in the run summary. No
-//      geocoding, no "close enough" coordinates — the site's coordinate
-//      verification hierarchy (docs/project-conventions.md) makes that a
-//      deliberate manual step, not something a script does at 1am.
-//
-// TRAVEL MODE
-//   The Day's own `Travel Mode` picks the routing profile, same as the
-//   stop-to-stop script, via the shared lib/routing.mjs.
-//
-//   FLAGGED, because it is a real limitation rather than a detail: that
-//   field describes how a visitor moves BETWEEN a day's stops. It is not
-//   a statement about the transfer from a base that isn't part of the
-//   day. Where the two coincide this is exactly right — "Ardbeg, on Foot"
-//   really is walked out of Port Ellen, and its own Transport Note says
-//   so ("Three miles out from Port Ellen on the Three Distilleries
-//   Pathway"). Where they don't, routing the transfer on foot produces a
-//   figure the base itself contradicts: "Bowmore, Unhurried" is a Walk
-//   day whose Transport Note reads "Bus to Bowmore and back from Port
-//   Ellen (~25 min each way)", and routing it on foot returns 269
-//   minutes. Writing that would be the same class of silent error as
-//   OSRM's fake foot profile, just sourced from our own schema instead.
-//
-//   So: a Walk day whose Transport Note names a motorised transfer has
-//   its base legs LEFT BLANK and reported, rather than filled with a
-//   walk the day says nobody takes. Blank means the site falls back to
-//   its own clearly-labelled estimate, which is the honest answer to a
-//   question this data can't yet answer — there is no per-journey-day
-//   transfer mode, and inventing the bus timetable is not a script's job.
-//   Reading the Day's own free text for this follows the precedent set by
-//   isAppointmentOnly() in src/lib/day-derivations.ts, which reads a
-//   distillery's Hours for "by appointment" rather than hardcoding a slug.
-//
-//   The run summary also calls out any walking base leg over an hour that
-//   IS written, so a long-but-genuine walk still gets a human look.
-//
 // USAGE
 //   AIRTABLE_API_KEY=pat...  (needs data.records:read AND :write)
 //   AIRTABLE_BASE_ID=app14n7N50HZGglqV
@@ -88,45 +92,50 @@ import { modeFor, requestsSent, routeLeg } from "./lib/routing.mjs";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 
-/** Any walking base leg longer than this is printed as a REVIEW line in
+/** Any WALKED transfer longer than this is printed as a REVIEW line in
  *  the run summary. Not a filter and not a threshold the data has to
  *  respect — the figure is still written exactly as routed. It exists so
- *  that "the visitor walks four and a half hours before their first
- *  tour" reaches a human instead of only reaching the page. */
+ *  that "the visitor walks an hour and a half before their first tour"
+ *  reaches a human instead of only reaching the page. */
 const LONG_WALK_REVIEW_MINUTES = 60;
-
-/** Words that, in a Day's Transport Note, mean the visitor gets to this
- *  day by engine rather than on foot. Deliberately a short, literal list
- *  of transport nouns - not an attempt to understand the sentence. */
-const MOTORISED_TRANSFER = /\b(bus|taxi|ferry|coach|shuttle)\b/i;
 
 const norm = (s) => (s ?? "").trim().toLowerCase();
 
-/** A Walk day whose own Transport Note names a bus/taxi/ferry is telling
- *  us the transfer in and out is not walked, whatever its Travel Mode
- *  says about getting between the stops once you're there. Returns the
- *  word that triggered it, for the run summary, or null. See the TRAVEL
- *  MODE block above for why this guard exists at all. */
-function motorisedTransferNote(dayFields, mode) {
-  if (mode !== "walk") return null;
-  const match = MOTORISED_TRANSFER.exec(dayFields["Transport Note"] ?? "");
-  return match ? match[0].toLowerCase() : null;
-}
+/** Coordinates to measure this Journey's transfers from, plus where they
+ *  came from — see the BASE RESOLUTION block above. Null when nothing
+ *  matches. */
+function resolveBase(journeyFields, stayById, areas, stays) {
+  const stayId = journeyFields["Base Stay"]?.[0];
+  if (stayId) {
+    const stay = stayById.get(stayId);
+    if (stay && typeof stay.Latitude === "number" && typeof stay.Longitude === "number") {
+      return {
+        lat: stay.Latitude,
+        lng: stay.Longitude,
+        source: `Base Stay → ${stay.Name ?? stayId} (the building itself)`,
+      };
+    }
+    // A linked stay with no coordinates is worth saying out loud rather
+    // than silently sliding down to the village centroid.
+    console.log(
+      `  NOTE: Base Stay "${stay?.Name ?? stayId}" has no coordinates — falling back to the Base text field`
+    );
+  }
 
-/** Coordinates for a Journey's `Base`, plus where they came from — see
- *  the BASE RESOLUTION block above. Null when nothing matches. */
-function resolveBase(baseText, areas, stays) {
-  const wanted = norm(baseText);
+  const wanted = norm(journeyFields.Base);
   if (!wanted) return null;
 
   const area = areas.find(
-    (r) => norm(r.fields.Name) === wanted && typeof r.fields.Latitude === "number" && typeof r.fields.Longitude === "number"
+    (r) =>
+      norm(r.fields.Name) === wanted &&
+      typeof r.fields.Latitude === "number" &&
+      typeof r.fields.Longitude === "number"
   );
   if (area) {
     return {
       lat: area.fields.Latitude,
       lng: area.fields.Longitude,
-      source: `Areas → ${area.fields.Name} (village centroid)`,
+      source: `Areas → ${area.fields.Name} (village centroid; no Base Stay linked)`,
     };
   }
 
@@ -140,7 +149,7 @@ function resolveBase(baseText, areas, stays) {
     return {
       lat: stay.fields.Latitude,
       lng: stay.fields.Longitude,
-      source: `Featured Stays → ${stay.fields.Name} (no Areas record for "${baseText}")`,
+      source: `Featured Stays → ${stay.fields.Name} (matched on "${journeyFields.Base}")`,
     };
   }
 
@@ -172,6 +181,7 @@ async function main() {
   const dayById = new Map(days.map((r) => [r.id, r.fields]));
   const stopById = new Map(dayStops.map((r) => [r.id, r]));
   const distilleryById = new Map(distilleries.map((r) => [r.id, r.fields]));
+  const stayById = new Map(stays.map((r) => [r.id, r.fields]));
 
   const updates = [];
   const skipped = [];
@@ -198,16 +208,26 @@ async function main() {
       continue;
     }
 
-    const base = resolveBase(journey.Base, areas, stays);
+    const base = resolveBase(journey, stayById, areas, stays);
     if (!base) {
       skipped.push(
-        `${label}: Base ${journey.Base ? `"${journey.Base}"` : "(blank)"} has no Areas or Featured Stays record with coordinates — left blank`
+        `${label}: neither a Base Stay with coordinates nor a Base ${
+          journey.Base ? `"${journey.Base}"` : "(blank)"
+        } that resolves — left blank`
       );
       continue;
     }
+
+    // The journey's own transfer mode, NOT the day's travel mode. See the
+    // header block: these answer different questions and conflating them
+    // is the bug this pass exists to fix.
+    const mode = modeFor(journey["Transfer Mode"]);
+
     if (!basesReported.has(journey.Name)) {
       basesReported.add(journey.Name);
-      console.log(`\n${journey.Name} — Base "${journey.Base}" resolved from ${base.source}`);
+      console.log(
+        `\n${journey.Name} — transfers ${mode === "walk" ? "WALKED" : "DRIVEN"}, from ${base.source}`
+      );
     }
 
     const stops = (day["Day Stops"] ?? [])
@@ -222,15 +242,6 @@ async function main() {
       continue;
     }
 
-    const mode = modeFor(day["Travel Mode"]);
-    const blocked = motorisedTransferNote(day, mode);
-    if (blocked) {
-      skipped.push(
-        `${label}: Walk day, but its Transport Note says the transfer is by ${blocked} ` +
-          `- base legs left blank rather than routed on foot (site falls back to its estimate)`
-      );
-      continue;
-    }
     const first = stops[0];
     const last = stops[stops.length - 1];
 

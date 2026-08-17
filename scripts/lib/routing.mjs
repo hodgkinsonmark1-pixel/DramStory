@@ -117,9 +117,19 @@ export async function routeLeg(from, to, mode) {
   return result;
 }
 
-/** A Day's `Travel Mode` cell → a profile key. Blank is Drive, which is
- *  what every Day was implicitly assumed to be before the field existed
- *  (see TravelMode in src/lib/types.ts). */
-export function modeFor(travelModeCell) {
-  return travelModeCell === "Walk" ? "walk" : "drive";
+/** A Drive/Walk singleSelect cell → a profile key. Blank is Drive, which
+ *  is what every record was implicitly assumed to be before either field
+ *  existed (see TravelMode in src/lib/types.ts).
+ *
+ *  Two DIFFERENT fields feed this, and which one a caller passes is the
+ *  whole point rather than an implementation detail:
+ *    - a Day's `Travel Mode` picks the profile for its WITHIN-DAY legs
+ *      (stop → stop), in compute-day-stop-legs.mjs;
+ *    - a Journey's `Transfer Mode` picks the profile for its TRANSFER
+ *      legs (base → first stop, last stop → base), in
+ *      compute-journey-base-legs.mjs.
+ *  A car-based journey drives its transfers even to a day that is walked
+ *  once you arrive, so neither field can stand in for the other. */
+export function modeFor(modeCell) {
+  return modeCell === "Walk" ? "walk" : "drive";
 }

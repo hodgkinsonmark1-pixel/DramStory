@@ -97,9 +97,10 @@ export default async function DayDetailPage({
  * and the page then behaves exactly as it does with no ?journey= at all.
  *
  * Coordinates (the per-leg fallback for a leg that was never routed) are
- * resolved Areas-first then Featured Stays, the same order
- * scripts/compute-journey-base-legs.mjs uses - Bridgend has no Areas
- * record but Bridgend Hotel sits in it.
+ * resolved Base Stay first, then Areas, then a Featured Stay matched on
+ * the Base text - the same order scripts/compute-journey-base-legs.mjs
+ * uses, so an estimated leg starts from the same door a routed one did.
+ * Bridgend has no Areas record but Bridgend Hotel sits in it.
  */
 async function resolveJourneyBase(journeySlug: string, daySlug: string): Promise<DayBase | undefined> {
   const journey = await getJourneyBySlug(journeySlug);
@@ -109,13 +110,12 @@ async function resolveJourneyBase(journeySlug: string, daySlug: string): Promise
 
   const [areas, stays] = await Promise.all([getAreas(), getFeaturedStays()]);
   const wanted = journey.base.toLowerCase();
+  const baseStay = journey.baseStayId ? stays.find((s) => s.id === journey.baseStayId) : undefined;
   const area = areas.find((a) => a.name.toLowerCase() === wanted);
-  const stay = area
-    ? undefined
-    : stays.find(
-        (s) => (s.nearestArea ?? "").toLowerCase().startsWith(wanted) || s.name.toLowerCase().startsWith(wanted)
-      );
-  const coords = area ?? stay;
+  const namedStay = stays.find(
+    (s) => (s.nearestArea ?? "").toLowerCase().startsWith(wanted) || s.name.toLowerCase().startsWith(wanted)
+  );
+  const coords = baseStay ?? area ?? namedStay;
 
   return journeyBaseFor(journey, dayIndex, coords ? { lat: coords.lat, lng: coords.lng } : undefined);
 }

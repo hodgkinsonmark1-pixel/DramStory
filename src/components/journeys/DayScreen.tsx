@@ -22,6 +22,7 @@ import {
   scheduleForItineraryDay,
   formatClockTime,
   partOfDay,
+  walkingLineFor,
   type DayBase,
   isDistilleryClosedOn,
   isAppointmentOnly,
@@ -314,6 +315,14 @@ export default function DayScreen({
   });
   const hasMap = mapDistilleries.length + mapFeatures.length > 0;
 
+  // dayBase, not journeyBase: inside the visitor's own trip the Journey's
+  // Base is not where they're sleeping, so the "out from X and back"
+  // half of this line would name the wrong bed. A trip's own
+  // accommodation carries no transfer mode either (nobody has said
+  // whether they'd walk it), which leaves the neutral "between the
+  // stops" wording - the honest one there.
+  const walkingLine = walkingLineFor(day, dayBase);
+
   return (
     <div className="day-screen">
       <div className="day-header">
@@ -408,6 +417,13 @@ export default function DayScreen({
               {formatClockTime(schedule.home)}
               {inTrip ? " — reorder, swap or drop anything" : ""}
             </div>
+            {/* On a walking day, how much of it is actually walked -
+                stated in minutes so nobody meets it for the first time on
+                the day itself. Every figure is a stored routed leg; the
+                line simply doesn't render when they can't answer it, and
+                the mileage in the meta row above stands alone as before.
+                See walkingLineFor. */}
+            {walkingLine && <div className="day-shape-line day-shape-walk">{walkingLine}</div>}
           </div>
         )}
 

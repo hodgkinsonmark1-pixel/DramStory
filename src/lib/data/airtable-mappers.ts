@@ -835,6 +835,23 @@ export interface AirtableJourneyFields {
    *  Airtable (never composed in code) so it can be reviewed like any
    *  other editorial line. Added 13 Aug 2026. */
   "Route Summary"?: string;
+  /** "Drive" | "Walk" - how the visitor gets from their Base to where
+   *  each day STARTS, and back again. The TRANSFER legs only. Blank is
+   *  treated as Drive.
+   *
+   *  Deliberately NOT the same thing as a Day's own `Travel Mode`, which
+   *  governs movement BETWEEN that day's stops: a car-based journey
+   *  drives its transfers even to a day that is walked once you arrive
+   *  (drive Port Ellen -> Bowmore, then walk Bowmore). Added 17 Aug 2026,
+   *  after the first pass at base legs conflated the two and routed that
+   *  Bowmore transfer on foot - 269 minutes. */
+  "Transfer Mode"?: string;
+  /** Linked Featured Stay - the actual building the visitor sleeps in on
+   *  this journey, and the origin the transfer legs are measured from.
+   *  Preferred over the `Base` text field's village centroid, and it is
+   *  what this record's accommodation rates refer to. One stay only;
+   *  first link used. Added 17 Aug 2026. */
+  "Base Stay"?: string[];
 }
 
 /** Parses the "Make It Yours" field - one card per line, pipe-delimited

@@ -103,6 +103,17 @@
   color: var(--slate);
   margin-top: 3px;
 }
+/* The walking statement on a Walk day. Same size and rhythm as the
+   shape line it sits under, one step darker (--peat, not --slate) and
+   a copper rule at the head, because it is the one thing on this page a
+   visitor can be genuinely caught out by. Tokens only - no literal
+   colours here, per docs/hero-handoff.md section 5. */
+.day-shape-walk {
+  color: var(--peat);
+  border-left: 2px solid var(--copper);
+  padding-left: 9px;
+  margin-top: 6px;
+}
 
 .day-empty-stops {
   font-size: 13.5px;
