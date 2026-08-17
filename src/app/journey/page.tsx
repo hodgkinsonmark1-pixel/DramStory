@@ -1,4 +1,4 @@
-import { getDays, getDistilleries, getLocalEvents, getLocalFeatures, getJournalPosts } from "@/lib/data";
+import { getDays, getDistilleries, getJourneys, getLocalEvents, getLocalFeatures, getJournalPosts } from "@/lib/data";
 import type { TripTiming } from "@/lib/types";
 import JourneyFlow from "@/components/journey/JourneyFlow";
 
@@ -38,6 +38,10 @@ export default async function JourneyPage({
   // Q2/Q3 show the homepage's below-the-fold sections (including the
   // Journal preview) beneath their own question, per the July 2026 change.
   const journalPostsPromise = getJournalPosts();
+  // Same deferral, same reason: only Q2/Q3's below-the-fold Classic
+  // Journeys section needs it, and that section reads the Journeys table
+  // itself as of 17 Aug 2026 rather than being derived from distilleries.
+  const journeysPromise = getJourneys();
 
   return (
     <JourneyFlow
@@ -46,6 +50,7 @@ export default async function JourneyPage({
       localFeaturesPromise={localFeaturesPromise}
       localEventsPromise={localEventsPromise}
       journalPostsPromise={journalPostsPromise}
+      journeysPromise={journeysPromise}
       hubDaysPromise={hubDaysPromise}
       resume={resume === "1"}
       // Set only by AreaClient's "Everything in {region} on the map" link

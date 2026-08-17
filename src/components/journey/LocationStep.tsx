@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, use, useState } from "react";
-import type { Distillery, JournalPost, LocalEvent, LocationAnswer } from "@/lib/types";
+import type { Distillery, JournalPost, Journey, LocalEvent, LocationAnswer } from "@/lib/types";
 import { REGIONS } from "@/lib/journey-options";
 import SiteHeader from "@/components/SiteHeader";
 import { useBackgroundVideoVisible } from "@/lib/background-video-context";
@@ -17,6 +17,9 @@ interface LocationStepProps {
   localEventsPromise: Promise<LocalEvent[]>;
   /** For the below-the-fold Journal preview. */
   journalPostsPromise: Promise<JournalPost[]>;
+  /** For the below-the-fold Classic Journeys section, which reads the
+   *  Journeys table directly (17 Aug 2026). */
+  journeysPromise: Promise<Journey[]>;
   onNext: (answer: LocationAnswer) => void;
   onBack: () => void;
 }
@@ -82,7 +85,7 @@ export function DistilleryPicker({
  * (typing an airport, picking a distillery), so those advance on Enter /
  * on selecting a dropdown value instead of on the initial card click.
  */
-export default function LocationStep({ distilleriesPromise, localEventsPromise, journalPostsPromise, onNext, onBack }: LocationStepProps) {
+export default function LocationStep({ distilleriesPromise, localEventsPromise, journalPostsPromise, journeysPromise, onNext, onBack }: LocationStepProps) {
   // Claims the shared background video (see SiteBackgroundVideo) while
   // this question is showing. Currently inactivated in JourneyFlow (see
   // that file's header comment) but kept wired up and ready for when a
@@ -186,6 +189,7 @@ export default function LocationStep({ distilleriesPromise, localEventsPromise, 
         distilleriesPromise={distilleriesPromise}
         localEventsPromise={localEventsPromise}
         journalPostsPromise={journalPostsPromise}
+        journeysPromise={journeysPromise}
       />
     </Suspense>
     </>

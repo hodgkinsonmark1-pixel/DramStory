@@ -12,7 +12,7 @@ import type { Journey } from "@/lib/types";
  * routing, per-distillery tour booking) to carry on from there.
  *
  * UPDATE 12 Aug 2026 (Journeys/Airtable rebuild): takes a real Journey now
- * (journeys-data.ts's old ClassicJourney/JourneyDay shapes are no longer
+ * (the deleted journeys-data.ts's old ClassicJourney/JourneyDay shapes are no longer
  * involved here) - each journey.days entry is already a real HubDay, so
  * its stops resolve straight to real Distillery records with no slug
  * lookups. Only distillery stops are seeded - the narrative's own

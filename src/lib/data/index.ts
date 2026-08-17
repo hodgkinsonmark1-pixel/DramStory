@@ -508,10 +508,11 @@ async function fetchJourneysFromAirtable(): Promise<Journey[]> {
 }
 
 /** Classic Journeys (Islay Grand Tour, Rhinns Trail, etc.) - assembled
- *  from the Journeys + Journey Days tables rather than hardcoded (see
- *  journeys-data.ts's CLASSIC_JOURNEYS for the previous, now-superseded
- *  approach - still used elsewhere for the homepage cards and
- *  price-range helpers, deliberately left alone by this change). React's
+ *  from the Journeys + Journey Days tables rather than hardcoded. The
+ *  array this replaced (journeys-data.ts's CLASSIC_JOURNEYS) was deleted
+ *  on 17 Aug 2026, when the homepage's Classic Journeys section moved
+ *  onto this same call - it is the only source of journey content on the
+ *  site now, homepage cards included. React's
  *  cache() again (see getDistilleries above), so this can't persist
  *  stale data across separate serverless requests on a warm instance. */
 export const getJourneys = cache(async (): Promise<Journey[]> => {

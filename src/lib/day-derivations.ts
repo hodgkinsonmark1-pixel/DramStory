@@ -852,6 +852,32 @@ export function paceTone(pacing: string): { bg: string; fg: string } {
   return { bg: "#F7E6E0", fg: "#B5502E" };
 }
 
+/** The pace TILE's own fill/ink pair - paceTone inverted (the dark tone
+ *  behind, the light one on it), with exactly one deliberate divergence
+ *  from it: Moderate is filled --peat, not --copper.
+ *
+ *  WHY (site owner's call, 17 Aug 2026): the tile letters --amber-pale
+ *  over its fill, and over --copper that measures 3.19:1 - under the
+ *  4.5:1 the project's accessibility notes require for the tile's small
+ *  type (a 10px kicker and a 12.5px caption; only the 44px numeral is
+ *  large text). --peat is already in the palette - no new token - takes
+ *  the same pair to 8.90:1, and reads as a genuine middle between
+ *  Relaxed's green and Packed's rust.
+ *
+ *  Relaxed (9.64:1) and Packed (4.18:1) still come straight from
+ *  paceTone, so the tile and the pace pill beside it can only ever
+ *  disagree where that disagreement is the documented one above.
+ *
+ *  FLAGGED, not fixed here: Packed's sanctioned #F7E6E0-on-#B5502E pair
+ *  is 4.18:1, which also falls short of 4.5:1 for the same small type.
+ *  Changing it is a palette decision that hasn't been made, so it stands
+ *  and is reported rather than quietly altered. */
+export function paceTileTone(pacing: string): { fill: string; ink: string } {
+  const tone = paceTone(pacing);
+  if (pacing === "Moderate") return { fill: "var(--peat)", ink: tone.bg };
+  return { fill: tone.fg, ink: tone.bg };
+}
+
 /** Solid pace colour for the shape strip's bars and the Days list's
  *  numbered day badge (§3.3 items 2/4 - "coloured by pace"). Matches
  *  paceTone's own `fg` above exactly (--green-deep/--copper/#B5502E),

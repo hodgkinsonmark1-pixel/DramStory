@@ -5,14 +5,19 @@ import WhereToStay from "@/components/home/WhereToStay";
 import TripEssentials from "@/components/journey/TripEssentials";
 import LatestJournal from "@/components/home/LatestJournal";
 import Footer from "@/components/Footer";
-import { getDistilleries, getLocalEvents, getJournalPosts, getDays, getLocalFeatures, getAreas, getFeaturedStays } from "@/lib/data";
+import { getDistilleries, getLocalEvents, getJournalPosts, getDays, getJourneys, getLocalFeatures, getAreas, getFeaturedStays } from "@/lib/data";
 
 export default async function HomePage() {
-  const [distilleries, localEvents, journalPosts, days, localFeatures, areas, featuredStays] = await Promise.all([
+  const [distilleries, localEvents, journalPosts, days, journeys, localFeatures, areas, featuredStays] = await Promise.all([
     getDistilleries(),
     getLocalEvents(),
     getJournalPosts(),
     getDays(),
+    // The Classic Journeys section reads the real Journeys table now
+    // (17 Aug 2026) rather than a hardcoded array - same getJourneys()
+    // call /journeys/[slug] renders from, React cache()-wrapped, so the
+    // two can't disagree and this isn't a second Airtable round-trip.
+    getJourneys(),
     getLocalFeatures(),
     getAreas(),
     getFeaturedStays(),
@@ -30,7 +35,7 @@ export default async function HomePage() {
           cache()-wrapped, so this doesn't cost a second Airtable fetch;
           getDays() already calls it internally too). */}
       <Hero days={days} distilleries={distilleries} journalPosts={journalPosts} localFeatures={localFeatures} />
-      <ClassicJourneys distilleries={distilleries} />
+      <ClassicJourneys journeys={journeys} />
       <FeaturedContent distilleries={distilleries} localEvents={localEvents} />
       {/* Moved here from the /journey workspace's own below-map section
           (11 Aug 2026, Mark's request) - that section is hidden now

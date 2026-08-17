@@ -2,7 +2,7 @@
 
 import { Suspense, use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Distillery, HubDay, InterestCategoryId, JournalPost, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
+import type { Distillery, HubDay, InterestCategoryId, JournalPost, Journey, LocalEvent, LocalFeature, LocationAnswer, TripTiming } from "@/lib/types";
 import { useTrip } from "@/lib/trip-context";
 import LocationStep from "./LocationStep";
 import TodayLocationStep from "./TodayLocationStep";
@@ -31,6 +31,10 @@ interface JourneyFlowProps {
    *  Q2 and Q3 now that those steps extend the homepage rather than
    *  being separate dead-ended pages (July 2026). */
   journalPostsPromise: Promise<JournalPost[]>;
+  /** Deferred fetch for the below-the-fold Classic Journeys section under
+   *  Q2/Q3, which reads the Journeys table itself as of 17 Aug 2026
+   *  rather than deriving three hardcoded cards from `distilleries`. */
+  journeysPromise: Promise<Journey[]>;
   /** Deferred, workspace-only (same treatment as localFeaturesPromise/
    *  localEventsPromise) - Phase 5's planner context bar (Workspace.tsx)
    *  needs the real Hub Days to detect a day's sourceHubDaySlug origin
@@ -276,7 +280,7 @@ function seedTodayDay(
   return { interests: eveningInterests, notice: eveningExplainer };
 }
 
-export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, hubDaysPromise, resume, showAll, skipWalkthrough }: JourneyFlowProps) {
+export default function JourneyFlow({ timing, distilleriesPromise, localFeaturesPromise, localEventsPromise, journalPostsPromise, journeysPromise, hubDaysPromise, resume, showAll, skipWalkthrough }: JourneyFlowProps) {
   const router = useRouter();
   const trip = useTrip();
   const [step, setStep] = useState<Step>("location");
@@ -390,6 +394,7 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
         distilleriesPromise={distilleriesPromise}
         localEventsPromise={localEventsPromise}
         journalPostsPromise={journalPostsPromise}
+        journeysPromise={journeysPromise}
         onBack={() => router.push("/")}
         onNext={(answer) => {
           setLocation(answer);
@@ -414,6 +419,7 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
         distilleriesPromise={distilleriesPromise}
         localEventsPromise={localEventsPromise}
         journalPostsPromise={journalPostsPromise}
+        journeysPromise={journeysPromise}
         onBack={() => setStep("location")}
         onNext={(selected) => {
           setInterests(selected);

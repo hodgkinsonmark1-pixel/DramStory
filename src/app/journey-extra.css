@@ -2170,8 +2170,9 @@ select.location-inline-input {
 
    Roughly 200px on a desktop card and never wider, shrinking with the
    card down to 140px before the layout stacks. Fill and text colour are
-   set inline from paceTone (the same pair PacingTag paints its pill
-   with, inverted - dark tone behind, light tone on it), the way that
+   set inline from paceTileTone (PacingTag's own pair inverted - dark
+   tone behind, light tone on it - with Moderate filled --peat rather
+   than --copper, for contrast; see that function's note), the way that
    component does it: this is per-day data, not a fixed style. Everything
    else here is tokens. */
 .jr-pace-tile {

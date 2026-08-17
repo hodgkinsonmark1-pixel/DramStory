@@ -162,9 +162,15 @@ export function dayChips(day: HubDay): string[] {
   const chips: string[] = [];
   if (day.distanceOnFoot) chips.push("No car needed");
   if (isFerryDay(day)) chips.push("Ferry crossing");
-  if (chips.length < 2) {
-    if (day.stops.length > 1) chips.push(`${day.stops.length} distilleries in one day`);
-    else if (day.stops.length === 1 && day.pacing === "Relaxed") chips.push("One distillery, no rush");
+  // The `${n} distilleries in one day` chip was dropped here (17 Aug
+  // 2026, the site owner's call): the day card's pace tile now prints
+  // that same count as its numeral, with the Day's own Tile Caption
+  // beside it, so the chip was saying a second time what the tile
+  // already says. Everything else a chip can say is something the tile
+  // does not - what the day needs (no car), what it involves (a ferry),
+  // how it feels (no rush) - and stays.
+  if (chips.length < 2 && day.stops.length === 1 && day.pacing === "Relaxed") {
+    chips.push("One distillery, no rush");
   }
   return chips.slice(0, 2);
 }

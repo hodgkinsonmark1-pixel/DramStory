@@ -466,10 +466,11 @@ export interface HubDay {
 
 /** A Classic Journey - a curated multi-day route, assembled from linked
  *  Days records via the Journeys/Journey Days tables (added 12 Aug 2026,
- *  replacing the previous hardcoded CLASSIC_JOURNEYS array - see
- *  journeys-data.ts, still used for tourPriceRange/cheapestTourPrice
- *  helpers and the homepage's Classic Journeys section, which this
- *  rebuild deliberately leaves untouched for now). Rendered by
+ *  replacing the previous hardcoded CLASSIC_JOURNEYS array). That array's
+ *  file, journeys-data.ts, was deleted on 17 Aug 2026 once the homepage's
+ *  Classic Journeys section moved onto this type too - Airtable is the
+ *  single source for journey content now, and the two pricing helpers
+ *  that file also held live in pricing.ts. Rendered by
  *  /journeys/[slug], one Day at a time, reusing HubDay's own shape for
  *  each day so the exact same day-detail rendering (narrative, grouped
  *  stops, transport note, map, "add this day" button) applies whether a

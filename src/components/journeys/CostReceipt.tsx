@@ -1,7 +1,5 @@
-import type { ClassicJourney } from "@/lib/journeys-data";
-import { cheapestTourPrice, formatPrice } from "@/lib/journeys-data";
-import { roundPriceUp } from "@/lib/pricing";
-import type { Distillery } from "@/lib/types";
+import { cheapestTourPrice, formatPrice, roundPriceUp } from "@/lib/pricing";
+import type { Distillery, Journey } from "@/lib/types";
 
 const RECEIPT_FONT =
   "'SFMono-Regular', ui-monospace, 'IBM Plex Mono', 'Courier New', monospace";
@@ -12,16 +10,26 @@ const RECEIPT_FONT =
  *  type system here, because that's what makes it read as a receipt
  *  rather than another styled card. Torn paper edges and dotted price
  *  leaders carry the rest of the metaphor; everything else stays plain. */
-export default function CostReceipt({
-  journey,
-  distilleries,
-}: {
-  journey: ClassicJourney;
-  distilleries: Distillery[];
-}) {
-  const stops = journey.distillerySlugs
-    .map((slug) => distilleries.find((d) => d.slug === slug))
-    .filter((d): d is Distillery => !!d);
+export default function CostReceipt({ journey }: { journey: Journey }) {
+  // Retargeted 17 Aug 2026 onto the Airtable Journey shape, with the
+  // deletion of journeys-data.ts's hardcoded ClassicJourney (and its
+  // hand-kept `distillerySlugs` list). The stops are the Journey's own
+  // resolved Days' stops, deduplicated and left in visiting order, so
+  // this no longer needs a separate `distilleries` array to look slugs
+  // up in - a Day Stop already carries the real Distillery record.
+  //
+  // This component is still off the site (see "Pull cost display off the
+  // site pending decision on how best to show it") - it is kept building
+  // against live data rather than a shape nothing produces any more.
+  const seen = new Set<string>();
+  const stops: Distillery[] = [];
+  for (const day of journey.days) {
+    for (const stop of day.stops) {
+      if (seen.has(stop.distillery.slug)) continue;
+      seen.add(stop.distillery.slug);
+      stops.push(stop.distillery);
+    }
+  }
 
   if (stops.length === 0) return null;
 

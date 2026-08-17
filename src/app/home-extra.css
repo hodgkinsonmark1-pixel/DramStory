@@ -62,58 +62,144 @@
   background: var(--off-white);
   padding: 64px 24px;
 }
-.journeys-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
+/* CLASSIC JOURNEYS (rebuilt 17 Aug 2026, the site owner's own layout):
+   the lead journey full-width across the top, the other three in a row
+   beneath it, everything in one column below 760px. Replaces the old
+   .journeys-grid/.journey-card auto-fit grid of three equal text-only
+   tiles, which nothing else on the site used - the two comments in
+   journey-extra.css that mention "the homepage's .journey-card look" are
+   describing it, not reusing the classes. All colour/radii/shadow from
+   the :root tokens in dramstory-legacy.css. */
+.cj-layout {
   max-width: 960px;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
-.journey-card {
-  display: block;
+.cj-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.cj-card {
+  /* The title's link stretches over the card via ::after below, so the
+     card needs to be the positioned ancestor for it. */
+  position: relative;
+  display: flex;
+  flex-direction: column;
   background: white;
   border-radius: var(--radius);
-  padding: 22px;
   border: 1px solid var(--stone);
-  text-decoration: none;
-  transition: all 0.2s var(--ease-out);
   box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out),
+    border-color 0.2s var(--ease-out);
 }
-.journey-card:hover {
+.cj-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-soft);
   border-color: var(--green-mid);
 }
-.journey-card-tagline {
+.cj-card-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background: var(--stone);
+  flex: 0 0 auto;
+}
+/* Sits above the title link's card-wide ::after so the credit stays
+   independently clickable - it is a licence condition, not decoration. */
+.cj-card-credit {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+  max-width: calc(100% - 16px);
+  padding: 3px 7px;
+  border-radius: var(--radius-sm);
+  background: rgba(26, 58, 74, 0.72);
+  color: var(--off-white);
+  font-size: 10px;
+  line-height: 1.3;
+  text-decoration: none;
+}
+a.cj-card-credit:hover {
+  text-decoration: underline;
+}
+.cj-card-body {
+  flex: 1 1 auto;
+  padding: 20px 22px 22px;
+}
+.cj-card-kicker {
   font-size: 10px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--copper);
   margin-bottom: 8px;
 }
-.journey-card-name {
+.cj-card-name {
   font-family: var(--font-display);
   font-size: 21px;
+  font-weight: 400;
   color: var(--dark);
-  margin-bottom: 6px;
+  margin: 0 0 8px;
+  line-height: 1.2;
 }
-.journey-card-stops {
-  font-size: 12px;
-  color: var(--slate);
-  margin-bottom: 14px;
-  line-height: 1.5;
+.cj-card-name a {
+  color: inherit;
+  text-decoration: none;
 }
-.journey-card-not-live {
-  width: 100%;
-  text-align: left;
-  font: inherit;
-  cursor: pointer;
-  opacity: 0.6;
+/* Makes the whole card the link target without nesting the photo
+   credit's anchor inside this one. */
+.cj-card-name a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
 }
-.journey-card-price {
+.cj-card-desc {
   font-size: 13px;
-  font-weight: 500;
-  color: var(--dark);
+  color: var(--slate);
+  line-height: 1.55;
+  margin: 0 0 14px;
+}
+.cj-card-meta {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--peat);
+}
+/* The lead card: photo beside the copy on a wide screen, stacked like
+   every other card below the breakpoint. */
+@media (min-width: 761px) {
+  .cj-card-lead {
+    flex-direction: row;
+    align-items: stretch;
+  }
+  .cj-card-lead .cj-card-media {
+    flex: 0 0 46%;
+    aspect-ratio: auto;
+    min-height: 280px;
+  }
+  .cj-card-lead .cj-card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 32px 34px;
+  }
+  .cj-card-lead .cj-card-name {
+    font-size: 30px;
+  }
+  .cj-card-lead .cj-card-desc {
+    font-size: 15px;
+    max-width: 44ch;
+  }
+}
+@media (max-width: 760px) {
+  .cj-row {
+    grid-template-columns: 1fr;
+  }
 }
 .journeys-hub-link {
   text-align: center;

@@ -12,7 +12,7 @@ import {
   formatClockTime,
   formatMoney,
   MEANINGFUL_GAP_MINUTES,
-  paceTone,
+  paceTileTone,
   scheduleForHubDay,
   scheduleWarningLine,
   spellGapMinutes,
@@ -252,26 +252,32 @@ function DayTimelineStrip({ day, base }: { day: HubDay; base?: DayBase }) {
  *
  *  COLOUR is PacingTag's own pair, inverted: the tile is painted in the
  *  pace's dark tone and lettered in its light one - Relaxed
- *  --green-deep/--green-light, Moderate --copper/--amber-pale, Packed
- *  the sanctioned #B5502E/#F7E6E0 pair that paceTone already carries as
- *  this system's one hardcoded exception (see days-hub.css's own note).
- *  Taken from paceTone rather than restated, so the tiles and the pace
- *  pill beside them can never disagree.
+ *  --green-deep/--green-light, Moderate --peat/--amber-pale, Packed the
+ *  sanctioned #B5502E/#F7E6E0 pair that paceTone already carries as this
+ *  system's one hardcoded exception (see days-hub.css's own note). Taken
+ *  from paceTileTone, which derives all three from paceTone, so the
+ *  tiles and the pace pill beside them can only disagree where that is
+ *  deliberate and documented.
  *
- *  JUDGEMENT CALL, flagged: light-on-copper is the weakest of the three
- *  for contrast (roughly 2.8:1 for the Moderate tile's small text). It
- *  is the pairing Mark specified, so it stands - but the tile carries no
- *  dimmed type at all as a result: hierarchy here is size and weight
- *  only, where an earlier version faded the "DAY 4" kicker to 72%. */
+ *  Moderate WAS --copper here, at 3.19:1 for this tile's small type -
+ *  under the 4.5:1 the accessibility notes require. It is --peat as of
+ *  17 Aug 2026 (the site owner's call), an existing palette token rather
+ *  than a new one, which takes the same lettering to 8.90:1. See
+ *  paceTileTone for the full note, including Packed's own 4.18:1, which
+ *  is flagged there rather than changed.
+ *
+ *  The tile carries no dimmed type at all: hierarchy here is size and
+ *  weight only, where an earlier version faded the "DAY 4" kicker to
+ *  72%. */
 function DayPaceTile({ day, dayNumber }: { day: HubDay; dayNumber: number }) {
   // `stops` is the day's DISTILLERY stops - its beaches, cafes and ruins
   // are featureStops and deliberately uncounted here, since the numeral
   // is the distillery count the caption's noun agrees with.
   const count = day.stops.length;
-  const tone = paceTone(day.pacing);
+  const tone = paceTileTone(day.pacing);
   const caption = day.tileCaption ? splitTileCaption(day.tileCaption) : undefined;
   return (
-    <div className="jr-pace-tile" style={{ background: tone.fg, color: tone.bg }}>
+    <div className="jr-pace-tile" style={{ background: tone.fill, color: tone.ink }}>
       <span className="jr-pace-tile-day">Day {dayNumber}</span>
       <div className="jr-pace-tile-body">
         {count > 0 && <span className="jr-pace-tile-count">{count}</span>}
