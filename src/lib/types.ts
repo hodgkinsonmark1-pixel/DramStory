@@ -384,8 +384,8 @@ export interface HubDay {
    *  functions expect, not just names.
    *
    *  `anchor` - true when this stop is the reason the Day exists (e.g.
-   *  Ardbeg on "Ardbeg, on Foot") and shouldn't be droppable/swappable in
-   *  the day screen's editing UI - sourced from Day Stops' own "Anchor"
+   *  Ardbeg on "Ardbeg and the Kildalton Road") and shouldn't be
+   *  droppable/swappable in the day screen's editing UI - sourced from Day Stops' own "Anchor"
    *  checkbox (added 9 Aug 2026, docs/days-trip-flow-handoff.md §2.2),
    *  read straight through, not recomputed here. */
   stops: {
