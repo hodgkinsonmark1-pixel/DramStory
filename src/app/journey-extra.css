@@ -2076,6 +2076,16 @@ select.location-inline-input {
   text-align: right;
 }
 
+/* Where this journey's walking figures are measured from - once, above
+   the spine, because every day card's own line is written to fit a phone
+   and has no room for it. Sits between the section head and the first
+   day, in the same quiet grey as the section note beside it. */
+.jr-walk-origin {
+  font-size: 11.5px;
+  color: var(--slate);
+  margin: -6px 0 14px;
+}
+
 /* 3b · THE SPINE — hairline down the left edge, a numbered navy disc per
    day and a smaller moon disc per night, both centred on the line. */
 .jr-spine {

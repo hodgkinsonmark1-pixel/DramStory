@@ -25,6 +25,7 @@ import {
   scheduleGapLine,
   scheduleWarningLine,
   walkingLineFor,
+  walkingOriginNote,
   type DayBase,
   isDistilleryClosedOn,
   isAppointmentOnly,
@@ -327,6 +328,11 @@ export default function DayScreen({
   // whether they'd walk it), which leaves the neutral "between the
   // stops" wording - the honest one there.
   const walkingLine = walkingLineFor(day, dayBase);
+  // Said once per page, not once per sentence: the walking line is
+  // written to fit a phone and has no room for "measured from the
+  // pathway start by Port Ellen Primary School", but a reader still has
+  // to be told which point the figure counts from. See walkingOriginNote.
+  const walkingOrigin = walkingOriginNote(day, dayBase);
 
   return (
     <div className="day-screen">
@@ -437,6 +443,7 @@ export default function DayScreen({
                 worth a sentence, and the mileage in the meta row above
                 stands alone as before. See walkingLineFor. */}
             {walkingLine && <div className="day-shape-line day-shape-walk">{walkingLine}</div>}
+            {walkingOrigin && <div className="day-shape-line day-shape-note">{walkingOrigin}</div>}
             {/* A published time this day cannot physically reach. Shown,
                 not swallowed: the schedule below keeps the time that
                 could actually happen, and this says which authored one

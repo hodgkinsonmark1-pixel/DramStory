@@ -16,6 +16,7 @@ import {
   scheduleWarningLine,
   spellGapMinutes,
   walkingLineFor,
+  walkingOriginNote,
   type DayBase,
 } from "@/lib/day-derivations";
 import { stopName } from "@/lib/itinerary-stop";
@@ -385,6 +386,15 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
           ? { lat: baseMarker.lat, lng: baseMarker.lng }
           : undefined;
 
+  // Where this journey's transfers are measured from, said ONCE for the
+  // whole spine rather than inside every day card's walking line - those
+  // are written to fit a phone and the authored origin does not fit in
+  // them. One journey has one base and one origin, so the first day that
+  // has something to say says it for all of them. See walkingOriginNote.
+  const walkingOrigin = journey.days
+    .map((day, i) => walkingOriginNote(day, journeyBaseFor(journey, i, baseCoords)))
+    .find((note) => note !== undefined);
+
   const routeStops: RouteMapStop[] = journey.days.flatMap((day, i) =>
     (day.mapDistilleries ?? []).map((d) => ({ ...d, dayNumber: i + 1 }))
   );
@@ -465,6 +475,7 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
             <h2 className="jr-section-title">Day by day</h2>
             <span className="jr-section-note">Each day has its own page &mdash; nothing here is journey-only</span>
           </div>
+          {walkingOrigin && <p className="jr-walk-origin">{walkingOrigin}</p>}
 
           <div className="jr-spine">
             {journey.days.map((day, i) => {

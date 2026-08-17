@@ -115,6 +115,17 @@
   margin-top: 6px;
 }
 
+/* What the walking line's figure is measured from, where that is not
+   simply the base - said once, here, because the line itself has to fit
+   a phone. Quieter than the line it explains (--slate, no rule), since
+   it is context for a number rather than a number. Tokens only, per
+   docs/hero-handoff.md section 5. */
+.day-shape-note {
+  color: var(--slate);
+  padding-left: 11px;
+  margin-top: 2px;
+}
+
 /* A day-level content error - a Scheduled Time the day cannot reach.
    Not a note to the visitor so much as one to whoever wrote the day, so
    it reads as a warning rather than as copy: same rhythm as the shape
