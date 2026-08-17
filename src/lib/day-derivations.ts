@@ -1,5 +1,5 @@
 import type { Distillery, HubDay, ItineraryDay, ItineraryStop, LocalFeature, Tour, TravelMode, TripDates } from "@/lib/types";
-import { estimatedDriveMinutes } from "@/lib/drive-time";
+import { estimatedDriveMinutes, estimatedTravelMinutes } from "@/lib/drive-time";
 import { stopCoords, stopId, stopName, stopVisitMinutes } from "@/lib/itinerary-stop";
 
 /**
@@ -43,24 +43,34 @@ export function isFerryDay(day: HubDay): boolean {
 // The stored value is already mode-correct - a Walk day's legs were routed
 // on a foot profile, with the walking duration derived from that routed
 // distance at the script's own WALKING_SPEED_KMH (3.75km/h, an editorial
-// pace set by the site owner) - so nothing downstream needs a
-// walking-speed branch, and there is deliberately no second copy of that
-// number here. Note the blank-leg fallback below is mode-blind: it is the
-// 40km/h haversine drive estimate whatever the day's Travel Mode, exactly
-// as it was before legs were precomputed.
+// pace set by the site owner).
+//
+// FIXED 17 Aug 2026: the blank-leg FALLBACK used to be mode-blind - the
+// 40km/h haversine drive estimate whatever the day's Travel Mode. On a
+// walking day that is not a rough answer, it is the wrong question, and
+// it is wrong in the direction that gets someone caught out: a two-mile
+// leg came back as five minutes. Every fallback below now asks for the
+// relevant mode and estimates at walking pace when that mode is walk
+// (drive-time.ts's estimatedTravelMinutes). Nothing about a STORED leg
+// changed - it was already right.
 // ─────────────────────────────────────────────────────────────────────────
 
 /** Travel minutes for one leg: the precomputed routed value if this stop
- *  has one, otherwise the straight-line estimate for that leg alone. A
- *  blank `Leg Minutes` is a normal state (the first stop of a day, a stop
- *  the visitor added themselves, a leg whose routing failed), not an
- *  error - it just means falling back, per leg, exactly as before. */
+ *  has one, otherwise the straight-line estimate for that leg alone, at
+ *  the pace this leg is actually made at. A blank `Leg Minutes` is a
+ *  normal state (the first stop of a day, a stop the visitor added
+ *  themselves, a leg whose routing failed), not an error - it just means
+ *  falling back, per leg, exactly as before.
+ *
+ *  `mode` is the DAY's Travel Mode for a stop-to-stop leg. Undefined
+ *  means nobody said, which has always meant driving. */
 export function legTravelMinutes(
   from: { lat: number; lng: number },
   to: { lat: number; lng: number },
-  storedMinutes: number | undefined
+  storedMinutes: number | undefined,
+  mode?: TravelMode
 ): number {
-  return storedMinutes ?? estimatedDriveMinutes(from, to);
+  return storedMinutes ?? estimatedTravelMinutes(from, to, mode);
 }
 
 /**
@@ -131,7 +141,13 @@ export function transferLegsWalked(base: DayBase | undefined): { out: boolean; b
 
 /** The two base legs in minutes, each undefined when neither a routed
  *  figure nor coordinates exist for it. `first`/`last` are the day's own
- *  first and last stop coordinates. */
+ *  first and last stop coordinates.
+ *
+ *  The ESTIMATED fallback is paced by the base's own `transferMode` (the
+ *  JOURNEY's Transfer Mode, not the Day's Travel Mode - a car journey
+ *  drives to a day that is walked once you arrive), for the same reason
+ *  legTravelMinutes takes a mode. A trip's own accommodation carries no
+ *  transfer mode, so it keeps the drive estimate it has always had. */
 export function resolveBaseLegs(
   base: DayBase | undefined,
   first: { lat: number; lng: number } | undefined,
@@ -140,8 +156,8 @@ export function resolveBaseLegs(
   if (!base || !first || !last) return {};
   const point = base.lat !== undefined && base.lng !== undefined ? { lat: base.lat, lng: base.lng } : undefined;
   return {
-    out: base.fromBaseMinutes ?? (point ? estimatedDriveMinutes(point, first) : undefined),
-    back: base.toBaseMinutes ?? (point ? estimatedDriveMinutes(last, point) : undefined),
+    out: base.fromBaseMinutes ?? (point ? estimatedTravelMinutes(point, first, base.transferMode) : undefined),
+    back: base.toBaseMinutes ?? (point ? estimatedTravelMinutes(last, point, base.transferMode) : undefined),
   };
 }
 
@@ -185,11 +201,21 @@ export function travelCopy(mode: TravelMode | undefined): { betweenStops: string
 // estimate dressed up as walking minutes is the exact error this whole
 // precompute exists to remove.
 //
-// KNOWN GAP, flagged rather than papered over: only distillery stops
-// carry routed legs. A Day's feature stops (the beach, the viewpoint its
-// narrative links to) have no leg field at all, so any walking between
-// those is not in this total. The sentence says "about", and the figure
-// it gives is a floor, never an overstatement.
+// THAT GAP IS NOW CLOSED (17 Aug 2026). Feature stops are real Day Stop
+// records with their own `Order` and their own routed `Leg Minutes`, so
+// the cafe, the beach and the ruin are all in this total, in the place
+// the narrative puts them. "Ardbeg, on Foot" used to state 2h50 counting
+// only the walk out from the trailhead and back, with nothing for the
+// three feature stops its own narrative spends a paragraph on.
+//
+// What replaced it is the OPTIONAL split. A Day Stop the narrative
+// hedges ("if you have the energy... it's worth continuing") is marked
+// `Optional`, and the two are stated as two numbers rather than one
+// average that describes neither day. The detour is counted THERE AND
+// BACK: the day still returns to base from its last non-optional stop,
+// so carrying on and coming back is exactly twice those legs. Nothing is
+// invented - it is the same routed legs, counted both ways, which is
+// what "and back" means.
 // ─────────────────────────────────────────────────────────────────────────
 
 /** Minutes as prose - "50 minutes", "1 hour", "2 hours 25 minutes".
@@ -226,16 +252,50 @@ function spellMinutes(total: number): string {
  * read as a much slower walk than it is - so it is left where it already
  * renders, in the day's meta row.
  */
+/** A detour worth its own clause. Below this the two figures round to
+ *  almost the same sentence, and "or 15 minutes if you carry on" is
+ *  noise where the whole point is a decision someone has to make. */
+const MEANINGFUL_DETOUR_MINUTES = 15;
+
+/** "A", "A and B", "A, B and C" - the same list an editor would write. */
+function joinNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
 export function walkingLineFor(day: HubDay, base?: DayBase): string | undefined {
   if (day.travelMode !== "walk") return undefined;
+
+  // The Day's whole authored order, features included - the same list the
+  // schedule and the map are built from, so the three cannot disagree.
+  const stops = itineraryDayFromHubDay(day).stops;
+
+  // Everything after the LAST stop that is part of the plan is the
+  // optional tail. Deliberately "after the last", not "every optional
+  // stop": an optional stop with real stops after it is something the
+  // day comes back through, so it belongs in the core figure, and only a
+  // trailing detour can honestly be counted there-and-back.
+  let lastCore = -1;
+  stops.forEach((stop, i) => {
+    if (!stop.optional) lastCore = i;
+  });
+  if (lastCore < 0) return undefined; // every stop optional: no plan to state
 
   // Stop 0 has nothing before it, so it never carries a leg; every later
   // stop must, or there is no honest total to state.
   let minutes = 0;
-  for (const stop of day.stops.slice(1)) {
+  for (const stop of stops.slice(1, lastCore + 1)) {
     if (stop.legMinutes === undefined) return undefined;
     minutes += stop.legMinutes;
   }
+
+  // The detour, out and back. Missing a leg here loses only the second
+  // sentence - the plan's own figure is still true and still printed.
+  const tail = stops.slice(lastCore + 1);
+  const tailLegs = tail.map((s) => s.legMinutes);
+  const detourOneWay = tailLegs.every((m) => m !== undefined)
+    ? (tailLegs as number[]).reduce((a, b) => a + b, 0)
+    : undefined;
 
   // Per leg, not per journey: a Drive journey can still have a walked
   // transfer once the 600m rule has been applied to it.
@@ -255,6 +315,14 @@ export function walkingLineFor(day: HubDay, base?: DayBase): string | undefined 
   // 3.75km/h and printing "about 46 minutes" claims a precision the pace
   // itself doesn't have.
   const rounded = Math.max(5, Math.round(minutes / 5) * 5);
+  const withDetour =
+    detourOneWay !== undefined ? Math.round((minutes + detourOneWay * 2) / 5) * 5 : undefined;
+  const detourClause =
+    withDetour !== undefined && withDetour - rounded >= MEANINGFUL_DETOUR_MINUTES
+      ? ` Carrying on to ${joinNames(tail.map(stopName))} and back makes it nearer ${spellMinutes(
+          withDetour
+        )}.`
+      : "";
   const lead = `About ${spellMinutes(rounded)} on foot`;
 
   // Where the transfers were measured from, said in the visitor's words.
@@ -268,8 +336,8 @@ export function walkingLineFor(day: HubDay, base?: DayBase): string | undefined 
     // authored origin the sentence has to survive being read next to the
     // journey's Base, which is a different (larger) place.
     return base?.transferOriginLabel
-      ? `${lead} across the day — measured from ${origin}, there and back.`
-      : `${lead} across the day — that counts walking out from ${origin} and back again.`;
+      ? `${lead} across the day — measured from ${origin}, there and back.${detourClause}`
+      : `${lead} across the day — that counts walking out from ${origin} and back again.${detourClause}`;
   }
   // One end walked and the other not. No published journey does this
   // today, but the two legs are stored and routed independently and
@@ -278,26 +346,27 @@ export function walkingLineFor(day: HubDay, base?: DayBase): string | undefined 
   if (walked.out || walked.back) {
     return `${lead} across the day — that counts the walk one way ${
       walked.out ? `from ${origin}` : `back to ${origin}`
-    }.`;
+    }.${detourClause}`;
   }
   if (base?.transferMode === "drive") {
     const miles = day.distanceOnFoot ? ` (${day.distanceOnFoot})` : "";
-    return `${lead} once you are there${miles} — you drive out from ${origin} and back.`;
+    return `${lead} once you are there${miles} — you drive out from ${origin} and back.${detourClause}`;
   }
   const miles = day.distanceOnFoot ? ` (${day.distanceOnFoot})` : "";
-  return `${lead} between the stops${miles}.`;
+  return `${lead} between the stops${miles}.${detourClause}`;
 }
 
 /**
  * Drive time for the whole day: base -> stop 1 -> ... -> stop N -> base
- * (§2.2). Per the task brief, stop coordinates come from HubDay's own
- * mapDistilleries/mapFeatures fields - distilleries first, in their
- * curated stop order (mapDistilleries preserves `stops` order), then
- * feature stops in the order the narrative happens to link them
- * (mapFeatures has no independent route-order field). There's no single
- * combined "visiting order" spanning both in the current data model, so
- * this is an approximation - consistent with drive-time.ts's own
- * haversine estimate already being indicative rather than exact.
+ * (§2.2), over the Day's own whole visiting order via
+ * itineraryDayFromHubDay.
+ *
+ * It used to say, honestly, that this was an approximation: the data
+ * model had no combined order spanning distilleries and features, so it
+ * walked every distillery first and then every feature the narrative
+ * linked. Day Stops now states one order for both (17 Aug 2026), so the
+ * sequence here is the real one and the only remaining approximation is
+ * the haversine fallback for any leg that has no stored routed figure.
  */
 export function driveMinutesForDay(day: HubDay, base: { lat: number; lng: number }): number {
   return driveMinutesForItineraryDay(itineraryDayFromHubDay(day), {
@@ -504,7 +573,7 @@ export function driveMinutesForItineraryDay(day: ItineraryDay, base?: DayBase): 
   const legs = resolveBaseLegs(base ?? accommodationBase(day), stopPoints[0], stopPoints[stopPoints.length - 1]);
   let total = legs.out ?? 0;
   for (let i = 1; i < stopPoints.length; i++) {
-    total += legTravelMinutes(stopPoints[i - 1], stopPoints[i], day.stops[i].legMinutes);
+    total += legTravelMinutes(stopPoints[i - 1], stopPoints[i], day.stops[i].legMinutes, day.travelMode);
   }
   total += legs.back ?? 0;
   return total;
@@ -626,7 +695,7 @@ export function collectionNote(count: number, total: number): string {
  * this function (now here) from TripReview.tsx (Phase 3).
  */
 export function isDayEdited(day: ItineraryDay, hub: HubDay): boolean {
-  const original = [...hub.stops.map((s) => s.distillery.slug), ...hub.featureStops.map((f) => f.id)];
+  const original = itineraryDayFromHubDay(hub).stops.map(stopId);
   const current = day.stops.map(stopId);
   if (original.length !== current.length) return true;
   return original.some((id, i) => id !== current[i]);
@@ -652,11 +721,18 @@ export function resetDayToHub(
   }
 ): void {
   currentStops.map(stopId).forEach((id) => actions.removeStop(dayIndex, id));
-  hub.stops.forEach((s) => {
-    actions.addStop(dayIndex, s.distillery, s.anchor);
-    if (s.tour) actions.setTourForStop(dayIndex, s.distillery, s.tour);
+  // Replayed in the Day's own order, features included - the same list
+  // itineraryDayFromHubDay builds, so "reset to the original" restores
+  // the order the day is published in rather than an all-distilleries-
+  // first approximation of it.
+  itineraryDayFromHubDay(hub).stops.forEach((s) => {
+    if (s.kind === "distillery") {
+      actions.addStop(dayIndex, s.distillery, s.anchor);
+      if (s.tour) actions.setTourForStop(dayIndex, s.distillery, s.tour);
+    } else {
+      actions.addFeatureStop(dayIndex, s.feature);
+    }
   });
-  hub.featureStops.forEach((f) => actions.addFeatureStop(dayIndex, f));
 }
 
 /** One entry per stop that was in the original HubDay but has since been
@@ -678,14 +754,12 @@ export interface DroppedHubStop {
 export function droppedHubStops(day: ItineraryDay, hub: HubDay): DroppedHubStop[] {
   const current = new Set(day.stops.map(stopId));
   const dropped: DroppedHubStop[] = [];
-  for (const s of hub.stops) {
-    if (!current.has(s.distillery.slug)) {
+  for (const s of itineraryDayFromHubDay(hub).stops) {
+    if (current.has(stopId(s))) continue;
+    if (s.kind === "distillery") {
       dropped.push({ id: s.distillery.slug, name: s.distillery.name, kind: "distillery", distillery: s.distillery, tour: s.tour });
-    }
-  }
-  for (const f of hub.featureStops) {
-    if (!current.has(f.id)) {
-      dropped.push({ id: f.id, name: f.name, kind: "feature", feature: f });
+    } else {
+      dropped.push({ id: s.feature.id, name: s.feature.name, kind: "feature", feature: s.feature });
     }
   }
   return dropped;
@@ -697,7 +771,7 @@ export function droppedHubStops(day: ItineraryDay, hub: HubDay): DroppedHubStop[
  *  and tour swaps aren't mentioned) - honest about what it's counting
  *  rather than claiming to describe every possible edit. */
 export function describeHubDayChanges(day: ItineraryDay, hub: HubDay): string {
-  const originalIds = new Set([...hub.stops.map((s) => s.distillery.slug), ...hub.featureStops.map((f) => f.id)]);
+  const originalIds = new Set(itineraryDayFromHubDay(hub).stops.map(stopId));
   const currentIds = day.stops.map(stopId);
   let added = 0;
   for (const id of currentIds) if (!originalIds.has(id)) added++;
@@ -918,7 +992,8 @@ export function scheduleForItineraryDay(
     // Stop-to-stop legs use the precomputed routed value when there is
     // one; the leg in from the base is whatever resolveBaseLegs could
     // honestly establish, and zero when it could establish nothing.
-    const leg = index === 0 ? legs.out ?? 0 : legTravelMinutes(prevPoint ?? point, point, stop.legMinutes);
+    const leg =
+      index === 0 ? legs.out ?? 0 : legTravelMinutes(prevPoint ?? point, point, stop.legMinutes, day.travelMode);
     // The soonest you could be here: travelling the moment the last stop
     // let you go. That is the whole schedule for a stop with no
     // published time, and the floor for one that has.
@@ -1025,44 +1100,35 @@ export function scheduleWarningLine(warning: ScheduleWarning): string {
  * and inventing one (the default Machrie, say) would print a departure
  * time for a journey the visitor never said they were making.
  *
- * Stop ORDER is distilleries first (in their curated Day Stops order),
- * then feature stops in the order the narrative links them - the same
- * approximation, and the same reason for it, as driveMinutesForDay()
- * above: the data model has no single combined visiting order spanning
- * both. Flagged rather than papered over.
+ * Stop ORDER is now simply the Day's own, whole, authored order -
+ * `hub.orderedStops`, distilleries and Local Features interleaved
+ * exactly as the Day Stops table's `Order` states. That closes the gap
+ * this function used to carry and flag: it built "every distillery
+ * first, then every feature the narrative happened to link", so "Ardbeg,
+ * on Foot" put the Old Kiln Cafe - which its narrative reaches on the
+ * way OUT - after Ardbeg, and none of those feature legs existed at all.
  *
- * `anchor` is carried straight through from the Day Stop's own Anchor
- * checkbox, so the un-added view marks the same stops undroppable as the
- * in-trip one does.
+ * Features the narrative links but no Day Stop covers are still appended
+ * at the end, unchanged: they have no authored position, so the end is
+ * the only honest place for them, and dropping them would lose the map
+ * pin they already earn today.
+ *
+ * `anchor` and `optional` are carried straight through from the Day
+ * Stop's own checkboxes.
  */
 export function itineraryDayFromHubDay(hub: HubDay): ItineraryDay {
+  const ordered = hub.orderedStops;
+  const orderedIds = new Set(ordered.map(stopId));
   return {
     id: `hub-${hub.slug}`,
     label: hub.name,
     sourceHubDaySlug: hub.slug,
     travelMode: hub.travelMode,
     stops: [
-      ...hub.stops.map((s): ItineraryStop => ({
-        kind: "distillery",
-        distillery: s.distillery,
-        tour: s.tour,
-        anchor: s.anchor,
-        // The precomputed routed leg in from the previous Day Stop.
-        // KNOWN GAP, flagged rather than papered over: Airtable's Day
-        // Stops table links a Day to Distilleries only - there is no
-        // Local Feature link on it - so `featureStops` (which are
-        // discovered from /explore/ links in the narrative, and appended
-        // after the distilleries below) have no stored legs, and the
-        // distillery -> first-feature leg falls back to the straight-line
-        // estimate. Closing that would mean a Local Feature link field on
-        // Day Stops and a real combined visiting order, which is a schema
-        // change, not a code one.
-        legMinutes: s.legMinutes,
-        // The published clock time this stop runs at, where Airtable
-        // gives one - read straight through, same as the leg above.
-        scheduledTime: s.scheduledTime,
-      })),
-      ...hub.featureStops.map((f): ItineraryStop => ({ kind: "feature", feature: f })),
+      ...ordered,
+      ...hub.featureStops
+        .filter((f) => !orderedIds.has(f.id))
+        .map((f): ItineraryStop => ({ kind: "feature", feature: f })),
     ],
   };
 }

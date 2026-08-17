@@ -1,5 +1,5 @@
 import type { AirtableAttachment, AirtableRecord } from "@/lib/airtable";
-import type { Area, Distillery, FeaturedStay, HubDay, JournalPost, LocalEvent, LocalFeature, NearbyFeature, Tour } from "@/lib/types";
+import type { Area, Distillery, FeaturedStay, HubDay, ItineraryStop, JournalPost, LocalEvent, LocalFeature, NearbyFeature, Tour } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Raw shapes as returned by the Airtable REST API for each table.
@@ -637,6 +637,15 @@ export interface AirtableDayStopFields {
   Name?: string;
   Day?: string[];
   Distillery?: string[]; // linked record ID -> Distilleries table
+  /** linked record ID -> Local Features table. MUTUALLY EXCLUSIVE with
+   *  `Distillery`: a Day Stop is one place, and which of the two tables
+   *  that place lives in is the only difference. Added 17 Aug 2026 -
+   *  before it existed, a Day's cafes, beaches, ruins and museums were
+   *  only ever inline [label](/explore/slug) links inside its Narrative,
+   *  so they carried no routed leg, counted for nothing in the day's
+   *  walking total, and sat after every distillery whatever order the
+   *  prose described. */
+  "Local Feature"?: string[];
   Tour?: string[]; // linked record ID -> Tours table
   Order?: number;
   /** True if this stop is the reason its Day exists - not droppable in
@@ -668,6 +677,12 @@ export interface AirtableDayStopFields {
   /** Internal only. ISO date the two fields above were last computed, so
    *  a leg left stale by a reorder/coordinate change can be spotted. */
   "Leg Computed"?: string;
+  /** True where the Day's own narrative frames this stop as a choice
+   *  ("if you have the energy... it's worth continuing"), not part of
+   *  the plan. Added 17 Aug 2026. See ItineraryStop.optional for what
+   *  the site does with it - in short, it splits a walking total into
+   *  the plan and the detour rather than merging them. */
+  Optional?: boolean;
 }
 
 // Matches the [label](/path) inline links already used in Day narratives
@@ -687,6 +702,12 @@ export interface DayResolutionContext {
   tourById: Map<string, Tour>;
   distilleryById: Map<string, Distillery>;
   localFeatureBySlug: Map<string, LocalFeature>;
+  /** By RECORD ID, for Day Stops' own `Local Feature` link - as opposed
+   *  to `localFeatureBySlug` above, which resolves the /explore/<slug>
+   *  links found in a Narrative. Both are needed and they answer
+   *  different questions: one "which feature is this stop", the other
+   *  "which feature does this sentence point at". */
+  localFeatureById: Map<string, LocalFeature>;
 }
 
 /** Maps one raw Days table record (+ its resolved Day Stops) into a
@@ -710,50 +731,86 @@ export function mapAirtableDayRecord(
   const f = record.fields;
   if (!f.Name || !f.Slug) return null;
 
-  const stopIds = f["Day Stops"] ?? [];
-  const resolvedStops = stopIds
+  // Every Day Stop of this Day, in ONE `Order` sequence, whether it
+  // links a Distillery or a Local Feature. A row that resolves to
+  // neither (a blank placeholder, or a link to a record that no longer
+  // exists) is dropped rather than becoming a stop with no place.
+  const orderedStops: ItineraryStop[] = (f["Day Stops"] ?? [])
     .map((id) => ctx.dayStopById.get(id))
     .filter((s): s is AirtableDayStopFields => !!s)
-    .map((s) => ({
-      distillery: s.Distillery?.[0] ? ctx.distilleryById.get(s.Distillery[0]) : undefined,
-      tour: s.Tour?.[0] ? ctx.tourById.get(s.Tour[0]) : undefined,
-      order: s.Order ?? 0,
-      anchor: s.Anchor === true,
-      // Read straight through, never recomputed here: this is the
-      // precomputed routed leg from the PREVIOUS stop in this Day. A
-      // blank cell (first stop of the day, or a leg whose routing
-      // failed) stays undefined so the schedule falls back to its own
-      // estimate for that leg alone.
-      legMinutes: typeof s["Leg Minutes"] === "number" ? s["Leg Minutes"] : undefined,
-      // Also read straight through, not validated here: a cell that
-      // isn't a clock time is caught once, in the schedule's own parser,
-      // which falls back to the chained behaviour rather than throwing.
-      scheduledTime: s["Scheduled Time"]?.trim() || undefined,
-    }))
-    .filter(
-      (s): s is {
-        distillery: Distillery;
-        tour: Tour | undefined;
-        order: number;
-        anchor: boolean;
-        legMinutes: number | undefined;
-        scheduledTime: string | undefined;
-      } => !!s.distillery
-    )
-    .sort((a, b) => a.order - b.order);
+    .map((s) => {
+      const shared = {
+        anchor: s.Anchor === true,
+        optional: s.Optional === true,
+        // Read straight through, never recomputed here: this is the
+        // precomputed routed leg from the PREVIOUS stop in this Day. A
+        // blank cell (first stop of the day, or a leg whose routing
+        // failed) stays undefined so the schedule falls back to its own
+        // estimate for that leg alone.
+        legMinutes: typeof s["Leg Minutes"] === "number" ? s["Leg Minutes"] : undefined,
+        // Also read straight through, not validated here: a cell that
+        // isn't a clock time is caught once, in the schedule's own parser,
+        // which falls back to the chained behaviour rather than throwing.
+        scheduledTime: s["Scheduled Time"]?.trim() || undefined,
+      };
+      const order = s.Order ?? 0;
+      const distillery = s.Distillery?.[0] ? ctx.distilleryById.get(s.Distillery[0]) : undefined;
+      if (distillery) {
+        const stop: ItineraryStop = {
+          kind: "distillery",
+          distillery,
+          tour: s.Tour?.[0] ? ctx.tourById.get(s.Tour[0]) : undefined,
+          ...shared,
+        };
+        return { order, stop };
+      }
+      const feature = s["Local Feature"]?.[0] ? ctx.localFeatureById.get(s["Local Feature"][0]) : undefined;
+      if (feature) {
+        const stop: ItineraryStop = { kind: "feature", feature, ...shared };
+        return { order, stop };
+      }
+      return { order, stop: undefined };
+    })
+    .filter((s): s is { order: number; stop: ItineraryStop } => !!s.stop)
+    .sort((a, b) => a.order - b.order)
+    .map((s) => s.stop);
+
+  // The distillery-only subset, still in visiting order - what `stops`
+  // has always meant, and what prices, pick-hits and the ferry check
+  // still want. NOTE its `legMinutes` is the leg from whatever stop
+  // precedes it in the FULL order, which may now be a feature; anything
+  // adding legs up must walk `orderedStops`, not this.
+  const resolvedStops = orderedStops.flatMap((s) =>
+    s.kind === "distillery" ? [{ distillery: s.distillery, tour: s.tour, anchor: s.anchor === true, legMinutes: s.legMinutes, scheduledTime: s.scheduledTime }] : []
+  );
 
   const totalCost = resolvedStops.reduce((sum, s) => sum + (s.tour?.price ?? 0), 0);
 
-  const mapFeatures: NonNullable<HubDay["mapFeatures"]> = [];
-  const featureStops: HubDay["featureStops"] = [];
+  // Features this Day cares about, in visiting order: the ones it now
+  // has real Day Stop records for first, then any the Narrative links
+  // that no Day Stop covers. The second half is the ORIGINAL behaviour,
+  // kept deliberately - it is what still pins a feature a narrative
+  // mentions but nobody has ordered into the day yet, and dropping it
+  // would silently lose map pins.
+  const featureStops: HubDay["featureStops"] = orderedStops.flatMap((s) => (s.kind === "feature" ? [s.feature] : []));
   const narrative = f.Narrative ?? "";
+  const narrativeOnlyFeatures: LocalFeature[] = [];
   for (const match of narrative.matchAll(EXPLORE_LINK_RE)) {
     const feature = ctx.localFeatureBySlug.get(match[2]);
-    if (feature) {
-      mapFeatures.push({ name: feature.name, slug: feature.slug, lat: feature.lat, lng: feature.lng, icon: feature.icon });
-      featureStops.push(feature);
-    }
+    if (!feature) continue;
+    if (featureStops.some((existing) => existing.id === feature.id)) continue;
+    if (narrativeOnlyFeatures.some((existing) => existing.id === feature.id)) continue;
+    narrativeOnlyFeatures.push(feature);
   }
+  featureStops.push(...narrativeOnlyFeatures);
+
+  const mapFeatures: NonNullable<HubDay["mapFeatures"]> = featureStops.map((feature) => ({
+    name: feature.name,
+    slug: feature.slug,
+    lat: feature.lat,
+    lng: feature.lng,
+    icon: feature.icon,
+  }));
 
   const mapDistilleries: NonNullable<HubDay["mapDistilleries"]> = resolvedStops.map((s) => ({
     name: s.distillery.name,
@@ -776,13 +833,8 @@ export function mapAirtableDayRecord(
     cost: totalCost > 0 ? `£${totalCost}pp` : "",
     mapDistilleries,
     mapFeatures: mapFeatures.length > 0 ? mapFeatures : undefined,
-    stops: resolvedStops.map((s) => ({
-      distillery: s.distillery,
-      tour: s.tour,
-      anchor: s.anchor,
-      legMinutes: s.legMinutes,
-      scheduledTime: s.scheduledTime,
-    })),
+    stops: resolvedStops,
+    orderedStops,
     featureStops,
     hook: f.Hook ?? "",
     distanceOnFoot: f["Distance on Foot"] || undefined,

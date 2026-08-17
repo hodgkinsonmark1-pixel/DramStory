@@ -285,7 +285,8 @@ async function fetchDaysFromAirtable(): Promise<HubDay[]> {
   const tourById = new Map(tourRecords.map((r) => [r.id, mapTour(r.fields)]));
   const distilleryById = new Map(distilleries.map((d) => [d.id, d]));
   const localFeatureBySlug = new Map(localFeatures.map((f) => [f.slug, f]));
-  const ctx = { dayStopById, tourById, distilleryById, localFeatureBySlug };
+  const localFeatureById = new Map(localFeatures.map((f) => [f.id, f]));
+  const ctx = { dayStopById, tourById, distilleryById, localFeatureBySlug, localFeatureById };
 
   const days: HubDay[] = [];
 
@@ -336,7 +337,8 @@ export const getAllDaysAnyStatus = cache(async (): Promise<HubDay[]> => {
   const tourById = new Map(tourRecords.map((r) => [r.id, mapTour(r.fields)]));
   const distilleryById = new Map(distilleries.map((d) => [d.id, d]));
   const localFeatureBySlug = new Map(localFeatures.map((f) => [f.slug, f]));
-  const ctx = { dayStopById, tourById, distilleryById, localFeatureBySlug };
+  const localFeatureById = new Map(localFeatures.map((f) => [f.id, f]));
+  const ctx = { dayStopById, tourById, distilleryById, localFeatureBySlug, localFeatureById };
 
   const days: HubDay[] = [];
   for (const record of dayRecords) {
@@ -374,7 +376,8 @@ async function fetchJourneysFromAirtable(): Promise<Journey[]> {
   const tourById = new Map(tourRecords.map((r) => [r.id, mapTour(r.fields)]));
   const distilleryById = new Map(distilleries.map((d) => [d.id, d]));
   const localFeatureBySlug = new Map(localFeatures.map((f) => [f.slug, f]));
-  const ctx = { dayStopById, tourById, distilleryById, localFeatureBySlug };
+  const localFeatureById = new Map(localFeatures.map((f) => [f.id, f]));
+  const ctx = { dayStopById, tourById, distilleryById, localFeatureBySlug, localFeatureById };
 
   // mapAirtableDayRecord returns a HubDay per Day record - built once per
   // unique Day (not per Journey Day row), since the same Day can be

@@ -404,6 +404,25 @@ export interface HubDay {
    *  what its own narrative actually describes, not just the
    *  distillery/tour part of it. */
   featureStops: LocalFeature[];
+  /** EVERY stop of this Day, distilleries and Local Features together,
+   *  in the single visiting order the Day Stops table now states
+   *  (`Order`) - the thing that did not exist before 17 Aug 2026, when
+   *  Day Stops linked only to Distilleries and a Day's features had to
+   *  be inferred from /explore/ links in its Narrative and appended
+   *  after every distillery whatever the narrative actually described.
+   *
+   *  `stops` and `featureStops` above are both still here and both still
+   *  mean what they meant: the distillery-only subset (in order) and the
+   *  Local Features this Day cares about. Plenty of the site genuinely
+   *  wants only one of those - a price total, a "includes Laphroaig"
+   *  badge, a map's distillery pins - and rewriting all of it to filter a
+   *  union type would be churn for its own sake. What needed the
+   *  combined list is anything that walks the day IN ORDER: the
+   *  schedule, the travel total, the map's route line. Those read this.
+   *
+   *  ItineraryStop rather than a new shape because that IS the shape -
+   *  itineraryDayFromHubDay used to build exactly this, badly. */
+  orderedStops: ItineraryStop[];
   /** One-line teaser for the compact day card (journey spine, /days hub
    *  card) - shorter than and distinct from `narrative`. Empty string if
    *  unset in Airtable. Added 13 Aug 2026 for the Journeys page rebuild. */
@@ -835,6 +854,18 @@ export type ItineraryStop = (
    *  carries it onto a stop added or reordered in the planner, so an
    *  edited day never claims a booking time it no longer stands behind. */
   scheduledTime?: string;
+  /** True when the DAY'S OWN narrative frames this stop as a choice
+   *  rather than part of the plan - "if you have the energy... it's
+   *  worth continuing a couple more miles to Kildalton Cross". Sourced
+   *  from Day Stops' `Optional` checkbox (added 17 Aug 2026) and read
+   *  straight through by itineraryDayFromHubDay.
+   *
+   *  It exists so a day's walking total can state the plan and the
+   *  detour as two numbers instead of averaging them into one that
+   *  describes neither - see walkingLineFor. It does NOT drop the stop
+   *  from the day: an optional stop is still shown, still pinned, still
+   *  scheduled. Same published-day-only scope as `legMinutes` above. */
+  optional?: boolean;
 };
 
 /** Where a day's trip starts/ends - a real, verifiable place (a village,

@@ -285,12 +285,15 @@ export default function DayScreen({
       });
     }
     const newIndex = trip.addDay(day.slug);
-    for (const stop of day.stops) {
-      trip.addStop(newIndex, stop.distillery, stop.anchor);
-      if (stop.tour) trip.setTourForStop(newIndex, stop.distillery, stop.tour);
-    }
-    for (const feature of day.featureStops) {
-      trip.addFeatureStop(newIndex, feature);
+    // In the Day's own order, features included - see the same loop in
+    // DaysHubGrid.handleAddToTrip.
+    for (const stop of itineraryDayFromHubDay(day).stops) {
+      if (stop.kind === "distillery") {
+        trip.addStop(newIndex, stop.distillery, stop.anchor);
+        if (stop.tour) trip.setTourForStop(newIndex, stop.distillery, stop.tour);
+      } else {
+        trip.addFeatureStop(newIndex, stop.feature);
+      }
     }
     trip.setCurrentDayIndex(newIndex);
     router.replace(`/days/${day.slug}?trip=${newIndex}`);

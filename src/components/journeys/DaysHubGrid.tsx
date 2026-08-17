@@ -21,6 +21,7 @@ import {
   hasMoreNarrative,
   fullNarrativeText,
   isFerryDay,
+  itineraryDayFromHubDay,
   milestoneFor,
 } from "@/lib/day-derivations";
 import DaysTripBar from "@/components/journeys/DaysTripBar";
@@ -87,12 +88,17 @@ function DayCard({
   function handleAddToTrip() {
     onAdd(day);
     const newDayIndex = trip.addDay(day.slug);
-    for (const stop of day.stops) {
-      trip.addStop(newDayIndex, stop.distillery, stop.anchor);
-      if (stop.tour) trip.setTourForStop(newDayIndex, stop.distillery, stop.tour);
-    }
-    for (const feature of day.featureStops) {
-      trip.addFeatureStop(newDayIndex, feature);
+    // The Day's own order, features included - same list the day screen,
+    // the schedule and the map use (itineraryDayFromHubDay), so a day
+    // added to a trip arrives in the order it is published in rather
+    // than every distillery first and the cafes tacked on the end.
+    for (const stop of itineraryDayFromHubDay(day).stops) {
+      if (stop.kind === "distillery") {
+        trip.addStop(newDayIndex, stop.distillery, stop.anchor);
+        if (stop.tour) trip.setTourForStop(newDayIndex, stop.distillery, stop.tour);
+      } else {
+        trip.addFeatureStop(newDayIndex, stop.feature);
+      }
     }
     trip.setCurrentDayIndex(newDayIndex);
   }

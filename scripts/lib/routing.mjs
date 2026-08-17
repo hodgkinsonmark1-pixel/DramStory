@@ -43,7 +43,14 @@ export const PROFILES = {
  *  figure: this is a whisky trip and people dawdle, so the foot router's
  *  own ~4.5km/h is a brisk pace that would under-promise how long a
  *  walking day really takes. Driving legs are untouched — they still
- *  store OSRM's own duration. */
+ *  store OSRM's own duration.
+ *
+ *  THE SITE HAS THE SAME NUMBER (17 Aug 2026): WALKING_SPEED_KMH in
+ *  src/lib/drive-time.ts, used for the blank-leg fallback on a walking
+ *  day, which until then was a 40km/h drive estimate whatever the mode.
+ *  A deliberate second copy — this is plain Node ESM and that is
+ *  TypeScript compiled by Next, with no build step joining them — and
+ *  the two MUST stay equal. Change one, change the other. */
 export const WALKING_SPEED_KMH = 3.75;
 
 /** A TRANSFER leg shorter than this is walked whatever the Journey's

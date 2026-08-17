@@ -41,7 +41,10 @@
 //   Mode changes; `Leg Computed` is how you tell whether that's overdue.
 //
 // TRAVEL MODE / ROUTING PROFILES
-//   A Day's `Travel Mode` (Drive/Walk, blank = Drive) picks the profile.
+//   A Day's `Travel Mode` (Drive/Walk, blank = Drive) picks the profile,
+//   with one named exception: FOOT_ONLY_FEATURE_SLUGS below, for the
+//   handful of Local Features that no car can reach from the stop before
+//   them. See that constant for why it is a list and not a rule.
 //   The profiles themselves, the walking-pace rule and the rate limiting
 //   all live in lib/routing.mjs, shared with the base-legs script —
 //   including the note on why OSRM's own /foot/ profile is not used.
@@ -57,6 +60,36 @@ import { modeFor, requestsSent, routeLeg } from "./lib/routing.mjs";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 
+/**
+ * Local Features that CANNOT be reached from the previous stop by car,
+ * so their leg is routed on the foot profile whatever the Day's own
+ * Travel Mode says.
+ *
+ * WHY THIS LIST EXISTS, and why it is a list rather than a rule. Travel
+ * Mode is a fact about a DAY, and both of these sit on driving days that
+ * park at a distillery and walk the last bit. Routing them as drives is
+ * not a rough answer, it is a wrong one: the driving profile snaps
+ * Rubha Bhachlaig to a road 1.4km short of the arch and reports a
+ * 3-minute drive for what the Day's own narrative calls "about a mile
+ * from the distillery, an hour or so there and back". Routed on foot it
+ * comes back 2.1km / 34 min, which is that narrative, independently.
+ *
+ * A snap-distance rule was tried first and rejected: Machir Bay snaps
+ * 811m from its own coordinate too, and Machir Bay genuinely has a car
+ * park. There is no signal in the data that separates the two, so this
+ * is named, checkable content rather than a heuristic that would quietly
+ * put a beach car park on foot.
+ *
+ * The real fix is a per-stop travel mode on Day Stops - a schema change,
+ * not a code one. Until then, adding a slug here is the honest move; the
+ * cost of getting it wrong is a leg timed at walking pace, which errs
+ * long rather than short.
+ */
+const FOOT_ONLY_FEATURE_SLUGS = new Set([
+  "rubha-bhachlaig",
+  "paps-of-jura-panorama-ardnahoe",
+]);
+
 function coordsFor(stopFields, distilleryById, featureById) {
   const distId = stopFields.Distillery?.[0];
   if (distId) {
@@ -66,16 +99,16 @@ function coordsFor(stopFields, distilleryById, featureById) {
     }
     return null;
   }
-  // Day Stops has no Local Feature link field as of 17 Aug 2026 — every
-  // Day Stop record is a distillery, and a Day's feature stops are
-  // discovered from /explore/ links in its Narrative instead (see
-  // mapAirtableDayRecord). This branch exists so that adding such a link
-  // field later Just Works rather than needing this script rewritten.
+  // Day Stops gained its `Local Feature` link on 17 Aug 2026 and this
+  // branch stopped being speculative: a Day's cafes, beaches, ruins and
+  // museums are now real, ordered Day Stop records with legs of their
+  // own, rather than inline /explore/ links in the Narrative that
+  // carried no travel time at all.
   const featId = stopFields["Local Feature"]?.[0] ?? stopFields["Local Features"]?.[0];
   if (featId) {
     const f = featureById.get(featId);
     if (f && typeof f.Latitude === "number" && typeof f.Longitude === "number") {
-      return { lat: f.Latitude, lng: f.Longitude, label: f.Name ?? featId };
+      return { lat: f.Latitude, lng: f.Longitude, label: f.Name ?? featId, slug: f.Slug };
     }
   }
   return null;
@@ -124,13 +157,17 @@ async function main() {
         continue;
       }
 
-      const leg = await routeLeg(prev, here, mode);
+      // See FOOT_ONLY_FEATURE_SLUGS: a walked-only destination overrides
+      // the Day's Travel Mode for this one leg, and says so in the log.
+      const legMode = FOOT_ONLY_FEATURE_SLUGS.has(here.slug) ? "walk" : mode;
+      const leg = await routeLeg(prev, here, legMode);
 
       if (leg.error) {
-        skipped.push(`${name}: ${prev.label} → ${here.label} (${mode}) routing failed — ${leg.error}; left blank`);
+        skipped.push(`${name}: ${prev.label} → ${here.label} (${legMode}) routing failed — ${leg.error}; left blank`);
       } else {
         console.log(
-          `${name} [${mode}] ${prev.label} → ${here.label}: ${leg.minutes} min, ${leg.km} km`
+          `${name} [${legMode}${legMode === mode ? "" : ` — foot-only, day is ${mode}`}] ` +
+            `${prev.label} → ${here.label}: ${leg.minutes} min, ${leg.km} km`
         );
         updates.push({
           id: stop.id,

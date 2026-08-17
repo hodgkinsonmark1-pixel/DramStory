@@ -7,7 +7,24 @@
 // (verified against the approved mockup's Ardbeg -> Bowmore estimate).
 // ─────────────────────────────────────────────────────────────────────────
 
+import type { TravelMode } from "@/lib/types";
+
 const AVERAGE_SPEED_KMH = 40;
+
+/** Walking pace, km/h. The site owner's editorial figure, not a routing
+ *  engine's: this is a whisky trip and people dawdle, so a foot router's
+ *  own ~4.5km/h is a brisk pace that under-promises how long a walking
+ *  day really takes.
+ *
+ *  DELIBERATE SECOND COPY, and the only one: the offline precompute
+ *  (scripts/lib/routing.mjs) owns the same constant, because that is
+ *  plain Node ESM and this is TypeScript compiled by Next - there is no
+ *  build step joining the two, and a `.mjs` imported into the app bundle
+ *  purely to share one number is a worse trade than this comment. The
+ *  two MUST stay equal; each names the other. Everything else about
+ *  walking - the routed distances, the short-transfer rule - still lives
+ *  only in routing.mjs. */
+export const WALKING_SPEED_KMH = 3.75;
 
 function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const R = 6371;
@@ -19,11 +36,36 @@ function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: num
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
+function estimatedMinutesAt(a: { lat: number; lng: number }, b: { lat: number; lng: number }, speedKmh: number): number {
+  const km = haversineKm(a, b);
+  const minutes = (km / speedKmh) * 60;
+  return Math.max(5, Math.round(minutes / 5) * 5);
+}
+
 /** Estimated drive time in whole minutes, rounded to the nearest 5. */
 export function estimatedDriveMinutes(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
-  const km = haversineKm(a, b);
-  const minutes = (km / AVERAGE_SPEED_KMH) * 60;
-  return Math.max(5, Math.round(minutes / 5) * 5);
+  return estimatedMinutesAt(a, b, AVERAGE_SPEED_KMH);
+}
+
+/** The same straight-line estimate at WALKING_SPEED_KMH. Still a
+ *  haversine, so still indicative - but a haversine at a walking pace is
+ *  the honest shape of a wrong answer on a walking day, where the 40km/h
+ *  drive estimate is out by an order of magnitude in the direction that
+ *  gets someone caught out in the dark. */
+export function estimatedWalkMinutes(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  return estimatedMinutesAt(a, b, WALKING_SPEED_KMH);
+}
+
+/** Whichever of the two above matches how this leg is actually made.
+ *  `undefined` means nobody said, and every part of this codebase has
+ *  treated an unstated mode as driving since before TravelMode existed -
+ *  see the field's own doc comment in types.ts. */
+export function estimatedTravelMinutes(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+  mode: TravelMode | undefined
+): number {
+  return mode === "walk" ? estimatedWalkMinutes(a, b) : estimatedDriveMinutes(a, b);
 }
 
 /** Formats minutes as "25m" or "1h 40m", matching the approved mockup. */
