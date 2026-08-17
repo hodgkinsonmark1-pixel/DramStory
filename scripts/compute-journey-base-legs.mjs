@@ -131,6 +131,23 @@
 //   accommodation range (journeyAccommodationRange). All that changed is
 //   that it no longer decides where a transfer is measured FROM.
 //
+// WHICH TWO STOPS THE TRANSFERS RUN TO AND FROM  (fixed 17 Aug 2026)
+//
+//   The day's first and last NON-OPTIONAL stop, by Order, distilleries
+//   and Local Features alike.
+//
+//   Not simply its first and last: a stop the narrative offers as a maybe
+//   is not where the day starts or ends, and the visitor who takes the
+//   detour comes back through the real last stop. See the comment at the
+//   filter itself for the two records this was measurably wrong for.
+//
+//   And not distilleries only, which is what this script read until now:
+//   half these days end at a beach, a viewpoint or a village church, and
+//   those have been real, ordered Day Stops since 17 Aug 2026. Both
+//   halves of this had to change together - fixing the optional rule
+//   while still ignoring features would have re-measured five days from
+//   the wrong end and quietly rewritten figures that are already right.
+//
 // WHAT IT WRITES (Journey Days table, tblzTeYWOTDPZyzRZ)
 //   Leg From Base Minutes   base → this day's FIRST stop, minutes
 //   Leg To Base Minutes     this day's LAST stop → base, minutes
@@ -268,23 +285,45 @@ function resolveBase(journeyFields, stayById, areas, stays) {
   return null;
 }
 
-function coordsForStop(stopFields, distilleryById) {
+/** Where a Day Stop actually is - a Distillery or a Local Feature, the
+ *  same two links and the same precedence as the sibling script's
+ *  coordsFor.
+ *
+ *  The feature branch is not optional politeness: a day's real last stop
+ *  is often a beach or a viewpoint ("Kilchoman and Machir Bay" ends at
+ *  Machir Bay Beach, "Bunnahabhain, Back from Silence" at Rubha
+ *  Bhachlaig), and reading only the Distillery link measured the journey
+ *  home from a stop the visitor left an hour earlier - 15 rather than 17
+ *  minutes back to Bridgend, 34 rather than 37 back to Port Ellen. The
+ *  stored figures on Journey Days are the feature-aware ones; this is
+ *  the code catching up with them, not a change of answer. */
+function coordsForStop(stopFields, distilleryById, featureById) {
   const distId = stopFields.Distillery?.[0];
-  if (!distId) return null;
-  const d = distilleryById.get(distId);
-  if (!d || typeof d.Latitude !== "number" || typeof d.Longitude !== "number") return null;
-  return { lat: d.Latitude, lng: d.Longitude, label: d.Name ?? distId };
+  if (distId) {
+    const d = distilleryById.get(distId);
+    if (!d || typeof d.Latitude !== "number" || typeof d.Longitude !== "number") return null;
+    return { lat: d.Latitude, lng: d.Longitude, label: d.Name ?? distId };
+  }
+  const featId = stopFields["Local Feature"]?.[0] ?? stopFields["Local Features"]?.[0];
+  if (featId) {
+    const f = featureById.get(featId);
+    if (f && typeof f.Latitude === "number" && typeof f.Longitude === "number") {
+      return { lat: f.Latitude, lng: f.Longitude, label: f.Name ?? featId };
+    }
+  }
+  return null;
 }
 
 async function main() {
   requireKey({ dryRun: DRY_RUN });
 
-  const [journeys, journeyDays, days, dayStops, distilleries, areas, stays] = await Promise.all([
+  const [journeys, journeyDays, days, dayStops, distilleries, features, areas, stays] = await Promise.all([
     airtableFetchAll("Journeys"),
     airtableFetchAll("Journey Days"),
     airtableFetchAll("Days"),
     airtableFetchAll("Day Stops"),
     airtableFetchAll("Distilleries"),
+    airtableFetchAll("Local Features"),
     airtableFetchAll("Areas"),
     airtableFetchAll("Featured Stays"),
   ]);
@@ -293,6 +332,7 @@ async function main() {
   const dayById = new Map(days.map((r) => [r.id, r.fields]));
   const stopById = new Map(dayStops.map((r) => [r.id, r]));
   const distilleryById = new Map(distilleries.map((r) => [r.id, r.fields]));
+  const featureById = new Map(features.map((r) => [r.id, r.fields]));
   const stayById = new Map(stays.map((r) => [r.id, r.fields]));
 
   const updates = [];
@@ -344,15 +384,38 @@ async function main() {
       );
     }
 
-    const stops = (day["Day Stops"] ?? [])
+    // OPTIONAL STOPS ARE NOT THE ENDS OF A DAY (17 Aug 2026). A Day Stop
+    // marked `Optional` is one the narrative offers rather than plans -
+    // "if you have the energy... it's worth continuing to Kildalton
+    // Cross" - and the visitor who takes it walks back through the day's
+    // real last stop anyway. Measuring the return transfer from it
+    // states, as a fact, a journey home nobody was told to make: "Ardbeg,
+    // on Foot" ends at Ardbeg for the purposes of getting back to Port
+    // Ellen, not at Port Mòr an hour and a half further on. It also put
+    // this script at odds with the site, whose walkingLineFor has counted
+    // the optional tail separately - as a stated detour, there and back -
+    // since the checkbox existed.
+    //
+    // So the ends of the day are its first and last NON-OPTIONAL stops.
+    // Optional stops in the MIDDLE change nothing, here or anywhere: they
+    // are neither end, and this script has never routed the legs between
+    // stops.
+    const allStops = (day["Day Stops"] ?? [])
       .map((id) => stopById.get(id))
       .filter(Boolean)
-      .sort((a, b) => (a.fields.Order ?? 0) - (b.fields.Order ?? 0))
-      .map((s) => coordsForStop(s.fields, distilleryById))
+      .sort((a, b) => (a.fields.Order ?? 0) - (b.fields.Order ?? 0));
+    const optionalCount = allStops.filter((s) => s.fields.Optional).length;
+    const stops = allStops
+      .filter((s) => !s.fields.Optional)
+      .map((s) => coordsForStop(s.fields, distilleryById, featureById))
       .filter(Boolean);
 
     if (stops.length === 0) {
-      skipped.push(`${label}: no stop with usable coordinates — left blank`);
+      skipped.push(
+        `${label}: no non-optional stop with usable coordinates${
+          optionalCount > 0 ? ` (${optionalCount} optional stop(s) ignored, deliberately)` : ""
+        } — left blank`
+      );
       continue;
     }
 
