@@ -776,12 +776,22 @@ export const DEFAULT_SCHEDULE_START_MINUTES = 9 * 60 + 30;
  *  cell in Airtable should degrade to the documented default, not break
  *  the page. */
 export function parseStartTimeMinutes(startTime?: string): number {
-  if (!startTime) return DEFAULT_SCHEDULE_START_MINUTES;
-  const m = startTime.trim().match(/^(\d{1,2}):(\d{2})$/);
-  if (!m) return DEFAULT_SCHEDULE_START_MINUTES;
+  return parseClockMinutes(startTime) ?? DEFAULT_SCHEDULE_START_MINUTES;
+}
+
+/** The same parse, but saying "there isn't one" rather than substituting
+ *  a default - which is what a Day Stop's `Scheduled Time` needs: blank
+ *  (much the commoner case) means "this stop has no published time",
+ *  not "assume one". A cell that isn't a clock time is treated the same
+ *  as blank: the stop keeps the chained behaviour rather than the page
+ *  breaking on a typo. */
+export function parseClockMinutes(value?: string): number | undefined {
+  if (!value) return undefined;
+  const m = value.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return undefined;
   const h = Number(m[1]);
   const min = Number(m[2]);
-  if (h > 23 || min > 59) return DEFAULT_SCHEDULE_START_MINUTES;
+  if (h > 23 || min > 59) return undefined;
   return h * 60 + min;
 }
 
@@ -791,10 +801,56 @@ export interface ScheduleRow {
   arrive: number; // minutes after midnight
   leave: number;
   dur: number;
+  /** Travel minutes counted immediately before `arrive` - the leg in
+   *  from the previous stop, or from the base for the first row. */
+  travel: number;
+  /** Minutes between the end of that travel and `arrive`: time the day
+   *  does not account for, because this stop is pinned to a published
+   *  clock time later than the moment you could have got here. Zero on
+   *  every chained stop, which is every stop with no `Scheduled Time`. */
+  free: number;
+  /** True when `arrive` IS the stop's own `Scheduled Time` rather than a
+   *  computed arrival. False when it has none - and false when it had
+   *  one that couldn't be reached, in which case see `warnings`. */
+  fixed: boolean;
+}
+
+/** A gap only worth saying out loud once it's long enough to be part of
+ *  the day rather than rounding error - twenty minutes, matching the
+ *  brief's own "over ~20 minutes". Measured on the FREE minutes, not the
+ *  whole gap: half an hour of it walking over is travel, and the day
+ *  already accounts for travel. */
+export const MEANINGFUL_GAP_MINUTES = 20;
+
+/** A day-level problem with the day's own content, for someone to fix -
+ *  not something the reader can act on. Today there is exactly one: a
+ *  `Scheduled Time` the day physically cannot reach (see
+ *  scheduleForItineraryDay). Kept structured, with the copy in
+ *  scheduleWarningLine below, so every page that renders a schedule says
+ *  the same sentence about it - the same one-source rule that retired
+ *  the hand-written `Day Timeline` field. */
+export interface ScheduleWarning {
+  kind: "scheduled-time-unreachable";
+  /** The stop the impossible time was authored on. */
+  stopName: string;
+  /** The authored time. Deliberately NOT rendered as this stop's clock
+   *  time anywhere - the schedule shows `earliest` instead - but named
+   *  in the warning, because "which cell is wrong" is the whole point. */
+  scheduled: number;
+  /** The computed arrival that is being shown instead. */
+  earliest: number;
 }
 
 export interface DaySchedule {
   rows: ScheduleRow[];
+  /** Minutes after midnight the visitor actually sets off. Normally the
+   *  Day's own `Start Time`, but pulled EARLIER where the first stop is
+   *  pinned to a published time that couldn't otherwise be made: a
+   *  10 o'clock tour thirty-eight minutes' walk from the bed means
+   *  leaving at 9:22, not missing it. Never pushed later - a Start Time
+   *  earlier than it needs to be is a real, honest wait at the first
+   *  stop, and it shows as one. */
+  depart: number;
   /** Minutes after midnight the visitor is back at their base - with no
    *  base at all (a Day read cold on /days/[slug]) the clock simply stops
    *  after the last stop's visit, with no final leg added. */
@@ -806,6 +862,9 @@ export interface DaySchedule {
    *  lets one that has no base say nothing at all rather than printing a
    *  door-to-door claim it can't support. */
   base?: { name: string; out: number; back: number; originLabel?: string };
+  /** Content errors in this day worth showing on the page - empty for
+   *  every day whose times are consistent, which is nearly all of them. */
+  warnings: ScheduleWarning[];
 }
 
 /**
@@ -817,6 +876,15 @@ export interface DaySchedule {
  * there is no honest "your door" to travel from), the first stop's
  * arrival IS the start time. Callers pass parseStartTimeMinutes(
  * hub.startTime) - see scheduleForHubDay below.
+ *
+ * A stop carrying a `Scheduled Time` breaks the chain: it starts at
+ * exactly that clock time, because a distillery tour runs when it is
+ * published to run and not when the previous stop happens to release
+ * you. Everything before it still travels; what is left over is the
+ * visitor's own time, carried on the row as `free` so the page can say
+ * so rather than leaving an unexplained hole. Every stop without one is
+ * unchanged - previous stop's finish plus the travel leg - so a day with
+ * no scheduled times anywhere computes exactly as it did before.
  *
  * `base` defaults to the day's own accommodation, which is what a real
  * trip day has. A Day read inside a Journey has no accommodation but does
@@ -832,7 +900,18 @@ export function scheduleForItineraryDay(
   const stopPoints = day.stops.map(stopCoords);
   const legs = resolveBaseLegs(resolved, stopPoints[0], stopPoints[stopPoints.length - 1]);
 
-  let t = startMinutes;
+  // Setting off. The Day's own Start Time, unless the first stop is
+  // pinned to a time you'd have to leave earlier to make - see
+  // DaySchedule.depart. With no base leg the two are the same number
+  // anyway, which is why a Day read cold on /days/[slug] is unaffected.
+  const firstScheduled = parseClockMinutes(day.stops[0]?.scheduledTime);
+  const depart =
+    firstScheduled !== undefined
+      ? Math.min(startMinutes, firstScheduled - (legs.out ?? 0))
+      : startMinutes;
+
+  const warnings: ScheduleWarning[] = [];
+  let t = depart;
   let prevPoint: { lat: number; lng: number } | undefined;
   const rows: ScheduleRow[] = day.stops.map((stop, index) => {
     const point = stopPoints[index];
@@ -840,10 +919,41 @@ export function scheduleForItineraryDay(
     // one; the leg in from the base is whatever resolveBaseLegs could
     // honestly establish, and zero when it could establish nothing.
     const leg = index === 0 ? legs.out ?? 0 : legTravelMinutes(prevPoint ?? point, point, stop.legMinutes);
-    t += leg;
+    // The soonest you could be here: travelling the moment the last stop
+    // let you go. That is the whole schedule for a stop with no
+    // published time, and the floor for one that has.
+    const earliest = t + leg;
+    const scheduled = parseClockMinutes(stop.scheduledTime);
+    // A published time EARLIER than that is not a schedule, it is a
+    // mistake in the day's own content - two tours that can't both be
+    // made. The computed time stands (it is the only one that could
+    // actually happen) and the clash is surfaced rather than hidden;
+    // silently printing the impossible time would have the visitor turn
+    // up to a tour that had already started.
+    const reachable = scheduled !== undefined && scheduled >= earliest;
+    if (scheduled !== undefined && !reachable) {
+      warnings.push({
+        kind: "scheduled-time-unreachable",
+        stopName: stopName(stop),
+        scheduled,
+        earliest,
+      });
+    }
+    const arrive = reachable ? scheduled : earliest;
     const dur = stopVisitMinutes(stop);
-    const row: ScheduleRow = { stop, index, arrive: t, leave: t + dur, dur };
-    t += dur;
+    const row: ScheduleRow = {
+      stop,
+      index,
+      arrive,
+      leave: arrive + dur,
+      dur,
+      travel: leg,
+      // Whatever is left over once the travel is done - the visitor's
+      // own time, not dead time the schedule should squeeze out.
+      free: arrive - earliest,
+      fixed: reachable,
+    };
+    t = arrive + dur;
     prevPoint = point;
     return row;
   });
@@ -862,7 +972,49 @@ export function scheduleForItineraryDay(
           originLabel: resolved.transferOriginLabel,
         }
       : undefined;
-  return { rows, home, base: baseSummary };
+  return { rows, depart, home, base: baseSummary, warnings };
+}
+
+/** A gap length as prose - "1 hour 30 minutes" - rounded to the nearest
+ *  five minutes, the same "these are estimates, not promises" rounding
+ *  formatClockTime already applies to the times either side of it. */
+export function spellGapMinutes(minutes: number): string {
+  return spellMinutes(Math.max(5, Math.round(minutes / 5) * 5));
+}
+
+/** The one sentence for a gap in front of a stop, or undefined when
+ *  there isn't a gap worth a line (see MEANINGFUL_GAP_MINUTES).
+ *
+ *  Says what the day's own data supports and stops: how long, when to
+ *  when, and how much of it is the travel that was routed anyway. It
+ *  deliberately does NOT name an activity - the day's narrative may well
+ *  describe lunch somewhere, but nothing in the schedule knows that, and
+ *  a made-up "lunch and a wander" on a day whose author meant something
+ *  else is exactly the fabricated specific the brand voice rules out. An
+ *  honest empty hour reads fine; an invented one doesn't. */
+export function scheduleGapLine(row: ScheduleRow, mode?: TravelMode): string | undefined {
+  if (row.free < MEANINGFUL_GAP_MINUTES) return undefined;
+  const from = row.arrive - row.free - row.travel;
+  const total = spellGapMinutes(row.free + row.travel);
+  const travelPart =
+    row.travel > 0
+      ? ` — about ${spellGapMinutes(row.travel)} of it ${mode === "walk" ? "walking" : "driving"} over`
+      : "";
+  return `${formatClockTime(from)}–${formatClockTime(row.arrive)} · ${total} before ${stopName(
+    row.stop
+  )}${travelPart}. Nothing booked in it.`;
+}
+
+/** The one sentence for a day-level schedule warning. Rendered wherever
+ *  a schedule is - the day screen and the journey strip both - because
+ *  it is a fault in the content, and the person who can fix it should
+ *  meet it on whichever page they happen to be reading. */
+export function scheduleWarningLine(warning: ScheduleWarning): string {
+  return `${warning.stopName} is down for ${formatClockTime(
+    warning.scheduled
+  )}, but the day can't get there before ${formatClockTime(
+    warning.earliest
+  )} — that later time is the one shown.`;
 }
 
 /**
@@ -906,6 +1058,9 @@ export function itineraryDayFromHubDay(hub: HubDay): ItineraryDay {
         // Day Stops and a real combined visiting order, which is a schema
         // change, not a code one.
         legMinutes: s.legMinutes,
+        // The published clock time this stop runs at, where Airtable
+        // gives one - read straight through, same as the leg above.
+        scheduledTime: s.scheduledTime,
       })),
       ...hub.featureStops.map((f): ItineraryStop => ({ kind: "feature", feature: f })),
     ],

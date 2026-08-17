@@ -388,7 +388,16 @@ export interface HubDay {
    *  the day screen's editing UI - sourced from Day Stops' own "Anchor"
    *  checkbox (added 9 Aug 2026, docs/days-trip-flow-handoff.md §2.2),
    *  read straight through, not recomputed here. */
-  stops: { distillery: Distillery; tour?: Tour; anchor: boolean; legMinutes?: number }[];
+  stops: {
+    distillery: Distillery;
+    tour?: Tour;
+    anchor: boolean;
+    legMinutes?: number;
+    /** The published clock time this stop actually happens at ("13:00")
+     *  - Day Stops' own `Scheduled Time`, read straight through. See
+     *  ItineraryStop.scheduledTime for what the schedule does with it. */
+    scheduledTime?: string;
+  }[];
   /** The real Local Feature records behind mapFeatures above (walks,
    *  viewpoints, pubs the narrative links to) - same "+ Add this day"
    *  flow also adds these via addFeatureStop, so a Day's trip stops match
@@ -810,6 +819,22 @@ export type ItineraryStop = (
    *  stop order it was computed against - an edited day silently keeping
    *  an old leg time would be worse than an honest estimate. */
   legMinutes?: number;
+  /** The clock time this stop is fixed to, "HH:MM" - a distillery tour
+   *  runs at its own published times, so a day is often "the 10 o'clock
+   *  at Laphroaig, then the 1 o'clock at Lagavulin" rather than one stop
+   *  chained straight onto the end of the last. Sourced from Day Stops'
+   *  `Scheduled Time` in Airtable (added 17 Aug 2026) and read straight
+   *  through by itineraryDayFromHubDay.
+   *
+   *  Undefined - every stop with no published time, and every stop the
+   *  visitor adds themselves - keeps the original behaviour: the previous
+   *  stop's finish plus the travel leg. See scheduleForItineraryDay.
+   *
+   *  Deliberately only ever set on a PUBLISHED day rendered as-authored,
+   *  the same scope as `legMinutes` above: nothing in trip-context.tsx
+   *  carries it onto a stop added or reordered in the planner, so an
+   *  edited day never claims a booking time it no longer stands behind. */
+  scheduledTime?: string;
 };
 
 /** Where a day's trip starts/ends - a real, verifiable place (a village,

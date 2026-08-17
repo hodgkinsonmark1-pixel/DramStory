@@ -653,6 +653,14 @@ export interface AirtableDayStopFields {
    *  routing failed; blank means the site falls back to its own
    *  straight-line estimate for that leg. Added 17 Aug 2026. */
   "Leg Minutes"?: number;
+  /** The clock time this stop actually happens at, "HH:MM" (e.g.
+   *  "13:00") - the published start of the tour booked here. Added 17
+   *  Aug 2026. Blank is the normal case and means exactly what it used
+   *  to: this stop starts when the previous one finishes plus the travel
+   *  between them. Set, it pins the stop to that time and the gap in
+   *  front of it becomes the visitor's own - see
+   *  scheduleForItineraryDay() in day-derivations.ts. */
+  "Scheduled Time"?: string;
   /** Real routed distance in km for the same leg. Not rendered anywhere
    *  yet - stored so a leg can be sanity-checked against the map without
    *  re-routing. */
@@ -717,6 +725,10 @@ export function mapAirtableDayRecord(
       // failed) stays undefined so the schedule falls back to its own
       // estimate for that leg alone.
       legMinutes: typeof s["Leg Minutes"] === "number" ? s["Leg Minutes"] : undefined,
+      // Also read straight through, not validated here: a cell that
+      // isn't a clock time is caught once, in the schedule's own parser,
+      // which falls back to the chained behaviour rather than throwing.
+      scheduledTime: s["Scheduled Time"]?.trim() || undefined,
     }))
     .filter(
       (s): s is {
@@ -725,6 +737,7 @@ export function mapAirtableDayRecord(
         order: number;
         anchor: boolean;
         legMinutes: number | undefined;
+        scheduledTime: string | undefined;
       } => !!s.distillery
     )
     .sort((a, b) => a.order - b.order);
@@ -768,6 +781,7 @@ export function mapAirtableDayRecord(
       tour: s.tour,
       anchor: s.anchor,
       legMinutes: s.legMinutes,
+      scheduledTime: s.scheduledTime,
     })),
     featureStops,
     hook: f.Hook ?? "",
