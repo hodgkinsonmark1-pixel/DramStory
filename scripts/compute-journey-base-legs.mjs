@@ -62,6 +62,42 @@
 //
 // BASE RESOLUTION, in order — reported per journey, never guessed
 //
+//   0. The Journey's own `Transfer Origin Latitude` / `Transfer Origin
+//      Longitude`, when BOTH are set. AN AUTHORED OVERRIDE, and it beats
+//      every rule below.
+//
+//      Added 17 Aug 2026 for The South Coast Walk, which is the case a
+//      village centroid genuinely cannot describe. That journey is walked
+//      along the Three Distilleries Pathway, and the pathway does not
+//      begin in the middle of Port Ellen: it begins next to Port Ellen
+//      Primary School, roughly 360m EAST of the Areas centroid
+//      (55.629332, -6.188077). Measuring from the centroid therefore adds
+//      the width of half a village to both ends of every day, and the
+//      figure the site printed read longer than the signage the visitor
+//      is standing in front of. The override is 55.629514 / -6.18228,
+//      sourced from postcodes.io for PA42 7BW — a real, checkable
+//      coordinate, per the site's coordinate verification hierarchy
+//      (docs/project-conventions.md), and NOT a coordinate nudged until
+//      the routed numbers agreed with a published one.
+//
+//      `Transfer Origin Label` travels with it — "the pathway start by
+//      Port Ellen Primary School" — and is the point of the whole
+//      override as far as a reader is concerned: a transfer time measured
+//      from something other than the Base has to SAY so, or it is just a
+//      number that quietly disagrees with the map. It is threaded to the
+//      page through Journey.transferOriginLabel -> DayBase -> the walking
+//      line, the day's timeline strip and the day-shape sentence. The
+//      label is editorial copy and is never composed here.
+//
+//      BOTH coordinates are required. One on its own is not a position,
+//      so a half-filled pair falls through to the rules below rather than
+//      being combined with a centroid — and it is named in the run
+//      summary rather than passing silently.
+//
+//      BLANK IS THE NORMAL CASE and changes nothing. The other three
+//      journeys leave all three fields empty and resolve exactly as they
+//      did before this pass.
+//
 //   REVERSED 17 Aug 2026, and the reasoning it replaced is worth stating
 //   because it read convincingly. This script shipped preferring the
 //   Journey's `Base Stay` link on the grounds that "a transfer starts at
@@ -142,10 +178,37 @@ const LONG_WALK_REVIEW_MINUTES = 60;
 const norm = (s) => (s ?? "").trim().toLowerCase();
 
 /** Coordinates to measure this Journey's transfers from, plus where they
- *  came from — see the BASE RESOLUTION block above. Null when nothing
+ *  came from — see the BASE RESOLUTION block above. Also carries the
+ *  authored `Transfer Origin Label`, when there is one, purely so the run
+ *  summary names it; the site reads the field itself. Null when nothing
  *  matches. */
 function resolveBase(journeyFields, stayById, areas, stays) {
   const wanted = norm(journeyFields.Base);
+
+  // 0. The authored transfer origin, ahead of everything else. See rule 0
+  //    in BASE RESOLUTION above: this exists because Port Ellen's
+  //    centroid is not where the Three Distilleries Pathway starts, and
+  //    a village centroid has no way of saying so.
+  const originLat = journeyFields["Transfer Origin Latitude"];
+  const originLng = journeyFields["Transfer Origin Longitude"];
+  const originLabel = (journeyFields["Transfer Origin Label"] ?? "").trim();
+  if (typeof originLat === "number" && typeof originLng === "number") {
+    return {
+      lat: originLat,
+      lng: originLng,
+      label: originLabel || undefined,
+      source: `Transfer Origin override -> ${
+        originLabel || `${originLat}, ${originLng} (no label authored)`
+      }`,
+    };
+  }
+  // Half a pair is not a position. Say so rather than silently measuring
+  // from a centroid the author thought they had overridden.
+  if (typeof originLat === "number" || typeof originLng === "number") {
+    console.log(
+      `  NOTE: ${journeyFields.Name ?? "journey"} has only one of Transfer Origin Latitude/Longitude — ignoring the override and resolving the Base as normal`
+    );
+  }
 
   // 1. The village itself. See BASE RESOLUTION above for why this now
   //    outranks the Base Stay link rather than backing it up.
