@@ -61,8 +61,11 @@ import type { HubDay, Journey } from "@/lib/types";
  *  - Still ungated on Status: every Journey and several of their Days are
  *    Draft, and this page exists for Mark's pre-launch review. Unchanged
  *    from the previous pass's reasoning.
- *  - Hero Image is empty on all four Journeys, so the hero renders its
- *    navy/gradient treatment with no photo rather than a placeholder.
+ *  - Hero Image was empty on all four Journeys when this was written, so
+ *    the hero renders its navy/gradient treatment with no photo rather
+ *    than a placeholder. It is no longer empty (17 Aug 2026) - and the
+ *    branch that had never once run turned out to be the one thing on
+ *    this page that could throw. See the <Image> itself.
  *  - The base pin on the route map is drawn only when the Journey's Base
  *    has a real Area record with real coordinates. Bridgend does not, so
  *    Rhinns Trail/Hidden Coast get no white pin and their map caption
@@ -424,12 +427,25 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
     <>
       <section className="jr-hero">
         {journey.heroImage ? (
+          /* `unoptimized`, as every other /api/attachment image on the
+             site already is (21 of them, this was the only one that
+             wasn't). That proxy's src carries a query string, and a LOCAL
+             src with a query string is only a legal input to next/image's
+             optimiser if it is declared in images.localPatterns - which
+             this project deliberately doesn't configure, because these
+             images are a redirect to a short-lived signed Airtable URL and
+             are meant to be served straight through rather than
+             re-fetched and transformed. Without it next/image throws
+             during render and the whole page 500s with an empty body,
+             which is exactly what all four Journeys did the moment a Hero
+             Image was first put on the records (see the note above). */
           <Image
             className="jr-hero-img"
             src={journey.heroImage}
             alt={journey.name}
             fill
             priority
+            unoptimized
             style={{ objectFit: "cover" }}
           />
         ) : null}
