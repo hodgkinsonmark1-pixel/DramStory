@@ -2258,6 +2258,15 @@ select.location-inline-input {
 .jr-timeline-label {
   color: var(--slate);
 }
+/* A Scheduled Time this day cannot reach - the same content warning the
+   day screen renders, in the same words. Full width under the strip so
+   it can't be mistaken for one more segment of it. */
+.jr-day-timeline-warning {
+  flex: 1 1 100%;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b5502e;
+}
 /* Night connector — quieter than a day card: --stone (the sand tone) with
    no border and no photo, one row. Deliberately NOT white and NOT
    --green-light: white would read as another day card, and --green-light

@@ -22,6 +22,8 @@ import {
   scheduleForItineraryDay,
   formatClockTime,
   partOfDay,
+  scheduleGapLine,
+  scheduleWarningLine,
   walkingLineFor,
   type DayBase,
   isDistilleryClosedOn,
@@ -417,7 +419,7 @@ export default function DayScreen({
                   clock time was measured from. Without one this is the
                   Base (or the trip's own accommodation) exactly as
                   before. See DayBase.transferOriginLabel. */}
-              Starting {formatClockTime(parseStartTimeMinutes(day.startTime))}
+              Starting {formatClockTime(schedule.depart)}
               {schedule.base ? ` from ${schedule.base.originLabel ?? schedule.base.name}` : ""}, back by{" "}
               {formatClockTime(schedule.home)}
               {inTrip ? " — reorder, swap or drop anything" : ""}
@@ -429,6 +431,15 @@ export default function DayScreen({
                 the mileage in the meta row above stands alone as before.
                 See walkingLineFor. */}
             {walkingLine && <div className="day-shape-line day-shape-walk">{walkingLine}</div>}
+            {/* A published time this day cannot physically reach. Shown,
+                not swallowed: the schedule below keeps the time that
+                could actually happen, and this says which authored one
+                it had to overrule. See ScheduleWarning. */}
+            {schedule.warnings.map((warning, i) => (
+              <div key={`${warning.kind}-${i}`} className="day-shape-line day-shape-warning">
+                {scheduleWarningLine(warning)}
+              </div>
+            ))}
           </div>
         )}
 
@@ -465,6 +476,13 @@ export default function DayScreen({
                 <div className="day-group-header">{group.part.toUpperCase()}</div>
                 {group.rows.map((row) => {
                   const stop = row.stop;
+                  // Free time in front of a stop that is pinned to a
+                  // published clock time - a real part of the day, so it
+                  // gets a row of its own rather than showing up as an
+                  // unexplained jump between two times. Undefined for
+                  // every chained stop, which is every stop with no
+                  // Scheduled Time. See scheduleGapLine.
+                  const gapLine = scheduleGapLine(row, day.travelMode);
                   // Droppability, extended 16 Aug 2026: it was already
                   // `anchor !== true` rather than "is it a distillery",
                   // so Local Feature stops were never actually excluded
@@ -507,86 +525,86 @@ export default function DayScreen({
                   );
 
                   return (
-                    <div
-                      key={stopId(stop)}
-                      className={`day-stop-card${closed ? " day-stop-closed" : ""}`}
-                    >
-                      <div className="day-stop-top">
-                        <div className="day-stop-time">
-                          <div className="day-stop-time-value">{formatClockTime(row.arrive)}</div>
-                          <div className="day-stop-time-dur">{row.dur}m</div>
-                        </div>
-                        <span className={`day-stop-dot${stop.kind === "feature" ? " feature" : ""}`} />
-                        {showTourPicker && distillery ? (
-                          <button
-                            type="button"
-                            className="day-stop-main"
-                            onClick={() => setTourSheetDistillery(distillery)}
-                            aria-label={`Change tour at ${distillery.name}`}
-                          >
-                            <span className="day-stop-name">
-                              {distillery.name}
-                              <span className="day-stop-name-tours">tours ▾</span>
-                            </span>
-                            <div className="day-stop-sub">{subLine}</div>
-                            {notes}
-                          </button>
-                        ) : distillery ? (
-                          <Link href={`/distilleries/${distillery.slug}`} className="day-stop-main">
-                            <span className="day-stop-name">{distillery.name}</span>
-                            <div className="day-stop-sub">{subLine}</div>
-                            {notes}
-                          </Link>
-                        ) : stop.kind === "feature" && stop.feature.slug ? (
-                          <Link href={`/explore/${stop.feature.slug}`} className="day-stop-main">
-                            <span className="day-stop-name">{stopName(stop)}</span>
-                            <div className="day-stop-sub">{subLine}</div>
-                          </Link>
-                        ) : (
-                          <div className="day-stop-main" style={{ cursor: "default" }}>
-                            <span className="day-stop-name">{stopName(stop)}</span>
-                            <div className="day-stop-sub">{subLine}</div>
-                            {notes}
+                    <div key={stopId(stop)}>
+                      {gapLine && <div className="day-stop-gap">{gapLine}</div>}
+                      <div className={`day-stop-card${closed ? " day-stop-closed" : ""}`}>
+                        <div className="day-stop-top">
+                          <div className="day-stop-time">
+                            <div className="day-stop-time-value">{formatClockTime(row.arrive)}</div>
+                            <div className="day-stop-time-dur">{row.dur}m</div>
                           </div>
-                        )}
-                      </div>
-                      {/* Editing affordances, and only these, are gated
-                          on the day being in the trip. */}
-                      {inTrip && (
-                        <div className="day-stop-controls">
-                          {anchor ? (
-                            <span className="day-stop-anchor-label">ANCHOR · THE REASON FOR THIS DAY</span>
+                          <span className={`day-stop-dot${stop.kind === "feature" ? " feature" : ""}`} />
+                          {showTourPicker && distillery ? (
+                            <button
+                              type="button"
+                              className="day-stop-main"
+                              onClick={() => setTourSheetDistillery(distillery)}
+                              aria-label={`Change tour at ${distillery.name}`}
+                            >
+                              <span className="day-stop-name">
+                                {distillery.name}
+                                <span className="day-stop-name-tours">tours ▾</span>
+                              </span>
+                              <div className="day-stop-sub">{subLine}</div>
+                              {notes}
+                            </button>
+                          ) : distillery ? (
+                            <Link href={`/distilleries/${distillery.slug}`} className="day-stop-main">
+                              <span className="day-stop-name">{distillery.name}</span>
+                              <div className="day-stop-sub">{subLine}</div>
+                              {notes}
+                            </Link>
+                          ) : stop.kind === "feature" && stop.feature.slug ? (
+                            <Link href={`/explore/${stop.feature.slug}`} className="day-stop-main">
+                              <span className="day-stop-name">{stopName(stop)}</span>
+                              <div className="day-stop-sub">{subLine}</div>
+                            </Link>
                           ) : (
-                            <>
-                              <button
-                                type="button"
-                                className="day-stop-btn day-stop-btn-up"
-                                onClick={() => moveUp(row.index)}
-                                disabled={row.index === 0}
-                                aria-label={`Move ${stopName(stop)} earlier`}
-                              >
-                                ▲
-                              </button>
-                              <button
-                                type="button"
-                                className="day-stop-btn day-stop-btn-swap"
-                                onClick={() => openSwap(stop, row.index)}
-                                aria-label={`Swap ${stopName(stop)} for somewhere else`}
-                              >
-                                Swap
-                              </button>
-                              <button
-                                type="button"
-                                className="day-stop-btn day-stop-btn-drop"
-                                onClick={() => handleDrop(stop, row.index)}
-                                aria-label={`Remove ${stopName(stop)} from this day`}
-                              >
-                                Drop
-                              </button>
-                            </>
+                            <div className="day-stop-main" style={{ cursor: "default" }}>
+                              <span className="day-stop-name">{stopName(stop)}</span>
+                              <div className="day-stop-sub">{subLine}</div>
+                              {notes}
+                            </div>
                           )}
                         </div>
-                      )}
+                        {/* Editing affordances, and only these, are gated
+                            on the day being in the trip. */}
+                        {inTrip && (
+                          <div className="day-stop-controls">
+                            {anchor ? (
+                              <span className="day-stop-anchor-label">ANCHOR · THE REASON FOR THIS DAY</span>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  className="day-stop-btn day-stop-btn-up"
+                                  onClick={() => moveUp(row.index)}
+                                  disabled={row.index === 0}
+                                  aria-label={`Move ${stopName(stop)} earlier`}
+                                >
+                                  ▲
+                                </button>
+                                <button
+                                  type="button"
+                                  className="day-stop-btn day-stop-btn-swap"
+                                  onClick={() => openSwap(stop, row.index)}
+                                  aria-label={`Swap ${stopName(stop)} for somewhere else`}
+                                >
+                                  Swap
+                                </button>
+                                <button
+                                  type="button"
+                                  className="day-stop-btn day-stop-btn-drop"
+                                  onClick={() => handleDrop(stop, row.index)}
+                                  aria-label={`Remove ${stopName(stop)} from this day`}
+                                >
+                                  Drop
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                        </div>
                     </div>
                   );
                 })}

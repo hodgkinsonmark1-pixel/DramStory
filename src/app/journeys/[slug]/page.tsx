@@ -11,8 +11,10 @@ import JourneyRouteMap, { type RouteMapStop } from "@/components/journeys/Journe
 import {
   formatClockTime,
   formatMoney,
-  parseStartTimeMinutes,
+  MEANINGFUL_GAP_MINUTES,
   scheduleForHubDay,
+  scheduleWarningLine,
+  spellGapMinutes,
   walkingLineFor,
   type DayBase,
 } from "@/lib/day-derivations";
@@ -151,11 +153,25 @@ function DayTimelineStrip({ day, base }: { day: HubDay; base?: DayBase }) {
   if (schedule.base) {
     segments.push({
       key: "leave-base",
-      time: parseStartTimeMinutes(day.startTime),
+      // The schedule's own departure, not the Day's Start Time: where the
+      // first stop runs to a published clock time, setting off is
+      // whenever you'd have to set off to make it. See DaySchedule.depart.
+      time: schedule.depart,
       label: `Leave ${schedule.base.originLabel ?? schedule.base.name}`,
     });
   }
   for (const row of schedule.rows) {
+    // A meaningful hole in front of a stop pinned to a published time
+    // gets its own segment, so the strip doesn't jump from one clock
+    // time to another with nothing said about the hour in between.
+    const gap = row.free + row.travel;
+    if (row.free >= MEANINGFUL_GAP_MINUTES) {
+      segments.push({
+        key: `gap-${row.index}`,
+        time: row.arrive - gap,
+        label: `${spellGapMinutes(gap)} free`,
+      });
+    }
     segments.push({ key: `stop-${row.index}`, time: row.arrive, label: stopName(row.stop) });
   }
   if (schedule.base) {
@@ -185,6 +201,13 @@ function DayTimelineStrip({ day, base }: { day: HubDay; base?: DayBase }) {
           </span>
         ))}
       </div>
+      {/* Same content warning the day screen shows, in the same words -
+          one schedule, one sentence about what is wrong with it. */}
+      {schedule.warnings.map((warning, i) => (
+        <div key={`${warning.kind}-${i}`} className="jr-day-timeline-warning">
+          {scheduleWarningLine(warning)}
+        </div>
+      ))}
     </div>
   );
 }
