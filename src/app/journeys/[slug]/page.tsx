@@ -1,21 +1,29 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { getJourneyBySlug, getJourneys, getAreas, getAllDaysAnyStatus } from "@/lib/data";
+import { getJourneyBySlug, getJourneys, getAreas, getAllDaysAnyStatus, getFeaturedStays } from "@/lib/data";
 import Footer from "@/components/Footer";
 import SiteHeader from "@/components/SiteHeader";
 import { PacingTag } from "@/components/PacingTag";
 import AddJourneyToTripButton from "@/components/journeys/AddJourneyToTripButton";
 import AddJourneyDaysButton from "@/components/journeys/AddJourneyDaysButton";
 import JourneyRouteMap, { type RouteMapStop } from "@/components/journeys/JourneyRouteMap";
-import { formatClockTime, formatMoney, scheduleForHubDay } from "@/lib/day-derivations";
+import {
+  formatClockTime,
+  formatMoney,
+  parseStartTimeMinutes,
+  scheduleForHubDay,
+  type DayBase,
+} from "@/lib/day-derivations";
 import { stopName } from "@/lib/itinerary-stop";
 import {
   dayChips,
   dayTourTotal,
+  journeyAccommodationRange,
+  journeyBaseFor,
+  journeyCarHire,
   journeyDistilleryCount,
   journeyDistilleryStatLabel,
-  journeyFullyWalkable,
   journeyNightsStatLabel,
   journeyThirdStat,
   journeyTourTotal,
@@ -118,20 +126,44 @@ function renderClaim(text: string) {
  *  schedule the day screen computed - so the same Day could (and did)
  *  advertise 09:30 here and 10:05 on /days/[slug]. Both now read the one
  *  computed schedule, started from the Day's own `Start Time`. The field
- *  is retired and deleted; nothing reads it any more. */
-function DayTimelineStrip({ day }: { day: HubDay }) {
-  const rows = scheduleForHubDay(day).rows;
-  if (rows.length === 0) return null;
+ *  is retired and deleted; nothing reads it any more.
+ *
+ *  EXTENDED 17 Aug 2026: inside a Journey the visitor's bed is known, so
+ *  the strip now opens with leaving it and closes with getting back to
+ *  it - the two legs the day's travel total used to silently drop. Both
+ *  ends appear only when the schedule could establish both (see
+ *  DaySchedule.base); a day whose base legs were never routed and whose
+ *  Base has no coordinates keeps the old stop-to-stop strip rather than
+ *  showing half a round trip. */
+function DayTimelineStrip({ day, base }: { day: HubDay; base?: DayBase }) {
+  const schedule = scheduleForHubDay(day, base);
+  if (schedule.rows.length === 0) return null;
+
+  const segments: { key: string; time: number; label: string }[] = [];
+  if (schedule.base) {
+    segments.push({
+      key: "leave-base",
+      time: parseStartTimeMinutes(day.startTime),
+      label: `Leave ${schedule.base.name}`,
+    });
+  }
+  for (const row of schedule.rows) {
+    segments.push({ key: `stop-${row.index}`, time: row.arrive, label: stopName(row.stop) });
+  }
+  if (schedule.base) {
+    segments.push({ key: "back-base", time: schedule.home, label: `Back in ${schedule.base.name}` });
+  }
+
   return (
     <div className="jr-day-timeline">
       <span className="jr-eyebrow jr-day-timeline-label">The day</span>
       <div className="jr-day-timeline-row">
-        {rows.map((row) => (
-          <span key={`${row.index}-${stopName(row.stop)}`} className="jr-timeline-seg-wrap">
-            {row.index > 0 && <span className="jr-timeline-arrow">&rarr;</span>}
+        {segments.map((segment, i) => (
+          <span key={segment.key} className="jr-timeline-seg-wrap">
+            {i > 0 && <span className="jr-timeline-arrow">&rarr;</span>}
             <span className="jr-timeline-seg">
-              <span className="jr-timeline-time">{formatClockTime(row.arrive)}</span>
-              <span className="jr-timeline-label"> {stopName(row.stop)}</span>
+              <span className="jr-timeline-time">{formatClockTime(segment.time)}</span>
+              <span className="jr-timeline-label"> {segment.label}</span>
             </span>
           </span>
         ))}
@@ -140,7 +172,7 @@ function DayTimelineStrip({ day }: { day: HubDay }) {
   );
 }
 
-function DaySpineCard({ day }: { day: HubDay }) {
+function DaySpineCard({ day, journeySlug, base }: { day: HubDay; journeySlug: string; base?: DayBase }) {
   const image = day.stops[0]?.distillery.image;
   const distanceOrDuration = day.distanceOnFoot || day.durationPortEllen;
   const tours = dayTourTotal(day);
@@ -177,13 +209,17 @@ function DaySpineCard({ day }: { day: HubDay }) {
                 </span>
               ))}
             </div>
-            <Link href={`/days/${day.slug}`} className="jr-day-open">
+            {/* ?journey= carries the base through to the day's own page,
+                the same way ?trip=N carries the trip instance - without
+                it the day page has no honest bed to start the clock from
+                and quietly drops the legs shown right here. */}
+            <Link href={`/days/${day.slug}?journey=${journeySlug}`} className="jr-day-open">
               Open the day &rarr;
             </Link>
           </div>
         </div>
       </div>
-      <DayTimelineStrip day={day} />
+      <DayTimelineStrip day={day} base={base} />
     </article>
   );
 }
@@ -243,9 +279,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function JourneyDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const [journey, areas, allJourneys, allDays] = await Promise.all([
+  const [journey, areas, stays, allJourneys, allDays] = await Promise.all([
     getJourneyBySlug(slug),
     getAreas(),
+    getFeaturedStays(),
     getJourneys(),
     getAllDaysAnyStatus(),
   ]);
@@ -254,7 +291,6 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
   const distilleryCount = journeyDistilleryCount(journey);
   const thirdStat = journeyThirdStat(journey);
   const tourTotal = journeyTourTotal(journey);
-  const fullyWalkable = journeyFullyWalkable(journey);
 
   // Only a Base with a real Area record behind it gets a "Where to stay"
   // link or a white map pin - Bridgend has neither (confirmed against
@@ -267,6 +303,23 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
     baseArea && baseArea.lat && baseArea.lng
       ? { name: baseArea.name, lat: baseArea.lat, lng: baseArea.lng }
       : undefined;
+
+  // Coordinates to fall back on for a base leg that was never routed -
+  // Areas first, then a Featured Stay in that village, which is the same
+  // order scripts/compute-journey-base-legs.mjs resolves a Base in.
+  // Deliberately SEPARATE from baseMarker above: the white map pin and
+  // the "Where to stay ->" link still require a real Area record, which
+  // is a pre-existing, deliberate rule this change doesn't touch. A base
+  // with neither still gets no estimated leg - only the routed ones.
+  const baseStay =
+    !baseMarker && journey.base
+      ? stays.find(
+          (stay) =>
+            (stay.nearestArea ?? "").toLowerCase().startsWith(journey.base.toLowerCase()) ||
+            stay.name.toLowerCase().startsWith(journey.base.toLowerCase())
+        )
+      : undefined;
+  const baseCoords = baseMarker ?? (baseStay ? { lat: baseStay.lat, lng: baseStay.lng } : undefined);
 
   const routeStops: RouteMapStop[] = journey.days.flatMap((day, i) =>
     (day.mapDistilleries ?? []).map((d) => ({ ...d, dayNumber: i + 1 }))
@@ -290,10 +343,8 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
     })
     .filter((c): c is NonNullable<typeof c> => c !== null);
 
-  const accommodationTotal =
-    journey.accommodationFromPerNight !== undefined && journey.nights > 0
-      ? journey.accommodationFromPerNight * journey.nights
-      : undefined;
+  const accommodation = journeyAccommodationRange(journey);
+  const carHire = journeyCarHire(journey);
 
   return (
     <>
@@ -358,7 +409,7 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
                 <div key={day.id}>
                   <div className="jr-spine-item">
                     <span className="jr-spine-marker jr-spine-marker-day">{i + 1}</span>
-                    <DaySpineCard day={day} />
+                    <DaySpineCard day={day} journeySlug={journey.slug} base={journeyBaseFor(journey, i, baseCoords)} />
                   </div>
                   {nightNumbers.map((n) => (
                     <div key={n} className="jr-spine-item">
@@ -396,23 +447,64 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
                 {tourTotal > 0 ? `${formatMoney(tourTotal)}pp` : "Not yet priced"}
               </span>
             </div>
+            {/* A RANGE, never a single number: the same room genuinely
+                doubles between February and festival week, and quoting
+                only the low end would be the kind of teaser price this
+                site doesn't do. Both ends must be real - a journey with
+                one rate sourced and not the other stays pending, and no
+                journey ever borrows another's figures. */}
             <div className="jr-cta-row">
               <span className="jr-cta-label">
-                {journey.nights} {journey.nights === 1 ? "night" : "nights"}, from
+                Accommodation
+                <span className="jr-cta-sub">
+                  {journey.nights} {journey.nights === 1 ? "night" : "nights"}
+                  {accommodation ? ", off-season to peak" : ""}
+                </span>
               </span>
-              {/* Accommodation From (per night) is deliberately blank on
-                  every Journey - no real room rate has been sourced, so
-                  this stays a pending state rather than a made-up total. */}
-              <span className={accommodationTotal !== undefined ? "jr-cta-value" : "jr-cta-value jr-cta-pending"}>
-                {accommodationTotal !== undefined ? formatMoney(accommodationTotal) : "Not yet confirmed"}
+              <span className={accommodation ? "jr-cta-value" : "jr-cta-value jr-cta-pending"}>
+                {accommodation
+                  ? `${formatMoney(accommodation.low)} – ${formatMoney(accommodation.high)}`
+                  : "Not yet confirmed"}
               </span>
             </div>
+            {/* Three states, not two - "Not needed" is a real, earned
+                claim (every day walkable end to end) and must never be
+                what an unpriced journey falls back to saying. */}
             <div className="jr-cta-row">
-              <span className="jr-cta-label">Car hire</span>
-              <span className={fullyWalkable ? "jr-cta-value jr-cta-value-good" : "jr-cta-value"}>
-                {fullyWalkable ? "Not needed" : "Recommended"}
+              <span className="jr-cta-label">
+                Car hire
+                {carHire.kind === "priced" && (
+                  <span className="jr-cta-sub">
+                    {journey.days.length} {journey.days.length === 1 ? "day" : "days"}
+                  </span>
+                )}
+                {/* The value says only what we know about the PRICE. This
+                    keeps the thing the box used to say about the CAR -
+                    these routes genuinely need one - which "Not yet
+                    confirmed" on its own would have quietly dropped. */}
+                {carHire.kind === "pending" && <span className="jr-cta-sub">needed for this route</span>}
               </span>
+              {carHire.kind === "priced" && <span className="jr-cta-value">{formatMoney(carHire.total)}</span>}
+              {carHire.kind === "not-needed" && (
+                <span className="jr-cta-value jr-cta-value-good">Not needed</span>
+              )}
+              {carHire.kind === "pending" && (
+                <span className="jr-cta-value jr-cta-pending">Not yet confirmed</span>
+              )}
             </div>
+            {/* JUDGEMENT CALL, flagged: no combined total is shown, even
+                though every row above may be priced. Tours are per
+                PERSON (the site says "pp" everywhere) while a room and a
+                car are per PARTY - adding them produces a number that is
+                neither, and readers would take it as a per-head price.
+                Two travellers and one traveller get very different
+                answers from the same three rows, and this data doesn't
+                know which. The rows are honest on their own; a total
+                would need an occupancy assumption nobody has made. */}
+            <p className="jr-cta-excludes">
+              Indicative, not a quote. Tours are per person; room and car are for the party. Ferry, food and
+              fuel aren&apos;t in these figures.
+            </p>
             <div className="jr-cta-actions">
               <AddJourneyToTripButton journey={journey} />
               <AddJourneyDaysButton journey={journey} />

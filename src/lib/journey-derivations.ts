@@ -1,5 +1,5 @@
 import type { HubDay, Journey } from "@/lib/types";
-import { isFerryDay } from "@/lib/day-derivations";
+import { isFerryDay, type DayBase } from "@/lib/day-derivations";
 
 /**
  * Derived values for the rebuilt /journeys/[slug] page (13 Aug 2026) - the
@@ -208,4 +208,81 @@ export function nightSlotsForDay(dayIndex: number, dayCount: number, nights: num
     n++;
   }
   return slots[dayIndex] ?? [];
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Base legs (17 Aug 2026). A Journey states where the visitor sleeps, so
+// inside a Journey a day genuinely does start and end at a bed - and the
+// travel to and from it is real travel that used to go uncounted. The
+// routed figures come from the Journey Days junction (see
+// scripts/compute-journey-base-legs.mjs); this is just the lookup that
+// hands the right pair to the day-derivations schedule.
+//
+// Nothing here invents a base. /days/[slug] read cold - no journey, no
+// trip - still gets undefined, and still honestly says "driving between
+// stops" with the clock starting at the first stop.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** The base to compute day `dayIndex` of this Journey against, or
+ *  undefined when the Journey names no Base at all.
+ *
+ *  `coords` is the Base's own position, used only as the per-leg fallback
+ *  when a routed figure is missing - the caller supplies it because
+ *  resolving a Base name to a record needs the Areas/Featured Stays
+ *  tables, which this pure derivation deliberately doesn't fetch. With no
+ *  coords and no routed leg there is simply no leg, which is the honest
+ *  outcome rather than a guessed one. */
+export function journeyBaseFor(
+  journey: Journey,
+  dayIndex: number,
+  coords?: { lat: number; lng: number }
+): DayBase | undefined {
+  if (!journey.base) return undefined;
+  const legs = journey.dayBaseLegs[dayIndex];
+  return {
+    name: journey.base,
+    lat: coords?.lat,
+    lng: coords?.lng,
+    fromBaseMinutes: legs?.fromBaseMinutes,
+    toBaseMinutes: legs?.toBaseMinutes,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// "Take this journey" cost breakdown (17 Aug 2026). Every figure below is
+// indicative and computed from a real Airtable value - there is no
+// default rate, no derived rate, and nothing is ever borrowed from
+// another Journey. A missing rate produces a pending state, which is the
+// site's standing rule (docs/project-conventions.md: unsourced numbers
+// get a pending state rather than a guess).
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Accommodation for the whole stay as an honest RANGE - off-season rate
+ *  × nights to peak rate × nights. Undefined unless BOTH ends are real
+ *  and there is at least one night: half a range is not a range, and a
+ *  single number here would read as "the price" for something that
+ *  genuinely doubles between February and the Islay Festival. */
+export function journeyAccommodationRange(
+  journey: Journey
+): { low: number; high: number; nights: number } | undefined {
+  const { accommodationFromPerNight: from, accommodationPeakPerNight: peak, nights } = journey;
+  if (from === undefined || peak === undefined || nights <= 0) return undefined;
+  return { low: from * nights, high: peak * nights, nights };
+}
+
+/** Car hire, which has THREE states, not two - and the difference between
+ *  the last two matters:
+ *   - priced:     a real per-day rate × this journey's days
+ *   - not-needed: no rate AND every day walkable end to end. The South
+ *                 Coast Walk needs no car, and saying so is a feature.
+ *   - pending:    no rate, and the journey does involve driving. We don't
+ *                 know what it costs, so we say that instead of implying
+ *                 a car isn't needed. */
+export function journeyCarHire(journey: Journey): { kind: "priced"; total: number } | { kind: "not-needed" } | { kind: "pending" } {
+  const perDay = journey.carHirePerDay;
+  if (perDay !== undefined && journey.days.length > 0) {
+    return { kind: "priced", total: perDay * journey.days.length };
+  }
+  if (perDay === undefined && journeyFullyWalkable(journey)) return { kind: "not-needed" };
+  return { kind: "pending" };
 }

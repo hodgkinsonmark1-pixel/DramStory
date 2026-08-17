@@ -2391,7 +2391,26 @@ select.location-inline-input {
   font-weight: 600;
   text-align: right;
 }
-/* No real room rate is sourced yet — muted, never a number. */
+/* Second line under a cost row's label — the qualifier that keeps the
+   figure beside it honest ("6 nights, off-season to peak"), not
+   decoration. Same muted treatment as the label it sits under, a step
+   smaller. */
+.jr-cta-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.42);
+}
+/* What these figures are NOT — the cost box's equivalent of the day
+   cards' "Tours only — no travel, food or stays" line. */
+.jr-cta-excludes {
+  margin: 14px 0 0;
+  font-size: 11px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.5);
+}
+/* No real rate is sourced yet — muted, never a number. */
 .jr-cta-pending {
   color: rgba(255, 255, 255, 0.45);
   font-weight: 400;

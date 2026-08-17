@@ -816,11 +816,21 @@ export interface AirtableJourneyFields {
   "Getting Here Rows"?: string;
   /** "Before you book" panel rows - same convention. Added 13 Aug 2026. */
   "Before You Book Rows"?: string;
-  /** Indicative lowest per-night room rate at this Journey's Base.
-   *  Deliberately blank on every Journey as of 13 Aug 2026 - no real
-   *  room rate has been sourced, so the sidebar renders a pending state
-   *  rather than a fabricated number. Added 13 Aug 2026. */
+  /** Indicative lowest (off-season) per-night room rate at this
+   *  Journey's Base. Populated 17 Aug 2026 for the two Port Ellen
+   *  journeys only (Ardbeg House); the two Bridgend journeys are still
+   *  blank and the sidebar renders a pending state for them rather than
+   *  copying the Port Ellen figure across. Added 13 Aug 2026. */
   "Accommodation From (per night)"?: number;
+  /** Indicative PEAK-season per-night room rate at the same Base - the
+   *  top end of the sidebar's range. Same blank-means-pending rule.
+   *  Added 17 Aug 2026. */
+  "Accommodation Peak (per night)"?: number;
+  /** Indicative car hire per day. Blank means one of two DIFFERENT
+   *  things and the sidebar has to tell them apart: "no car needed"
+   *  (The South Coast Walk, every day walkable) or "not priced yet"
+   *  (the Bridgend journeys). Added 17 Aug 2026. */
+  "Car Hire Per Day"?: number;
   /** One factual sentence under the sidebar route map. Written in
    *  Airtable (never composed in code) so it can be reviewed like any
    *  other editorial line. Added 13 Aug 2026. */
@@ -858,6 +868,16 @@ export interface AirtableJourneyDayFields {
   Journey?: string[]; // linked record ID -> Journeys table
   Day?: string[]; // linked record ID -> Days table
   Order?: number;
+  /** Routed minutes from this Journey's Base to this Day's FIRST stop,
+   *  and from its LAST stop back again - precomputed offline by
+   *  scripts/compute-journey-base-legs.mjs. On the junction, not the Day,
+   *  because the same Day is reached from a different bed in each
+   *  Journey that includes it. Blank is normal (never routed, or
+   *  deliberately blank where the Day's own Transport Note says the
+   *  transfer isn't made the way the Day's Travel Mode implies) - the
+   *  reader falls back to an estimate. Added 17 Aug 2026. */
+  "Leg From Base Minutes"?: number;
+  "Leg To Base Minutes"?: number;
 }
 
 export interface AirtableEventFields {

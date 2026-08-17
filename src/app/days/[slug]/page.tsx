@@ -1,5 +1,14 @@
 import { notFound } from "next/navigation";
-import { getDays, getDayBySlug, getLocalFeatures } from "@/lib/data";
+import {
+  getDays,
+  getDayBySlug,
+  getLocalFeatures,
+  getAreas,
+  getFeaturedStays,
+  getJourneyBySlug,
+} from "@/lib/data";
+import { journeyBaseFor } from "@/lib/journey-derivations";
+import type { DayBase } from "@/lib/day-derivations";
 import Footer from "@/components/Footer";
 import PageHeader from "@/components/PageHeader";
 import DayScreen from "@/components/journeys/DayScreen";
@@ -17,6 +26,15 @@ import DayScreen from "@/components/journeys/DayScreen";
  * more than once - it's a positional index into trip.days, the only thing
  * that tells two instances of one Day apart. Missing or stale, DayScreen
  * falls back to the first instance of this slug in the trip.
+ *
+ * ?journey=SLUG (17 Aug 2026) says "I got here from this Journey's page",
+ * which is the only thing that gives an un-added Day a bed to start and
+ * end at - the Journey states its Base, the Day doesn't. Without it this
+ * page keeps its existing, honest behaviour: no base, the clock starts at
+ * the first stop, and the travel figure says "between stops". A Day can
+ * appear in more than one Journey from different bases, so the base is
+ * never inferred from the Day alone. An unknown or mismatched slug is
+ * ignored rather than guessed at.
  *
  * JUDGEMENT CALL (unchanged from 13 Aug 2026): reads through
  * getDayBySlug() (ungated - see its own doc comment in
@@ -49,9 +67,9 @@ export default async function DayDetailPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ trip?: string }>;
+  searchParams: Promise<{ trip?: string; journey?: string }>;
 }) {
-  const [{ slug }, { trip }] = await Promise.all([params, searchParams]);
+  const [{ slug }, { trip, journey: journeySlug }] = await Promise.all([params, searchParams]);
   const [day, localFeatures] = await Promise.all([getDayBySlug(slug), getLocalFeatures()]);
   if (!day) notFound();
 
@@ -60,11 +78,44 @@ export default async function DayDetailPage({
   // which would silently mean "trip day 1").
   const tripParam = trip != null && /^\d+$/.test(trip) ? Number(trip) : null;
 
+  const journeyBase = journeySlug ? await resolveJourneyBase(journeySlug, slug) : undefined;
+
   return (
     <>
       <PageHeader />
-      <DayScreen day={day} localFeatures={localFeatures} tripParam={tripParam} />
+      <DayScreen day={day} localFeatures={localFeatures} tripParam={tripParam} journeyBase={journeyBase} />
       <Footer />
     </>
   );
+}
+
+/**
+ * The Base of `journeySlug`, positioned at whichever of its days is this
+ * one - carrying the routed base legs stored on that Journey Day. Returns
+ * undefined for a journey that doesn't exist, doesn't contain this day,
+ * or names no Base: all three mean "we don't know where you're sleeping",
+ * and the page then behaves exactly as it does with no ?journey= at all.
+ *
+ * Coordinates (the per-leg fallback for a leg that was never routed) are
+ * resolved Areas-first then Featured Stays, the same order
+ * scripts/compute-journey-base-legs.mjs uses - Bridgend has no Areas
+ * record but Bridgend Hotel sits in it.
+ */
+async function resolveJourneyBase(journeySlug: string, daySlug: string): Promise<DayBase | undefined> {
+  const journey = await getJourneyBySlug(journeySlug);
+  if (!journey || !journey.base) return undefined;
+  const dayIndex = journey.days.findIndex((d) => d.slug === daySlug);
+  if (dayIndex === -1) return undefined;
+
+  const [areas, stays] = await Promise.all([getAreas(), getFeaturedStays()]);
+  const wanted = journey.base.toLowerCase();
+  const area = areas.find((a) => a.name.toLowerCase() === wanted);
+  const stay = area
+    ? undefined
+    : stays.find(
+        (s) => (s.nearestArea ?? "").toLowerCase().startsWith(wanted) || s.name.toLowerCase().startsWith(wanted)
+      );
+  const coords = area ?? stay;
+
+  return journeyBaseFor(journey, dayIndex, coords ? { lat: coords.lat, lng: coords.lng } : undefined);
 }

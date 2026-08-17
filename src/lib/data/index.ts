@@ -402,14 +402,27 @@ async function fetchJourneysFromAirtable(): Promise<Journey[]> {
     // once these are ready to go public.
     if (!f.Name || !f.Slug) continue;
 
+    // Sorted ONCE, then split into the two index-aligned arrays the
+    // Journey type exposes (`days` and `dayBaseLegs`) - deliberately not
+    // two separate sorts, which is the only way those two could ever
+    // disagree about which base leg belongs to which day.
     const journeyDayIds = f["Journey Days"] ?? [];
-    const days = journeyDayIds
+    const orderedJourneyDays = journeyDayIds
       .map((id) => journeyDayById.get(id))
       .filter((jd): jd is AirtableJourneyDayFields => !!jd)
-      .map((jd) => ({ order: jd.Order ?? 0, day: jd.Day?.[0] ? dayById.get(jd.Day[0]) : undefined }))
-      .filter((jd): jd is { order: number; day: HubDay } => !!jd.day)
-      .sort((a, b) => a.order - b.order)
-      .map((jd) => jd.day);
+      .map((jd) => ({ order: jd.Order ?? 0, day: jd.Day?.[0] ? dayById.get(jd.Day[0]) : undefined, jd }))
+      .filter((entry): entry is { order: number; day: HubDay; jd: AirtableJourneyDayFields } => !!entry.day)
+      .sort((a, b) => a.order - b.order);
+    const days = orderedJourneyDays.map((entry) => entry.day);
+    const dayBaseLegs = orderedJourneyDays.map((entry) => ({
+      // Undefined (not 0) for a blank cell: "this leg was never routed"
+      // is a different fact from "this leg takes no time", and only the
+      // first should send the reader to its fallback estimate.
+      fromBaseMinutes:
+        typeof entry.jd["Leg From Base Minutes"] === "number" ? entry.jd["Leg From Base Minutes"] : undefined,
+      toBaseMinutes:
+        typeof entry.jd["Leg To Base Minutes"] === "number" ? entry.jd["Leg To Base Minutes"] : undefined,
+    }));
 
     journeys.push({
       id: record.id,
@@ -429,6 +442,7 @@ async function fetchJourneysFromAirtable(): Promise<Journey[]> {
       gettingThereNote: f["Getting There Note"] ?? "",
       accommodationNote: f["Accommodation Note"] ?? "",
       days,
+      dayBaseLegs,
       claim: f.Claim ?? "",
       regionLabel: f["Region Label"] ?? "",
       nights: f.Nights ?? 0,
@@ -440,13 +454,19 @@ async function fetchJourneysFromAirtable(): Promise<Journey[]> {
       makeItYours: parseMakeItYours(f["Make It Yours"]),
       gettingHereRows: parseLabelValueLines(f["Getting Here Rows"]),
       beforeYouBookRows: parseLabelValueLines(f["Before You Book Rows"]),
-      // Deliberately blank on all four Journeys - see the field's own
-      // doc comment in airtable-mappers.ts. Undefined (not 0) so the
-      // sidebar can tell "no rate sourced yet" from a real £0.
+      // Undefined (not 0) throughout, so the sidebar can tell "no rate
+      // sourced yet" from a real £0 - and, for car hire, "not needed"
+      // from "not priced". See each field's own doc comment in
+      // airtable-mappers.ts.
       accommodationFromPerNight:
         typeof f["Accommodation From (per night)"] === "number"
           ? f["Accommodation From (per night)"]
           : undefined,
+      accommodationPeakPerNight:
+        typeof f["Accommodation Peak (per night)"] === "number"
+          ? f["Accommodation Peak (per night)"]
+          : undefined,
+      carHirePerDay: typeof f["Car Hire Per Day"] === "number" ? f["Car Hire Per Day"] : undefined,
       routeSummary: f["Route Summary"] ?? "",
       source: "airtable",
     });

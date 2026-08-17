@@ -63,6 +63,58 @@ export function legTravelMinutes(
   return storedMinutes ?? estimatedDriveMinutes(from, to);
 }
 
+/**
+ * Where the visitor sleeps, for the day being rendered - the thing that
+ * turns "travel between the stops" into "the whole day, door to door".
+ *
+ * Two independent sources, in this order of trust:
+ *  - `fromBaseMinutes`/`toBaseMinutes` - REAL routed legs, precomputed by
+ *    scripts/compute-journey-base-legs.mjs and stored on the Journey Days
+ *    junction. Out and back are stored separately and neither is derived
+ *    from the other.
+ *  - `lat`/`lng` - the base's own coordinates, used only to fall back to
+ *    drive-time.ts's straight-line estimate for a leg that has no routed
+ *    figure. Same fallback, per leg, as legTravelMinutes does between
+ *    stops.
+ *
+ * With neither, there is no honest leg to add and none is added. A base
+ * is never invented: a Day read cold on /days/[slug], with no journey and
+ * no trip behind it, still has no base and still starts its clock at the
+ * first stop.
+ */
+export interface DayBase {
+  name: string;
+  lat?: number;
+  lng?: number;
+  fromBaseMinutes?: number;
+  toBaseMinutes?: number;
+}
+
+/** The two base legs in minutes, each undefined when neither a routed
+ *  figure nor coordinates exist for it. `first`/`last` are the day's own
+ *  first and last stop coordinates. */
+export function resolveBaseLegs(
+  base: DayBase | undefined,
+  first: { lat: number; lng: number } | undefined,
+  last: { lat: number; lng: number } | undefined
+): { out?: number; back?: number } {
+  if (!base || !first || !last) return {};
+  const point = base.lat !== undefined && base.lng !== undefined ? { lat: base.lat, lng: base.lng } : undefined;
+  return {
+    out: base.fromBaseMinutes ?? (point ? estimatedDriveMinutes(point, first) : undefined),
+    back: base.toBaseMinutes ?? (point ? estimatedDriveMinutes(last, point) : undefined),
+  };
+}
+
+/** A trip day's own accommodation, expressed as a DayBase - the visitor
+ *  really has said where they're sleeping, so this is a base. No routed
+ *  minutes: a stored leg describes a journey's authored Base, and the
+ *  visitor's chosen hotel isn't that, so these legs stay estimates. */
+function accommodationBase(day: ItineraryDay): DayBase | undefined {
+  const acc = day.accommodation;
+  return acc ? { name: acc.name, lat: acc.lat, lng: acc.lng } : undefined;
+}
+
 /** Mode-aware wording for the "≈40m ___" figures on a day card and the
  *  day page. Deliberately only swaps the verb - it makes no new claim
  *  about the walk (distance, difficulty, surface), it just stops calling
@@ -85,9 +137,10 @@ export function travelCopy(mode: TravelMode | undefined): { betweenStops: string
  * haversine estimate already being indicative rather than exact.
  */
 export function driveMinutesForDay(day: HubDay, base: { lat: number; lng: number }): number {
-  return driveMinutesForItineraryDay({
-    ...itineraryDayFromHubDay(day),
-    accommodation: { name: "your base", lat: base.lat, lng: base.lng },
+  return driveMinutesForItineraryDay(itineraryDayFromHubDay(day), {
+    name: "your base",
+    lat: base.lat,
+    lng: base.lng,
   });
 }
 
@@ -274,21 +327,23 @@ export function isFerryDayItinerary(day: ItineraryDay): boolean {
  * branch below is just a defensive fallback (stop-to-stop only, no
  * loop) for the theoretical case it isn't.
  */
-export function driveMinutesForItineraryDay(day: ItineraryDay): number {
+export function driveMinutesForItineraryDay(day: ItineraryDay, base?: DayBase): number {
   const stopPoints = day.stops.map(stopCoords);
   if (stopPoints.length === 0) return 0;
-  const acc = day.accommodation;
-  const base = acc ? { lat: acc.lat, lng: acc.lng } : undefined;
 
-  // Stop-to-stop legs prefer the stored routed value (see
-  // legTravelMinutes). The base -> first stop and last stop -> base legs
-  // never can: a stored leg only ever describes the gap between two
-  // authored stops, and the visitor's own accommodation isn't one.
-  let total = base ? estimatedDriveMinutes(base, stopPoints[0]) : 0;
+  // Stop-to-stop legs prefer the stored routed value (legTravelMinutes).
+  // The base legs have their own stored values now too, on the Journey
+  // Days junction - resolveBaseLegs prefers those and falls back to the
+  // same straight-line estimate this always used. `base` defaults to the
+  // day's own accommodation, so a trip day behaves exactly as before;
+  // callers pass one explicitly for a Day being read inside a Journey,
+  // where the base is the Journey's, not the visitor's.
+  const legs = resolveBaseLegs(base ?? accommodationBase(day), stopPoints[0], stopPoints[stopPoints.length - 1]);
+  let total = legs.out ?? 0;
   for (let i = 1; i < stopPoints.length; i++) {
     total += legTravelMinutes(stopPoints[i - 1], stopPoints[i], day.stops[i].legMinutes);
   }
-  if (base) total += estimatedDriveMinutes(stopPoints[stopPoints.length - 1], base);
+  total += legs.back ?? 0;
   return total;
 }
 
@@ -577,42 +632,51 @@ export interface ScheduleRow {
 
 export interface DaySchedule {
   rows: ScheduleRow[];
-  /** Minutes after midnight the visitor is back at their accommodation -
-   *  undefined base (theoretical - see driveMinutesForItineraryDay's own
-   *  comment, every day gets one from addDay) just stops the clock after
-   *  the last stop's visit, with no final drive leg added. */
+  /** Minutes after midnight the visitor is back at their base - with no
+   *  base at all (a Day read cold on /days/[slug]) the clock simply stops
+   *  after the last stop's visit, with no final leg added. */
   home: number;
+  /** The base this schedule was actually computed against, and the two
+   *  legs it contributed - present only when there IS a base and at
+   *  least one of its legs resolved. Lets a caller say "leaving Port
+   *  Ellen at 9:30, back by 17:20" without re-deriving any of it, and
+   *  lets one that has no base say nothing at all rather than printing a
+   *  door-to-door claim it can't support. */
+  base?: { name: string; out: number; back: number };
 }
 
 /**
  * `startMinutes` is the moment the day BEGINS - i.e. when the visitor
  * leaves their base, exactly as the original fixed 09:30 constant meant.
- * With a base set, the first stop's arrival is therefore start + the
- * first drive leg; with no base (a published Day being read by someone
- * who hasn't added it to a trip, so there is no honest "your door" to
- * drive from), the first stop's arrival IS the start time. Callers pass
- * parseStartTimeMinutes(hub.startTime) - see scheduleForHubDay below,
- * which is the single entry point for the un-added case.
+ * With a base set, the first stop's arrival is therefore start + the leg
+ * in from the base; with no base (a published Day being read by someone
+ * who has neither added it to a trip nor reached it through a Journey, so
+ * there is no honest "your door" to travel from), the first stop's
+ * arrival IS the start time. Callers pass parseStartTimeMinutes(
+ * hub.startTime) - see scheduleForHubDay below.
+ *
+ * `base` defaults to the day's own accommodation, which is what a real
+ * trip day has. A Day read inside a Journey has no accommodation but does
+ * have the Journey's Base, with real routed legs behind it - that comes
+ * in through this parameter (see journeyBaseFor in journey-derivations).
  */
 export function scheduleForItineraryDay(
   day: ItineraryDay,
-  startMinutes: number = DEFAULT_SCHEDULE_START_MINUTES
+  startMinutes: number = DEFAULT_SCHEDULE_START_MINUTES,
+  base?: DayBase
 ): DaySchedule {
-  const acc = day.accommodation;
-  const base = acc ? { lat: acc.lat, lng: acc.lng } : undefined;
+  const resolved = base ?? accommodationBase(day);
+  const stopPoints = day.stops.map(stopCoords);
+  const legs = resolveBaseLegs(resolved, stopPoints[0], stopPoints[stopPoints.length - 1]);
+
   let t = startMinutes;
-  let prevPoint = base;
+  let prevPoint: { lat: number; lng: number } | undefined;
   const rows: ScheduleRow[] = day.stops.map((stop, index) => {
-    const point = stopCoords(stop);
-    // Same rule as driveMinutesForItineraryDay: stop-to-stop legs use the
-    // precomputed routed value when there is one; the leg in from the
-    // base (index 0) is always estimated, since no stored leg describes it.
-    const leg =
-      index === 0
-        ? prevPoint
-          ? estimatedDriveMinutes(prevPoint, point)
-          : 0
-        : legTravelMinutes(prevPoint ?? point, point, stop.legMinutes);
+    const point = stopPoints[index];
+    // Stop-to-stop legs use the precomputed routed value when there is
+    // one; the leg in from the base is whatever resolveBaseLegs could
+    // honestly establish, and zero when it could establish nothing.
+    const leg = index === 0 ? legs.out ?? 0 : legTravelMinutes(prevPoint ?? point, point, stop.legMinutes);
     t += leg;
     const dur = stopVisitMinutes(stop);
     const row: ScheduleRow = { stop, index, arrive: t, leave: t + dur, dur };
@@ -620,8 +684,14 @@ export function scheduleForItineraryDay(
     prevPoint = point;
     return row;
   });
-  const home = base && prevPoint && day.stops.length > 0 ? t + estimatedDriveMinutes(prevPoint, base) : t;
-  return { rows, home };
+
+  const home = day.stops.length > 0 ? t + (legs.back ?? 0) : t;
+  // Only claim a door-to-door day when both ends of it are real.
+  const baseSummary =
+    resolved && legs.out !== undefined && legs.back !== undefined
+      ? { name: resolved.name, out: legs.out, back: legs.back }
+      : undefined;
+  return { rows, home, base: baseSummary };
 }
 
 /**
@@ -679,8 +749,8 @@ export function itineraryDayFromHubDay(hub: HubDay): ItineraryDay {
  * disagreement is exactly what the retired, hand-written `Day Timeline`
  * Airtable field used to cause.
  */
-export function scheduleForHubDay(hub: HubDay): DaySchedule {
-  return scheduleForItineraryDay(itineraryDayFromHubDay(hub), parseStartTimeMinutes(hub.startTime));
+export function scheduleForHubDay(hub: HubDay, base?: DayBase): DaySchedule {
+  return scheduleForItineraryDay(itineraryDayFromHubDay(hub), parseStartTimeMinutes(hub.startTime), base);
 }
 
 /** Formats minutes-after-midnight as "9:30", "13:10" - rounded to the

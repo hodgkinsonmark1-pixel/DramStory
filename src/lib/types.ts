@@ -490,10 +490,41 @@ export interface Journey {
   gettingHereRows: { key: string; value: string }[];
   /** "Before you book" rows, same shape. Empty array omits the card. */
   beforeYouBookRows: { key: string; value: string }[];
-  /** Indicative lowest per-night room rate at `base`. Undefined on every
-   *  Journey as of 13 Aug 2026 (no real rate sourced yet) - the sidebar
-   *  shows "Not yet confirmed" rather than a fabricated total. */
+  /** Indicative lowest (off-season) per-night room rate at `base`. Pairs
+   *  with accommodationPeakPerNight below so the sidebar can show an
+   *  honest RANGE rather than a single number pretending to be the
+   *  price. Undefined where no rate has been sourced (both Bridgend
+   *  journeys, 17 Aug 2026) - the sidebar shows "Not yet confirmed"
+   *  rather than a fabricated total, and never borrows another
+   *  journey's figure. */
   accommodationFromPerNight?: number;
+  /** Indicative PEAK-season per-night room rate at `base`. Undefined
+   *  unless a real figure has been sourced; the sidebar needs BOTH ends
+   *  to draw a range and falls back to the pending state otherwise. */
+  accommodationPeakPerNight?: number;
+  /** Indicative car hire cost per day. Deliberately undefined where a
+   *  car isn't needed at all (The South Coast Walk) - which is NOT the
+   *  same as "not yet priced", so the sidebar distinguishes the two by
+   *  also checking whether every day is walkable. Never a zero. */
+  carHirePerDay?: number;
+  /** Routed travel from this journey's Base to each day's first stop and
+   *  back from its last, in minutes - index-aligned with `days` above
+   *  (both are built from the same sorted Journey Days rows, so the two
+   *  arrays cannot fall out of step).
+   *
+   *  Lives on the Journey rather than the HubDay because the same Day
+   *  appears in journeys with different bases - "Bowmore, Unhurried" is
+   *  reached from Port Ellen in one journey and Bridgend in another, and
+   *  those are different drives. Sourced from the Journey Days junction's
+   *  own `Leg From Base Minutes`/`Leg To Base Minutes`, precomputed by
+   *  scripts/compute-journey-base-legs.mjs.
+   *
+   *  Either end being undefined is a normal state, not an error: it means
+   *  that leg was never routed (or was deliberately left blank, e.g. a
+   *  Walk day the base is reached from by bus), and the reader falls back
+   *  to the straight-line estimate from the Base's own coordinates - or,
+   *  with no coordinates either, counts no base leg at all. */
+  dayBaseLegs: { fromBaseMinutes?: number; toBaseMinutes?: number }[];
   /** The one-sentence route summary under the sidebar map. Authored in
    *  Airtable, never composed in code. Empty string renders nothing. */
   routeSummary: string;

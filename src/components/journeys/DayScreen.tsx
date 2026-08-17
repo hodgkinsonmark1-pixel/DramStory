@@ -22,6 +22,7 @@ import {
   scheduleForItineraryDay,
   formatClockTime,
   partOfDay,
+  type DayBase,
   isDistilleryClosedOn,
   isAppointmentOnly,
   DAY_NAMES,
@@ -58,6 +59,16 @@ import JourneyDayMap from "@/components/journeys/JourneyDayMap";
  *
  * localFeatures supplies the swap sheet's nearest-non-distillery
  * suggestions (§3.4 item 4 / §8 open question 7).
+ *
+ * `journeyBase` (17 Aug 2026) is where the visitor sleeps when this Day
+ * was reached from a Journey (/days/[slug]?journey=SLUG) but is NOT in
+ * their trip - the one case where a published Day has a real bed behind
+ * it without the visitor having built a trip. It carries that Journey's
+ * routed base legs, so the schedule starts by leaving the bed and ends
+ * by getting back to it, and the travel figure is the whole day rather
+ * than only the gaps between stops. Undefined is the normal state and
+ * keeps this page's original, honest cold-read behaviour: no base, no
+ * departure time, "driving/walking between stops".
  */
 
 /** Below this width the map is a flat preview with a link out, not a
@@ -85,10 +96,12 @@ export default function DayScreen({
   day,
   localFeatures,
   tripParam,
+  journeyBase,
 }: {
   day: HubDay;
   localFeatures: LocalFeature[];
   tripParam: number | null;
+  journeyBase?: DayBase;
 }) {
   const trip = useTrip();
   const router = useRouter();
@@ -138,7 +151,13 @@ export default function DayScreen({
 
   const edited = inTrip ? isDayEdited(itineraryDay, day) : false;
   const ferry = isFerryDayItinerary(itineraryDay);
-  const drive = driveMinutesForItineraryDay(itineraryDay);
+  // The visitor's own accommodation wins whenever this Day is genuinely
+  // in their trip (passing undefined lets the derivations fall back to
+  // itineraryDay.accommodation). The Journey's Base is what a reader who
+  // arrived from /journeys/[slug] has instead. Neither exists on a cold
+  // read of this page, and nothing is invented to fill that gap.
+  const dayBase = inTrip ? undefined : journeyBase;
+  const drive = driveMinutesForItineraryDay(itineraryDay, dayBase);
   const priceLabel = itineraryDayPriceLabel(itineraryDay);
   const date = inTrip ? dateForDayIndex(trip.tripDates, tripIndex) : null;
   const dateLabel = date ? formatDayDate(date) : null;
@@ -149,7 +168,7 @@ export default function DayScreen({
   // is the point: the two pages used to read a hand-written Day Timeline
   // field on one and compute on the other, and showed different times
   // for the same day.
-  const schedule = scheduleForItineraryDay(itineraryDay, parseStartTimeMinutes(day.startTime));
+  const schedule = scheduleForItineraryDay(itineraryDay, parseStartTimeMinutes(day.startTime), dayBase);
 
   // Group schedule rows under MORNING/AFTERNOON/EVENING (§3.4 item 4) -
   // rows already arrive in visiting order with non-decreasing arrival
@@ -329,20 +348,23 @@ export default function DayScreen({
           <PacingTag pacing={day.pacing} />
           {ferry && <span>Needs a ferry</span>}
           {drive > 0 && (
-            // In the trip a day has a real base, so this is the whole
-            // round trip from the door. Not in the trip there is no
-            // honest base to measure from (the same reason the schedule
-            // below starts at the first stop), so this counts only the
-            // travel between the stops themselves and says so, rather
-            // than quietly printing a smaller number under the same
-            // words the /days card uses.
+            // With a base - the visitor's own accommodation in their
+            // trip, or the Journey's Base when they came from a journey
+            // page - this is the whole round trip from the door. With no
+            // base at all there is nothing honest to measure from (the
+            // same reason the schedule below starts at the first stop),
+            // so it counts only the travel between the stops themselves
+            // and says so, rather than quietly printing a smaller number
+            // under the same words the /days card uses. schedule.base is
+            // the test rather than `inTrip` because it is set only when
+            // BOTH base legs actually resolved.
             //
             // The verb follows the Day's own Travel Mode (17 Aug 2026):
             // "Three Legends, One Road" and "Two Miles Apart" are walking
             // days and were being described as driving.
             <span>
               &asymp;{formatDuration(drive)}{" "}
-              {inTrip ? travelCopy(day.travelMode).wholeDay : travelCopy(day.travelMode).betweenStops}
+              {schedule.base ? travelCopy(day.travelMode).wholeDay : travelCopy(day.travelMode).betweenStops}
             </span>
           )}
           {priceLabel && <span>{priceLabel}</span>}
@@ -381,7 +403,8 @@ export default function DayScreen({
           <div className="day-shape">
             <div className="trip-kicker">The day&apos;s shape</div>
             <div className="day-shape-line">
-              Starting {formatClockTime(parseStartTimeMinutes(day.startTime))}, back by{" "}
+              Starting {formatClockTime(parseStartTimeMinutes(day.startTime))}
+              {schedule.base ? ` from ${schedule.base.name}` : ""}, back by{" "}
               {formatClockTime(schedule.home)}
               {inTrip ? " — reorder, swap or drop anything" : ""}
             </div>
