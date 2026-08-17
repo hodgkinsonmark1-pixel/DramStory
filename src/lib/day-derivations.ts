@@ -207,10 +207,10 @@ export function travelCopy(mode: TravelMode | undefined): { betweenStops: string
 // ─────────────────────────────────────────────────────────────────────────
 // Saying the walking out loud (17 Aug 2026). A Walk day currently
 // advertises a mileage ("4 miles") and a pacing tag, and nothing else -
-// so "Ardbeg, on Foot" inside The South Coast Walk reads like a gentle
-// morning when it is really three hours on your feet, most of it getting
-// there and back. This turns the legs that were routed anyway into one
-// plain sentence.
+// so "Ardbeg and the Kildalton Road" inside The South Coast Walk reads
+// like a gentle morning when it is really three hours on your feet, most
+// of it getting there and back. This turns the legs that were routed
+// anyway into one plain sentence.
 //
 // EVERY minute in it is a stored, routed figure. Nothing is estimated
 // here and nothing is converted from a mileage:
@@ -228,9 +228,10 @@ export function travelCopy(mode: TravelMode | undefined): { betweenStops: string
 // THAT GAP IS NOW CLOSED (17 Aug 2026). Feature stops are real Day Stop
 // records with their own `Order` and their own routed `Leg Minutes`, so
 // the cafe, the beach and the ruin are all in this total, in the place
-// the narrative puts them. "Ardbeg, on Foot" used to state 2h50 counting
-// only the walk out from the trailhead and back, with nothing for the
-// three feature stops its own narrative spends a paragraph on.
+// the narrative puts them. "Ardbeg and the Kildalton Road" used to state
+// 2h50 counting only the walk out from the trailhead and back, with
+// nothing for the three feature stops its own narrative spends a
+// paragraph on.
 //
 // What replaced it is the OPTIONAL split. A Day Stop the narrative
 // hedges ("if you have the energy... it's worth continuing") is marked
@@ -731,9 +732,40 @@ export function isFerryDayItinerary(day: ItineraryDay): boolean {
  * always set by the time a day reaches trip review - the undefined
  * branch below is just a defensive fallback (stop-to-stop only, no
  * loop) for the theoretical case it isn't.
+ *
+ * THE PLAN, NOT THE PLAN PLUS EVERY MAYBE (17 Aug 2026). This is the
+ * headline figure a day card leads with - "about an hour and a half on
+ * the road" - and it counted the day's `Optional` tail as though the
+ * visitor had already decided to take it. "Bruichladdich, by the Loch"
+ * is a distillery tour and a two-mile lochside detour to the Museum of
+ * Islay Life that its own narrative merely offers ("or lose an hour
+ * in..."); the headline read 1h 31m, of which 51 minutes was that
+ * offer. Everything else on the page had already stopped doing this:
+ * walkingLineFor states the optional tail as a separate "with the
+ * detour" figure, and compute-journey-base-legs.mjs measures the way
+ * home from the day's last non-optional stop. This is the third one.
+ *
+ * "The trailing tail", not "every optional stop" - the same rule, and
+ * for the same reason, as walkingLineFor: an optional stop with real
+ * stops after it is one the day comes back through either way, so it
+ * belongs in the figure. Only a tail the day can simply stop short of
+ * can honestly be left out of it. The way home is then measured from
+ * the last stop of the PLAN, which is where the day actually turns
+ * round; measuring it from a detour the figure doesn't count would be
+ * the same error in a different place.
  */
 export function driveMinutesForItineraryDay(day: ItineraryDay, base?: DayBase): number {
-  const stopPoints = day.stops.map(stopCoords);
+  // Everything after the last stop that is part of the plan is the
+  // optional tail, and no part of this figure. A day whose every stop is
+  // optional has no plan to state and keeps all of them, rather than
+  // reporting a day with no travel in it at all.
+  let lastCore = -1;
+  day.stops.forEach((stop, i) => {
+    if (!stop.optional) lastCore = i;
+  });
+  const stops = lastCore < 0 ? day.stops : day.stops.slice(0, lastCore + 1);
+
+  const stopPoints = stops.map(stopCoords);
   if (stopPoints.length === 0) return 0;
 
   // Stop-to-stop legs prefer the stored routed value (legTravelMinutes).
@@ -749,8 +781,8 @@ export function driveMinutesForItineraryDay(day: ItineraryDay, base?: DayBase): 
     total += legTravelMinutes(
       stopPoints[i - 1],
       stopPoints[i],
-      day.stops[i].legMinutes,
-      legModeFor(day.stops[i], day.travelMode)
+      stops[i].legMinutes,
+      legModeFor(stops[i], day.travelMode)
     );
   }
   total += legs.back ?? 0;
@@ -972,8 +1004,8 @@ export function describeHubDayChanges(day: ItineraryDay, hub: HubDay): string {
 /** Best-effort honest title for a trip day - moved here from
  *  TripReview.tsx (Phase 3) so the day screen can use the exact same
  *  fallback logic rather than a second hand-copied version. HubDay has an
- *  authored name ("Ardbeg, on Foot") - a day that still traces back to
- *  one uses it. A day with no source (built freehand in the planner, or
+ *  authored name ("Ardbeg and the Kildalton Road") - a day that still
+ *  traces back to one uses it. A day with no source (built freehand in the planner, or
  *  whose Hub Day no longer resolves) has no editorial name in the current
  *  data model, so this falls back to the stop names themselves rather
  *  than fabricating one - consistent with the brand-voice "no fabricated
