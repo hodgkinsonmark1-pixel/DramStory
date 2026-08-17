@@ -94,6 +94,26 @@ export interface DayBase {
    *  means "we don't know how you'd get there" and stops the walking
    *  line below claiming either way. */
   transferMode?: TravelMode;
+  /** Whether each of those legs was actually WALKED, per leg, as routed
+   *  and recorded by scripts/compute-journey-base-legs.mjs. Distinct
+   *  from `transferMode` because a transfer under 600m is walked even on
+   *  a Drive journey - The Islay Grand Tour drives everywhere except its
+   *  day 5, which is Port Ellen distillery from a base in Port Ellen and
+   *  was reading as a one-minute drive. Undefined means the leg predates
+   *  that rule, and the mode above stands in. */
+  fromBaseWalked?: boolean;
+  toBaseWalked?: boolean;
+}
+
+/** Was each transfer leg walked? The stored per-leg fact where there is
+ *  one, otherwise the Journey's Transfer Mode. The 600m threshold itself
+ *  lives in exactly one place - SHORT_TRANSFER_WALK_METRES in
+ *  scripts/lib/routing.mjs - and is deliberately NOT re-implemented here:
+ *  the site has no routed distance to apply it to, only the minutes, and
+ *  a second copy of the rule would be a second thing to get wrong. */
+export function transferLegsWalked(base: DayBase | undefined): { out: boolean; back: boolean } {
+  const fallback = base?.transferMode === "walk";
+  return { out: base?.fromBaseWalked ?? fallback, back: base?.toBaseWalked ?? fallback };
 }
 
 /** The two base legs in minutes, each undefined when neither a routed
@@ -183,6 +203,9 @@ function spellMinutes(total: number): string {
  *  - nothing measurable is walked (a one-stop Walk day reached by car -
  *    "Bowmore, Unhurried" is walked AROUND the village, and no stored leg
  *    describes wandering a village, so no figure is invented for it).
+ *    Note this is now decided per leg: "Port Ellen, Rebuilt" is also a
+ *    one-stop Walk day, but its transfer is under 600m and so is itself
+ *    walked, which IS a measurable, stored, routed figure.
  *
  * `Distance on Foot` is appended only when the figure and the distance
  * describe the SAME walking. Where a walked transfer is included, the
@@ -201,10 +224,16 @@ export function walkingLineFor(day: HubDay, base?: DayBase): string | undefined 
     minutes += stop.legMinutes;
   }
 
-  const walkedTransfer = base?.transferMode === "walk";
-  if (walkedTransfer) {
-    if (base?.fromBaseMinutes === undefined || base?.toBaseMinutes === undefined) return undefined;
-    minutes += base.fromBaseMinutes + base.toBaseMinutes;
+  // Per leg, not per journey: a Drive journey can still have a walked
+  // transfer once the 600m rule has been applied to it.
+  const walked = transferLegsWalked(base);
+  if (walked.out) {
+    if (base?.fromBaseMinutes === undefined) return undefined;
+    minutes += base.fromBaseMinutes;
+  }
+  if (walked.back) {
+    if (base?.toBaseMinutes === undefined) return undefined;
+    minutes += base.toBaseMinutes;
   }
   if (minutes <= 0) return undefined;
 
@@ -215,8 +244,17 @@ export function walkingLineFor(day: HubDay, base?: DayBase): string | undefined 
   const rounded = Math.max(5, Math.round(minutes / 5) * 5);
   const lead = `About ${spellMinutes(rounded)} on foot`;
 
-  if (walkedTransfer) {
+  if (walked.out && walked.back) {
     return `${lead} across the day — that counts walking out from ${base!.name} and back again.`;
+  }
+  // One end walked and the other not. No published journey does this
+  // today, but the two legs are stored and routed independently and
+  // nothing stops it, so it says what it counted rather than rounding
+  // the sentence up to a round trip.
+  if (walked.out || walked.back) {
+    return `${lead} across the day — that counts the walk one way ${
+      walked.out ? `from ${base!.name}` : `back to ${base!.name}`
+    }.`;
   }
   if (base?.transferMode === "drive") {
     const miles = day.distanceOnFoot ? ` (${day.distanceOnFoot})` : "";

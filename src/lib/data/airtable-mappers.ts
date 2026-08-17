@@ -895,6 +895,15 @@ export interface AirtableJourneyDayFields {
    *  reader falls back to an estimate. Added 17 Aug 2026. */
   "Leg From Base Minutes"?: number;
   "Leg To Base Minutes"?: number;
+  /** Was that leg actually walked? Usually just the Journey's Transfer
+   *  Mode, but a transfer under 600m (SHORT_TRANSFER_WALK_METRES in
+   *  scripts/lib/routing.mjs) is walked even on a Drive journey - nobody
+   *  drives 550m - so Transfer Mode alone no longer says which verb
+   *  belongs over these minutes. Recorded here rather than re-derived on
+   *  the site, so the rule has one implementation. Blank on a row not
+   *  recomputed since 17 Aug 2026; readers fall back to Transfer Mode. */
+  "Leg From Base Walked"?: boolean;
+  "Leg To Base Walked"?: boolean;
 }
 
 export interface AirtableEventFields {

@@ -422,6 +422,14 @@ async function fetchJourneysFromAirtable(): Promise<Journey[]> {
         typeof entry.jd["Leg From Base Minutes"] === "number" ? entry.jd["Leg From Base Minutes"] : undefined,
       toBaseMinutes:
         typeof entry.jd["Leg To Base Minutes"] === "number" ? entry.jd["Leg To Base Minutes"] : undefined,
+      // Airtable returns an unticked checkbox as absent, not false, and
+      // that is exactly the distinction wanted here: undefined means
+      // "this row predates the sub-600m rule, fall back to Transfer
+      // Mode", while an explicit false means "recomputed, and driven".
+      fromBaseWalked:
+        typeof entry.jd["Leg From Base Walked"] === "boolean" ? entry.jd["Leg From Base Walked"] : undefined,
+      toBaseWalked:
+        typeof entry.jd["Leg To Base Walked"] === "boolean" ? entry.jd["Leg To Base Walked"] : undefined,
     }));
 
     journeys.push({

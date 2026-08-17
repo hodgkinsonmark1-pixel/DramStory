@@ -524,7 +524,19 @@ export interface Journey {
    *  Walk day the base is reached from by bus), and the reader falls back
    *  to the straight-line estimate from the Base's own coordinates - or,
    *  with no coordinates either, counts no base leg at all. */
-  dayBaseLegs: { fromBaseMinutes?: number; toBaseMinutes?: number }[];
+  dayBaseLegs: {
+    fromBaseMinutes?: number;
+    toBaseMinutes?: number;
+    /** Whether each of those two legs was WALKED. Not the same question
+     *  as `transferMode` below: a transfer that routes under 600m is
+     *  walked even on a Drive journey (The Islay Grand Tour's day 5 is
+     *  Port Ellen distillery, from a base in Port Ellen), so the mode
+     *  describes the journey's intent and this describes the leg.
+     *  Undefined on a Journey Day not recomputed since that rule landed,
+     *  in which case readers fall back to `transferMode`. */
+    fromBaseWalked?: boolean;
+    toBaseWalked?: boolean;
+  }[];
   /** How the visitor gets from `base` to where each day starts, and back
    *  - the TRANSFER legs only, from the Journey's own `Transfer Mode`
    *  (blank = drive). Distinct from HubDay.travelMode, which describes

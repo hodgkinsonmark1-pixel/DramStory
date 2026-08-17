@@ -44,6 +44,17 @@
 //   suppress (both appearances of "Bowmore, Unhurried") now carry real
 //   routed drives.
 //
+//   ONE EXCEPTION, and it overrides the Journey (17 Aug 2026): a
+//   transfer that routes shorter than SHORT_TRANSFER_WALK_METRES (600m)
+//   is walked whatever `Transfer Mode` says. The Islay Grand Tour is
+//   based in Port Ellen and its day 5 is Port Ellen distillery, so a
+//   Drive transfer mode was producing "a 1 minute drive" across the
+//   village. Nobody does that. The leg is re-routed on foot and timed at
+//   WALKING_SPEED_KMH, and the fact that it was walked is written to the
+//   record so the site prints the right verb over it. See that constant
+//   in lib/routing.mjs for the full reasoning; within-day legs are NOT
+//   subject to it.
+//
 //   The routing profiles themselves, the walking-pace rule and the rate
 //   limiting all live in lib/routing.mjs, shared with the stop-to-stop
 //   script — including the note on why OSRM's own /foot/ profile is not
@@ -87,6 +98,15 @@
 // WHAT IT WRITES (Journey Days table, tblzTeYWOTDPZyzRZ)
 //   Leg From Base Minutes   base → this day's FIRST stop, minutes
 //   Leg To Base Minutes     this day's LAST stop → base, minutes
+//   Leg From Base Walked    was that leg walked?  checkbox
+//   Leg To Base Walked      was that leg walked?  checkbox
+//
+//   The two checkboxes exist because `Transfer Mode` no longer answers
+//   the question on its own: the sub-600m rule above can walk a leg on a
+//   Drive journey. They are written together with the minutes they
+//   describe, so a row can never claim a walking time under a driving
+//   verb. The site reads them (Journey.dayBaseLegs) instead of keeping a
+//   second copy of the threshold.
 //
 //   Both are left ALONE (blank, if they were never set) whenever the base
 //   can't be resolved to real coordinates or the router fails — the site
@@ -108,7 +128,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 import { airtableFetchAll, airtableUpdate, requireKey } from "./lib/airtable.mjs";
-import { modeFor, requestsSent, routeLeg } from "./lib/routing.mjs";
+import { SHORT_TRANSFER_WALK_METRES, modeFor, requestsSent, routeTransferLeg } from "./lib/routing.mjs";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 
@@ -255,7 +275,9 @@ async function main() {
     if (!basesReported.has(journey.Name)) {
       basesReported.add(journey.Name);
       console.log(
-        `\n${journey.Name} — transfers ${mode === "walk" ? "WALKED" : "DRIVEN"}, from ${base.source}`
+        `\n${journey.Name} — transfers ${
+          mode === "walk" ? "WALKED" : "DRIVEN (any under 600m walked)"
+        }, from ${base.source}`
       );
     }
 
@@ -274,30 +296,48 @@ async function main() {
     const first = stops[0];
     const last = stops[stops.length - 1];
 
-    const [out, back] = [await routeLeg(base, first, mode), await routeLeg(last, base, mode)];
+    const [out, back] = [
+      await routeTransferLeg(base, first, mode),
+      await routeTransferLeg(last, base, mode),
+    ];
 
     const fields = {};
     if (out.error) skipped.push(`${label}: base → ${first.label} (${mode}) failed — ${out.error}; left blank`);
-    else fields["Leg From Base Minutes"] = out.minutes;
+    else {
+      fields["Leg From Base Minutes"] = out.minutes;
+      fields["Leg From Base Walked"] = out.walked;
+    }
     if (back.error) skipped.push(`${label}: ${last.label} → base (${mode}) failed — ${back.error}; left blank`);
-    else fields["Leg To Base Minutes"] = back.minutes;
+    else {
+      fields["Leg To Base Minutes"] = back.minutes;
+      fields["Leg To Base Walked"] = back.walked;
+    }
 
     if (Object.keys(fields).length === 0) continue;
 
+    const describe = (leg) =>
+      leg.error ? "—" : `${leg.minutes} min ${leg.walked ? "walk" : "drive"} (${leg.km} km)`;
     console.log(
-      `  ${label} [${mode}] base → ${first.label}: ${out.error ? "—" : `${out.minutes} min (${out.km} km)`}` +
-        ` | ${last.label} → base: ${back.error ? "—" : `${back.minutes} min (${back.km} km)`}`
+      `  ${label} base → ${first.label}: ${describe(out)} | ${last.label} → base: ${describe(back)}`
     );
 
-    if (mode === "walk") {
-      const walkLegs = [
-        { what: `base → ${first.label}`, leg: out },
-        { what: `${last.label} → base`, leg: back },
-      ];
-      for (const { what, leg } of walkLegs) {
-        if (!leg.error && leg.minutes > LONG_WALK_REVIEW_MINUTES) {
-          review.push(`${label}: ${what} is a ${leg.minutes} min walk (${leg.km} km) — is this really walked from base?`);
-        }
+    const legs = [
+      { what: `base → ${first.label}`, leg: out },
+      { what: `${last.label} → base`, leg: back },
+    ];
+    for (const { what, leg } of legs) {
+      if (leg.error) continue;
+      if (leg.note) review.push(`${label}: ${what} — ${leg.note}`);
+      // A leg the 600m rule turned into a walk on a Drive journey is
+      // worth naming: it is the one place this script contradicts an
+      // authored field, and a human should see it happen.
+      if (leg.walked && mode !== "walk") {
+        review.push(
+          `${label}: ${what} routed under ${SHORT_TRANSFER_WALK_METRES}m, so it is WALKED (${leg.minutes} min, ${leg.km} km) despite Transfer Mode "Drive"`
+        );
+      }
+      if (leg.walked && leg.minutes > LONG_WALK_REVIEW_MINUTES) {
+        review.push(`${label}: ${what} is a ${leg.minutes} min walk (${leg.km} km) — is this really walked from base?`);
       }
     }
 

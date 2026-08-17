@@ -44,6 +44,29 @@ export const PROFILES = {
  *  store OSRM's own duration. */
 export const WALKING_SPEED_KMH = 3.75;
 
+/** A TRANSFER leg shorter than this is walked whatever the Journey's
+ *  `Transfer Mode` says, because nobody gets a car out for it.
+ *
+ *  Islay Grand Tour day 5 is why this exists. It is based in Port Ellen
+ *  and its day 5 is Port Ellen distillery — the same village — so the
+ *  journey's Drive transfer mode produced "a 1 minute drive" over a few
+ *  hundred metres, which is both daft to read and wrong: you would find
+ *  the car, reverse it out and park it again in less time than the walk
+ *  takes. 600m is the site owner's line, chosen as comfortably under the
+ *  shortest transfer anyone would sensibly drive and comfortably over the
+ *  distance any of these village-centre legs actually run.
+ *
+ *  It applies ONLY to transfers (base → first stop, last stop → base).
+ *  Within-day legs are left alone: a Drive day's stop-to-stop hops are
+ *  authored as drives and a 500m hop between two stops on a driving day
+ *  is still made in the car you are already sitting in.
+ *
+ *  The leg is then routed AGAIN on the foot profile, because a short
+ *  drive and a short walk are not the same path — Port Ellen's is 547m
+ *  by road and 252m on foot — and the walked figure has to describe the
+ *  walk. Timed, like every walked leg here, at WALKING_SPEED_KMH. */
+export const SHORT_TRANSFER_WALK_METRES = 600;
+
 /** Space requests out. Both hosts are free public services asking for
  *  reasonable use; ~1 request/sec is well inside that and a whole run is
  *  a handful of requests. */
@@ -63,6 +86,14 @@ const legCache = new Map();
  *  scripts' own end-of-run summary. */
 let requestCount = 0;
 export const requestsSent = () => requestCount;
+
+/** Walking minutes for an already-rounded distance in km. Derived from
+ *  the STORED km rather than the raw metres so that a re-run, and anyone
+ *  checking the arithmetic against the two numbers on the record, both
+ *  get the same answer. */
+export function walkMinutesForKm(km) {
+  return Math.max(1, Math.round((km / WALKING_SPEED_KMH) * 60));
+}
 
 /**
  * One routed leg: `{ minutes, km }`, or `{ error }`. An error means "we
@@ -99,12 +130,17 @@ export async function routeLeg(from, to, mode) {
               // store, so the two stored fields can never contradict each
               // other (2.0km → 32 min, not 31, which is what a re-run has
               // to agree with).
-              Math.max(1, Math.round((km / WALKING_SPEED_KMH) * 60))
+              walkMinutesForKm(km)
             : // Driving: OSRM's own duration. Matches route-geometry.ts's
               // rounding, so a stored leg and a live-planner leg for the
               // same pair read the same.
               Math.max(1, Math.round(route.duration / 60)),
         km,
+        // The router's UNROUNDED distance in metres. `km` is what gets
+        // stored and read; this is only ever compared against a metre
+        // threshold (SHORT_TRANSFER_WALK_METRES), where rounding 0.58km
+        // up to 0.6 would flip the answer.
+        metres: route.distance,
       };
     } catch (e) {
       return { error: e instanceof Error ? e.message : String(e) };
@@ -115,6 +151,41 @@ export async function routeLeg(from, to, mode) {
   // refuse it again inside the same run, and re-asking helps nobody.
   legCache.set(key, result);
   return result;
+}
+
+/**
+ * One routed TRANSFER leg — base → a day's first stop, or its last stop
+ * → base — with the short-transfer rule applied. Returns
+ * `{ minutes, km, walked }` or `{ error }`.
+ *
+ * `walked` is the fact the site needs and cannot re-derive: it is true
+ * when the Journey's Transfer Mode is Walk, AND when the mode says Drive
+ * but the leg came back under SHORT_TRANSFER_WALK_METRES. Stored
+ * alongside the minutes (Journey Days' `Leg From/To Base Walked`) so the
+ * verb printed over a figure and the figure itself are decided in one
+ * place, here, rather than by a second copy of the threshold on the site.
+ */
+export async function routeTransferLeg(from, to, mode) {
+  const routed = await routeLeg(from, to, mode);
+  if (routed.error) return routed;
+  if (mode === "walk") return { ...routed, walked: true };
+  if (routed.metres >= SHORT_TRANSFER_WALK_METRES) return { ...routed, walked: false };
+
+  // Short enough to walk. Re-route it on foot: the walking path is a
+  // different path, and the stored km has to be the one that was walked.
+  const onFoot = await routeLeg(from, to, "walk");
+  if (!onFoot.error) return { ...onFoot, walked: true };
+
+  // The foot router refused. Rather than fall back to printing a
+  // one-minute drive — the exact thing this rule exists to stop — keep
+  // the driven distance and time it at walking pace, and say so.
+  return {
+    minutes: walkMinutesForKm(routed.km),
+    km: routed.km,
+    metres: routed.metres,
+    walked: true,
+    note: `foot router failed (${onFoot.error}); timed the driven ${routed.km}km at walking pace`,
+  };
 }
 
 /** A Drive/Walk singleSelect cell → a profile key. Blank is Drive, which
