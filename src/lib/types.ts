@@ -866,6 +866,26 @@ export type ItineraryStop = (
    *  from the day: an optional stop is still shown, still pinned, still
    *  scheduled. Same published-day-only scope as `legMinutes` above. */
   optional?: boolean;
+  /** How this stop is REACHED from the previous one in the day - Day
+   *  Stops' own `Arrive By` (added 17 Aug 2026), read straight through.
+   *
+   *  Undefined is the normal case and means "however the rest of the day
+   *  is made": the leg inherits ItineraryDay.travelMode. It is authored
+   *  only where one leg genuinely differs, which today is the walked
+   *  final approach to a beach, a ruin or a viewpoint on a day that is
+   *  otherwise driven - the car is parked and the last bit is on foot.
+   *
+   *  It replaced a hardcoded list of Local Feature slugs in
+   *  scripts/compute-day-stop-legs.mjs, which is why it is worth having
+   *  as a field at all: the fact is about a stop, not about the code.
+   *  Both the stored `legMinutes` and the estimated fallback for a blank
+   *  one are paced by it - see legModeFor in day-derivations.ts.
+   *
+   *  Same published-day-only scope as `legMinutes` above: nothing in
+   *  trip-context.tsx carries it onto a stop the visitor adds or
+   *  reorders, because it describes a leg that no longer exists once the
+   *  order changes. */
+  arriveBy?: TravelMode;
 };
 
 /** Where a day's trip starts/ends - a real, verifiable place (a village,

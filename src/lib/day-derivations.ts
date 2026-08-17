@@ -53,7 +53,30 @@ export function isFerryDay(day: HubDay): boolean {
 // relevant mode and estimates at walking pace when that mode is walk
 // (drive-time.ts's estimatedTravelMinutes). Nothing about a STORED leg
 // changed - it was already right.
+//
+// AND MODE IS NOW PER LEG, NOT PER DAY (17 Aug 2026). A day is not
+// uniformly driven or uniformly walked: several driving days park at a
+// distillery and walk the last stretch to a beach, a ruin or a
+// viewpoint. That fact is authored on the stop, as Day Stops' `Arrive
+// By`, and reaches here as ItineraryStop.arriveBy - see legModeFor. The
+// precompute script reads exactly the same field to choose exactly the
+// same profile, which is what stops a stored leg and an estimated one
+// describing the same walk in different units of optimism.
 // ─────────────────────────────────────────────────────────────────────────
+
+/** How the leg INTO this stop is made. The stop's own `Arrive By` when
+ *  it has one, otherwise the day's Travel Mode, otherwise undefined
+ *  (= nobody said, which has always meant driving).
+ *
+ *  The same precedence as scripts/compute-day-stop-legs.mjs, and
+ *  deliberately so: that script picks the routing profile a stored `Leg
+ *  Minutes` was measured on, and this picks the pace of the estimate
+ *  that stands in when there isn't one. If the two disagreed, a day
+ *  would change its mind about how far it walks the moment one leg
+ *  failed to route. */
+export function legModeFor(stop: ItineraryStop, dayMode: TravelMode | undefined): TravelMode | undefined {
+  return stop.arriveBy ?? dayMode;
+}
 
 /** Travel minutes for one leg: the precomputed routed value if this stop
  *  has one, otherwise the straight-line estimate for that leg alone, at
@@ -62,8 +85,9 @@ export function isFerryDay(day: HubDay): boolean {
  *  themselves, a leg whose routing failed), not an error - it just means
  *  falling back, per leg, exactly as before.
  *
- *  `mode` is the DAY's Travel Mode for a stop-to-stop leg. Undefined
- *  means nobody said, which has always meant driving. */
+ *  `mode` is how THIS leg is made - legModeFor(stop, day.travelMode),
+ *  not the day's mode raw. Undefined means nobody said, which has always
+ *  meant driving. */
 export function legTravelMinutes(
   from: { lat: number; lng: number },
   to: { lat: number; lng: number },
@@ -573,7 +597,12 @@ export function driveMinutesForItineraryDay(day: ItineraryDay, base?: DayBase): 
   const legs = resolveBaseLegs(base ?? accommodationBase(day), stopPoints[0], stopPoints[stopPoints.length - 1]);
   let total = legs.out ?? 0;
   for (let i = 1; i < stopPoints.length; i++) {
-    total += legTravelMinutes(stopPoints[i - 1], stopPoints[i], day.stops[i].legMinutes, day.travelMode);
+    total += legTravelMinutes(
+      stopPoints[i - 1],
+      stopPoints[i],
+      day.stops[i].legMinutes,
+      legModeFor(day.stops[i], day.travelMode)
+    );
   }
   total += legs.back ?? 0;
   return total;
@@ -993,7 +1022,9 @@ export function scheduleForItineraryDay(
     // one; the leg in from the base is whatever resolveBaseLegs could
     // honestly establish, and zero when it could establish nothing.
     const leg =
-      index === 0 ? legs.out ?? 0 : legTravelMinutes(prevPoint ?? point, point, stop.legMinutes, day.travelMode);
+      index === 0
+        ? legs.out ?? 0
+        : legTravelMinutes(prevPoint ?? point, point, stop.legMinutes, legModeFor(stop, day.travelMode));
     // The soonest you could be here: travelling the moment the last stop
     // let you go. That is the whole schedule for a stop with no
     // published time, and the floor for one that has.
@@ -1066,14 +1097,19 @@ export function spellGapMinutes(minutes: number): string {
  *  describe lunch somewhere, but nothing in the schedule knows that, and
  *  a made-up "lunch and a wander" on a day whose author meant something
  *  else is exactly the fabricated specific the brand voice rules out. An
- *  honest empty hour reads fine; an invented one doesn't. */
+ *  honest empty hour reads fine; an invented one doesn't.
+ *
+ *  `mode` is the DAY's Travel Mode; the verb printed over the travel
+ *  inside the gap is this leg's own (legModeFor), because the leg being
+ *  described may be the walked approach on an otherwise driven day. */
 export function scheduleGapLine(row: ScheduleRow, mode?: TravelMode): string | undefined {
   if (row.free < MEANINGFUL_GAP_MINUTES) return undefined;
   const from = row.arrive - row.free - row.travel;
   const total = spellGapMinutes(row.free + row.travel);
+  const legMode = legModeFor(row.stop, mode);
   const travelPart =
     row.travel > 0
-      ? ` — about ${spellGapMinutes(row.travel)} of it ${mode === "walk" ? "walking" : "driving"} over`
+      ? ` — about ${spellGapMinutes(row.travel)} of it ${legMode === "walk" ? "walking" : "driving"} over`
       : "";
   return `${formatClockTime(from)}–${formatClockTime(row.arrive)} · ${total} before ${stopName(
     row.stop

@@ -1,5 +1,5 @@
 import type { AirtableAttachment, AirtableRecord } from "@/lib/airtable";
-import type { Area, Distillery, FeaturedStay, HubDay, ItineraryStop, JournalPost, LocalEvent, LocalFeature, NearbyFeature, Tour } from "@/lib/types";
+import type { Area, Distillery, FeaturedStay, HubDay, ItineraryStop, JournalPost, LocalEvent, LocalFeature, NearbyFeature, Tour, TravelMode } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Raw shapes as returned by the Airtable REST API for each table.
@@ -683,6 +683,18 @@ export interface AirtableDayStopFields {
    *  the site does with it - in short, it splits a walking total into
    *  the plan and the detour rather than merging them. */
   Optional?: boolean;
+  /** "Drive" | "Walk" - how the visitor reaches THIS stop from the
+   *  previous one in its Day. Added 17 Aug 2026. Blank is the normal
+   *  case and inherits the Day's own `Travel Mode`; it is authored only
+   *  where one leg differs from the rest of its day, i.e. a walked final
+   *  approach on an otherwise driven day.
+   *
+   *  It exists because scripts/compute-day-stop-legs.mjs used to carry a
+   *  hardcoded list of Local Feature slugs to force onto the foot
+   *  profile - code knowing about specific beaches. Same field now
+   *  chooses the OSRM profile there and paces the site's own fallback
+   *  estimate here (see ItineraryStop.arriveBy / legModeFor). */
+  "Arrive By"?: string;
 }
 
 // Matches the [label](/path) inline links already used in Day narratives
@@ -752,6 +764,14 @@ export function mapAirtableDayRecord(
         // isn't a clock time is caught once, in the schedule's own parser,
         // which falls back to the chained behaviour rather than throwing.
         scheduledTime: s["Scheduled Time"]?.trim() || undefined,
+        // Blank stays undefined rather than defaulting to "drive" here:
+        // the difference between "this leg is driven" and "nobody said,
+        // so use the Day's mode" is the whole point of the field, and
+        // collapsing it at the mapper would silently drive every leg of
+        // every walking day.
+        arriveBy: ((s["Arrive By"] === "Walk" ? "walk" : s["Arrive By"] === "Drive" ? "drive" : undefined) as
+          | TravelMode
+          | undefined),
       };
       const order = s.Order ?? 0;
       const distillery = s.Distillery?.[0] ? ctx.distilleryById.get(s.Distillery[0]) : undefined;
