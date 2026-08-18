@@ -1879,839 +1879,987 @@ select.location-inline-input {
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   /journeys/[slug] — REBUILT 13 Aug 2026 to Mark's design mockup.
-   Replaces the earlier `journey-claim-*`/`journey-day-card-*`/
-   `journey-sidebar-*` block from the same day (right data, wrong layout),
-   which is why every class here carries a fresh `jr-` prefix rather than
-   being edited in place — nothing else in the codebase used those.
+   /journeys/[slug] — REBUILT 18 Aug 2026 to the site owner's written
+   build spec, replacing the 13/17 Aug mockup block that used to sit
+   here. The `jr-` prefix is kept (nothing else in the codebase uses it)
+   but essentially every rule inside is new. The pace TILE is gone
+   entirely: pace is a 5px strip down a day card's left edge now.
 
-   Every colour, radius and shadow is a :root token from
-   dramstory-legacy.css (docs/hero-handoff.md §5) — no literal hexes, and
-   no second green: "Car hire: Not needed" uses --green-light on the CTA
-   box's --green-deep, exactly the pairing PacingTag already uses.
+   PALETTE. This block is the one deliberate exception to the "no literal
+   hexes, tokens only" rule the rest of this stylesheet follows. The spec
+   specifies exact values with measured contrast ratios against the two
+   surfaces this page uses, and the existing :root tokens are a different
+   system built to different pairings - --copper on white measures 3.19:1
+   where the value below measures 4.9:1. Declaring them once here, as
+   custom properties scoped to the page's own classes, keeps every rule
+   below reading in tokens and leaves the rest of the site untouched.
+
+   THREE HUES, NOT THREE SHADES. Navy-vs-brown was tried and failed:
+   5px of each is indistinguishable. And deliberately not a traffic
+   light - green here is calm, not good.
+
+   TYPE. Spectral for display, Instrument Sans for body, metadata and
+   every standalone numeral. Both are loaded in layout.tsx as of 18 Aug
+   2026; before that Spectral was not loading at all and every heading
+   on this page was silently rendering in Cormorant Garamond.
+
+   FLAGGED: the spec asks for a 9.5px eyebrow AND says nothing goes below
+   11px. Those cannot both hold, so the floor wins and every eyebrow here
+   is 11px. Nothing on this page is smaller.
    ───────────────────────────────────────────────────────────────────── */
 
-/* 1 · HERO — full-bleed photo (or plain navy when Hero Image is empty,
-   which is every Journey today), navy gradient, content on the lower
-   third and LEFT-aligned (the old .journey-hero centred it). */
+.jr-hero,
+.jr-standfirst,
+.jr-claim,
+.jr-main,
+.jr-wide {
+  --jr-packed-strip: #a8442a;
+  --jr-packed-ink: #9c3f27;
+  --jr-moderate-strip: #8a6a1f;
+  --jr-moderate-ink: #7d5f1a;
+  --jr-relaxed-strip: #20604a;
+  --jr-relaxed-ink: #1c5641;
+  /* Links on white. On cream this steps darker: #96501c measures 4.27:1
+     against #F7ECD8 and fails, which is exactly where the money note
+     and the base row live. */
+  --jr-link: #96501c;
+  --jr-link-cream: #775614;
+  --jr-ink: #14313f;
+  --jr-body: #4b585e;
+  --jr-navy: #16394b;
+  --jr-accent: #dda86a;
+  --jr-page: #f3ede2;
+  --jr-card: #fffdf9;
+  --jr-cream: #f7ecd8;
+  --jr-serif: var(--font-spectral), Georgia, serif;
+  --jr-sans: var(--font-instrument), system-ui, sans-serif;
+}
+
+/* ── 1 · HERO ─────────────────────────────────────────────────────────
+   330px exactly. It is a photograph with a title on it, not a stage. */
 .jr-hero {
   position: relative;
-  min-height: 58vh;
+  height: 330px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: space-between;
   overflow: hidden;
-  background: var(--navy);
+  background: var(--jr-navy);
 }
 .jr-hero-img {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  z-index: 0;
 }
 .jr-hero-overlay {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(to top, rgba(26, 58, 74, 0.92) 0%, rgba(26, 58, 74, 0.6) 50%, rgba(26, 58, 74, 0.35) 100%);
+  background: linear-gradient(180deg, rgba(20, 49, 63, 0.62) 0%, rgba(20, 49, 63, 0.34) 42%, rgba(20, 49, 63, 0.86) 100%);
+}
+.jr-hero > nav {
+  position: relative;
+  z-index: 2;
 }
 .jr-hero-inner {
   position: relative;
   z-index: 2;
+  max-width: 1180px;
   width: 100%;
-  max-width: 1120px;
   margin: 0 auto;
-  padding: 0 24px 56px;
+  padding: 0 32px 30px;
 }
-.jr-hero-kicker {
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
+/* THE WAY OUT. Lower-left, above the title. Until 18 Aug 2026 the logo
+   was the only thing on this page that led anywhere else. */
+.jr-crumb {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 12px;
+  font-family: var(--jr-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
-  color: var(--amber);
-  margin-bottom: 16px;
+}
+.jr-crumb-link {
+  color: var(--jr-accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(221, 168, 106, 0.45);
+  text-underline-offset: 3px;
+}
+.jr-crumb-link:hover {
+  text-decoration-color: currentColor;
+}
+.jr-crumb-sep,
+.jr-crumb-here {
+  color: rgba(255, 255, 255, 0.82);
 }
 .jr-hero-title {
-  font-family: var(--font-display);
-  font-size: clamp(34px, 5.4vw, 62px);
-  font-weight: 300;
-  line-height: 1.08;
+  font-family: var(--jr-serif);
+  font-weight: 600;
+  font-size: 50px;
+  line-height: 1.04;
   letter-spacing: -0.01em;
-  color: var(--white);
+  color: #fff;
   margin: 0;
-}
-.jr-hero-standfirst {
-  margin: 16px 0 0;
-  max-width: 620px;
-  font-size: 17px;
-  line-height: 1.65;
-  color: rgba(255, 255, 255, 0.88);
+  max-width: 15ch;
 }
 
-/* 2 · CLAIM BAND — flush under the hero, no gap. Claim left (~60%),
-   three ruled stat columns right (~40%). */
+/* ── STANDFIRST ───────────────────────────────────────────────────────
+   Out of the hero (18 Aug 2026), and doing a second job: the min-height
+   is what pushes the claim band below the laptop fold. 330 (hero) + 130
+   (band) = 460, so anything taller than the remaining viewport puts the
+   band's top edge off screen on first load. Clamped at both ends so a
+   short laptop doesn't get a cramped block and a tall desktop doesn't
+   get a screenful of nothing. */
+.jr-standfirst {
+  background: var(--jr-page);
+  display: flex;
+  align-items: center;
+  min-height: clamp(210px, calc(100svh - 460px), 430px);
+  padding: 44px 32px;
+}
+.jr-standfirst p {
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+  font-family: var(--jr-serif);
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 1.55;
+  color: var(--jr-ink);
+  max-width: 34ch;
+}
+
+/* ── CLAIM BAND ───────────────────────────────────────────────────────
+   130px. It informs; it is not a hero element, and it no longer sits
+   flush under the photograph pretending to be one. Claim left, three
+   stats right - and each stat answers a DIFFERENT question. No two of
+   them measure the same thing. */
 .jr-claim {
-  background: var(--navy);
-  color: var(--white);
-  padding: 30px 24px 34px;
+  background: var(--jr-navy);
+  min-height: 130px;
+  display: flex;
+  align-items: center;
+  padding: 22px 32px;
 }
 .jr-claim-inner {
-  max-width: 1120px;
+  max-width: 1180px;
+  width: 100%;
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 44px;
+  justify-content: space-between;
+  gap: 48px;
 }
 .jr-claim-text {
-  flex: 0 1 60%;
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 300;
-  line-height: 1.55;
-  color: var(--white);
+  font-family: var(--jr-serif);
+  font-weight: 400;
+  font-size: 19px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.92);
+  max-width: 44ch;
 }
-/* The Claim field's markdown **bold** run — coloured, not bolded. */
 .jr-claim-em {
   font-style: normal;
-  color: var(--amber);
+  color: var(--jr-accent);
 }
 .jr-claim-stats {
-  flex: 0 0 40%;
   display: flex;
-  align-items: stretch;
+  gap: 34px;
+  flex: 0 0 auto;
 }
 .jr-stat {
-  flex: 1 1 0;
-  padding: 0 16px;
-  border-left: 1px solid rgba(255, 255, 255, 0.22);
-  text-align: left;
+  max-width: 21ch;
 }
-.jr-stat:first-child {
-  border-left: none;
-  padding-left: 0;
-}
+/* STANDALONE NUMERALS ARE INSTRUMENT SANS, with tabular figures.
+   Spectral has no alternate figure set, and at this size its 1 and 0
+   read as l and O. Numerals inside a sentence stay in Spectral - see
+   .jr-num-inline, which does the same job in the other direction. */
 .jr-stat-value {
-  font-family: var(--font-display);
-  font-size: 34px;
-  font-weight: 400;
-  line-height: 1;
-  color: var(--white);
+  font-family: var(--jr-sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--jr-accent);
+  margin-bottom: 5px;
 }
 .jr-stat-label {
-  margin-top: 8px;
-  font-size: 11px;
-  line-height: 1.45;
-  color: rgba(255, 255, 255, 0.6);
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  line-height: 1.42;
+  color: rgba(255, 255, 255, 0.74);
 }
 
-@media (max-width: 900px) {
-  .jr-claim-inner {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 26px;
-  }
-  .jr-claim-text,
-  .jr-claim-stats {
-    flex: 1 1 auto;
-    width: 100%;
-  }
-}
-
-/* 3 · MAIN — spine left (~62%), map + CTA right (~35%). One column on
-   mobile, CTA box first. */
+/* ── 2 · DAY BY DAY ───────────────────────────────────────────────────
+   Two columns. The rail is sticky INSIDE its own grid track, so it stops
+   the moment the day list does - no measuring, no JavaScript. */
 .jr-main {
-  max-width: 1120px;
+  background: var(--jr-page);
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 44px 24px 8px;
+  padding: 52px 32px 8px;
   display: grid;
-  grid-template-columns: minmax(0, 1.78fr) minmax(0, 1fr);
-  gap: 44px;
+  grid-template-columns: minmax(0, 1fr) 328px;
+  gap: 46px;
   align-items: start;
 }
-.jr-col-side {
+.jr-days {
+  min-width: 0;
+}
+.jr-rail {
+  position: sticky;
+  top: 24px;
+  align-self: start;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  position: sticky;
-  top: 20px;
-}
-@media (max-width: 900px) {
-  .jr-main {
-    grid-template-columns: 1fr;
-    gap: 30px;
-  }
-  .jr-col-side {
-    order: -1;
-    position: static;
-  }
-  /* CTA box first on mobile, map under it. */
-  .jr-col-side .jr-cta {
-    order: -1;
-  }
+  gap: 14px;
 }
 
-/* Section head — serif title, 2px navy rule, right-aligned note on the
-   same baseline. Shared by "Day by day" and "Make it yours". */
 .jr-section-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 20px;
-  flex-wrap: wrap;
-  border-bottom: 2px solid var(--navy);
+  gap: 22px;
+  border-bottom: 2px solid var(--jr-navy);
   padding-bottom: 10px;
-  margin-bottom: 26px;
+  margin-bottom: 20px;
 }
 .jr-section-title {
-  font-family: var(--font-display);
-  font-size: 27px;
-  font-weight: 400;
-  color: var(--dark);
+  font-family: var(--jr-serif);
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1.2;
+  color: var(--jr-ink);
   margin: 0;
 }
 .jr-section-note {
-  font-size: 11.5px;
-  color: var(--slate);
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  color: var(--jr-body);
   text-align: right;
-}
-
-/* Where this journey's walking figures are measured from - once, above
-   the spine, because every day card's own line is written to fit a phone
-   and has no room for it. Sits between the section head and the first
-   day, in the same quiet grey as the section note beside it. */
-.jr-walk-origin {
-  font-size: 11.5px;
-  color: var(--slate);
-  margin: -6px 0 14px;
-}
-
-/* 3b · THE SPINE — hairline down the left edge, a numbered navy disc per
-   day and a smaller moon disc per night, both centred on the line. */
-.jr-spine {
-  position: relative;
-  padding-left: 46px;
-}
-.jr-spine::before {
-  content: "";
-  position: absolute;
-  left: 15px;
-  top: 6px;
-  bottom: 6px;
-  width: 1px;
-  background: var(--mist);
-}
-.jr-spine-item {
-  position: relative;
-  margin-bottom: 16px;
-}
-.jr-spine-marker {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-}
-.jr-spine-marker-day {
-  left: -46px;
-  top: 14px;
-  width: 32px;
-  height: 32px;
-  background: var(--navy);
-  color: var(--white);
-  font-size: 13px;
-  font-weight: 600;
-}
-.jr-spine-marker-night {
-  left: -40px;
-  top: 14px;
-  width: 20px;
-  height: 20px;
-  background: var(--stone);
-  color: var(--peat);
-  font-size: 11px;
-  line-height: 1;
-}
-/* The optional night's marker is a hollow disc, matching its hollow
-   card - the spine reads as a filled run of steps with one open one at
-   the end, which is exactly what the journey is. */
-.jr-spine-marker-night-optional {
-  background: transparent;
-  border: 1px dashed var(--mist);
-  color: var(--slate);
-}
-
-/* Day card — white, --stone border, --shadow-card, on the --off-white
-   page (docs/hero-handoff.md §5's reference treatment).
-
-   One flex ROW at the top level (17 Aug 2026): the pace tile down the
-   left, everything else - meta, title, hook, chips, and the timeline
-   strip under them - stacked in the body beside it. That is what makes
-   the tile full card height rather than the height of the top block,
-   and it is why the card itself carries no padding: the tile is flush to
-   three of its edges, and the body brings its own. */
-.jr-day-card {
-  display: flex;
-  align-items: stretch;
-  background: var(--white);
-  border: 1px solid var(--stone);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-}
-.jr-day-card-body {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-/* PACE TILE (17 Aug 2026) — the card's left column, and its primary
-   treatment: there is no photograph on a day card any more.
-
-   Roughly 200px on a desktop card and never wider, shrinking with the
-   card down to 140px before the layout stacks. Fill and text colour are
-   set inline from paceTileTone (PacingTag's own pair inverted - dark
-   tone behind, light tone on it - with Moderate filled --peat rather
-   than --copper, for contrast; see that function's note), the way that
-   component does it: this is per-day data, not a fixed style. Everything
-   else here is tokens. */
-.jr-pace-tile {
-  flex: 0 1 200px;
-  min-width: 140px;
-  align-self: stretch;
-  display: flex;
-  flex-direction: column;
-  padding: 16px 18px 18px;
-}
-.jr-pace-tile-day {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  /* No opacity, deliberately: two of the three fills are mid-tone
-     enough that fading this line would put it under any usable
-     contrast. Size and letter-spacing carry the hierarchy instead. */
-}
-/* Numeral and caption sit together at the foot of the tile, with the day
-   kicker pinned to the top - the mockup's own arrangement. */
-.jr-pace-tile-body {
-  margin-top: auto;
-}
-.jr-pace-tile-count {
-  display: block;
-  font-family: var(--font-display);
-  font-size: 44px;
-  font-weight: 300;
-  line-height: 1;
-  margin-bottom: 9px;
-}
-/* Two lines, one per span: the caption's noun, then the rest of the
-   authored phrase. A one-word caption renders one span and no gap. */
-.jr-pace-tile-caption span {
-  display: block;
-  font-size: 12.5px;
-  font-weight: 500;
-  line-height: 1.4;
-}
-/* The card itself has no padding (the tile is flush to its edges), so
-   the body's own blocks carry it - this one and the timeline strip
-   below it, which shares its horizontal inset. */
-.jr-day-card-content {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 16px 18px;
-}
-.jr-day-card-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-}
-.jr-day-card-meta-text {
-  font-size: 12.5px;
-  color: var(--slate);
-}
-.jr-day-card-title {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 500;
-  color: var(--dark);
-  margin: 0 0 7px;
-}
-.jr-day-card-hook {
-  font-size: 13.5px;
-  line-height: 1.6;
-  color: var(--peat);
-  margin: 0 0 14px;
-}
-/* How much of a walking day is actually on foot - sits directly under
-   the hook, ahead of the chips, so it reads as part of what the day IS
-   rather than as a tag. Copper rule and --peat text match the same line
-   on /days/[slug] (.day-shape-walk in day-screen.css); tokens only. */
-.jr-day-card-walk {
-  font-size: 12.5px;
-  line-height: 1.6;
-  color: var(--peat);
-  border-left: 2px solid var(--copper);
-  padding-left: 9px;
-  margin: -6px 0 14px;
-}
-.jr-day-card-foot {
-  margin-top: auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.jr-chips {
-  display: flex;
-  gap: 7px;
-  flex-wrap: wrap;
-}
-.jr-chip {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 100px;
-  font-size: 11px;
-  font-weight: 500;
-  background: var(--off-white);
-  color: var(--peat);
-  border: 1px solid var(--stone);
-}
-.jr-day-open {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--copper);
-  text-decoration: none;
-  white-space: nowrap;
-}
-.jr-day-open:hover {
-  text-decoration: underline;
-}
-
-/* "THE DAY" strip — same card, separated by a hairline. */
-.jr-day-timeline {
-  display: flex;
-  align-items: baseline;
-  gap: 14px;
-  padding: 11px 18px 14px;
-  border-top: 1px solid var(--stone);
-  flex-wrap: wrap;
-}
-.jr-day-timeline-label {
-  flex: 0 0 auto;
-}
-.jr-day-timeline-row {
-  flex: 1 1 260px;
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 2px 8px;
-  font-size: 12.5px;
-  line-height: 1.7;
-}
-.jr-timeline-seg-wrap {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 8px;
-}
-.jr-timeline-arrow {
-  color: var(--mist);
-}
-.jr-timeline-time {
-  font-weight: 600;
-  color: var(--dark);
-}
-.jr-timeline-label {
-  color: var(--slate);
-}
-/* A Scheduled Time this day cannot reach - the same content warning the
-   day screen renders, in the same words. Full width under the strip so
-   it can't be mistaken for one more segment of it. */
-.jr-day-timeline-warning {
-  flex: 1 1 100%;
-  font-size: 12px;
-  font-weight: 600;
-  color: #b5502e;
-}
-/* Night connector — quieter than a day card: --stone (the sand tone) with
-   no border and no photo, one row. Deliberately NOT white and NOT
-   --green-light: white would read as another day card, and --green-light
-   is reserved for Relaxed pace / in-trip states (hero-handoff.md §5). */
-.jr-night-card {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-  background: var(--stone);
-  border-radius: var(--radius-sm);
-  padding: 13px 16px;
-}
-.jr-night-when {
-  flex: 0 0 auto;
-  min-width: 116px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.jr-night-label {
-  /* The whole label ("NIGHT ONE" ... "NIGHT SIX") as one tiny caps run -
-     the word and the ordinal share this rule so neither can drift out of
-     case against the other. */
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  white-space: nowrap;
-}
-.jr-night-base {
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--dark);
-}
-.jr-night-note {
-  flex: 1 1 260px;
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--peat);
-}
-.jr-night-note strong {
-  color: var(--dark);
-  font-weight: 600;
-}
-.jr-night-link {
-  flex: 0 0 auto;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--copper);
-  text-decoration: none;
-  white-space: nowrap;
-}
-.jr-night-link:hover {
-  text-decoration: underline;
-}
-/* The optional trailing night (17 Aug 2026) — the one a visitor can take
-   or replace with the boat home. Quieter again than a planned night:
-   unfilled rather than --stone, with a dashed --mist outline, because an
-   empty outline is what "not filled in yet" looks like everywhere else.
-   Deliberately NOT smaller and NOT lower-contrast body text - it is a
-   real choice with real copy, and it still has to be readable. */
-.jr-night-card-optional {
-  background: transparent;
-  border: 1px dashed var(--mist);
-  /* Keeps the dashed box the same overall size as the filled cards
-     either side of it, so the spine's rhythm doesn't shift. */
-  padding: 12px 15px;
-}
-.jr-night-card-optional .jr-night-base,
-.jr-night-card-optional .jr-night-note {
-  color: var(--slate);
-}
-
-/* Shared bits — white card surface, tiny grey caps eyebrow. */
-.jr-card {
-  background: var(--white);
-  border: 1px solid var(--stone);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-card);
 }
 .jr-eyebrow {
   display: block;
-  font-size: 10px;
+  font-family: var(--jr-sans);
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
-  color: var(--slate);
-}
-.jr-eyebrow-copper {
-  color: var(--copper);
+  color: var(--jr-body);
 }
 
-/* 3c · ROUTE MAP CARD */
-.jr-map-card {
-  overflow: hidden;
+/* The legend, right-aligned in the section head. Three swatches, so the
+   strips down the cards below need no caption of their own. */
+.jr-pace-legend {
+  display: flex;
+  gap: 15px;
+  font-family: var(--jr-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--jr-body);
 }
-.jr-map-holder {
-  position: relative;
+.jr-pace-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
-.jr-map-canvas {
-  height: 230px;
-  width: 100%;
+.jr-pace-swatch {
+  width: 14px;
+  height: 5px;
+  border-radius: 1px;
 }
-.jr-map-caption {
-  position: absolute;
-  z-index: 500;
-  left: 10px;
-  bottom: 10px;
-  padding: 3px 8px;
-  border-radius: var(--radius-sm);
-  background: rgba(26, 58, 74, 0.82);
-  color: rgba(255, 255, 255, 0.92);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.02em;
+.jr-pace-swatch-relaxed,
+.jr-pace-fill-relaxed {
+  background: var(--jr-relaxed-strip);
 }
-.jr-map-body {
-  padding: 14px 16px 16px;
+.jr-pace-swatch-moderate,
+.jr-pace-fill-moderate {
+  background: var(--jr-moderate-strip);
 }
-.jr-map-summary {
-  margin: 7px 0 0;
+.jr-pace-swatch-packed,
+.jr-pace-fill-packed {
+  background: var(--jr-packed-strip);
+}
+/* The pace WORD in a day card's header, on white. These are the darker
+   step of each hue - 8.4:1, 5.9:1 and 6.6:1 - not the strip colours. */
+.jr-pace-ink-relaxed {
+  color: var(--jr-relaxed-ink);
+}
+.jr-pace-ink-moderate {
+  color: var(--jr-moderate-ink);
+}
+.jr-pace-ink-packed {
+  color: var(--jr-packed-ink);
+}
+
+/* THE BASE ROW — where you sleep, said once, above night one. */
+.jr-base-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  background: var(--jr-cream);
+  padding: 13px 18px;
+  margin-bottom: 16px;
+  border-radius: 2px;
+}
+.jr-base-label {
+  font-family: var(--jr-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--jr-moderate-ink);
+}
+.jr-base-place {
+  font-family: var(--jr-serif);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--jr-ink);
+}
+.jr-base-note {
+  font-family: var(--jr-sans);
   font-size: 13px;
-  line-height: 1.6;
-  color: var(--peat);
+  line-height: 1.5;
+  color: var(--jr-body);
+  flex: 1 1 240px;
+}
+/* On cream, links take the darker step - see the palette note above. */
+.jr-base-row .jr-link,
+.jr-day-money .jr-link {
+  color: var(--jr-link-cream);
+}
+.jr-base-link {
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
-/* 3d · CTA BOX */
-.jr-cta {
-  background: var(--green-deep);
-  border-radius: var(--radius);
-  padding: 20px;
+/* ── NIGHT ROWS — slim text between cards, not cards. ─────────────── */
+.jr-night {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 13px 4px 13px 20px;
 }
-.jr-cta-eyebrow {
-  display: block;
-  font-size: 10px;
+.jr-night-label {
+  flex: 0 0 auto;
+  font-family: var(--jr-sans);
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
-  color: var(--amber);
-  margin-bottom: 14px;
+  color: var(--jr-moderate-ink);
+  min-width: 92px;
 }
-.jr-cta-row {
+.jr-night-note {
+  margin: 0;
+  font-family: var(--jr-sans);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--jr-body);
+}
+/* The trailing night a journey offers instead of the boat home. It is a
+   choice, not a step - the copy says so in its own first word, so this
+   only needs to stop it reading as an instruction. */
+.jr-night-optional .jr-night-label,
+.jr-night-optional .jr-night-note {
+  opacity: 0.72;
+}
+
+/* ── DAY CARD — white, and the pace is a 5px strip down its left edge.
+   Not a tile. Not a photograph. THE CARD IS NOT CLICKABLE: it holds four
+   destinations (the title, the stops, the day page, and whatever the
+   money note points at), and a card-wide link would swallow all of
+   them. */
+.jr-day {
+  background: var(--jr-card);
+  border: 1px solid rgba(20, 49, 63, 0.09);
+  border-left-width: 5px;
+  border-left-style: solid;
+  border-radius: 2px;
+  margin: 4px 0;
+}
+.jr-day-relaxed {
+  border-left-color: var(--jr-relaxed-strip);
+}
+.jr-day-moderate {
+  border-left-color: var(--jr-moderate-strip);
+}
+.jr-day-packed {
+  border-left-color: var(--jr-packed-strip);
+}
+.jr-day-inner {
+  padding: 17px 20px 16px;
+}
+.jr-day-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  color: var(--jr-body);
+  margin-bottom: 9px;
+}
+.jr-day-ord {
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  font-size: 11px;
+  color: var(--jr-ink);
+}
+.jr-day-pace {
+  font-weight: 600;
+  text-transform: lowercase;
+}
+.jr-day-meta::before,
+.jr-day-pace::before {
+  content: "·";
+  margin-right: 12px;
+  color: rgba(20, 49, 63, 0.32);
+}
+/* A numeral INSIDE a sentence stays in the serif — Instrument Sans is
+   for standalone figures. The exception is a money figure sitting in a
+   metadata row, which is neither: it reads as a figure, so it gets the
+   tabular sans without leaving the row's own type size. */
+.jr-num-inline {
+  font-family: var(--jr-sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  font-weight: 600;
+  color: var(--jr-ink);
+}
+.jr-day-title {
+  font-family: var(--jr-serif);
+  font-weight: 600;
+  font-size: 23px;
+  line-height: 1.24;
+  margin: 0 0 8px;
+}
+.jr-day-hook {
+  margin: 0 0 12px;
+  font-family: var(--jr-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--jr-body);
+}
+/* THE MONEY NOTE. On cream, so it reads as a fact about price rather
+   than as more prose - and so the standard-tour figure beside the
+   planned one can't be missed. */
+.jr-day-money {
+  background: var(--jr-cream);
+  padding: 10px 13px;
+  border-radius: 2px;
+  margin: 0 0 13px;
+  font-family: var(--jr-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  color: var(--jr-moderate-ink);
+}
+.jr-day-stops {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 14px;
-  padding: 11px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  gap: 18px;
+  border-top: 1px solid rgba(20, 49, 63, 0.08);
+  padding-top: 11px;
+}
+.jr-day-stops-list {
+  margin: 0;
+  font-family: var(--jr-sans);
   font-size: 13px;
+  line-height: 1.6;
+  color: var(--jr-ink);
 }
-.jr-cta-row:last-of-type {
-  border-bottom: none;
+.jr-day-stops-arrow {
+  color: rgba(20, 49, 63, 0.38);
 }
-.jr-cta-label {
-  color: rgba(255, 255, 255, 0.62);
-}
-.jr-cta-value {
-  color: var(--white);
+.jr-day-open {
+  flex: 0 0 auto;
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
   font-weight: 600;
-  text-align: right;
-}
-/* Second line under a cost row's label — the qualifier that keeps the
-   figure beside it honest ("6 nights, off-season to peak"), not
-   decoration. Same muted treatment as the label it sits under, a step
-   smaller. */
-.jr-cta-sub {
-  display: block;
-  margin-top: 2px;
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.42);
-}
-/* What these figures are NOT — the cost box's equivalent of the day
-   cards' "Tours only — no travel, food or stays" line. */
-.jr-cta-excludes {
-  margin: 14px 0 0;
-  font-size: 11px;
-  line-height: 1.55;
-  color: rgba(255, 255, 255, 0.5);
-}
-/* No real rate is sourced yet — muted, never a number. */
-.jr-cta-pending {
-  color: rgba(255, 255, 255, 0.45);
-  font-weight: 400;
-}
-/* The one sanctioned green pairing: --green-light on --green-deep. */
-.jr-cta-value-good {
-  color: var(--green-light);
-}
-.jr-cta-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 18px;
-}
-.jr-cta-help {
-  margin: 14px 0 0;
-  font-size: 11px;
-  line-height: 1.55;
-  color: rgba(255, 255, 255, 0.5);
-}
-/* The two Add buttons' own styling (they were inline-styled before) —
-   amber fill, then a navy-outlined white secondary. */
-.jr-btn-primary,
-.jr-btn-secondary {
-  display: block;
-  width: 100%;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-family: inherit;
-}
-.jr-btn-primary {
-  padding: 13px 20px;
-  background: var(--amber);
-  color: var(--navy);
-  border: none;
-  font-size: 14px;
-  font-weight: 700;
-}
-.jr-btn-primary:hover {
-  background: var(--amber-light);
-}
-.jr-btn-secondary {
-  padding: 12px 20px;
-  background: var(--white);
-  color: var(--navy);
-  border: 1px solid var(--navy);
-  font-size: 13px;
-  font-weight: 600;
-}
-.jr-btn-secondary:hover {
-  background: var(--off-white);
+  white-space: nowrap;
 }
 
-/* 4 · MAKE IT YOURS + 5 · GETTING HERE / BEFORE YOU BOOK */
+/* ── LINKS ────────────────────────────────────────────────────────────
+   One rule for every link on this page. Hover takes the underline to
+   solid and the colour to full - no colour change, no movement. */
+.jr-link {
+  color: var(--jr-link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2.5px;
+  text-decoration-color: rgba(150, 80, 28, 0.34);
+  transition: text-decoration-color 0.12s ease;
+}
+.jr-link:hover,
+.jr-link:focus-visible {
+  text-decoration-color: currentColor;
+}
+
+/* ── THE RAIL ─────────────────────────────────────────────────────── */
+.jr-rail-map {
+  background: var(--jr-card);
+  border: 1px solid rgba(20, 49, 63, 0.09);
+  border-radius: 2px;
+  padding: 13px 13px 12px;
+}
+.jr-rail-map-eyebrow {
+  margin-bottom: 9px;
+}
+.jr-map-holder {
+  position: relative;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.jr-map-canvas {
+  height: 236px;
+  width: 100%;
+  background: var(--jr-page);
+}
+/* The day currently in view, named over the map. Two lines: the day, and
+   where it happens. */
+.jr-map-badge {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 400;
+  background: rgba(22, 57, 75, 0.93);
+  padding: 7px 11px;
+  border-radius: 2px;
+  pointer-events: none;
+}
+.jr-map-badge-day {
+  display: block;
+  font-family: var(--jr-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--jr-accent);
+}
+.jr-map-badge-area {
+  display: block;
+  font-family: var(--jr-serif);
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  margin-top: 1px;
+}
+.jr-rail-map-caption {
+  margin: 10px 0 0;
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--jr-body);
+}
+/* ONE ask. This is the slim half of it - it hides the instant the full
+   navy block scrolls into view, so the reader never gets the same
+   sentence twice six inches apart. */
+.jr-rail-ask {
+  display: block;
+  background: var(--jr-navy);
+  padding: 14px 16px;
+  border-radius: 2px;
+  text-decoration: none;
+  transition: opacity 0.18s ease;
+}
+.jr-rail-ask-label {
+  display: block;
+  font-family: var(--jr-serif);
+  font-weight: 600;
+  font-size: 17px;
+  color: #fff;
+}
+.jr-rail-ask-note {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.72);
+}
+.jr-rail-ask:hover .jr-rail-ask-label {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.jr-rail-ask-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+/* Phone only. See the media query at the foot of this block. */
+.jr-mobile-ask {
+  display: none;
+}
+
+/* ── 3 · PANELS, THE ASK, THE COST ────────────────────────────────── */
 .jr-wide {
-  max-width: 1120px;
+  background: var(--jr-page);
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 34px 24px 0;
+  padding: 30px 32px;
 }
 .jr-wide:last-of-type {
   padding-bottom: 64px;
 }
-.jr-variations {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
-}
-@media (max-width: 900px) {
-  .jr-variations {
-    grid-template-columns: 1fr;
-  }
-}
-.jr-variation {
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-}
-.jr-variation-title {
-  font-family: var(--font-display);
-  font-size: 19px;
-  font-weight: 500;
-  color: var(--dark);
-  margin: 9px 0 8px;
-}
-.jr-variation-body {
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--peat);
-  margin: 0 0 14px;
-}
-.jr-variation-link {
-  margin-top: auto;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--copper);
-  text-decoration: none;
-}
-.jr-variation-link:hover {
-  text-decoration: underline;
-}
-
 .jr-panels {
   display: grid;
-  grid-template-columns: minmax(0, 45fr) minmax(0, 55fr);
-  gap: 18px;
-  align-items: start;
-}
-@media (max-width: 900px) {
-  .jr-panels {
-    grid-template-columns: 1fr;
-  }
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  padding-top: 46px;
 }
 .jr-panel {
-  padding: 20px 22px;
+  background: var(--jr-card);
+  border: 1px solid rgba(20, 49, 63, 0.09);
+  border-radius: 2px;
+  padding: 20px 22px 8px;
 }
 .jr-panel-title {
-  font-family: var(--font-display);
-  font-size: 21px;
-  font-weight: 500;
-  color: var(--dark);
-  margin: 0 0 6px;
+  font-family: var(--jr-serif);
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--jr-ink);
+  margin: 0 0 14px;
 }
 .jr-panel-row {
   display: flex;
   gap: 16px;
   padding: 11px 0;
-  border-bottom: 1px solid var(--stone);
-}
-.jr-panel-row:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
+  border-top: 1px solid rgba(20, 49, 63, 0.08);
 }
 .jr-panel-row-key {
   flex: 0 0 88px;
-  font-size: 12.5px;
+  font-family: var(--jr-sans);
+  font-size: 11px;
   font-weight: 700;
-  color: var(--dark);
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--jr-ink);
+  padding-top: 2px;
 }
 .jr-panel-row-value {
   flex: 1 1 auto;
+  font-family: var(--jr-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--jr-body);
+}
+
+/* THE ASK — the full navy block. One button, and two text links. */
+.jr-ask {
+  background: var(--jr-navy);
+  border-radius: 2px;
+  padding: 34px 36px 30px;
+}
+.jr-ask-title {
+  font-family: var(--jr-serif);
+  font-weight: 600;
+  font-size: 26px;
+  color: #fff;
+  margin: 0 0 10px;
+}
+.jr-ask-body {
+  margin: 0 0 16px;
+  font-family: var(--jr-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.8);
+  max-width: 58ch;
+}
+.jr-ask-ticks {
+  list-style: none;
+  margin: 0 0 22px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+}
+.jr-ask-ticks li {
+  font-family: var(--jr-sans);
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+.jr-ask-ticks li::before {
+  content: "✓";
+  margin-right: 8px;
+  color: var(--jr-accent);
+}
+.jr-ask-action {
+  margin-bottom: 24px;
+}
+.jr-ask-button {
+  font-family: var(--jr-sans);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--jr-navy);
+  background: var(--jr-accent);
+  border: none;
+  border-radius: 2px;
+  padding: 13px 22px;
+  cursor: pointer;
+}
+.jr-ask-button:hover {
+  filter: brightness(1.06);
+}
+.jr-ask-note {
+  margin: 9px 0 0;
+  font-family: var(--jr-sans);
   font-size: 13px;
-  line-height: 1.6;
-  color: var(--slate);
+  color: rgba(255, 255, 255, 0.82);
+}
+/* Where the trip is ACTUALLY kept, today. Not a footnote - it is the
+   sentence that makes the line above it honest, and it goes the day
+   visitor accounts land. See PutInPlannerButton. */
+.jr-ask-device {
+  margin: 3px 0 0;
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.6);
+  max-width: 52ch;
+}
+.jr-ask-or {
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  padding-top: 16px;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px 26px;
+}
+.jr-ask-or .jr-eyebrow {
+  color: rgba(255, 255, 255, 0.5);
+  flex: 0 0 auto;
+}
+.jr-ask-alt {
+  font-family: var(--jr-sans);
+  font-size: 13.5px;
+  color: var(--jr-accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(221, 168, 106, 0.4);
+  text-underline-offset: 3px;
+}
+.jr-ask-alt:hover {
+  text-decoration-color: currentColor;
+}
+
+/* WHAT IT COSTS — a stacked proportion bar, then one row per day sorted
+   by spend. The block exists because the biggest number on the whole
+   trip happens on one morning, and five figures in day order never
+   showed that. */
+.jr-cost-bar {
+  display: flex;
+  height: 13px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: rgba(20, 49, 63, 0.08);
+  margin-bottom: 18px;
+}
+.jr-cost-seg {
+  display: block;
+  height: 100%;
+}
+.jr-cost-rows {
+  margin-bottom: 28px;
+}
+.jr-cost-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(20, 49, 63, 0.08);
+}
+.jr-cost-swatch {
+  flex: 0 0 auto;
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  transform: translateY(1px);
+}
+.jr-cost-name {
+  flex: 0 0 auto;
+  font-family: var(--jr-serif);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--jr-ink);
+}
+.jr-cost-note {
+  flex: 1 1 auto;
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  color: var(--jr-body);
+}
+.jr-cost-figure {
+  flex: 0 0 auto;
+  font-family: var(--jr-sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--jr-ink);
+  text-align: right;
+}
+/* PER PERSON vs PER PARTY is on the face of every figure, never in a
+   footnote - see each .jr-figure-note below. */
+.jr-figures {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 22px;
+  border-top: 2px solid var(--jr-navy);
+  padding-top: 18px;
+}
+.jr-figure-value {
+  display: block;
+  font-family: var(--jr-sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--jr-ink);
+  margin: 6px 0 4px;
+}
+.jr-figure-unit {
+  font-size: 15px;
+  font-weight: 600;
+}
+.jr-figure-pending,
+.jr-figure-none {
+  font-size: 18px;
+  color: var(--jr-body);
+}
+.jr-figure-note {
+  display: block;
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--jr-body);
+}
+.jr-cost-foot {
+  margin: 20px 0 0;
+  font-family: var(--jr-sans);
+  font-size: 13px;
+  color: var(--jr-body);
+}
+
+/* ── 4 · WAYS OUT — three honest reasons this might not suit you. ─── */
+.jr-ways {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.jr-way {
+  background: var(--jr-card);
+  border: 1px solid rgba(20, 49, 63, 0.09);
+  border-radius: 2px;
+  padding: 20px;
+}
+.jr-way .jr-eyebrow {
+  color: var(--jr-moderate-ink);
+  margin-bottom: 8px;
+}
+.jr-way-title {
+  font-family: var(--jr-serif);
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1.25;
+  margin: 0 0 9px;
+}
+.jr-way-body {
+  margin: 0;
+  font-family: var(--jr-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--jr-body);
+}
+
+/* ── NARROW ───────────────────────────────────────────────────────────
+   No rail. The map becomes a full-width band ABOVE the days, and the
+   action becomes a bottom bar - which the rail component only shows once
+   day one has gone past, because an ask before anyone has read a single
+   day is what this page's whole structure argues against. */
+@media (max-width: 900px) {
+  .jr-main {
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+  }
+  .jr-rail {
+    order: -1;
+    position: static;
+    gap: 0;
+  }
+  .jr-rail-ask {
+    display: none;
+  }
+  .jr-mobile-ask {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 900;
+    background: var(--jr-navy);
+    padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+    text-decoration: none;
+    box-shadow: 0 -2px 14px rgba(20, 49, 63, 0.28);
+  }
+  .jr-panels,
+  .jr-figures,
+  .jr-ways {
+    grid-template-columns: 1fr;
+  }
+  .jr-claim-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .jr-claim {
+    min-height: 0;
+  }
+  .jr-claim-stats {
+    flex-wrap: wrap;
+    gap: 20px 30px;
+  }
 }
 
 @media (max-width: 640px) {
-  /* Phone: the tile becomes a band across the top of the card rather
-     than a column beside it - a 200px column on a 320px screen leaves
-     the title nowhere to go. Same contents, laid out in a row so the
-     band stays shallow. */
-  .jr-day-card {
-    flex-direction: column;
-  }
-  .jr-pace-tile {
-    flex: 0 0 auto;
-    min-width: 0;
-    width: 100%;
-    flex-direction: row;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 14px;
-    padding: 12px 16px 14px;
-  }
-  .jr-pace-tile-day {
-    align-self: flex-start;
-  }
-  .jr-pace-tile-body {
-    margin-top: 0;
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-  }
-  .jr-pace-tile-count {
+  .jr-hero-title {
     font-size: 34px;
-    margin-bottom: 0;
   }
-  .jr-spine {
-    padding-left: 34px;
+  .jr-standfirst p {
+    font-size: 18px;
   }
-  .jr-spine::before {
-    left: 11px;
+  .jr-hero-inner,
+  .jr-standfirst,
+  .jr-claim,
+  .jr-main,
+  .jr-wide {
+    padding-left: 18px;
+    padding-right: 18px;
   }
-  .jr-spine-marker-day {
-    left: -34px;
-    width: 24px;
-    height: 24px;
-    font-size: 11px;
+  .jr-day-stops {
+    flex-direction: column;
+    gap: 9px;
   }
-  .jr-spine-marker-night {
-    left: -30px;
-    width: 16px;
-    height: 16px;
-    font-size: 9px;
+  .jr-cost-row {
+    flex-wrap: wrap;
+  }
+  .jr-cost-note {
+    flex: 1 1 100%;
+    order: 3;
+  }
+  .jr-night {
+    flex-direction: column;
+    gap: 4px;
   }
 }

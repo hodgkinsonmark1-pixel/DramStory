@@ -19,6 +19,19 @@ export interface Tour {
   duration: string;
   price: number;
   description: string;
+  /** Editorial confidence in this row, from the Tours table's own
+   *  `Verification` singleSelect - "Verified - official source",
+   *  "Needs check before go-live", or "Placeholder - do not publish".
+   *  Read through verbatim (never normalised here) so a new option added
+   *  in Airtable can't silently be mapped onto an old meaning.
+   *
+   *  Undefined when the cell is blank, which is NOT the same as a
+   *  placeholder - see isPublishableTour, the one place the distinction
+   *  is turned into a yes/no. Added 18 Aug 2026: the "standard tours
+   *  start at" floor on /journeys/[slug] must never be computed from a
+   *  price nobody has stood behind, and two of Bowmore's rows are
+   *  flagged exactly that way. */
+  verification?: string;
 }
 
 export interface NearbyFeature {
@@ -454,6 +467,27 @@ export interface HubDay {
    *  hand-written `Day Timeline` field - two hand-written times and a
    *  computed schedule could and did disagree about the same day. */
   startTime?: string;
+  /** Short phrase naming WHERE this day happens - "The north east",
+   *  "The Rhinns", "Port Ellen". Shown in the day card's header row and
+   *  over the journey map when this is the day in view. Sourced from the
+   *  Days table's own `Area Note`, and deliberately NOT the Areas link
+   *  beside it: that points at village records (Port Ellen, Bowmore,
+   *  Port Charlotte), is blank on most Days, and can't name a stretch of
+   *  coast. Undefined when blank - the header drops the clause rather
+   *  than inventing a region. Added 18 Aug 2026. */
+  areaNote?: string;
+  /** The one-glance version of `transportNote` for the same header row -
+   *  "Car needed", "Doable by bus", "No car - two miles on foot".
+   *  Authored per Day (`Transport Clause`) rather than derived from
+   *  Travel Mode, which only knows how you move BETWEEN stops and would
+   *  call a bussed-to village walkable. Undefined when blank. Added 18
+   *  Aug 2026. */
+  transportClause?: string;
+  /** What to call this day's SPEND in the cost breakdown's proportion
+   *  bar - "Port Ellen", "The Kildalton three". The Day's `Name` is a
+   *  title and reads wrong beside a figure. Undefined when blank;
+   *  callers fall back to areaNote, then name. Added 18 Aug 2026. */
+  costLabel?: string;
   /** Drive or Walk, from the Day's own `Travel Mode` (blank = drive).
    *  Added 17 Aug 2026 alongside the precomputed `Leg Minutes` on Day
    *  Stops: the stored legs are already routed with the matching OSRM
@@ -531,8 +565,34 @@ export interface Journey {
   /** "Getting here and away" rows, same "Label: Value" parse as Areas'
    *  inTheVillage. Empty array omits the card. */
   gettingHereRows: { key: string; value: string }[];
-  /** "Before you book" rows, same shape. Empty array omits the card. */
+  /** "Before you book" rows, same shape. Empty array omits the card.
+   *
+   *  NO LONGER RENDERED on /journeys/[slug] as of 18 Aug 2026 - the
+   *  panel it fed is now "When to come" (whenToComeRows below). The
+   *  field and this mapping stay: the copy in it is real, some of it has
+   *  moved onto the days it belongs to, and deleting a populated
+   *  Airtable column to make a layout change is not reversible. */
   beforeYouBookRows: { key: string; value: string }[];
+  /** "When to come" rows - Silent seasons, Fèis Ìle, Rooms. Same
+   *  "Label: Value" parse. Seasonality is the question that decides
+   *  whether a journey works at all, which is why it replaced "Before
+   *  you book" in that slot; per-tour booking facts now live on the day
+   *  card that needs them. Empty array omits the panel. Added 18 Aug
+   *  2026. */
+  whenToComeRows: { key: string; value: string }[];
+  /** The cheapest PUBLISHABLE tour price at each distillery this journey
+   *  visits, keyed by distillery slug - the raw material for every
+   *  "starts at" figure on the page, including the claim band's "from
+   *  £N" floor and each day card's money note.
+   *
+   *  Computed in fetchJourneysFromAirtable from the whole Tours table
+   *  (not just the tours this journey's days happen to book), because
+   *  the question it answers is "what is the least this distillery will
+   *  take from you", which the journey's own picks can't answer. A
+   *  distillery with no publishable priced tour is simply absent from
+   *  the map rather than present at zero - see isPublishableTour and
+   *  journeyTourFloor. Added 18 Aug 2026. */
+  standardTourFloor: Record<string, number>;
   /** Indicative lowest (off-season) per-night room rate at `base`. Pairs
    *  with accommodationPeakPerNight below so the sidebar can show an
    *  honest RANGE rather than a single number pretending to be the

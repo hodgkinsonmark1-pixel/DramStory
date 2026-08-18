@@ -1,5 +1,6 @@
 import type { HubDay, Journey } from "@/lib/types";
 import { isFerryDay, type DayBase } from "@/lib/day-derivations";
+import { formatPrice } from "@/lib/pricing";
 
 /**
  * Derived values for the rebuilt /journeys/[slug] page (13 Aug 2026) - the
@@ -287,18 +288,12 @@ export function nightsAfterDay(
   return slots;
 }
 
-/** The pace tile's caption split into its two rendered lines: the noun
- *  ("distilleries") and the phrase after it ("one road"). Both halves
- *  are the Day's own authored `Tile Caption` - this only decides where
- *  the line breaks, so the tile's two lines can't drift from the copy
- *  the way a generated noun did. A one-word caption renders as one line
- *  rather than one line and an empty one. */
-export function splitTileCaption(caption: string): { head: string; tail: string } {
-  const trimmed = caption.trim();
-  const space = trimmed.indexOf(" ");
-  if (space === -1) return { head: trimmed, tail: "" };
-  return { head: trimmed.slice(0, space), tail: trimmed.slice(space + 1).trim() };
-}
+/* splitTileCaption lived here from 17-18 Aug 2026 and is DELETED with
+   paceTileTone, for the same reason: it broke a Day's `Tile Caption`
+   across the two lines of a pace tile that no longer exists. The
+   Airtable field and HubDay.tileCaption both stay - the copy in them is
+   real, and nothing about removing a layout justifies dropping authored
+   content from the data layer. */
 
 // ─────────────────────────────────────────────────────────────────────────
 // Base legs (17 Aug 2026). A Journey states where the visitor sleeps, so
@@ -392,4 +387,271 @@ export function journeyCarHire(journey: Journey): { kind: "priced"; total: numbe
   }
   if (perDay === undefined && journeyFullyWalkable(journey)) return { kind: "not-needed" };
   return { kind: "pending" };
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// THE FLOOR, AND WHAT IT COSTS (18 Aug 2026, to the site owner's build
+// spec for /journeys/[slug]).
+//
+// One rule governs everything below: no money figure on that page is ever
+// typed. The claim band's "from £N", every day card's "starts at", the
+// proportion bar and all four summary figures are computed from the same
+// two inputs - the tour each Day Stop actually books, and the cheapest
+// publishable tour at that distillery (Journey.standardTourFloor, built
+// in the data layer against isPublishableTour so a Placeholder row can
+// never become a lower bound).
+//
+// The spec's own worked example said "from £395". These functions return
+// £435.50 for the same journey off today's records. That is not a bug to
+// paper over with a constant: it is the arithmetic the page now shows its
+// working for, and it moves the moment a tour price does.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Every distillery this journey visits, by slug, in first-visit order
+ *  and without repeats - the set the floor is summed over, and the same
+ *  set journeyDistilleryCount counts. */
+export function journeyDistillerySlugs(journey: Journey): string[] {
+  const seen = new Set<string>();
+  const slugs: string[] = [];
+  for (const day of journey.days) {
+    for (const stop of day.stops) {
+      if (seen.has(stop.distillery.slug)) continue;
+      seen.add(stop.distillery.slug);
+      slugs.push(stop.distillery.slug);
+    }
+  }
+  return slugs;
+}
+
+/** A floor is only a floor if every distillery under it has one. `total`
+ *  is the sum of the cheapest publishable tour at each distillery in the
+ *  journey; `complete` is false the moment one of them has no publishable
+ *  priced tour at all, in which case the total is a sum of SOME of them
+ *  and callers must not print "from" against it - they show nothing,
+ *  which is the site's standing rule for an unsourced number.
+ *
+ *  Deliberately per-DISTILLERY, not per-stop: a journey that visited the
+ *  same distillery twice would only ever pay its floor once here, and no
+ *  claim band should imply otherwise. */
+export function journeyTourFloor(journey: Journey): { total: number; complete: boolean } {
+  const slugs = journeyDistillerySlugs(journey);
+  let total = 0;
+  let complete = slugs.length > 0;
+  for (const slug of slugs) {
+    const price = journey.standardTourFloor[slug];
+    if (price === undefined) {
+      complete = false;
+      continue;
+    }
+    total += price;
+  }
+  return { total, complete };
+}
+
+/** The same sum for ONE day - what this day would cost if you booked the
+ *  cheapest thing going at each of its distilleries instead of what the
+ *  journey picked. Only distilleries the day actually books a tour at are
+ *  counted, so a day that walks past a distillery without going in isn't
+ *  charged a floor for it. */
+export function dayTourFloor(day: HubDay, floors: Record<string, number>): { total: number; complete: boolean } {
+  const slugs = new Set(day.stops.filter((s) => s.tour).map((s) => s.distillery.slug));
+  let total = 0;
+  let complete = slugs.size > 0;
+  for (const slug of slugs) {
+    const price = floors[slug];
+    if (price === undefined) {
+      complete = false;
+      continue;
+    }
+    total += price;
+  }
+  return { total, complete };
+}
+
+/** "£56", "£22.50" - whole pounds stay whole, a real half-pound price
+ *  (Ardbeg's £22.50 Classic tour) keeps its pence. Same rule as
+ *  pricing.ts's formatPrice, which this defers to; kept as a named
+ *  re-export here purely so the page reads in one vocabulary. */
+export { formatPrice as formatTourPrice } from "@/lib/pricing";
+
+/** Small counts spelled out ("all three"), numerals past that. Used for
+ *  "Standard tours at all three start at ..." and for the ways-out link
+ *  that names how many Days the hub actually has. */
+export function spellCount(n: number): string {
+  const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+    "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"];
+  return WORDS[n] ?? `${n}`;
+}
+
+/**
+ * The money note that sits on cream under a day card's hook. Three
+ * genuinely different sentences, because three genuinely different things
+ * can be true:
+ *
+ *  - The day books above the floor. Say what the standard would cost, so
+ *    the reader can see the choice that was made on their behalf. This is
+ *    the Grand Tour's day two: a £100 seated tasting where Bowmore's own
+ *    standard tour is £20.
+ *  - The day IS the floor. Saying "standard tours start at £56" under
+ *    "today's tours cost £56" is noise; the honest line is that there is
+ *    nothing cheaper.
+ *  - Nobody has priced one of the distilleries. Then only the planned
+ *    figure is stated, and no floor is implied at all.
+ *
+ * The wording never asserts a distillery runs only one tour - the records
+ * show Port Ellen runs four, and the spec's own draft of this sentence
+ * said otherwise. What IS true, and what this says, is that none of them
+ * is cheaper.
+ */
+export function dayMoneyNote(day: HubDay, floors: Record<string, number>): string | undefined {
+  const planned = dayTourTotal(day);
+  if (planned <= 0) return undefined;
+  const tourStops = day.stops.filter((s) => s.tour);
+  const single = tourStops.length === 1;
+  const distilleryCount = new Set(tourStops.map((s) => s.distillery.slug)).size;
+  const lead = single
+    ? `Today's tour costs ${formatPrice(planned)}pp.`
+    : `Today's tours cost ${formatPrice(planned)}pp.`;
+
+  const floor = dayTourFloor(day, floors);
+  if (!floor.complete) return lead;
+
+  if (floor.total < planned) {
+    return single
+      ? `${lead} ${tourStops[0].distillery.name}'s standard tour is ${formatPrice(floor.total)}pp.`
+      : `${lead} Standard tours at all ${spellCount(distilleryCount)} start at ${formatPrice(floor.total)}pp.`;
+  }
+  return single
+    ? `${lead} Nothing ${tourStops[0].distillery.name} runs costs less — there is no cheaper way in.`
+    : `${lead} These are the standard tours at all ${spellCount(distilleryCount)} — there is no cheaper way round.`;
+}
+
+/** One row of the "What it costs, and where" proportion bar. `note` is
+ *  computed on exactly the same three-way test as dayMoneyNote above, so
+ *  a day can never explain its spend one way in the spine and another way
+ *  in the breakdown. */
+export interface CostRow {
+  dayNumber: number;
+  label: string;
+  note: string;
+  amount: number;
+  pacing: string;
+  share: number;
+}
+
+/** Every day that spends anything, sorted by spend descending - the whole
+ *  point of the block. Port Ellen is 47% of the Grand Tour's tour spend
+ *  and happens on one morning; five numbers in day order never show that,
+ *  and a bar sorted by day order doesn't either.
+ *
+ *  `share` is that day's fraction of the total, 0-1, computed rather than
+ *  authored. Days that book nothing are dropped, not drawn at zero. */
+export function journeyCostRows(journey: Journey): CostRow[] {
+  const rows = journey.days
+    .map((day, i) => ({ day, dayNumber: i + 1, amount: dayTourTotal(day) }))
+    .filter((r) => r.amount > 0);
+  const total = rows.reduce((sum, r) => sum + r.amount, 0);
+  return rows
+    .map(({ day, dayNumber, amount }) => {
+      const tourStops = day.stops.filter((s) => s.tour);
+      const floor = dayTourFloor(day, journey.standardTourFloor);
+      let note: string;
+      if (!floor.complete) {
+        note = `Day ${dayNumber} · not every tour here is priced`;
+      } else if (floor.total < amount) {
+        note =
+          tourStops.length === 1 && tourStops[0].tour
+            ? `Day ${dayNumber} · ${tourStops[0].tour.name}. The standard tour is ${formatPrice(floor.total)}`
+            : `Day ${dayNumber} · the standard tours would be ${formatPrice(floor.total)}`;
+      } else {
+        note =
+          tourStops.length === 1
+            ? `Day ${dayNumber} · one tour, and no cheaper way in`
+            : `Day ${dayNumber} · the standard tour at each`;
+      }
+      return {
+        dayNumber,
+        label: day.costLabel ?? day.areaNote ?? day.name,
+        note,
+        amount,
+        pacing: day.pacing,
+        share: total > 0 ? amount / total : 0,
+      };
+    })
+    .sort((a, b) => b.amount - a.amount);
+}
+
+/** The claim band's three stats, each answering a DIFFERENT question -
+ *  how much of the island you see, what the tours will take from you at
+ *  the very least, and what shape the stay is. Never three readings of
+ *  the same fact.
+ *
+ *  The middle stat disappears entirely rather than degrading when the
+ *  floor is incomplete: "from" a number that isn't a floor is a claim
+ *  this site can't make. */
+export function journeyClaimStats(
+  journey: Journey
+): { value: string; label: string }[] {
+  const stats: { value: string; label: string }[] = [];
+
+  const distilleries = journeyDistilleryCount(journey);
+  if (distilleries > 0) {
+    stats.push({
+      value: `${distilleries}`,
+      label: journeyDistilleryStatLabel(journey),
+    });
+  }
+
+  const floor = journeyTourFloor(journey);
+  if (floor.complete && floor.total > 0) {
+    stats.push({
+      value: `from ${formatPrice(floor.total)}`,
+      label: "per person in tours, booked separately",
+    });
+  }
+
+  if (journey.nights > 0) {
+    const noun = journey.nights === 1 ? "night" : "nights";
+    // Two facts about the SHAPE of the stay, neither of them the night
+    // count itself: one bed the whole way, and whether you need a car to
+    // use it. Both come off records - the Base text field, and every
+    // day's own Transport Clause.
+    const bed = journey.base ? "one bed throughout" : "";
+    const car = journey.days.some((d) => (d.transportClause ?? "").toLowerCase().startsWith("car"))
+      ? "you'll need a car"
+      : "";
+    const clauses = [bed, car].filter(Boolean).join(", and ");
+    stats.push({
+      value: `${journey.nights} ${noun}`,
+      label: clauses || `based in ${journey.base}`,
+    });
+  }
+
+  return stats;
+}
+
+/** The Accommodation Note, cut to its first sentence for the base row
+ *  above night one. Those notes run to a paragraph on the longer
+ *  journeys (the Grand Tour's is five sentences and covers the optional
+ *  sixth night), and the base row is a single line beside a village name.
+ *  The full note still has a home - it is what nightNoteFor falls back to
+ *  when a journey authors no Night Notes at all. */
+export function firstSentence(text: string): string {
+  const trimmed = text.trim();
+  const match = trimmed.match(/^[^.!?]+[.!?]/);
+  return match ? match[0].trim() : trimmed;
+}
+
+/** relaxed | moderate | packed - the CSS suffix behind the 5px strip down
+ *  a day card and the pace legend's swatches. Deliberately a class name
+ *  rather than a colour: the three hues are declared once, in the jr-
+ *  block's own custom properties, and no hex reaches this file.
+ *
+ *  Anything the Days table's Pacing singleSelect can't produce falls to
+ *  "moderate" rather than throwing or drawing an uncoloured strip. */
+export function paceKey(pacing: string): "relaxed" | "moderate" | "packed" {
+  const p = pacing.trim().toLowerCase();
+  if (p === "relaxed") return "relaxed";
+  if (p === "packed") return "packed";
+  return "moderate";
 }

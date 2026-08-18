@@ -49,6 +49,13 @@ export interface AirtableTourFields {
   Duration?: string;
   Price?: number;
   Description?: string;
+  /** Editorial confidence in the row - "Verified — official source",
+   *  "Needs check before go-live", "Placeholder — do not publish".
+   *  Added to the table 18 Aug 2026 by the site owner; read here so the
+   *  "standard tours start at" floor on /journeys/[slug] can skip the
+   *  rows nobody stands behind. Two Bowmore alternatives are flagged
+   *  Placeholder and would otherwise undercut a real published price. */
+  Verification?: string;
 }
 
 export interface AirtableJournalFields {
@@ -173,6 +180,9 @@ export function mapTour(fields: AirtableTourFields): Tour {
     duration: fields.Duration ?? "",
     price: fields.Price ?? 0,
     description: fields.Description ?? "",
+    // Verbatim, trimmed, undefined when blank - never normalised into a
+    // boolean here. See Tour.verification and isPublishableTour.
+    verification: fields.Verification?.trim() || undefined,
   };
 }
 
@@ -622,6 +632,16 @@ export interface AirtableDayFields {
    *  anything; it is left on the table rather than deleted only because
    *  field deletion isn't available over the API this project uses. */
   "Tile Caption"?: string;
+  /** Short phrase naming where the day happens - "The north east",
+   *  "The Rhinns". Added 18 Aug 2026; see HubDay.areaNote for why this
+   *  is not the Areas link. */
+  "Area Note"?: string;
+  /** One-glance transport summary for the day card header, e.g. "Car
+   *  needed". Added 18 Aug 2026; see HubDay.transportClause. */
+  "Transport Clause"?: string;
+  /** Short name for this day's spend in the cost breakdown. Added 18 Aug
+   *  2026; see HubDay.costLabel. */
+  "Cost Label"?: string;
   /** When this Day starts, "HH:MM" (e.g. "13:00"). Blank means the 09:30
    *  default (docs/days-trip-flow-handoff.md §2.2). Added 16 Aug 2026.
    *
@@ -870,6 +890,9 @@ export function mapAirtableDayRecord(
     hook: f.Hook ?? "",
     distanceOnFoot: f["Distance on Foot"] || undefined,
     tileCaption: f["Tile Caption"]?.trim() || undefined,
+    areaNote: f["Area Note"]?.trim() || undefined,
+    transportClause: f["Transport Clause"]?.trim() || undefined,
+    costLabel: f["Cost Label"]?.trim() || undefined,
     startTime: f["Start Time"]?.trim() || undefined,
     // Blank is Drive, per the field's own description - not a third
     // "unknown" state. Anything other than the exact "Walk" option falls
@@ -912,8 +935,14 @@ export interface AirtableJourneyFields {
   /** "Getting here and away" panel rows - "Label: Value" per line, same
    *  convention as Areas' In The Village. Added 13 Aug 2026. */
   "Getting Here Rows"?: string;
-  /** "Before you book" panel rows - same convention. Added 13 Aug 2026. */
+  /** "Before you book" panel rows - same convention. Added 13 Aug 2026.
+   *  Still mapped, no longer rendered on /journeys/[slug] since 18 Aug
+   *  2026 - see "When To Come Rows" below. */
   "Before You Book Rows"?: string;
+  /** "When to come" panel rows - same "Label: Value" convention. Three
+   *  rows: Silent, Fèis Ìle, Rooms. Added 18 Aug 2026, taking the slot
+   *  "Before You Book Rows" used to hold. */
+  "When To Come Rows"?: string;
   /** Indicative lowest (off-season) per-night room rate at this
    *  Journey's Base. Populated 17 Aug 2026 for the two Port Ellen
    *  journeys only (Ardbeg House); the two Bridgend journeys are still

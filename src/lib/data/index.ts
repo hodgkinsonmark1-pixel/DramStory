@@ -2,6 +2,7 @@ import { cache } from "react";
 import type { Area, Distillery, FeaturedStay, HubDay, JournalPost, Journey, LocalEvent, LocalFeature, PlaceListing } from "@/lib/types";
 import { airtableFetchAll } from "@/lib/airtable";
 import { searchAccommodation, searchNearbyByCategory } from "@/lib/google-places";
+import { isPublishableTour } from "@/lib/pricing";
 import {
   deriveNextStops,
   mapAirtableDayRecord,
@@ -392,6 +393,41 @@ async function fetchJourneysFromAirtable(): Promise<Journey[]> {
 
   const journeyDayById = new Map(journeyDayRecords.map((r) => [r.id, r.fields]));
 
+  // THE FLOOR (18 Aug 2026). The cheapest publishable, priced tour at
+  // every distillery on the island, keyed by slug - built once here from
+  // the WHOLE Tours table rather than from the tours these journeys
+  // happen to book, because "what is the least this distillery will take
+  // from you" is a fact about the distillery, not about the itinerary.
+  //
+  // Two rows are excluded, for two different reasons:
+  //  - Verification "Placeholder — do not publish". Both of Bowmore's
+  //    are, and one of them (£30) undercuts its real £20 standard tour;
+  //    a floor built from a price nobody stands behind is worse than no
+  //    floor at all.
+  //  - price <= 0. Port Ellen Open Days carries £0 with a duration of
+  //    "Unconfirmed — not publicly listed", which means "we don't know",
+  //    not "free" - and £0 would drag Port Ellen's floor from £250 to
+  //    nothing and take the whole journey's claim band with it.
+  // A distillery left with nothing publishable is simply ABSENT from
+  // this map. Callers must treat absence as "we can't say", never as
+  // zero - see journeyTourFloor.
+  const cheapestTourByDistilleryId = new Map<string, number>();
+  for (const record of tourRecords) {
+    const tour = mapTour(record.fields);
+    if (!isPublishableTour(tour)) continue;
+    const distilleryId = record.fields.Distillery?.[0];
+    if (!distilleryId) continue;
+    const current = cheapestTourByDistilleryId.get(distilleryId);
+    if (current === undefined || tour.price < current) {
+      cheapestTourByDistilleryId.set(distilleryId, tour.price);
+    }
+  }
+  const standardTourFloorBySlug: Record<string, number> = {};
+  for (const [distilleryId, price] of cheapestTourByDistilleryId) {
+    const distillery = distilleryById.get(distilleryId);
+    if (distillery) standardTourFloorBySlug[distillery.slug] = price;
+  }
+
   const journeys: Journey[] = [];
 
   for (const record of journeyRecords) {
@@ -486,6 +522,13 @@ async function fetchJourneysFromAirtable(): Promise<Journey[]> {
       makeItYours: parseMakeItYours(f["Make It Yours"]),
       gettingHereRows: parseLabelValueLines(f["Getting Here Rows"]),
       beforeYouBookRows: parseLabelValueLines(f["Before You Book Rows"]),
+      whenToComeRows: parseLabelValueLines(f["When To Come Rows"]),
+      // Every distillery's floor, not just this journey's - the page
+      // narrows it to the ones it visits. Sharing one object across all
+      // four journeys is deliberate: there is only one answer to "what
+      // does the cheapest Bowmore tour cost", and copying it per journey
+      // is how two pages start disagreeing.
+      standardTourFloor: standardTourFloorBySlug,
       // Undefined (not 0) throughout, so the sidebar can tell "no rate
       // sourced yet" from a real £0 - and, for car hire, "not needed"
       // from "not priced". See each field's own doc comment in

@@ -23,7 +23,21 @@ interface SiteHeaderProps {
    *  needs to sit at the top of one ~600-840px-wide scrollable column.
    *  Defaults false (every existing call site is unaffected). */
   panelStyle?: boolean;
+  /** Overrides the five default destinations. Added 18 Aug 2026 for
+   *  /journeys/[slug], whose build spec names its own nav (JOURNEYS ·
+   *  DAY PLANS · DISTILLERIES · JOURNAL · LOGIN) and puts Login last
+   *  rather than first. Every existing call site passes nothing and is
+   *  unchanged - this is deliberately not a global nav rewrite, which
+   *  would touch the homepage hero and all three intake screens. */
+  links?: { href: string; label: string }[];
 }
+
+const DEFAULT_LINKS = [
+  { href: "/login", label: "Login" },
+  { href: "/distilleries", label: "Distilleries" },
+  { href: "/journal", label: "Journal" },
+  { href: "/contact", label: "Contact" },
+];
 
 /**
  * The site's primary nav — logo + Login / Distilleries / Journal / Contact.
@@ -37,6 +51,7 @@ export default function SiteHeader({
   showLogo = true,
   showLinks = true,
   panelStyle = false,
+  links = DEFAULT_LINKS,
 }: SiteHeaderProps) {
   const navClass = panelStyle ? "hero-right-nav" : transparent ? "hero-nav" : "journey-nav";
   const linksClass = panelStyle ? "hero-right-nav-links" : transparent ? "hero-nav-links" : "journey-nav-links";
@@ -65,46 +80,25 @@ export default function SiteHeader({
       )}
       {showLinks && (
         <div className={linksClass} style={!transparent && !panelStyle ? { display: "flex", gap: 28 } : undefined}>
-          <Link
-            href="/login"
-            style={
-              !transparent
-                ? { fontSize: 13, fontWeight: 500, letterSpacing: "0.03em", color: "var(--peat)", textDecoration: "none" }
-                : undefined
-            }
-          >
-            Login
-          </Link>
-          <Link
-            href="/distilleries"
-            style={
-              !transparent
-                ? { fontSize: 13, fontWeight: 500, letterSpacing: "0.03em", color: "var(--peat)", textDecoration: "none" }
-                : undefined
-            }
-          >
-            Distilleries
-          </Link>
-          <Link
-            href="/journal"
-            style={
-              !transparent
-                ? { fontSize: 13, fontWeight: 500, letterSpacing: "0.03em", color: "var(--peat)", textDecoration: "none" }
-                : undefined
-            }
-          >
-            Journal
-          </Link>
-          <Link
-            href="/contact"
-            style={
-              !transparent
-                ? { fontSize: 13, fontWeight: 500, letterSpacing: "0.03em", color: "var(--peat)", textDecoration: "none" }
-                : undefined
-            }
-          >
-            Contact
-          </Link>
+          {links.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              style={
+                !transparent
+                  ? {
+                      fontSize: 13,
+                      fontWeight: 500,
+                      letterSpacing: "0.03em",
+                      color: "var(--peat)",
+                      textDecoration: "none",
+                    }
+                  : undefined
+              }
+            >
+              {link.label}
+            </Link>
+          ))}
         </div>
       )}
     </nav>
