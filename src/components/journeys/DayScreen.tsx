@@ -34,6 +34,7 @@ import {
   type PartOfDay,
 } from "@/lib/day-derivations";
 import { PacingTag } from "@/components/PacingTag";
+import SeasonalNotice from "@/components/journeys/SeasonalNotice";
 import JourneyDayMap from "@/components/journeys/JourneyDayMap";
 
 /**
@@ -534,6 +535,16 @@ export default function DayScreen({
                           By appointment only — no drop-in hours
                         </div>
                       )}
+                      {/* This tour, in the period it runs differently -
+                          beside the stop it belongs to, never as a
+                          banner over the whole day, because it concerns
+                          one tour and not the day. Silent unless the
+                          visitor's own dates (or, failing those, today)
+                          are actually inside the window; see
+                          SeasonalNotice. Reads from the CHOSEN tour, so
+                          swapping to one with no seasonal variation
+                          takes the notice away with it, correctly. */}
+                      <SeasonalNotice seasonal={tour?.seasonal} className="day-stop-seasonal-note" />
                     </>
                   );
 

@@ -2409,6 +2409,41 @@ select.location-inline-input {
   white-space: nowrap;
 }
 
+/* A TOUR IN ITS SILENT SEASON. Same cream block as the money note above
+   - it is the same kind of thing, a fact about one stop rather than more
+   prose - with an amber rule down its left edge to tie it to the stops
+   row it sits under rather than to the day as a whole. Smaller than the
+   money note, and last in the card, because it applies to one name in
+   that row and only sometimes. The ink is jr-moderate-ink and the label
+   jr-link-cream: both are the values this page already uses ON CREAM,
+   where the on-white ones fail contrast. */
+.jr-day-seasonal {
+  background: var(--jr-cream);
+  border-left: 2px solid var(--jr-accent);
+  border-radius: 0 2px 2px 0;
+  padding: 9px 11px;
+  margin: 11px 0 0;
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--jr-moderate-ink);
+}
+.jr-day-seasonal + .jr-day-seasonal {
+  margin-top: 7px;
+}
+.jr-day-seasonal .seasonal-notice-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--jr-link-cream);
+  margin-bottom: 3px;
+}
+.jr-day-seasonal strong {
+  font-weight: 600;
+}
+
 /* ── LINKS ────────────────────────────────────────────────────────────
    One rule for every link on this page. Hover takes the underline to
    solid and the colour to full - no colour change, no movement. */

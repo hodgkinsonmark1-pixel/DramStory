@@ -14,6 +14,7 @@ import Footer from "@/components/Footer";
 import SiteHeader from "@/components/SiteHeader";
 import JourneyRail from "@/components/journeys/JourneyRail";
 import PutInPlannerButton, { TakeTheDaysLink } from "@/components/journeys/PutInPlannerButton";
+import SeasonalNotice from "@/components/journeys/SeasonalNotice";
 import { type RouteMapStop } from "@/components/journeys/JourneyRouteMap";
 import { type DayBase } from "@/lib/day-derivations";
 import { formatPrice } from "@/lib/pricing";
@@ -38,7 +39,7 @@ import {
   spellCount,
   type NightSlot,
 } from "@/lib/journey-derivations";
-import type { HubDay, ItineraryStop, Journey } from "@/lib/types";
+import type { HubDay, ItineraryStop, Journey, SeasonalWindow } from "@/lib/types";
 
 /**
  * REBUILT 18 Aug 2026 to the site owner's own written build spec, which
@@ -252,9 +253,37 @@ function DayCard({
         {money && <p className="jr-day-money">{money}</p>}
 
         <DayStopsRow day={day} journeySlug={journey.slug} />
+
+        {/* A journey day shows its stops, so it inherits their seasonal
+            notices - under the same rule as the day page (the visitor's
+            own dates first, today only if they haven't given any,
+            otherwise nothing at all: see seasonalNoticeFor). Under the
+            stops row rather than above it, so it reads as a footnote to
+            one of those names and not as a warning about the day. */}
+        {seasonalStops(day).map(({ label, seasonal }, i) => (
+          <SeasonalNotice key={`${label}-${i}`} seasonal={seasonal} label={label} className="jr-day-seasonal" />
+        ))}
       </div>
     </article>
   );
+}
+
+/** The tours on this day that carry a seasonal window, each labelled
+ *  with enough to find it in the stops row above. Whether it is actually
+ *  SHOWN is not decided here - that is the visitor's own dates, in
+ *  SeasonalNotice.
+ *
+ *  The label repeats the distillery name only when the tour's own name
+ *  doesn't already carry it: "Laphroaig Experience" says where it is,
+ *  "Grain to Glass Experience" does not. */
+function seasonalStops(day: HubDay): { label: string; seasonal: SeasonalWindow }[] {
+  return day.orderedStops.flatMap((stop) => {
+    if (stop.kind !== "distillery" || !stop.tour?.seasonal) return [];
+    const tourName = stop.tour.name;
+    const distilleryName = stop.distillery.name;
+    const label = tourName.startsWith(distilleryName) ? tourName : `${distilleryName} — ${tourName}`;
+    return [{ label, seasonal: stop.tour.seasonal }];
+  });
 }
 
 /** A night is a slim text row between day cards, not a card. It says the

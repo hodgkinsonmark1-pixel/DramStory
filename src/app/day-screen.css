@@ -259,6 +259,30 @@
   color: var(--copper);
   margin-top: 4px;
 }
+
+/* THIS TOUR, IN ITS SILENT SEASON. Amber, like the closed-stop note
+   above and the distillery page's own Status Notice, because it is the
+   same kind of thing: a fact about the day that changes what the visitor
+   turns up to. Quieter than both, though - it is several sentences of
+   real information rather than three words of alarm, so it takes the
+   pale amber block and the amber rule and NOT the alarm-coloured text.
+   It belongs to the stop it sits inside, so it stays inside the card and
+   never becomes a page-level banner. Tokens only, per
+   docs/hero-handoff.md section 5. */
+.day-stop-seasonal-note {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--peat);
+  background: var(--amber-pale);
+  border-left: 2px solid var(--amber);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 7px 9px;
+  margin-top: 6px;
+}
+.day-stop-seasonal-note strong {
+  font-weight: 600;
+  color: var(--copper);
+}
 .day-stop-controls {
   display: flex;
   align-items: center;
