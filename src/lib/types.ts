@@ -32,6 +32,35 @@ export interface Tour {
    *  price nobody has stood behind, and two of Bowmore's rows are
    *  flagged exactly that way. */
   verification?: string;
+  /** The period in which this tour is not what the rest of its own entry
+   *  says it is, and what changes - from the Tours table's own `Seasonal
+   *  From` / `Seasonal To` / `Seasonal Note` (added 18 Aug 2026).
+   *  Undefined on nearly every tour, which is the normal case and means
+   *  "no seasonal variation", not "nobody has checked".
+   *
+   *  Only set when all three cells are populated: a window with no note
+   *  has nothing to say, and a note with no window cannot be tested for
+   *  relevance - and an undateable standing warning is the exact thing
+   *  this field exists to avoid. See seasonalNoticeFor for the rule that
+   *  decides whether it is shown to a given visitor at all. */
+  seasonal?: SeasonalWindow;
+}
+
+/** A dated period in which a tour runs differently from its published
+ *  form - Islay's silent seasons and maintenance shutdowns, where the
+ *  tour usually still runs but the route, the length, the age limit or
+ *  the accessibility change with it. Dates are inclusive ISO days
+ *  ("2026-07-08") and year-specific: they do not recur, and they will go
+ *  stale. See docs/content-sourcing-standards.md, "Seasonal tour
+ *  variation", for who refreshes them and when. */
+export interface SeasonalWindow {
+  /** First day of the changed period, inclusive. */
+  from: string;
+  /** Last day of the changed period, inclusive. */
+  to: string;
+  /** What is actually different, in the visitor's own terms - verbatim
+   *  from Airtable, never summarised or recomposed in code. */
+  note: string;
 }
 
 export interface NearbyFeature {

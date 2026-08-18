@@ -1,5 +1,5 @@
 import type { AirtableAttachment, AirtableRecord } from "@/lib/airtable";
-import type { Area, Distillery, FeaturedStay, HubDay, ItineraryStop, JournalPost, LocalEvent, LocalFeature, NearbyFeature, Tour, TravelMode } from "@/lib/types";
+import type { Area, Distillery, FeaturedStay, HubDay, ItineraryStop, JournalPost, LocalEvent, LocalFeature, NearbyFeature, SeasonalWindow, Tour, TravelMode } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Raw shapes as returned by the Airtable REST API for each table.
@@ -56,6 +56,19 @@ export interface AirtableTourFields {
    *  rows nobody stands behind. Two Bowmore alternatives are flagged
    *  Placeholder and would otherwise undercut a real published price. */
   Verification?: string;
+  /** Inclusive ISO dates bounding a period in which this tour runs
+   *  differently from the rest of this record - Laphroaig's and Ardbeg's
+   *  silent seasons, Ardnahoe's summer maintenance shutdown. Blank on
+   *  every tour with no seasonal variation, which is nearly all of them.
+   *  Added to the table 18 Aug 2026. Year-specific: these are real dates
+   *  for one year, not a recurring rule. */
+  "Seasonal From"?: string;
+  "Seasonal To"?: string;
+  /** What actually changes inside that window, written for the visitor.
+   *  Read verbatim - the whole value of this field is that a human wrote
+   *  "five drams rather than three, fully accessible, 18+" rather than
+   *  the site printing a generic "this tour may be affected". */
+  "Seasonal Note"?: string;
 }
 
 export interface AirtableJournalFields {
@@ -183,7 +196,21 @@ export function mapTour(fields: AirtableTourFields): Tour {
     // Verbatim, trimmed, undefined when blank - never normalised into a
     // boolean here. See Tour.verification and isPublishableTour.
     verification: fields.Verification?.trim() || undefined,
+    // All three or nothing. A window with no note has nothing to say,
+    // and a note with no window can't be tested against a visitor's
+    // dates - so it would have to be shown always or never, and "always"
+    // is the failure mode this whole feature is built to avoid. See
+    // Tour.seasonal.
+    seasonal: seasonalWindow(fields),
   };
+}
+
+function seasonalWindow(fields: AirtableTourFields): SeasonalWindow | undefined {
+  const from = fields["Seasonal From"]?.trim();
+  const to = fields["Seasonal To"]?.trim();
+  const note = fields["Seasonal Note"]?.trim();
+  if (!from || !to || !note) return undefined;
+  return { from, to, note };
 }
 
 export function mapLocalFeature(fields: AirtableLocalFeatureFields): NearbyFeature {
