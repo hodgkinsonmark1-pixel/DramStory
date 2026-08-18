@@ -581,8 +581,12 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
           <div className="jr-ask-or">
             <span className="jr-eyebrow">Or start differently</span>
             <TakeTheDaysLink journey={journey} />
+            {/* One string, built in JS rather than assembled out of JSX
+                text nodes: a text node that both follows an expression
+                and carries an entity loses its leading space at compile
+                time, which shipped a live "fifteendays". */}
             <Link href="/days" className="jr-ask-alt">
-              Build your own from the {spellCount(hubDayCount)} days &rarr;
+              {`Build your own from the ${spellCount(hubDayCount)} days \u2192`}
             </Link>
           </div>
         </div>
