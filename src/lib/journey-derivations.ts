@@ -516,14 +516,19 @@ export function dayMoneyNote(day: HubDay, floors: Record<string, number>): strin
   const floor = dayTourFloor(day, floors);
   if (!floor.complete) return lead;
 
+  // "at all two" is not English. Two is "both"; three and up take the
+  // spelled count. Nothing about this is a special case for a magic
+  // number - it is the one place the language genuinely branches.
+  const atClause = distilleryCount === 2 ? "at both" : `at all ${spellCount(distilleryCount)}`;
+
   if (floor.total < planned) {
     return single
       ? `${lead} ${tourStops[0].distillery.name}'s standard tour is ${formatPrice(floor.total)}pp.`
-      : `${lead} Standard tours at all ${spellCount(distilleryCount)} start at ${formatPrice(floor.total)}pp.`;
+      : `${lead} Standard tours ${atClause} start at ${formatPrice(floor.total)}pp.`;
   }
   return single
     ? `${lead} Nothing ${tourStops[0].distillery.name} runs costs less — there is no cheaper way in.`
-    : `${lead} These are the standard tours at all ${spellCount(distilleryCount)} — there is no cheaper way round.`;
+    : `${lead} These are the standard tours ${atClause} — there is no cheaper way round.`;
 }
 
 /** One row of the "What it costs, and where" proportion bar. `note` is

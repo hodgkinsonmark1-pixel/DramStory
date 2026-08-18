@@ -13,7 +13,7 @@ import {
 import Footer from "@/components/Footer";
 import SiteHeader from "@/components/SiteHeader";
 import JourneyRail from "@/components/journeys/JourneyRail";
-import PutInPlannerButton from "@/components/journeys/PutInPlannerButton";
+import PutInPlannerButton, { TakeTheDaysLink } from "@/components/journeys/PutInPlannerButton";
 import { type RouteMapStop } from "@/components/journeys/JourneyRouteMap";
 import { type DayBase } from "@/lib/day-derivations";
 import { formatPrice } from "@/lib/pricing";
@@ -580,9 +580,7 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
               either did. These are the same two routes, demoted to text. */}
           <div className="jr-ask-or">
             <span className="jr-eyebrow">Or start differently</span>
-            <Link href={`/days/${journey.days[0]?.slug ?? ""}?journey=${journey.slug}`} className="jr-ask-alt">
-              Take the days, not the nights &rarr;
-            </Link>
+            <TakeTheDaysLink journey={journey} />
             <Link href="/days" className="jr-ask-alt">
               Build your own from the {spellCount(hubDayCount)} days &rarr;
             </Link>

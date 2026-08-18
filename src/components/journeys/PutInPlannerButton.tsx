@@ -77,3 +77,49 @@ export default function PutInPlannerButton({
     </div>
   );
 }
+
+/**
+ * "Take the days, not the nights →" - the first of the two demoted
+ * alternatives under the button above.
+ *
+ * It is a real action, not a signpost. The label promises the days
+ * without the accommodation, so it does that: every Day in this Journey
+ * is added to whatever trip the visitor already has, ADDITIVELY (no
+ * resetTrip), and none of the Journey's night notes, base or room rates
+ * come with them. This is the behaviour the old "Add just the days"
+ * button had before the two-button pair was replaced; the button is
+ * gone, the thing it did is not.
+ *
+ * Rendered as a text link rather than a second button on purpose - two
+ * equal buttons forced a choice before anyone knew what either did, and
+ * that is the whole reason this section was rebuilt.
+ */
+export function TakeTheDaysLink({ journey }: { journey: Journey }) {
+  const trip = useTrip();
+  const router = useRouter();
+
+  if (!journey.days || journey.days.length === 0) return null;
+
+  function takeDays() {
+    if (!trip.intake) {
+      trip.completeIntake({
+        timing: "planning",
+        location: { kind: "region", region: "islay" },
+        interests: ["distilleries"],
+      });
+    }
+    for (const day of journey.days) {
+      const newDayIndex = trip.addDay(day.slug);
+      for (const stop of day.stops) {
+        trip.addStop(newDayIndex, stop.distillery, stop.anchor);
+      }
+    }
+    router.push("/journey?resume=1");
+  }
+
+  return (
+    <button type="button" onClick={takeDays} className="jr-ask-alt jr-ask-alt-button">
+      Take the days, not the nights &rarr;
+    </button>
+  );
+}

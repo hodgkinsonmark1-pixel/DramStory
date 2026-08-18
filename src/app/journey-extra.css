@@ -2669,6 +2669,21 @@ select.location-inline-input {
 .jr-ask-alt:hover {
   text-decoration-color: currentColor;
 }
+/* One of the two alternatives is a real action rather than a
+   destination, so it is a <button> - stripped back to look exactly like
+   the link beside it, because what it is made of is not the reader's
+   problem and two different-looking alternatives would reintroduce the
+   hierarchy this section exists to remove. */
+.jr-ask-alt-button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  font-family: var(--jr-sans);
+  font-size: 13.5px;
+  text-align: left;
+}
 
 /* WHAT IT COSTS — a stacked proportion bar, then one row per day sorted
    by spend. The block exists because the biggest number on the whole
