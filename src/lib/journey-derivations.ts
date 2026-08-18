@@ -1,6 +1,6 @@
-import type { HubDay, Journey } from "@/lib/types";
+import type { Distillery, HubDay, Journey, Tour } from "@/lib/types";
 import { isFerryDay, type DayBase } from "@/lib/day-derivations";
-import { formatPrice } from "@/lib/pricing";
+import { formatPrice, isPlaceholderTour } from "@/lib/pricing";
 
 /**
  * Derived values for the rebuilt /journeys/[slug] page (13 Aug 2026) - the
@@ -483,9 +483,115 @@ export function spellCount(n: number): string {
   return WORDS[n] ?? `${n}`;
 }
 
+/** The tours a distillery runs with no price on them at all.
+ *
+ *  mapTour defaults a blank Price cell to 0, so £0 normally means "nobody
+ *  has entered one" - but where the row says what it is in its own words
+ *  (Port Ellen Open Days: "A free monthly open day ... No drams"), £0 is
+ *  the price. Either way these stay OUT of the floor, and rightly so: the
+ *  site owner's ruling (18 Aug 2026) is that a free, by-request, once-a-
+ *  month, four-guest experience with no drams in it is not a cheaper
+ *  version of a bookable tour, it is a different kind of thing.
+ *
+ *  What it is not is absent - which is exactly what "Nothing Port Ellen
+ *  runs costs less" used to tell the reader, on a distillery that runs
+ *  free open days every month. Excluding a row from the arithmetic is a
+ *  judgement; excluding it from the sentence is a false claim.
+ *
+ *  Placeholder rows are excluded here too, for the same reason they are
+ *  excluded from the floor: a row nobody stands behind should no more be
+ *  NAMED on a day card than priced from. See isPlaceholderTour, which is
+ *  that half of isPublishableTour on its own. */
+function freeToursAt(distillery: Distillery): Tour[] {
+  return distillery.tours.filter((t) => t.price <= 0 && !isPlaceholderTour(t));
+}
+
+/** What a free tour's own description admits about itself, and the clause
+ *  each admission earns.
+ *
+ *  Read off the record, never typed per distillery: every phrase matched
+ *  below is in the Tours row it describes, so a claim on a day card can
+ *  only exist while the evidence for it does, and editing that sentence
+ *  in Airtable edits the day card with it. Nothing here knows the words
+ *  "Port Ellen".
+ *
+ *  Deliberately a short, closed list. These are the three questions that
+ *  decide whether a free experience is an alternative to a paid tour -
+ *  can you book it, how many of you can go, and do you get a dram - and
+ *  they are the same three the site owner answered by hand when ruling
+ *  the Open Days out of the price comparison. A description that answers
+ *  none of them makes no claims here at all; see freeTourNote. */
+const FREE_TOUR_CAVEATS: {
+  pattern: RegExp;
+  clause: (match: RegExpMatchArray, plural: boolean) => string;
+}[] = [
+  {
+    pattern: /\bby request\b/i,
+    clause: (_m, plural) => (plural ? "are by request" : "is by request"),
+  },
+  {
+    // "one to four guests", "1–4 guests" - the upper bound is captured,
+    // never assumed, so a distillery that took ten would say ten.
+    pattern: /\b(?:1|one)\s*(?:to|-|–|—)\s*(\d{1,2}|two|three|four|five|six|seven|eight|nine|ten)\s+guests\b/i,
+    clause: (m, plural) => `${plural ? "take" : "takes"} ${guestCountWord(m[1])} people at most`,
+  },
+  {
+    pattern: /\bno drams?\b/i,
+    clause: (_m, plural) => (plural ? "include no drams" : "includes no drams"),
+  },
+];
+
+/** "4" and "four" both come out as "four" - the descriptions use both,
+ *  and a sentence should not. Same spelled-count rule as everywhere else
+ *  on the page. */
+function guestCountWord(raw: string): string {
+  const n = Number(raw);
+  return Number.isNaN(n) ? raw.toLowerCase() : spellCount(n);
+}
+
+/** "a, b, and c" - Oxford comma, matching the rest of the page's prose. */
+function joinClauses(parts: string[]): string {
+  if (parts.length <= 1) return parts[0] ?? "";
+  if (parts.length === 2) return `${parts[0]} and ${parts[1]}`;
+  return `${parts.slice(0, -1).join(", ")}, and ${parts[parts.length - 1]}`;
+}
+
+/** The half-sentence that names a free tour and says why it isn't an
+ *  alternative - "the free monthly Open Days are by request, take four
+ *  people at most, and include no drams".
+ *
+ *  The tour's OWN name, minus its distillery's if it opens with it: the
+ *  reader has just been told whose day this is, and "Port Ellen's free
+ *  monthly Port Ellen Open Days" is not a sentence. `nameTheDistillery`
+ *  puts it back for multi-distillery days, where "the free open days"
+ *  alone would not say whose.
+ *
+ *  Plurality comes off the name because the names differ ("Open Days"
+ *  takes "are", a singular "Open Day" would take "is") and a verb that
+ *  disagrees with its subject reads like a bug in the data. */
+function freeTourNote(tour: Tour, distilleryName: string, nameTheDistillery: boolean): string {
+  const bare = tour.name.startsWith(`${distilleryName} `)
+    ? tour.name.slice(distilleryName.length + 1)
+    : tour.name;
+  const plural = /s$/i.test(bare);
+  const monthly = /\bmonthly\b/i.test(tour.description) ? " monthly" : "";
+  const subject = nameTheDistillery
+    ? `${distilleryName}'s free${monthly} ${bare}`
+    : `the free${monthly} ${bare}`;
+  const caveats = FREE_TOUR_CAVEATS.map((c) => {
+    const match = tour.description.match(c.pattern);
+    return match ? c.clause(match, plural) : undefined;
+  }).filter((c): c is string => c !== undefined);
+  // The row admits to no limits, so none are claimed. The reader still
+  // gets the part that matters and that the old wording denied: the
+  // cheaper thing exists, it is free, and it is not this.
+  if (caveats.length === 0) return `${subject} ${plural ? "are" : "is"} a different thing entirely`;
+  return `${subject} ${joinClauses(caveats)}`;
+}
+
 /**
- * The money note that sits on cream under a day card's hook. Three
- * genuinely different sentences, because three genuinely different things
+ * The money note that sits on cream under a day card's hook. Four
+ * genuinely different sentences, because four genuinely different things
  * can be true:
  *
  *  - The day books above the floor. Say what the standard would cost, so
@@ -495,13 +601,23 @@ export function spellCount(n: number): string {
  *  - The day IS the floor. Saying "standard tours start at £56" under
  *    "today's tours cost £56" is noise; the honest line is that there is
  *    nothing cheaper.
+ *  - The day is the floor, AND the distillery runs something free that
+ *    the floor deliberately ignores. Then "nothing costs less" is simply
+ *    untrue, and the note names the free thing and says why it is not an
+ *    alternative - in its own name, and only in the terms its own record
+ *    uses. Port Ellen is today's case: £250 for the one tour it sells at
+ *    that price, and monthly open days that cost nothing because there
+ *    is no whisky in them. Keeping it out of the ARITHMETIC is right;
+ *    keeping it out of the SENTENCE was a claim the data never made.
  *  - Nobody has priced one of the distilleries. Then only the planned
  *    figure is stated, and no floor is implied at all.
  *
  * The wording never asserts a distillery runs only one tour - the records
- * show Port Ellen runs four, and the spec's own draft of this sentence
- * said otherwise. What IS true, and what this says, is that none of them
- * is cheaper.
+ * show Port Ellen runs four, and both the original spec's draft of this
+ * sentence and the 18 Aug 2026 rewrite brief said "the only bookable tour
+ * Port Ellen runs", which its £450 and £900 experiences contradict. What
+ * IS true, and what this says, is that nothing it SELLS costs less, and
+ * that the one thing that costs nothing is not a tour you can substitute.
  */
 export function dayMoneyNote(day: HubDay, floors: Record<string, number>): string | undefined {
   const planned = dayTourTotal(day);
@@ -526,6 +642,32 @@ export function dayMoneyNote(day: HubDay, floors: Record<string, number>): strin
       ? `${lead} ${tourStops[0].distillery.name}'s standard tour is ${formatPrice(floor.total)}pp.`
       : `${lead} Standard tours ${atClause} start at ${formatPrice(floor.total)}pp.`;
   }
+  // Before telling the reader nothing is cheaper, look at what the floor
+  // left out. Free tours are excluded from the arithmetic on purpose (see
+  // freeToursAt) - this is where that exclusion is declared rather than
+  // hidden. One entry per distillery, and the first free tour at each:
+  // no distillery on the island runs two, and if one ever did, the point
+  // would still be that a free option exists, not to catalogue them.
+  const seen = new Set<string>();
+  const freeAlternatives: { distilleryName: string; tour: Tour }[] = [];
+  for (const stop of tourStops) {
+    if (seen.has(stop.distillery.slug)) continue;
+    seen.add(stop.distillery.slug);
+    const [free] = freeToursAt(stop.distillery);
+    if (free) freeAlternatives.push({ distilleryName: stop.distillery.name, tour: free });
+  }
+
+  if (freeAlternatives.length > 0) {
+    // Semicolons between distilleries, since each note is already a
+    // comma list of its own.
+    const notes = freeAlternatives
+      .map((f) => freeTourNote(f.tour, f.distilleryName, !single))
+      .join("; ");
+    return single
+      ? `${lead} Nothing ${tourStops[0].distillery.name} sells costs less — ${notes}.`
+      : `${lead} These are the standard tours ${atClause}, and nothing cheaper is on sale — ${notes}.`;
+  }
+
   return single
     ? `${lead} Nothing ${tourStops[0].distillery.name} runs costs less — there is no cheaper way in.`
     : `${lead} These are the standard tours ${atClause} — there is no cheaper way round.`;
@@ -569,9 +711,18 @@ export function journeyCostRows(journey: Journey): CostRow[] {
             ? `Day ${dayNumber} · ${tourStops[0].tour.name}. The standard tour is ${formatPrice(floor.total)}`
             : `Day ${dayNumber} · the standard tours would be ${formatPrice(floor.total)}`;
       } else {
+        // Same test as dayMoneyNote's fourth case, for the same reason:
+        // "no cheaper way in" is false at a distillery with a free open
+        // day, and the spine and the breakdown must not disagree about
+        // it. No room here to say why it isn't an alternative - the day
+        // card above carries that - so this says only what it can stand
+        // behind: nothing cheaper is for SALE.
+        const hasFreeAlternative = tourStops.some((s) => freeToursAt(s.distillery).length > 0);
         note =
           tourStops.length === 1
-            ? `Day ${dayNumber} · one tour, and no cheaper way in`
+            ? hasFreeAlternative
+              ? `Day ${dayNumber} · one tour, and nothing cheaper on sale`
+              : `Day ${dayNumber} · one tour, and no cheaper way in`
             : `Day ${dayNumber} · the standard tour at each`;
       }
       return {

@@ -43,7 +43,21 @@ export function roundPriceUp(amount: number): number {
  */
 export function isPublishableTour(tour: Tour): boolean {
   if (tour.price <= 0) return false;
-  return !(tour.verification ?? "").trim().toLowerCase().startsWith("placeholder");
+  return !isPlaceholderTour(tour);
+}
+
+/** The FIRST of isPublishableTour's two disqualifications on its own -
+ *  "nobody has stood behind this row", with nothing said about its price.
+ *
+ *  Split out 18 Aug 2026 for the one caller that needs to tell the two
+ *  reasons apart: a day card's money note names the free tour a
+ *  distillery runs when that is the only cheaper thing it has (see
+ *  dayMoneyNote), and it must not name a row the site would refuse to
+ *  publish anywhere else. Everything else should keep asking
+ *  isPublishableTour, which is still the single gate on quoting a
+ *  price. */
+export function isPlaceholderTour(tour: Tour): boolean {
+  return (tour.verification ?? "").trim().toLowerCase().startsWith("placeholder");
 }
 
 /** Cheapest tour price at a distillery, or null if it has no priced tours.
