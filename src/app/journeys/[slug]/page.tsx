@@ -8,6 +8,7 @@ import {
   getAllDaysAnyStatus,
   getDays,
   getFeaturedStays,
+  getDistilleries,
 } from "@/lib/data";
 import Footer from "@/components/Footer";
 import SiteHeader from "@/components/SiteHeader";
@@ -296,17 +297,26 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function JourneyDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const [journey, areas, stays, allJourneys, allDays, liveDays] = await Promise.all([
+  const [journey, areas, stays, allJourneys, allDays, liveDays, distilleries] = await Promise.all([
     getJourneyBySlug(slug),
     getAreas(),
     getFeaturedStays(),
     getJourneys(),
     getAllDaysAnyStatus(),
     getDays(),
+    getDistilleries(),
   ]);
   if (!journey) notFound();
 
-  const claimStats = journeyClaimStats(journey);
+  // "All of them" means all of them ON ISLAY. The Distilleries table
+  // carries eleven records and one of them, Isle of Jura, is across the
+  // sound on another island with its own ferry - a journey that took the
+  // other ten would be lying if that record made the claim unreachable,
+  // and one that skipped Jura would be lying if it didn't. Region is the
+  // field that already draws that line (every Islay record is "<compass>
+  // Islay" or "Port Ellen"; Jura's is "Jura"), so it draws it here.
+  const islandDistilleryCount = distilleries.filter((d) => d.region !== "Jura").length;
+  const claimStats = journeyClaimStats(journey, islandDistilleryCount);
   const tourTotal = journeyTourTotal(journey);
   const tourFloor = journeyTourFloor(journey);
   const costRows = journeyCostRows(journey);

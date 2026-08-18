@@ -69,7 +69,13 @@ export function cheapestTourPrice(d: Distillery): number | null {
 
 /** Format a price for display - whole pounds show as "£65", a real
  *  half-pound price (e.g. Ardbeg's £22.50 tour) keeps the 2dp. Moved
- *  here 17 Aug 2026 with cheapestTourPrice above, same reasoning. */
+ *  here 17 Aug 2026 with cheapestTourPrice above, same reasoning.
+ *
+ *  GROUPED at the thousand as of 18 Aug 2026: a five-night stay at the
+ *  Grand Tour's base runs to four figures, and "£1125–£2250" is a
+ *  string a reader has to stop and parse. Nothing below £1,000 changes,
+ *  which is every tour price on the site. */
 export function formatPrice(amount: number): string {
-  return amount % 1 === 0 ? `£${amount}` : `£${amount.toFixed(2)}`;
+  const body = amount % 1 === 0 ? `${amount}` : amount.toFixed(2);
+  return `£${body.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
 }

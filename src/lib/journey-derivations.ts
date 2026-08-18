@@ -590,15 +590,29 @@ export function journeyCostRows(journey: Journey): CostRow[] {
  *  floor is incomplete: "from" a number that isn't a floor is a claim
  *  this site can't make. */
 export function journeyClaimStats(
-  journey: Journey
+  journey: Journey,
+  /** How many distilleries there are on the island, so a journey that
+   *  visits every one of them can say so. The caller supplies it because
+   *  answering it needs the whole Distilleries table, which this pure
+   *  derivation deliberately doesn't fetch - and because "on the island"
+   *  is a judgement (Isle of Jura is a real record on a different
+   *  island) that belongs at the call site with a comment on it.
+   *  Undefined simply skips the claim. */
+  islandDistilleryCount?: number
 ): { value: string; label: string }[] {
   const stats: { value: string; label: string }[] = [];
 
   const distilleries = journeyDistilleryCount(journey);
   if (distilleries > 0) {
+    const noun = distilleries === 1 ? "distillery" : "distilleries";
     stats.push({
       value: `${distilleries}`,
-      label: journeyDistilleryStatLabel(journey),
+      // Only ever claimed when it is arithmetically true, and it is for
+      // exactly one journey: The Islay Grand Tour visits all ten.
+      label:
+        islandDistilleryCount !== undefined && distilleries === islandDistilleryCount
+          ? `${noun}, which is all of them`
+          : journeyDistilleryStatLabel(journey),
     });
   }
 
