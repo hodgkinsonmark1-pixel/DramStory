@@ -2344,6 +2344,24 @@ select.location-inline-input {
   line-height: 1.24;
   margin: 0 0 8px;
 }
+/* THE ONE LINK ON THIS PAGE THAT ISN'T COPPER. The spec describes the
+   day title as "linked (navy, faint warm underline)" and separately puts
+   day titles in the #96501c link colour - which cannot both be true of
+   the same property, so it is read as both being true of DIFFERENT
+   properties: navy ink, warm underline. At 23px the serif carries the
+   emphasis on its own, and a whole column of copper 23px headings was
+   the loudest thing on the page. The underline still says "link", and
+   still goes solid on hover like every other one. */
+.jr-day-title .jr-link {
+  color: var(--jr-ink);
+  text-decoration-color: rgba(150, 80, 28, 0.5);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3.5px;
+}
+.jr-day-title .jr-link:hover,
+.jr-day-title .jr-link:focus-visible {
+  text-decoration-color: var(--jr-link);
+}
 .jr-day-hook {
   margin: 0 0 12px;
   font-family: var(--jr-sans);
@@ -2861,5 +2879,35 @@ select.location-inline-input {
   .jr-night {
     flex-direction: column;
     gap: 4px;
+  }
+}
+
+/* Same §7 accessibility rule the planner controls follow, extended to
+   this page's own interactive elements - there is still no site-wide
+   focus-visible style to inherit, so each new surface declares its own.
+   The outline is the page's link colour on light surfaces and the accent
+   on the two navy ones, because 3px of #96501c on #16394b is invisible. */
+.jr-link:focus-visible,
+.jr-crumb-link:focus-visible {
+  outline: 3px solid var(--jr-link);
+  outline-offset: 2px;
+  border-radius: 1px;
+}
+.jr-ask-button:focus-visible,
+.jr-ask-alt:focus-visible,
+.jr-rail-ask:focus-visible,
+.jr-mobile-ask:focus-visible {
+  outline: 3px solid var(--jr-accent);
+  outline-offset: 2px;
+}
+
+/* Nothing on this page depends on the rail's scroll tracking to be
+   readable, and the two asks fade rather than move - but a reader who
+   has asked for less motion still gets no transition at all. */
+@media (prefers-reduced-motion: reduce) {
+  .jr-rail-ask,
+  .jr-mobile-ask,
+  .jr-link {
+    transition: none;
   }
 }
