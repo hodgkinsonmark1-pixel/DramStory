@@ -98,12 +98,36 @@ Worth recording precisely, because the original note was loose about it: the pai
 
 **Suggested approach:** Confirm the real start date with Ardbeg, or narrow the stored window to only the sourced portion.
 
-## Distillery page has no "not open to visitors" variant
+## Distillery page has no "not open to visitors" variant — RESOLVED 29 Aug 2026
 
-**Status:** Next piece of work. The two records that need it are already written and are held back by a data gate, not missing.
+**Status:** Done. Both records are built, `Published` is ticked on each, and both pages are live.
 
 **Context:** 29 Aug 2026 — Laggan Bay and Portintruan are real, producing Islay distilleries that take no visitors. Their Airtable records are complete and correct, but the distillery page template assumes a visitable distillery and renders them wrong: a "Book a Tour" button over an empty tours section, an "+ Add to Journey" control, a Visit info panel with Hours / Price from / Avg visit / Parking all blank, a broken image element, and "Est. 0".
 
 Rather than publish that, the Distilleries table gained a `Published` checkbox — ticked on the 11 visitable distilleries, unticked on these two — and `fetchDistilleriesFromAirtable` in `src/lib/data/index.ts` now returns only ticked records. That is the entire gate: every page, map, picker and "suggested next stops" list reads through `getDistilleries()`, so an unticked distillery is absent everywhere and `/distilleries/[slug]` 404s rather than rendering broken. Note this is `Published`, **not** `Status` — `Status` is a Todo/In progress/Done content-workflow marker and is blank on 9 of the 11 live distilleries, so gating on it would hide most of the site.
 
-**Suggested approach:** A not-yet-open variant of the distillery template — no tour/booking/add-to-journey affordances, no empty Visit panel, no "Est. 0" fallback, and an honest line saying the distillery is working but closed to visitors. Tick `Published` on the two records once it exists; no code change is then needed to reveal them.
+**Resolution:** The variant was built as described and both records published. `/distilleries/laggan-bay` and `/distilleries/portintruan` now carry a status notice, a Visiting card that says plainly there is nothing to book, and no booking or add-to-journey affordances. Mark reviewed both on 29 Aug 2026 and kept the standard "Why you should definitely visit" heading and the Est. line as they are.
+
+Two follow-ups came out of it and are logged separately below: the hero-image gap, and the fact that the same broken affordances survive on Isle of Jura, which this fix does not cover because Jura *is* open to visitors.
+
+## Isle of Jura: open to visitors, but no tours to book
+
+**Status:** Live and visibly contradictory. Not covered by the "not open to visitors" fix above.
+
+**Context:** 29 Aug 2026 — Jura suspended tours (confirmed on jurawhisky.com, July 2026) while keeping its shop and visitor centre open. The page handles the *copy* well: there is an honest notice saying tours are unavailable, with a phone number. But `Open To Visitors` is true and there are zero linked Tours, and the template still renders a **"Book a Tour"** button anchored to `#tours`, an empty **Tours** heading with nothing beneath it, and a blank **Price from** row in Visit info. So a visitor reads "tours are unavailable", clicks the button anyway, and is dropped on an empty section.
+
+This is the third distinct state the template has to cover, and the one nobody designed for: not "open with tours", not "not open at all", but **open with nothing bookable**. Laggan Bay and Portintruan get this right only because they are gated on `Open To Visitors: false`.
+
+**Suggested approach:** Drive the booking affordances off whether any publishable Tours exist, not off `Open To Visitors` — the tour-count check that the not-open variant already does, applied to visitable distilleries too. Suppress the button, the empty Tours heading and the empty Price row when the count is zero, and let the existing notice carry the explanation. Worth checking no other distillery is in the same state when this is done.
+
+## Ask Laggan Bay and Portintruan for images, and for opening dates
+
+**Status:** Logged 29 Aug 2026. Needs Mark to make contact — nothing here is fixable from our side.
+
+**Context:** Laggan Bay is resolved for now: Gordon Brown photographed the distillery itself on 10 June 2026 and released it CC BY-SA 2.0 via Geograph (photo 8346208), so the page has a correct, properly credited hero. But Geograph only publishes it at 640×480, which is soft across a wide hero band — every other distillery hero is 1400–1900px.
+
+Portintruan has **no image at all**, and deliberately so. Searched Geograph and Wikimedia Commons on 29 Aug 2026: there is no freely licensed photograph of the site, and none of the Three Distilleries Pathway that runs past it. The only photograph in existence is Elixir's own, all rights reserved. A Port Ellen or Laphroaig photo was rejected as a stand-in because it would imply this distillery is visible or open, and it is neither. The page renders cleanly with the fallback band in the meantime.
+
+Both also need opening dates. Elixir's site was re-checked on 29 Aug 2026 and still says "in-progress" and "anticipate to begin distilling in 2026", with no visitor-opening date — which is why the third-party "opened summer 2026" reports are still not followed.
+
+**Suggested approach:** One approach to each of Ian Macleod (Laggan Bay) and Elixir (Portintruan): ask for a press image cleared for use with credit, and for a visitor-opening date. Both records' Sources fields carry the full provenance and the reasoning, so whoever picks this up does not have to reconstruct it.
