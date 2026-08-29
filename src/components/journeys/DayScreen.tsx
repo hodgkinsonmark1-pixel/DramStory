@@ -27,12 +27,11 @@ import {
   walkingLineFor,
   walkingOriginNote,
   type DayBase,
-  isDistilleryClosedOn,
   isAppointmentOnly,
-  DAY_NAMES,
   type ScheduleRow,
   type PartOfDay,
 } from "@/lib/day-derivations";
+import { stopAvailabilityWarning } from "@/lib/availability";
 import { PacingTag } from "@/components/PacingTag";
 import SeasonalNotice from "@/components/journeys/SeasonalNotice";
 import JourneyDayMap from "@/components/journeys/JourneyDayMap";
@@ -514,8 +513,15 @@ export default function DayScreen({
                   const showTourPicker = inTrip && hasTours;
 
                   const appointmentOnly = !!distillery && isAppointmentOnly(distillery);
-                  const closed =
-                    !!distillery && !!date && !appointmentOnly && isDistilleryClosedOn(distillery, date);
+                  // Can this stop actually happen on the date the
+                  // visitor's own trip puts it on - the distillery's
+                  // closure first, then whether THIS tour runs that
+                  // weekday. `date` is already null unless a real range
+                  // is confirmed and this Day is in the trip, so a
+                  // visitor with no dates is told nothing, which is the
+                  // whole rule. See stopAvailabilityWarning.
+                  const availability = stopAvailabilityWarning(distillery, tour, date);
+                  const closed = !!availability;
 
                   const subLine = distillery
                     ? tour
@@ -527,8 +533,8 @@ export default function DayScreen({
 
                   const notes = (
                     <>
-                      {closed && (
-                        <div className="day-stop-closed-note">Closed on {DAY_NAMES[date!.getDay()]}s</div>
+                      {availability && (
+                        <div className="day-stop-closed-note">{availability.stopMessage}</div>
                       )}
                       {appointmentOnly && (
                         <div className="day-stop-appointment-note">

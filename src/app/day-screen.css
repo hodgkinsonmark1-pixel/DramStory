@@ -247,11 +247,24 @@
   margin-top: 2px;
   line-height: 1.4;
 }
+/* THIS STOP CANNOT HAPPEN ON THIS DAY. Was three bold words ("Closed on
+   Saturdays") when all it could say was that the distillery was shut;
+   now it names the problem AND the way out, in a sentence or two, so it
+   takes the same block treatment as the seasonal note below rather than
+   sitting as a runaway line of bold red. Rust, not amber: the seasonal
+   note says the day will be different, this one says the day will not
+   happen. --rust-ink on --rust-pale is 5.50:1 (see dramstory-legacy.css).
+   Tokens only, per docs/hero-handoff.md section 5. */
 .day-stop-closed-note {
   font-size: 12px;
   font-weight: 600;
+  line-height: 1.5;
   color: var(--rust-ink);
-  margin-top: 4px;
+  background: var(--rust-pale);
+  border-left: 2px solid var(--rust);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 7px 9px;
+  margin-top: 6px;
 }
 .day-stop-appointment-note {
   font-size: 12px;

@@ -40,6 +40,20 @@ All three must be populated together, or none. A window with no note has nothing
 
 **Keeping them current.** These dates rot silently and on a schedule - a window that has passed simply stops appearing, with nothing on the page to say it is out of date. Refresh them as part of the quarterly tour review, from the distillery's own site, alongside the price and duration check: confirm next year's dates, or clear all three fields. A stale window is not a harmless leftover. It is the same principle as `days-trip-flow-handoff.md` §8 open question 2, on closed days: **a wrong closure warning is worse than none** - it costs the visitor a real day, and it teaches them that the site's warnings are not worth reading.
 
+## Which days a tour runs (`Runs On Days`)
+
+**Added 29 August 2026.** Ardbeg's Classic Distillery Experience runs Monday to Friday. "Three Legends, One Road" is built around it, so that day cannot run on a Saturday - and until this field existed, nothing on the site said so. Someone set Saturday dates, built the day, and found out at the booking page.
+
+`Runs On Days` is a multi-select of weekday names on the `Tours` record. It answers exactly one question: **on which weekdays, all year, does this tour run?** Together with the distillery's own `Closed Days` it is the whole of the availability check (`src/lib/availability.ts`) - the distillery first, because a closure takes every tour there with it, then the tour.
+
+**Blank is the normal case and means "no tour-specific restriction".** It does not mean "unknown". A blank tour runs on whatever days its distillery is open.
+
+**Only populate it where the restriction holds all year.** Ardbeg's Roaming Dram and Warehouse 3 Tasting are Mon-Fri in April and October but seven days from May to September. There is no field that can hold "half the year", so both are deliberately left blank and their prose carries it. The same reasoning cleared Lagavulin's `Closed Days`: it is closed Sundays only from November to February and open seven days March to October, so an always-on Sunday closure would have been wrong for eight months. Half a rule encoded here produces a confidently wrong warning, and **a wrong closure warning is worse than none** (`days-trip-flow-handoff.md` §8 open question 2).
+
+**Where it surfaces.** Beside the affected stop on the day page, and in the trip review's "Still to sort" list - and only once the visitor has set real trip dates. Unlike the seasonal note there is no "what about today" fallback: a weekday recurs every seven days, so today's being a Saturday tells someone planning next June nothing at all.
+
+**Keeping it current.** Same quarterly tour review as the seasonal windows above, from the distillery's own site. Unlike a seasonal window, a stale `Runs On Days` never expires by itself - it will keep warning, or keep silent, until someone changes it.
+
 ## Broader content (Description, History, Fun Facts, Whisky Profile)
 
 Official sources are still preferred, but reputable third-party sources (Scotch Whisky Association / Whiskipedia, Wikipedia, established whisky press) remain acceptable here, since this content is less time-sensitive than live tour bookings and benefits from cross-referencing multiple independent sources. The distinction is specifically about **live, bookable, price-bearing operational data** (Tours), where staleness has a direct, visitor-facing consequence.
