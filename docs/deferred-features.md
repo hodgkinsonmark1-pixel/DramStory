@@ -131,3 +131,26 @@ Portintruan has **no image at all**, and deliberately so. Searched Geograph and 
 Both also need opening dates. Elixir's site was re-checked on 29 Aug 2026 and still says "in-progress" and "anticipate to begin distilling in 2026", with no visitor-opening date — which is why the third-party "opened summer 2026" reports are still not followed.
 
 **Suggested approach:** One approach to each of Ian Macleod (Laggan Bay) and Elixir (Portintruan): ask for a press image cleared for use with credit, and for a visitor-opening date. Both records' Sources fields carry the full provenance and the reasoning, so whoever picks this up does not have to reconstruct it.
+
+## Homepage: rebuild the Classic journeys and Day plans sections to Mark's design
+
+**Status:** Briefed 29 Aug 2026 from two design mockups Mark supplied. Not started. Four content questions below are Mark's to answer first — they change what gets built, so do not assume them.
+
+**Context — section one, "Four journeys, already planned".** An amend, not a rebuild. Live today is four equal cards under "Classic journeys"; the design is the hero-plus-three Mark asked for on 22 Aug (Grand Tour full width, the other three below). On top of the layout it adds, per journey: a row of distillery chips, a tours subtotal in the meta line ("6 nights · all 10 distilleries · £188pp in tours"), a driver-rotation pill, a secondary "Start it as your own trip" action beside the primary CTA, and a right-aligned section note "Each one drivable exactly as written". Most of this is derivable from what Journeys, Journey Days and Day Stops already hold.
+
+**Context — section two, "Fifteen days, ready to drop into a trip".** This does **not exist**. Live, the entire day-plan presence on the homepage is one line of text: "Prefer to plan day by day? Browse all Pre-Designed Days →". The design is a full section with filter tabs (All / Relaxed / Under an hour's driving / Nobody has to drive) and rich day cards carrying a pacing tag, driving time, per-person cost and two transport pills.
+
+**Two data gaps behind section two — these are the real cost, and neither is a UI problem:**
+
+1. **"Driver keeps N drams" is not modelled anywhere.** Nothing in Days, Day Stops or Tours records how many drams the designated driver has to take away rather than drink. It would have to be derived from the tours scheduled on that day, which means first knowing which tours include a tasting and how many pours — Tours has no such field.
+
+2. **Transport is free text, and the design needs it structured.** `Transport Clause` on Days holds prose: "Doable by bus", "Bus, taxi, or two miles on foot", "Car needed — single-track at the end", "No car — four miles on foot". The mockup's pills ("Taxi-able", "No bus route", "Bus 450") and the "Nobody has to drive · 4" filter both need boolean/enumerated fields, and the count in that filter chip has to be computable. Note we do not hold bus route numbers at all — "Bus 450" is new data, and route numbers are the kind of fact that needs an official source.
+
+**Four questions for Mark, all raised 29 Aug 2026 and none safe to guess:**
+
+- **Grand Tour nights.** Airtable says `Nights: 5`; the mockup says "6 nights" and "See the six days". After the Port Ellen day was added, with night one sitting before the first day and night six optional, is the honest number 6, or 5 plus an optional sixth? The live homepage card currently says 5.
+- **"The Kildalton Road" vs "The South Coast Walk".** The mockup renames the journey *and* re-pitches it away from walking — "the carved cross most people **drive** straight past". That journey exists because Mark asked for one that was totally walkable and cheaper, and its stored Claim still reads "no car to hire, no timetable, and nobody left out of the tasting". Deliberate rethink or mockup placeholder?
+- **"all 10 distilleries".** This restores the exact phrasing removed in `8866eaa` ("Say every distillery you can visit, not all of them"). There are now twelve distilleries on the island and ten a visitor can walk into, so "all" is the word that made it wrong.
+- **Fifteen or sixteen days.** The mockup says "Fifteen days" and "Browse all fifteen". There are **sixteen** real Day records — plus three completely empty ones created 15 July 2026 (`recJj9QkySh8xfqxy`, `recTVYPpnsRGg8s7Q`, `rect0eQlvXRAniZbs`) that should be deleted, the same housekeeping as the empty Journeys.
+
+**Suggested approach:** Take section one first — it is a layout change over data that mostly exists, and it is the half a visitor sees before scrolling. Treat section two as its own piece, starting with the two Airtable modelling decisions rather than the component, because the filters are only as honest as the fields underneath them. The mockups themselves live with Mark; ask for them rather than working from this description.
