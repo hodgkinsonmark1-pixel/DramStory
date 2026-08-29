@@ -354,9 +354,9 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
   const nightCounts = journeyNightCounts(journey);
   const optionalNights = nightCounts.total - nightCounts.priced;
 
-  // Only a Base with a real Area record behind it gets a "Where to stay"
-  // link or a white map pin - Bridgend has neither, and neither a guessed
-  // slug nor estimated coordinates is something this codebase does.
+  // Only a Base with a real Area record behind it gets a white map pin -
+  // Bridgend has none, and estimated coordinates are not something this
+  // codebase does.
   const baseArea = journey.base
     ? areas.find((a) => a.name.toLowerCase() === journey.base.toLowerCase())
     : undefined;
@@ -365,8 +365,34 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
       ? { name: baseArea.name, lat: baseArea.lat, lng: baseArea.lng }
       : undefined;
 
+  // The Base Stay AS AUTHORED - the Featured Stay actually linked on this
+  // Journey, with no name-matching involved. The fuzzy fallback below is
+  // good enough to place a pin, but only an explicit link is good enough
+  // to send a reader to a hotel's page under this journey's name.
+  const linkedBaseStay = journey.baseStayId
+    ? stays.find((stay) => stay.id === journey.baseStayId)
+    : undefined;
+
+  // WHERE THE READER GOES TO FIND A BED (29 Aug 2026). Three cases, in
+  // order, and the third is still a real answer:
+  //   1. the Base has an Area record  -> that area guide, as before.
+  //   2. it hasn't, but the journey links a Base Stay -> that hotel's own
+  //      page. Bridgend is a road junction with a hotel rather than a
+  //      village, so it is deliberately not getting an Areas record, and
+  //      before this the two Bridgend journeys offered no route to
+  //      accommodation at all.
+  //   3. neither -> no link, rather than a guessed slug.
+  // The label changes with the destination: an area guide answers "where
+  // to stay", a hotel page is that one building, and naming it is what
+  // stops the click being a surprise.
+  const stayLink = baseArea
+    ? { href: `/areas/${baseArea.slug}`, label: "Where to stay" }
+    : linkedBaseStay
+      ? { href: `/stays/${linkedBaseStay.slug}`, label: linkedBaseStay.name }
+      : undefined;
+
   const baseStay =
-    (journey.baseStayId ? stays.find((stay) => stay.id === journey.baseStayId) : undefined) ??
+    linkedBaseStay ??
     (journey.base
       ? stays.find(
           (stay) =>
@@ -511,9 +537,9 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
               {journey.accommodationNote && (
                 <span className="jr-base-note">{firstSentence(journey.accommodationNote)}</span>
               )}
-              {baseArea && (
-                <Link href={`/areas/${baseArea.slug}`} className="jr-link jr-base-link">
-                  Where to stay &rarr;
+              {stayLink && (
+                <Link href={stayLink.href} className="jr-link jr-base-link">
+                  {stayLink.label} &rarr;
                 </Link>
               )}
             </div>
