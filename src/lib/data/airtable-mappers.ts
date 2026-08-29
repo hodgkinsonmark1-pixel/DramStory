@@ -41,6 +41,23 @@ export interface AirtableDistilleryFields {
    *  Blank means open every day - see Distillery.closedDays' doc comment
    *  in types.ts for the one exception (Port Ellen). */
   "Closed Days"?: string[];
+  /** Go-live gate (added to the table 29 Aug 2026 by the site owner).
+   *  Ticked on all 11 distilleries open to visitors; unticked on Laggan
+   *  Bay and Portintruan, which are real, producing distilleries that
+   *  take no visitors. Their records are complete and correct - they are
+   *  held back only because the distillery page template assumes a
+   *  visitable distillery (a Book a Tour button over an empty tours
+   *  section, an empty Visit panel, "Est. 0"), and the not-yet-open
+   *  variant of that template is still to be built.
+   *
+   *  Deliberately NOT the `Status` field: Status is a content-workflow
+   *  marker (Todo/In progress/Done) and is blank on 9 of the 11 live
+   *  distilleries, so gating on it would hide most of the site.
+   *
+   *  Enforced in fetchDistilleriesFromAirtable - the single point every
+   *  page, map, picker and "suggested next stops" list reads distilleries
+   *  through. Missing/false means unpublished. */
+  Published?: boolean;
 }
 
 export interface AirtableTourFields {

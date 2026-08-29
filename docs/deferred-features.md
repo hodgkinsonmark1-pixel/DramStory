@@ -97,3 +97,13 @@ Worth recording precisely, because the original note was loose about it: the pai
 **Context:** 18 Aug 2026 — the new seasonal-notice fields on Tours carry a window for the Classic Ardbeg Tour of 1 June – 12 July 2026. The 12 July end date is sourced from ardbeg.com; the 1 June start is an assumption that has never been confirmed. Harmless now — the window is in the past and the notice shows to nobody — but it will publish a confidently wrong closure warning next June if left. The project's own standard is that a wrong closure warning is worse than none.
 
 **Suggested approach:** Confirm the real start date with Ardbeg, or narrow the stored window to only the sourced portion.
+
+## Distillery page has no "not open to visitors" variant
+
+**Status:** Next piece of work. The two records that need it are already written and are held back by a data gate, not missing.
+
+**Context:** 29 Aug 2026 — Laggan Bay and Portintruan are real, producing Islay distilleries that take no visitors. Their Airtable records are complete and correct, but the distillery page template assumes a visitable distillery and renders them wrong: a "Book a Tour" button over an empty tours section, an "+ Add to Journey" control, a Visit info panel with Hours / Price from / Avg visit / Parking all blank, a broken image element, and "Est. 0".
+
+Rather than publish that, the Distilleries table gained a `Published` checkbox — ticked on the 11 visitable distilleries, unticked on these two — and `fetchDistilleriesFromAirtable` in `src/lib/data/index.ts` now returns only ticked records. That is the entire gate: every page, map, picker and "suggested next stops" list reads through `getDistilleries()`, so an unticked distillery is absent everywhere and `/distilleries/[slug]` 404s rather than rendering broken. Note this is `Published`, **not** `Status` — `Status` is a Todo/In progress/Done content-workflow marker and is blank on 9 of the 11 live distilleries, so gating on it would hide most of the site.
+
+**Suggested approach:** A not-yet-open variant of the distillery template — no tour/booking/add-to-journey affordances, no empty Visit panel, no "Est. 0" fallback, and an honest line saying the distillery is working but closed to visitors. Tick `Published` on the two records once it exists; no code change is then needed to reveal them.

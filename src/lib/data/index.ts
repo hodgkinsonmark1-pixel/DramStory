@@ -74,6 +74,32 @@ async function fetchDistilleriesFromAirtable(): Promise<Distillery[]> {
     // Airtable has a few blank placeholder rows (no Name/Slug) mixed into
     // the table — skip anything that isn't a real, populated record.
     .filter((r) => r.fields.Name && r.fields.Slug)
+    // PUBLISHED GATE (29 Aug 2026). Only ticked records render anywhere.
+    // Laggan Bay and Portintruan are real, producing distilleries that
+    // take no visitors; their Airtable records are complete, but the
+    // distillery page template still assumes a visitable distillery (a
+    // "Book a Tour" button over an empty tours section, "+ Add to
+    // Journey", an empty Visit panel, "Est. 0"), so they are held back
+    // until the not-yet-open variant of that template exists.
+    //
+    // This one filter is the whole gate, by design: every page, map,
+    // picker and "suggested next stops" list reads distilleries through
+    // getDistilleries() (getDistilleryBySlug and every Day/Journey/Area/
+    // Featured Stay join resolve against this same array), so nothing
+    // downstream needs its own copy of the rule and none can drift from
+    // it. An unpublished slug therefore 404s on /distilleries/[slug]
+    // rather than rendering a broken page.
+    //
+    // Explicitly `=== true`, not truthiness: Airtable omits an unchecked
+    // checkbox from the payload entirely, so missing means unpublished.
+    //
+    // Deliberately NOT gated on `Status` - see AirtableDistilleryFields'
+    // Published doc comment for why that field would hide most of the
+    // site. Also deliberately not softened to "show drafts on preview"
+    // the way mapToArea/mapToFeaturedStay do for Status: these two are
+    // withheld because the template renders them WRONG, not because the
+    // copy is unfinished, so there is nothing useful to preview yet.
+    .filter((r) => r.fields.Published === true)
     .map((r) => {
       const f = r.fields;
       return {
