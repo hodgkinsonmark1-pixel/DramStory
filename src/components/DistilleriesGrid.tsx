@@ -28,8 +28,13 @@ export default function DistilleriesGrid({ distilleries }: DistilleriesGridProps
 
   // Derived from real data rather than hardcoded, so a new region added to
   // Airtable shows up here automatically.
+  // Blank regions are dropped rather than becoming a nameless filter
+  // button - Portintruan has no Region in Airtable, which otherwise added
+  // an empty pill to this bar. A distillery with no region simply never
+  // matches a region filter and shows under "All", which is right: we
+  // don't know where to file it, so we don't claim to.
   const regions = useMemo(
-    () => Array.from(new Set(distilleries.map((d) => d.region))).sort(),
+    () => Array.from(new Set(distilleries.map((d) => d.region).filter(Boolean))).sort(),
     [distilleries]
   );
 
@@ -110,13 +115,25 @@ export default function DistilleriesGrid({ distilleries }: DistilleriesGridProps
         <div className="dist-grid">
           {sorted.map((d) => (
             <Link key={d.id} href={`/distilleries/${d.slug}`} className="dist-card">
-              <div className="dist-card-image">
-                <Image src={d.image} alt={d.name} fill style={{ objectFit: "cover" }} unoptimized />
+              {/* No hero image is a supported state - Laggan Bay and
+                  Portintruan have no photograph anyone can publish yet, and
+                  <Image src=""> renders as a broken element. Same plain
+                  treatment as the distillery page's own hero. */}
+              <div className={"dist-card-image" + (d.image ? "" : " dist-card-image-plain")}>
+                {d.image ? (
+                  <Image src={d.image} alt={d.name} fill style={{ objectFit: "cover" }} unoptimized />
+                ) : null}
               </div>
               <div className="dist-card-body">
-                <div className="dist-card-meta">
-                  {d.region} · {d.style}
-                </div>
+                {/* Joined from whatever is actually there, rather than
+                    "{region} · {style}" unconditionally, which printed a
+                    bare " · " for Portintruan (no Region, no Style) and
+                    "West Islay · " for Laggan Bay (no Style). */}
+                {[d.region, d.style].filter(Boolean).length > 0 && (
+                  <div className="dist-card-meta">
+                    {[d.region, d.style].filter(Boolean).join(" · ")}
+                  </div>
+                )}
                 <h2 className="dist-card-name">{d.name}</h2>
                 <p className="dist-card-tagline">{d.tagline}</p>
                 {/* "Tours from" is rendered only when there IS a figure.

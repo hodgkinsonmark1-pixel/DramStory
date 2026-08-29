@@ -1155,6 +1155,12 @@ select.location-inline-input {
   width: 100%;
   height: 180px;
 }
+/* Card for a distillery with no publishable photograph - the same plain
+   brand-navy band the distillery page's own hero falls back to, so an
+   absent image reads as deliberate rather than as a failed load. */
+.dist-card-image-plain {
+  background: linear-gradient(160deg, var(--navy) 0%, var(--navy-mid) 100%);
+}
 .dist-card-body {
   padding: 20px;
 }
