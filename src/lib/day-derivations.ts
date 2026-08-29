@@ -912,7 +912,15 @@ export function tripShapeNote(paces: string[], firstDayIsFerry: boolean): string
   return note;
 }
 
-/** §5 "Collection copy by count" table, verbatim. */
+/** §5 "Collection copy by count" table, verbatim except the last line.
+ *
+ *  `total` is how many distilleries the SITE lists, which is not how many
+ *  distilleries there are: Isle of Jura is in it and isn't on Islay, and
+ *  Laggan Bay and Portintruan are on Islay and aren't in it (they take no
+ *  visitors, so the published gate holds them back). The spec's "Every
+ *  distillery on Islay" was therefore wrong in both directions, and is
+ *  worded here as what filling the strip actually proves - every one you
+ *  can visit. Stays true whatever the table grows to. */
 export function collectionNote(count: number, total: number): string {
   if (count <= 0) return "";
   if (count === 1) return "One down. Most visitors manage three or four in a long weekend.";
@@ -920,7 +928,7 @@ export function collectionNote(count: number, total: number): string {
   if (count <= 5) return "More than most people fit into a week here.";
   if (count <= 8) return "That is serious ground covered. Pace yourself.";
   if (count < total) return "All but a couple. The last ones are the awkward ones.";
-  return "Every distillery on Islay. Very few people manage that in one trip.";
+  return "Every distillery you can visit. Very few people manage that in one trip.";
 }
 
 // ─────────────────────────────────────────────────────────────────────────

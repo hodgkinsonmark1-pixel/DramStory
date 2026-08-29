@@ -747,14 +747,19 @@ export function journeyCostRows(journey: Journey): CostRow[] {
  *  this site can't make. */
 export function journeyClaimStats(
   journey: Journey,
-  /** How many distilleries there are on the island, so a journey that
-   *  visits every one of them can say so. The caller supplies it because
-   *  answering it needs the whole Distilleries table, which this pure
-   *  derivation deliberately doesn't fetch - and because "on the island"
-   *  is a judgement (Isle of Jura is a real record on a different
-   *  island) that belongs at the call site with a comment on it.
-   *  Undefined simply skips the claim. */
-  islandDistilleryCount?: number
+  /** How many distilleries on the island a visitor can actually get
+   *  into, so a journey that takes in every one of them can say so. The
+   *  caller supplies it because answering it needs the whole Distilleries
+   *  table, which this pure derivation deliberately doesn't fetch - and
+   *  because both halves of it ("on the island", and "open to visitors")
+   *  are judgements that belong at the call site with a comment on them.
+   *  Undefined simply skips the claim.
+   *
+   *  NOT the number of distilleries on Islay: Laggan Bay and Portintruan
+   *  are producing and take no visitors, so they are real but absent from
+   *  this count. Hence the label below claims only what this number can
+   *  carry - every distillery you can VISIT, never "all of them". */
+  visitableIslandDistilleryCount?: number
 ): { value: string; label: string }[] {
   const stats: { value: string; label: string }[] = [];
 
@@ -763,11 +768,21 @@ export function journeyClaimStats(
     const noun = distilleries === 1 ? "distillery" : "distilleries";
     stats.push({
       value: `${distilleries}`,
-      // Only ever claimed when it is arithmetically true, and it is for
-      // exactly one journey: The Islay Grand Tour visits all ten.
+      // Only ever claimed when it is arithmetically true, and today that
+      // is exactly one journey: The Islay Grand Tour takes in every
+      // distillery on Islay that opens its doors. It deliberately does
+      // NOT say "all of them" - there are working distilleries on the
+      // island beyond this count (see the parameter's doc comment), and a
+      // reader who knows that would catch the site out on its flagship
+      // journey. Nothing here spells a number out in prose, so publishing
+      // another visitable distillery simply drops this branch (the
+      // arithmetic stops matching) and the honest fallback takes over.
       label:
-        islandDistilleryCount !== undefined && distilleries === islandDistilleryCount
-          ? `${noun}, which is all of them`
+        visitableIslandDistilleryCount !== undefined &&
+        distilleries === visitableIslandDistilleryCount
+          ? distilleries === 1
+            ? `${noun}, the only one you can visit`
+            : `${noun}, every one you can visit`
           : journeyDistilleryStatLabel(journey),
     });
   }
