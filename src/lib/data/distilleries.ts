@@ -104,6 +104,7 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       "laphroaig"
     ],
     "closedDays": [],
+    "openToVisitors": true,
     "source": "mock"
   },
   {
@@ -182,6 +183,7 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       "laphroaig"
     ],
     "closedDays": [],
+    "openToVisitors": true,
     "source": "mock"
   },
   {
@@ -247,6 +249,7 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       "bowmore"
     ],
     "closedDays": [],
+    "openToVisitors": true,
     "source": "mock"
   },
   {
@@ -340,6 +343,7 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       "caol_ila"
     ],
     "closedDays": [],
+    "openToVisitors": true,
     "source": "mock"
   },
   {
@@ -412,6 +416,7 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       "kilchoman"
     ],
     "closedDays": [],
+    "openToVisitors": true,
     "source": "mock"
   },
   {
@@ -485,6 +490,7 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       "caol_ila"
     ],
     "closedDays": [],
+    "openToVisitors": true,
     "source": "mock"
   },
   {
@@ -557,6 +563,7 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       "ardnahoe"
     ],
     "closedDays": [],
+    "openToVisitors": true,
     "source": "mock"
   },
   {
@@ -622,6 +629,7 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       "ardnahoe"
     ],
     "closedDays": [],
+    "openToVisitors": true,
     "source": "mock"
   },
   {
@@ -688,6 +696,7 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       "bunnahabhain"
     ],
     "closedDays": [],
+    "openToVisitors": true,
     "source": "mock"
   }
 ];

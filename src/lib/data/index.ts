@@ -146,6 +146,11 @@ async function fetchDistilleriesFromAirtable(): Promise<Distillery[]> {
         history: f.History || undefined,
         whiskyProfile: f["Whisky Profile"] || undefined,
         closedDays: mapClosedDays(f["Closed Days"]),
+        // Explicitly `=== true`, same reasoning as the Published gate
+        // above: Airtable omits an unchecked checkbox from the payload
+        // entirely, so a missing value has to mean "not open", never
+        // "unknown, assume yes".
+        openToVisitors: f["Open To Visitors"] === true,
         source: "airtable" as const,
       };
     });

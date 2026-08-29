@@ -778,6 +778,28 @@ export interface Distillery {
    *  isAppointmentOnly helper in day-derivations.ts) rather than reading
    *  an empty closedDays as "open every day" for Port Ellen specifically. */
   closedDays: number[];
+  /** Whether a visitor can actually turn up. Ticked in Airtable on the
+   *  eleven distilleries with a visitor centre; unticked on Laggan Bay
+   *  and Portintruan, which are real, producing distilleries with no
+   *  visitor centre, no tours and nothing to book.
+   *
+   *  This is NOT the same question as `Published` (which decides whether
+   *  the record renders at all, and is enforced once in
+   *  fetchDistilleriesFromAirtable). A record can be published and still
+   *  be closed to the public - that is exactly the state these two are
+   *  being prepared for. Being listed on /distilleries is the point;
+   *  being offered as somewhere to go is not.
+   *
+   *  Read it as the gate on anything that IMPLIES a visit: the "Book a
+   *  Tour" button and "+ Add to Journey" on the distillery page, the
+   *  planner's picker and map, "suggested next stops", the homepage
+   *  cards, and any Day/Journey stop resolution. getVisitableDistilleries()
+   *  in src/lib/data/index.ts is the single place that filter lives -
+   *  prefer calling it over re-deriving this test at a call site.
+   *
+   *  False is the safe default: Airtable omits an unchecked checkbox from
+   *  the payload entirely, so missing means not open. */
+  openToVisitors: boolean;
   source: DataSource;
 }
 

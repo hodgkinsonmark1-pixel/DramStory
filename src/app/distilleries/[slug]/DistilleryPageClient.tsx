@@ -72,34 +72,67 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
         stopCount={hasActiveJourney ? totalStops : undefined}
       />
 
-      <div className="distillery-hero">
-        <Image className="distillery-hero-img" src={d.image} alt={d.name} fill unoptimized />
-        <div className="distillery-hero-overlay" />
+      {/* No hero image is a supported state, not a gap: Laggan Bay and
+          Portintruan have no photograph anyone can publish yet. A blank
+          <Image src=""> renders as a broken element, so the photo and its
+          gradient overlay are dropped entirely and the same content sits
+          on a plain brand-navy band instead - shorter than the 55vh photo
+          hero, because there is nothing to look at. Keyed off the image
+          rather than off openToVisitors so any future record missing a
+          hero gets the same treatment. */}
+      <div className={"distillery-hero" + (d.image ? "" : " distillery-hero-plain")}>
+        {d.image ? (
+          <>
+            <Image className="distillery-hero-img" src={d.image} alt={d.name} fill unoptimized />
+            <div className="distillery-hero-overlay" />
+          </>
+        ) : null}
         <div className="distillery-hero-content">
           <div>
             <h1 className="distillery-hero-title">{d.name}</h1>
             <div className="distillery-hero-sub">
-              <span className="hero-badge">{d.region}</span>
-              <span className="hero-badge">{d.style}</span>
-              {/* Suppressed entirely when Founded is blank. Airtable
-                  omits an empty number field, so founded falls back to 0
-                  in the mapper and this badge used to read "Est. 0". */}
+              {/* Each badge is independently suppressed when its field is
+                  blank rather than rendering an empty pill - Portintruan
+                  has no Region and no Style, and Founded is blank on it
+                  too, which used to read "Est. 0". */}
+              {d.region ? <span className="hero-badge">{d.region}</span> : null}
+              {d.style ? <span className="hero-badge">{d.style}</span> : null}
               {d.founded ? <span className="hero-badge">Est. {d.founded}</span> : null}
             </div>
           </div>
-          <div className="distillery-hero-actions">
-            <a href="#tours" className="hero-action-btn hero-action-primary">
-              Book a Tour
-            </a>
-            <button
-              className={"hero-action-btn hero-action-secondary" + (inJourney ? " in-journey" : "")}
-              onClick={toggleAddDistillery}
-            >
-              {inJourney ? "✓ In Your Journey" : "+ Add to Journey"}
-            </button>
-          </div>
+          {/* NOT-YET-OPEN VARIANT (29 Aug 2026). A distillery that takes no
+              visitors gets no hero actions at all: there is nothing to book,
+              so "Book a Tour" would jump to an empty section, and it must
+              not be addable to a journey - a trip day that routes a visitor
+              to a locked gate is worse than one that never mentioned it.
+              See Distillery.openToVisitors. */}
+          {d.openToVisitors ? (
+            <div className="distillery-hero-actions">
+              <a href="#tours" className="hero-action-btn hero-action-primary">
+                Book a Tour
+              </a>
+              <button
+                className={"hero-action-btn hero-action-secondary" + (inJourney ? " in-journey" : "")}
+                onClick={toggleAddDistillery}
+              >
+                {inJourney ? "✓ In Your Journey" : "+ Add to Journey"}
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
+
+      {/* On a not-yet-open page the Status Notice IS the page - it is the
+          one thing a reader needs before anything else - so it runs first,
+          directly under the hero, at lead size. On a visitable distillery
+          it keeps its established position and weight under "Why you
+          should definitely visit", which is unchanged. */}
+      {!d.openToVisitors && d.statusNotice && (
+        <div className="dist-status-notice dist-status-notice-lead">
+          <span className="dist-status-icon">!</span>
+          <p>{d.statusNotice}</p>
+        </div>
+      )}
 
       {d.whyVisit && (
         <div className="dist-why-visit">
@@ -108,7 +141,7 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
         </div>
       )}
 
-      {d.statusNotice && (
+      {d.openToVisitors && d.statusNotice && (
         <div className="dist-status-notice">
           <span className="dist-status-icon">!</span>
           <p>{d.statusNotice}</p>
@@ -164,6 +197,10 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
               </div>
             )}
 
+            {/* Not rendered at all for a distillery that takes no visitors:
+                the heading on its own reads as "tours, coming shortly",
+                which is a promise this record does not make. */}
+            {d.openToVisitors && (
             <div className="dist-section" id="tours">
               <div className="dist-section-title">Tours</div>
               {d.tours.map((t) => {
@@ -188,6 +225,7 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
                 );
               })}
             </div>
+            )}
 
             {d.nearby.length > 0 && (
               <div className="dist-section">
@@ -228,37 +266,71 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
           </div>
 
           <div className="dist-sidebar">
-            <div className="sidebar-card">
-              <div className="sidebar-card-title">Visit info</div>
-              <div className="info-grid">
-                <div className="info-item">
-                  <div className="info-label">Hours</div>
-                  <div className="info-value">{d.hours}</div>
+            {/* Visit info, or the honest replacement for it.
+                A distillery that takes no visitors has no Hours, no Price
+                From, no Avg Visit and no Parking in Airtable, so the
+                four-tile grid rendered as four labelled blanks. It is
+                replaced - not padded out - by a short card built ONLY from
+                what the record actually holds: the Open To Visitors
+                checkbox itself, the (empty) linked Tours, and the Website
+                URL if there is one. Nothing here asserts anything the
+                record does not say; in particular it does not claim
+                whether a visitor centre exists, because Portintruan's own
+                Status Notice says its licence application describes one. */}
+            {d.openToVisitors ? (
+              <div className="sidebar-card">
+                <div className="sidebar-card-title">Visit info</div>
+                <div className="info-grid">
+                  <div className="info-item">
+                    <div className="info-label">Hours</div>
+                    <div className="info-value">{d.hours}</div>
+                  </div>
+                  <div className="info-item">
+                    <div className="info-label">Price from</div>
+                    <div className="info-value">{d.priceFrom}</div>
+                  </div>
+                  <div className="info-item">
+                    <div className="info-label">Avg. visit</div>
+                    <div className="info-value">{d.avgVisit}</div>
+                  </div>
+                  <div className="info-item">
+                    <div className="info-label">Parking</div>
+                    <div className="info-value">{d.parking}</div>
+                  </div>
                 </div>
-                <div className="info-item">
-                  <div className="info-label">Price from</div>
-                  <div className="info-value">{d.priceFrom}</div>
-                </div>
-                <div className="info-item">
-                  <div className="info-label">Avg. visit</div>
-                  <div className="info-value">{d.avgVisit}</div>
-                </div>
-                <div className="info-item">
-                  <div className="info-label">Parking</div>
-                  <div className="info-value">{d.parking}</div>
-                </div>
+                {d.websiteUrl && (
+                  <a
+                    href={d.websiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="dist-website-link"
+                  >
+                    Visit {d.name}&apos;s official website ↗
+                  </a>
+                )}
               </div>
-              {d.websiteUrl && (
-                <a
-                  href={d.websiteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="dist-website-link"
-                >
-                  Visit {d.name}&apos;s official website ↗
-                </a>
-              )}
-            </div>
+            ) : (
+              <div className="sidebar-card">
+                <div className="sidebar-card-title">Visiting</div>
+                <p className="dist-not-open-lead">Not open to visitors.</p>
+                {d.tours.length === 0 && (
+                  <p className="dist-not-open-p">There are no tours and nothing to book.</p>
+                )}
+                <p className="dist-not-open-p">
+                  When that changes, this page will carry its hours and tours like any other.
+                </p>
+                {d.websiteUrl && (
+                  <a
+                    href={d.websiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="dist-website-link"
+                  >
+                    Visit {d.name}&apos;s official website ↗
+                  </a>
+                )}
+              </div>
+            )}
 
             {d.facilities.length > 0 && (
               <div className="sidebar-card">

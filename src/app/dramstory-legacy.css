@@ -744,3 +744,24 @@ a.stay-gh-name:hover{color:var(--copper);text-decoration:underline}
     overflow-y:visible;
   }
 }
+
+/* NOT-YET-OPEN DISTILLERY PAGE (29 Aug 2026). Laggan Bay and Portintruan
+   are real, producing distilleries with no visitor centre and no hero
+   photograph anyone can publish. Three small rules, all additive - none
+   of them touches the eleven visitable pages.
+
+   1. The hero with no photo. A 55vh band of nothing is worse than no band
+      at all, so the plain variant collapses to whatever its own content
+      needs and sits on the brand navy rather than on a broken image. */
+.distillery-hero-plain{height:auto;min-height:0;background:linear-gradient(160deg,var(--navy) 0%,var(--navy-mid) 100%)}
+/* 2. The Status Notice when it is the lead element on the page rather
+      than a footnote under the tours - same amber callout, one step up in
+      weight, because on these pages it is the single most important thing
+      a reader can be told. */
+.dist-status-notice-lead{margin-top:28px;border-width:2px}
+.dist-status-notice-lead p{font-size:16px;line-height:1.65}
+.dist-status-notice-lead .dist-status-icon{width:26px;height:26px;font-size:15px}
+/* 3. The sidebar card that replaces the empty Visit info grid. */
+.dist-not-open-lead{font-size:14px;font-weight:600;color:var(--dark);line-height:1.5;margin-bottom:8px}
+.dist-not-open-p{font-size:13px;color:var(--peat);line-height:1.65;margin-bottom:8px}
+.dist-not-open-p:last-of-type{margin-bottom:0}

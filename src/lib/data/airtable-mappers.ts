@@ -58,6 +58,18 @@ export interface AirtableDistilleryFields {
    *  page, map, picker and "suggested next stops" list reads distilleries
    *  through. Missing/false means unpublished. */
   Published?: boolean;
+  /** Whether visitors can actually turn up (added to the table 29 Aug
+   *  2026 by the site owner, alongside Published). Ticked on all 11
+   *  distilleries with a visitor centre; unticked on Laggan Bay and
+   *  Portintruan.
+   *
+   *  Separate question from Published on purpose. Published decides
+   *  whether the record renders AT ALL; this decides whether the site is
+   *  allowed to imply you can go. Both are unticked on the two new
+   *  records today, but they will diverge the moment the site owner
+   *  publishes them - which is the whole point of the not-yet-open page
+   *  variant. See Distillery.openToVisitors in types.ts. */
+  "Open To Visitors"?: boolean;
 }
 
 export interface AirtableTourFields {
