@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getDistilleries, getDistilleryBySlug } from "@/lib/data";
+import { getDistilleries, getVisitableDistilleries, getDistilleryBySlug } from "@/lib/data";
 import DistilleryPageClient from "./DistilleryPageClient";
 
 // Forced dynamic 24 July 2026 - same fix as /explore/[slug], same day:
@@ -13,6 +13,11 @@ import DistilleryPageClient from "./DistilleryPageClient";
 // immediately.
 export const dynamic = "force-dynamic";
 
+// Every PUBLISHED distillery gets a page, visitable or not - a
+// producing distillery with no visitor centre still has a story, a status
+// notice and a map position, and the not-yet-open variant of this
+// template exists precisely so it can have one. getDistilleries(), not
+// getVisitableDistilleries().
 export async function generateStaticParams() {
   const distilleries = await getDistilleries();
   return distilleries.map((d) => ({ slug: d.slug }));
@@ -24,15 +29,20 @@ export default async function DistilleryPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [distillery, allDistilleries] = await Promise.all([
+  const [distillery, visitableDistilleries] = await Promise.all([
     getDistilleryBySlug(slug),
-    getDistilleries(),
+    // Resolved against the VISITABLE list on purpose: nextStops is
+    // already derived from visitable candidates only (see
+    // fetchDistilleriesFromAirtable), and looking the slugs back up in
+    // the same set means a stale or hand-edited slug still cannot surface
+    // a distillery nobody can walk into under "Suggested next stops".
+    getVisitableDistilleries(),
   ]);
 
   if (!distillery) notFound();
 
   const nextStops = distillery.nextStops
-    .map((s) => allDistilleries.find((d) => d.slug === s))
+    .map((s) => visitableDistilleries.find((d) => d.slug === s))
     .filter((d): d is NonNullable<typeof d> => !!d);
 
   return <DistilleryPageClient distillery={distillery} nextStops={nextStops} />;

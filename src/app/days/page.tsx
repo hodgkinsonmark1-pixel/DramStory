@@ -2,7 +2,7 @@ import Footer from "@/components/Footer";
 import PageHeader from "@/components/PageHeader";
 import DaysHubGrid from "@/components/journeys/DaysHubGrid";
 import DaysAnswersBar from "@/components/journeys/DaysAnswersBar";
-import { getDays, getDistilleries } from "@/lib/data";
+import { getDays, getVisitableDistilleries } from "@/lib/data";
 
 /**
  * PRE-DESIGNED DAYS HUB
@@ -25,7 +25,7 @@ import { getDays, getDistilleries } from "@/lib/data";
 export const dynamic = "force-dynamic";
 
 export default async function PreDesignedDaysHubPage() {
-  const [days, distilleries] = await Promise.all([getDays(), getDistilleries()]);
+  const [days, distilleries] = await Promise.all([getDays(), getVisitableDistilleries()]);
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--off-white)" }}>

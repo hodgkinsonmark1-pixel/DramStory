@@ -60,6 +60,43 @@ export const getDistilleries = cache(async (): Promise<Distillery[]> => {
   return fetchDistilleriesFromAirtable();
 });
 
+/** Published distilleries a visitor can ACTUALLY TURN UP TO - the eleven
+ *  with a visitor centre, not the thirteen records.
+ *
+ *  Two different questions get asked of this table and they now have two
+ *  different answers:
+ *
+ *    getDistilleries()          - "what exists on Islay". The right answer
+ *                                 for the /distilleries index and for a
+ *                                 distillery's own page, which is exactly
+ *                                 where a producing-but-closed distillery
+ *                                 SHOULD be listed. Being listed is the
+ *                                 point: a guide to Islay that quietly
+ *                                 shows ten of twelve is out of date.
+ *
+ *    getVisitableDistilleries() - "where can I go". The right answer
+ *                                 everywhere a visit is implied: map pins
+ *                                 offering tours, the planner's picker,
+ *                                 suggested next stops, Add-to-Journey,
+ *                                 the homepage cards, Day/Journey stop
+ *                                 resolution, Area pages' local
+ *                                 distilleries, "distilleries from your
+ *                                 door" on a stay, and every count worded
+ *                                 as "distilleries you can visit".
+ *
+ *  It reads through getDistilleries() rather than re-querying, so the
+ *  Published gate is still enforced in exactly one place and these two
+ *  can never disagree about which records exist. cache() for the same
+ *  reason as getDistilleries - see its comment above.
+ *
+ *  If you are adding a new surface, the question to ask is not "does this
+ *  page look like a distillery list" but "would a reader take this as an
+ *  invitation to drive there". If yes, call this one. */
+export const getVisitableDistilleries = cache(async (): Promise<Distillery[]> => {
+  const all = await getDistilleries();
+  return all.filter((d) => d.openToVisitors);
+});
+
 async function fetchDistilleriesFromAirtable(): Promise<Distillery[]> {
   const [distilleryRecords, tourRecords, featureRecords] = await Promise.all([
     airtableFetchAll<AirtableDistilleryFields>("Distilleries"),
@@ -82,13 +119,20 @@ async function fetchDistilleriesFromAirtable(): Promise<Distillery[]> {
     // Journey", an empty Visit panel, "Est. 0"), so they are held back
     // until the not-yet-open variant of that template exists.
     //
-    // This one filter is the whole gate, by design: every page, map,
-    // picker and "suggested next stops" list reads distilleries through
-    // getDistilleries() (getDistilleryBySlug and every Day/Journey/Area/
-    // Featured Stay join resolve against this same array), so nothing
-    // downstream needs its own copy of the rule and none can drift from
-    // it. An unpublished slug therefore 404s on /distilleries/[slug]
-    // rather than rendering a broken page.
+    // This one filter is the whole EXISTENCE gate, by design: every page,
+    // map, picker and "suggested next stops" list reads distilleries
+    // through getDistilleries() (getDistilleryBySlug and every Day/
+    // Journey/Area/Featured Stay join resolve against this same array, as
+    // does getVisitableDistilleries below), so nothing downstream needs
+    // its own copy of the rule and none can drift from it. An unpublished
+    // slug therefore 404s on /distilleries/[slug] rather than rendering a
+    // broken page.
+    //
+    // It is NOT the visitability gate. "Does this record exist" and "can
+    // a reader go there" are two questions with two answers - see
+    // getVisitableDistilleries() immediately below, which is what every
+    // surface that implies a visit reads instead. Publishing Laggan Bay
+    // and Portintruan is meant to list them, not to offer them.
     //
     // Explicitly `=== true`, not truthiness: Airtable omits an unchecked
     // checkbox from the payload entirely, so missing means unpublished.
@@ -156,9 +200,17 @@ async function fetchDistilleriesFromAirtable(): Promise<Distillery[]> {
     });
 
   // Next Stops has no Airtable field yet, so derive a default from
-  // geographic proximity now that we have the full list to compare against.
+  // geographic proximity now that we have the full list to compare
+  // against. CANDIDATES are the visitable ones only: "suggested next
+  // stops" is an invitation to drive somewhere, and a distillery with no
+  // visitor centre is not somewhere you can go. Every distillery still
+  // GETS suggestions, including the two that take no visitors - "here is
+  // what you can actually visit near this one" is useful on their pages
+  // too. Filtered inline rather than via getVisitableDistilleries() only
+  // because that helper reads through this very function.
+  const visitableCandidates = distilleries.filter((d) => d.openToVisitors);
   for (const d of distilleries) {
-    d.nextStops = deriveNextStops(d, distilleries);
+    d.nextStops = deriveNextStops(d, visitableCandidates);
   }
 
   return distilleries;
@@ -201,7 +253,7 @@ export const getFeaturedStays = cache(async (): Promise<FeaturedStay[]> => {
 async function fetchFeaturedStaysFromAirtable(): Promise<FeaturedStay[]> {
   const [records, distilleries, localFeatures, days, distanceRecords] = await Promise.all([
     airtableFetchAll<AirtableFeaturedStayFields>("Featured Stays"),
-    getDistilleries(),
+    getVisitableDistilleries(),
     getLocalFeatures(),
     getDays(),
     airtableFetchAll<AirtableStayDistilleryDistanceFields>("Stay Distillery Distances"),
@@ -256,7 +308,7 @@ export const getAreas = cache(async (): Promise<Area[]> => {
 async function fetchAreasFromAirtable(): Promise<Area[]> {
   const [records, distilleries, localFeatures, featuredStays, days] = await Promise.all([
     airtableFetchAll<AirtableAreaFields>("Areas"),
-    getDistilleries(),
+    getVisitableDistilleries(),
     getLocalFeatures(),
     getFeaturedStays(),
     getDays(),
@@ -282,6 +334,10 @@ async function fetchAreasFromAirtable(): Promise<Area[]> {
   // Region field (matched to this area's distilleryRegion), not computed
   // straight-line distance. Islay's geography makes raw distance
   // misleading for "nearby" claims (see content-sourcing-standards.md).
+  // `distilleries` here is getVisitableDistilleries() - an Area page's
+  // "Local Distilleries" is a list of places to go in that area, so a
+  // producing-but-closed distillery must not appear in it (Laggan Bay's
+  // Region is "West Islay" and would otherwise land on the Rhinns).
   for (const area of areas) {
     area.distilleries = area.distilleryRegion
       ? distilleries.filter((d) => d.region === area.distilleryRegion)
@@ -309,7 +365,7 @@ async function fetchDaysFromAirtable(): Promise<HubDay[]> {
     airtableFetchAll<AirtableDayFields>("Days"),
     airtableFetchAll<AirtableDayStopFields>("Day Stops"),
     airtableFetchAll<AirtableTourFields>("Tours"),
-    getDistilleries(),
+    getVisitableDistilleries(),
     getLocalFeatures(),
   ]);
 
@@ -361,7 +417,7 @@ export const getAllDaysAnyStatus = cache(async (): Promise<HubDay[]> => {
     airtableFetchAll<AirtableDayFields>("Days"),
     airtableFetchAll<AirtableDayStopFields>("Day Stops"),
     airtableFetchAll<AirtableTourFields>("Tours"),
-    getDistilleries(),
+    getVisitableDistilleries(),
     getLocalFeatures(),
   ]);
 
@@ -400,7 +456,7 @@ async function fetchJourneysFromAirtable(): Promise<Journey[]> {
       airtableFetchAll<AirtableDayFields>("Days"),
       airtableFetchAll<AirtableDayStopFields>("Day Stops"),
       airtableFetchAll<AirtableTourFields>("Tours"),
-      getDistilleries(),
+      getVisitableDistilleries(),
       getLocalFeatures(),
     ]);
 
@@ -626,7 +682,7 @@ export async function getDistilleryBySlug(slug: string): Promise<Distillery | un
 export async function getLocalEvents(): Promise<LocalEvent[]> {
   const [records, distilleries] = await Promise.all([
     airtableFetchAll<AirtableEventFields>("Events"),
-    getDistilleries(),
+    getVisitableDistilleries(),
   ]);
   return records
     .map((r) => mapToLocalEvent(r.id, r.fields, distilleries))

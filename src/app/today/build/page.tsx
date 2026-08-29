@@ -1,7 +1,7 @@
 import PageHeader from "@/components/PageHeader";
 import Footer from "@/components/Footer";
 import BuildTodayPageClient from "./BuildTodayPageClient";
-import { getDistilleries, getLocalFeatures } from "@/lib/data";
+import { getVisitableDistilleries, getLocalFeatures } from "@/lib/data";
 
 /** Mobile's dedicated map+shortlist destination for the "today" timeframe
  *  - see BuildTodayPageClient's own header comment for the full story.
@@ -12,7 +12,7 @@ import { getDistilleries, getLocalFeatures } from "@/lib/data";
 export const dynamic = "force-dynamic";
 
 export default async function BuildTodayPage() {
-  const [distilleries, localFeatures] = await Promise.all([getDistilleries(), getLocalFeatures()]);
+  const [distilleries, localFeatures] = await Promise.all([getVisitableDistilleries(), getLocalFeatures()]);
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--off-white)" }}>

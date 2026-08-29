@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import Footer from "@/components/Footer";
-import { getAreaBySlug, getAreas, getDistilleries, getLocalFeatures } from "@/lib/data";
+import { getAreaBySlug, getAreas, getVisitableDistilleries, getLocalFeatures } from "@/lib/data";
 import BuildAreaPageClient from "./BuildAreaPageClient";
 
 /** Mobile's dedicated map+shortlist destination for an Area page's
@@ -25,7 +25,7 @@ export default async function BuildAreaPage({
   const { slug } = await params;
   const [area, distilleries, localFeatures] = await Promise.all([
     getAreaBySlug(slug),
-    getDistilleries(),
+    getVisitableDistilleries(),
     getLocalFeatures(),
   ]);
 

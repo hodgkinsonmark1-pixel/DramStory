@@ -13,6 +13,11 @@ import DistilleriesGrid from "@/components/DistilleriesGrid";
 export const dynamic = "force-dynamic";
 
 export default async function DistilleriesIndexPage() {
+  // getDistilleries(), NOT getVisitableDistilleries(). This index is the
+  // one surface that should list a distillery you cannot walk into: Islay
+  // has twelve working distilleries and a guide that quietly shows ten is
+  // out of date. Everywhere that implies a visit reads the visitable list
+  // instead - see getVisitableDistilleries in src/lib/data/index.ts.
   const distilleries = await getDistilleries();
 
   return (

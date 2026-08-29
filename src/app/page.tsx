@@ -5,11 +5,14 @@ import WhereToStay from "@/components/home/WhereToStay";
 import TripEssentials from "@/components/journey/TripEssentials";
 import LatestJournal from "@/components/home/LatestJournal";
 import Footer from "@/components/Footer";
-import { getDistilleries, getLocalEvents, getJournalPosts, getDays, getJourneys, getLocalFeatures, getAreas, getFeaturedStays } from "@/lib/data";
+import { getVisitableDistilleries, getLocalEvents, getJournalPosts, getDays, getJourneys, getLocalFeatures, getAreas, getFeaturedStays } from "@/lib/data";
 
 export default async function HomePage() {
   const [distilleries, localEvents, journalPosts, days, journeys, localFeatures, areas, featuredStays] = await Promise.all([
-    getDistilleries(),
+    // Visitable only - every distillery on this page (the hero's
+    // "which distilleries" picks, the Discover cards) is presented as
+    // somewhere to go. See getVisitableDistilleries.
+    getVisitableDistilleries(),
     getLocalEvents(),
     getJournalPosts(),
     getDays(),

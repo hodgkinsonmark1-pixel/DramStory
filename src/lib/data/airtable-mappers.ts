@@ -669,8 +669,13 @@ export function distanceKm(a: { lat: number; lng: number }, b: { lat: number; ln
  * a real "Next Stops" linked-record field in Airtable if curated routes
  * (rather than pure distance) are wanted.
  */
-export function deriveNextStops(target: Distillery, all: Distillery[]): string[] {
-  return all
+/** The two nearest distilleries to `target`, by straight-line distance.
+ *  `candidates` is deliberately not "every distillery": callers pass the
+ *  VISITABLE ones only, because this drives "Suggested next stops", which
+ *  is an invitation to drive somewhere. See the call site in
+ *  fetchDistilleriesFromAirtable. */
+export function deriveNextStops(target: Distillery, candidates: Distillery[]): string[] {
+  return candidates
     .filter((d) => d.slug !== target.slug)
     .map((d) => ({ slug: d.slug, dist: distanceKm(target, d) }))
     .sort((a, b) => a.dist - b.dist)

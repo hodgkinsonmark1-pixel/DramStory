@@ -1,4 +1,4 @@
-import { getDays, getDistilleries, getJourneys, getLocalEvents, getLocalFeatures, getJournalPosts } from "@/lib/data";
+import { getDays, getVisitableDistilleries, getJourneys, getLocalEvents, getLocalFeatures, getJournalPosts } from "@/lib/data";
 import type { TripTiming } from "@/lib/types";
 import JourneyFlow from "@/components/journey/JourneyFlow";
 
@@ -19,7 +19,10 @@ export default async function JourneyPage({
   // only the secondary "a specific distillery" dropdown does. Blocking
   // the whole page (including Q2's first paint) on this Airtable
   // round-trip was adding real, needless lag to every Q1->Q2 navigation.
-  const distilleriesPromise = getDistilleries();
+  // Visitable only: this array is the planner's distillery picker AND
+  // the map's distillery pins, both of which offer tours and an
+  // Add-to-Journey. See getVisitableDistilleries.
+  const distilleriesPromise = getVisitableDistilleries();
   // Deferred, same reasoning as the rest of this page's fetches - only
   // the workspace step's Phase 5 context bar (Workspace.tsx) needs Hub
   // Days at all, to detect a day's sourceHubDaySlug origin and offer

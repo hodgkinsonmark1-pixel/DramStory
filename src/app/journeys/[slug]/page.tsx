@@ -8,7 +8,7 @@ import {
   getAllDaysAnyStatus,
   getDays,
   getFeaturedStays,
-  getDistilleries,
+  getVisitableDistilleries,
 } from "@/lib/data";
 import Footer from "@/components/Footer";
 import SiteHeader from "@/components/SiteHeader";
@@ -333,7 +333,7 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
     getJourneys(),
     getAllDaysAnyStatus(),
     getDays(),
-    getDistilleries(),
+    getVisitableDistilleries(),
   ]);
   if (!journey) notFound();
 
@@ -346,14 +346,16 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
   // lying if it didn't. Region already draws that line (every Islay
   // record is "<compass> Islay" or "Port Ellen"; Jura's is "Jura").
   //
-  // Visitable: getDistilleries() is gated on Published, and the two
-  // records currently withheld by that gate - Laggan Bay and Portintruan
-  // - are withheld precisely BECAUSE they take no visitors. So this
-  // number is the count of Islay distilleries a reader can walk into, not
-  // the count of Islay distilleries, which is higher. The claim band's
-  // label is worded to match; if that gate ever admits a distillery that
-  // is closed to the public, this variable stops meaning "visitable" and
-  // the label above it has to be revisited.
+  // Visitable: this reads getVisitableDistilleries(), which is gated on
+  // Open To Visitors as well as Published. So this number is the count of
+  // Islay distilleries a reader can walk into, not the count of Islay
+  // distilleries, which is higher - Laggan Bay and Portintruan produce
+  // spirit and take no visitors, and they are excluded here whether or
+  // not the site owner has published their pages. The claim band's label
+  // is worded to match. This used to lean on the Published gate alone,
+  // which was only true for as long as the two closed records stayed
+  // unpublished; publishing them would have silently turned "eleven you
+  // can visit" into thirteen minus Jura.
   const visitableIslandDistilleryCount = distilleries.filter((d) => d.region !== "Jura").length;
   const claimStats = journeyClaimStats(journey, visitableIslandDistilleryCount);
   const tourTotal = journeyTourTotal(journey);

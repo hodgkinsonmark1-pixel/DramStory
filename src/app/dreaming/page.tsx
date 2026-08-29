@@ -1,7 +1,7 @@
 import PageHeader from "@/components/PageHeader";
 import Footer from "@/components/Footer";
 import DreamingPageClient from "./DreamingPageClient";
-import { getDistilleries, getJournalPosts } from "@/lib/data";
+import { getVisitableDistilleries, getJournalPosts } from "@/lib/data";
 
 /** Mobile's standalone "dreaming" destination - see DreamingPageClient's
  *  own header comment for the full story. Same distilleries/journalPosts
@@ -14,7 +14,7 @@ import { getDistilleries, getJournalPosts } from "@/lib/data";
 export const dynamic = "force-dynamic";
 
 export default async function DreamingPage() {
-  const [distilleries, journalPosts] = await Promise.all([getDistilleries(), getJournalPosts()]);
+  const [distilleries, journalPosts] = await Promise.all([getVisitableDistilleries(), getJournalPosts()]);
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--off-white)" }}>

@@ -1,7 +1,7 @@
 import Footer from "@/components/Footer";
 import PageHeader from "@/components/PageHeader";
 import TripReview from "@/components/journeys/TripReview";
-import { getDays, getDistilleries } from "@/lib/data";
+import { getDays, getVisitableDistilleries } from "@/lib/data";
 
 /**
  * TRIP REVIEW
@@ -11,7 +11,7 @@ import { getDays, getDistilleries } from "@/lib/data";
  * DaysTripBar.tsx), which previously pointed at /journey?resume=1 as a
  * temporary placeholder pending this page.
  *
- * Server component fetching getDays()/getDistilleries() - same
+ * Server component fetching getDays()/getVisitableDistilleries() - same
  * force-dynamic/Airtable-fresh pattern as /days (src/app/days/page.tsx)
  * - and handing both down to the client TripReview component. Trip
  * state itself lives in trip-context.tsx's localStorage-backed context,
@@ -22,14 +22,15 @@ import { getDays, getDistilleries } from "@/lib/data";
  *  - getDays(): lets a trip day that traces back to a Hub Day
  *    (sourceHubDaySlug) borrow that Day's authored pacing and detect
  *    whether it's since been edited (§4.5 "YOUR VERSION").
- *  - getDistilleries(): the real, current distillery count for the
+ *  - getVisitableDistilleries(): the real, current count of distilleries
+ *    a visitor can actually walk into, for the
  *    "Distilleries visited" segments (§3.3 item 3) - read live rather
  *    than hardcoding 11, in case the roster ever changes.
  */
 export const dynamic = "force-dynamic";
 
 export default async function TripPage() {
-  const [hubDays, distilleries] = await Promise.all([getDays(), getDistilleries()]);
+  const [hubDays, distilleries] = await Promise.all([getDays(), getVisitableDistilleries()]);
 
   return (
     <>
