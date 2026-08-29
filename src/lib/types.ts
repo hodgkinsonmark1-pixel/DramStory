@@ -44,6 +44,23 @@ export interface Tour {
    *  this field exists to avoid. See seasonalNoticeFor for the rule that
    *  decides whether it is shown to a given visitor at all. */
   seasonal?: SeasonalWindow;
+  /** Which weekdays this tour runs (0 = Sunday .. 6 = Saturday), from
+   *  the Tours table's own `Runs On Days` multi-select (added 29 Aug
+   *  2026). An EMPTY array means "no tour-specific restriction", which
+   *  is the normal case and is NOT the same as "unknown" - it is what
+   *  nearly every tour on the island has, and it makes the tour
+   *  available on whatever days its distillery is open.
+   *
+   *  Populated only where a tour genuinely runs on fewer days than its
+   *  distillery does, all year: Ardbeg's two Classic tours are Monday to
+   *  Friday, its Weekend Whisky Wander is Saturday and Sunday. Ardbeg's
+   *  Roaming Dram and Warehouse 3 Tasting are deliberately left blank -
+   *  they are Mon-Fri in April and October but seven days from May to
+   *  September, and half of that rule encoded here would be a
+   *  confidently wrong warning. See stopAvailabilityWarning in
+   *  src/lib/availability.ts, the one place this is turned into
+   *  something a visitor reads. */
+  runsOnDays: number[];
 }
 
 /** A dated period in which a tour runs differently from its published

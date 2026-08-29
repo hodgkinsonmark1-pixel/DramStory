@@ -69,6 +69,13 @@ export interface AirtableTourFields {
    *  "five drams rather than three, fully accessible, 18+" rather than
    *  the site printing a generic "this tour may be affected". */
   "Seasonal Note"?: string;
+  /** Day names ("Monday", "Saturday", ...) for the weekdays this tour
+   *  runs. Added to the table 29 Aug 2026 by the site owner, populated
+   *  on three Ardbeg tours only. Blank on every other tour, and blank
+   *  means "no tour-specific restriction" - see Tour.runsOnDays in
+   *  types.ts for why two of Ardbeg's own tours are left blank on
+   *  purpose rather than half-encoded. */
+  "Runs On Days"?: string[];
 }
 
 export interface AirtableJournalFields {
@@ -169,7 +176,10 @@ export function mapFeatureCategory(category?: string): NearbyFeature["category"]
 
 /** Day-name -> weekday-index (0 = Sunday .. 6 = Saturday), for turning
  *  Distilleries' "Closed Days" multipleSelects into Distillery.closedDays
- *  (Days/Trip flow Phase 4, docs/days-trip-flow-handoff.md §2.2/§4.4). */
+ *  (Days/Trip flow Phase 4, docs/days-trip-flow-handoff.md §2.2/§4.4)
+ *  and, since 29 Aug 2026, Tours' "Runs On Days" into Tour.runsOnDays -
+ *  the two inputs to the same availability check, so they read the day
+ *  names through the same table rather than two that could disagree. */
 const WEEKDAY_INDEX: Record<string, number> = {
   Sunday: 0,
   Monday: 1,
@@ -180,11 +190,18 @@ const WEEKDAY_INDEX: Record<string, number> = {
   Saturday: 6,
 };
 
-export function mapClosedDays(closedDays: string[] | undefined): number[] {
-  if (!closedDays) return [];
-  return closedDays
+/** Airtable day names -> weekday indices. An unrecognised option is
+ *  dropped rather than guessed at: a day nobody can name is a day this
+ *  codebase won't warn about. */
+export function mapWeekdayNames(days: string[] | undefined): number[] {
+  if (!days) return [];
+  return days
     .map((name) => WEEKDAY_INDEX[name])
     .filter((n): n is number => n != null);
+}
+
+export function mapClosedDays(closedDays: string[] | undefined): number[] {
+  return mapWeekdayNames(closedDays);
 }
 
 export function mapTour(fields: AirtableTourFields): Tour {
@@ -202,6 +219,9 @@ export function mapTour(fields: AirtableTourFields): Tour {
     // is the failure mode this whole feature is built to avoid. See
     // Tour.seasonal.
     seasonal: seasonalWindow(fields),
+    // Empty is the normal case and means "runs whenever its distillery
+    // is open" - never "unknown". See Tour.runsOnDays.
+    runsOnDays: mapWeekdayNames(fields["Runs On Days"]),
   };
 }
 
