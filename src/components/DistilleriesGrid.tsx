@@ -119,7 +119,16 @@ export default function DistilleriesGrid({ distilleries }: DistilleriesGridProps
                 </div>
                 <h2 className="dist-card-name">{d.name}</h2>
                 <p className="dist-card-tagline">{d.tagline}</p>
-                <div className="dist-card-price">Tours from {d.priceFrom}</div>
+                {/* "Tours from" is rendered only when there IS a figure.
+                    priceFrom is "" whenever Airtable's Price From is blank,
+                    which printed a dangling "Tours from " with nothing after
+                    it on Isle of Jura (no tours at all) and Port Ellen (its
+                    only listed tour is the free Open Days, deliberately
+                    excluded from price maths - see isPublishableTour). A
+                    label with no figure is worse than no label. */}
+                {d.priceFrom ? (
+                  <div className="dist-card-price">Tours from {d.priceFrom}</div>
+                ) : null}
               </div>
             </Link>
           ))}

@@ -81,7 +81,10 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
             <div className="distillery-hero-sub">
               <span className="hero-badge">{d.region}</span>
               <span className="hero-badge">{d.style}</span>
-              <span className="hero-badge">Est. {d.founded}</span>
+              {/* Suppressed entirely when Founded is blank. Airtable
+                  omits an empty number field, so founded falls back to 0
+                  in the mapper and this badge used to read "Est. 0". */}
+              {d.founded ? <span className="hero-badge">Est. {d.founded}</span> : null}
             </div>
           </div>
           <div className="distillery-hero-actions">
