@@ -2,8 +2,9 @@
    (docs/days-trip-flow-handoff.md §3.2, §4, §5). Colours/radii/shadows
    use the real tokens from dramstory-legacy.css's :root, same rule as
    home-extra.css's ANSWERS BLOCK section - never the prototype's
-   hardcoded hexes. #B5502E (Packed pace) is the one exception, already
-   established by DaysHubGrid's own pre-existing PacingTag. */
+   hardcoded hexes. The Packed pace rust is a token now too
+   (--rust / --rust-ink), reached through day-derivations.ts's paceTone
+   rather than named here - see dramstory-legacy.css's :root. */
 
 /* Cards sit as discrete bordered cards on a slightly darker panel than
    the page background (§3.2: "the current flat stacked list reads as a
@@ -130,7 +131,7 @@
   margin: 0 0 6px;
 }
 /* 11 Aug 2026, Mark's request - once a Hub Day is already in the trip,
-   its card title links through to that day's own /trip/day/[index]
+   its card title links through to that day's own /days/[slug]?trip=N
    screen. Same additive-class pattern as trip-review.css's own
    .trip-day-title-link (applied to the <a> wrapper, .days-hub-card-title
    still applied to the <h3> inside it so the heading's own look is

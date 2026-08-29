@@ -50,7 +50,7 @@ export default function Footer() {
           <ul className="footer-links">
             <li><Link href="/">Plan a Journey</Link></li>
             <li><Link href="/distilleries">Islay Distilleries</Link></li>
-            <li><Link href="/#classic-journeys">Classic Tours</Link></li>
+            <li><Link href="/#classic-journeys">Classic journeys</Link></li>
             <li><Link href="/local-features">Local Features</Link></li>
             <li><Link href="/days">Day Plans</Link></li>
             {otherLiveRegions.map((r) => (

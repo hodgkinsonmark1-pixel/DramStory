@@ -27,6 +27,33 @@ During the initial content build (July 2026), two real problems surfaced from re
 
 **Noted 18 July 2026.** Once all Hub Day content is drafted and under review, Mark will provide tour details for **all** tours at **all** distilleries directly, sourced by him from each distillery's own site. This supersedes any tour data Claude has independently researched/sourced up to that point where the two conflict - Mark's direct-from-distillery figures are the higher-confidence source, not a second opinion to weigh against existing Airtable records. When that audit happens, treat existing `Tours` records as provisional and expect corrections, not just additions - as already happened once with Laphroaig, where a freshly-provided "Laphroaig Experience" (£22, 1.5hrs) turned out to differ significantly in name, price, and duration from the previously-researched "Grain to Glass Experience" record (£60, 2-2.5hrs) still on file. Both records currently exist; the older one should be reviewed for staleness when the audit happens, not treated as still-current in the meantime.
 
+## Seasonal tour variation (`Seasonal From` / `Seasonal To` / `Seasonal Note`)
+
+**Added 18 August 2026.** Several Islay distilleries pause production for part of the year, and the tour a visitor actually gets changes with it - Laphroaig's silent season turns the Laphroaig Experience into a tutored tasting (five drams rather than three, no floor maltings, fully accessible where the usual route has stairs, and 18+ where the usual tour admits 12- to 17-year-olds with an adult). Three fields on the `Tours` record carry that:
+
+- `Seasonal From` / `Seasonal To` - inclusive ISO dates. **Year-specific**: real dates for one season, not a recurring rule.
+- `Seasonal Note` - what is actually different, written for the visitor and rendered **verbatim** beside the affected stop. Editorial caveats ("dates need confirming") do not belong in it: whatever is in this cell is what a visitor reads. Say it in `Source` instead.
+
+All three must be populated together, or none. A window with no note has nothing to say; a note with no window can't be tested against anyone's dates, so it could only be shown always - and an undated standing warning is the failure mode these fields exist to avoid. The code treats "any of the three blank" as no seasonal variation and renders nothing. Blank is the normal case and means "this tour doesn't change", not "nobody has checked".
+
+**When the note is shown.** Beside the affected stop on the day page and on a journey's day cards, never as a page-level banner - it concerns one tour, not the day. And only when it applies: if the visitor has set trip dates, only when those dates overlap the window (and the notice leads by saying so); if they haven't, only when today falls inside it; otherwise nothing at all. A notice about September shown to someone travelling in May is noise, and noise is how people learn to skim past the one that did apply to them.
+
+**Keeping them current.** These dates rot silently and on a schedule - a window that has passed simply stops appearing, with nothing on the page to say it is out of date. Refresh them as part of the quarterly tour review, from the distillery's own site, alongside the price and duration check: confirm next year's dates, or clear all three fields. A stale window is not a harmless leftover. It is the same principle as `days-trip-flow-handoff.md` §8 open question 2, on closed days: **a wrong closure warning is worse than none** - it costs the visitor a real day, and it teaches them that the site's warnings are not worth reading.
+
+## Which days a tour runs (`Runs On Days`)
+
+**Added 29 August 2026.** Ardbeg's Classic Distillery Experience runs Monday to Friday. "Three Legends, One Road" is built around it, so that day cannot run on a Saturday - and until this field existed, nothing on the site said so. Someone set Saturday dates, built the day, and found out at the booking page.
+
+`Runs On Days` is a multi-select of weekday names on the `Tours` record. It answers exactly one question: **on which weekdays, all year, does this tour run?** Together with the distillery's own `Closed Days` it is the whole of the availability check (`src/lib/availability.ts`) - the distillery first, because a closure takes every tour there with it, then the tour.
+
+**Blank is the normal case and means "no tour-specific restriction".** It does not mean "unknown". A blank tour runs on whatever days its distillery is open.
+
+**Only populate it where the restriction holds all year.** Ardbeg's Roaming Dram and Warehouse 3 Tasting are Mon-Fri in April and October but seven days from May to September. There is no field that can hold "half the year", so both are deliberately left blank and their prose carries it. The same reasoning cleared Lagavulin's `Closed Days`: it is closed Sundays only from November to February and open seven days March to October, so an always-on Sunday closure would have been wrong for eight months. Half a rule encoded here produces a confidently wrong warning, and **a wrong closure warning is worse than none** (`days-trip-flow-handoff.md` §8 open question 2).
+
+**Where it surfaces.** Beside the affected stop on the day page, and in the trip review's "Still to sort" list - and only once the visitor has set real trip dates. Unlike the seasonal note there is no "what about today" fallback: a weekday recurs every seven days, so today's being a Saturday tells someone planning next June nothing at all.
+
+**Keeping it current.** Same quarterly tour review as the seasonal windows above, from the distillery's own site. Unlike a seasonal window, a stale `Runs On Days` never expires by itself - it will keep warning, or keep silent, until someone changes it.
+
 ## Broader content (Description, History, Fun Facts, Whisky Profile)
 
 Official sources are still preferred, but reputable third-party sources (Scotch Whisky Association / Whiskipedia, Wikipedia, established whisky press) remain acceptable here, since this content is less time-sensitive than live tour bookings and benefits from cross-referencing multiple independent sources. The distinction is specifically about **live, bookable, price-bearing operational data** (Tours), where staleness has a direct, visitor-facing consequence.

@@ -1,9 +1,11 @@
 import { cache } from "react";
-import type { Area, Distillery, FeaturedStay, HubDay, JournalPost, LocalEvent, LocalFeature, PlaceListing, Tour } from "@/lib/types";
+import type { Area, Distillery, FeaturedStay, HubDay, JournalPost, Journey, LocalEvent, LocalFeature, PlaceListing } from "@/lib/types";
 import { airtableFetchAll } from "@/lib/airtable";
 import { searchAccommodation, searchNearbyByCategory } from "@/lib/google-places";
+import { isPublishableTour } from "@/lib/pricing";
 import {
   deriveNextStops,
+  mapAirtableDayRecord,
   mapClosedDays,
   mapLocalFeature,
   mapTour,
@@ -12,6 +14,8 @@ import {
   mapToJournalPost,
   mapToLocalEvent,
   mapToLocalFeature,
+  parseLabelValueLines,
+  parseMakeItYours,
   type AirtableAreaFields,
   type AirtableDayFields,
   type AirtableDayStopFields,
@@ -19,18 +23,12 @@ import {
   type AirtableEventFields,
   type AirtableFeaturedStayFields,
   type AirtableJournalFields,
+  type AirtableJourneyDayFields,
+  type AirtableJourneyFields,
   type AirtableLocalFeatureFields,
   type AirtableStayDistilleryDistanceFields,
   type AirtableTourFields,
 } from "./airtable-mappers";
-
-// Matches the [label](/path) inline links already used in Day narratives
-// (same renderWithLinks pattern as the Distillery/Explore pages) - reused
-// here to resolve which real Local Features a Day's map should pin,
-// since Day Stops only links Day -> Distillery -> Tour, not Day -> Local
-// Feature. Whatever the narrative actually links to under /explore/ is
-// exactly the set of Local Features that Day cares about.
-const EXPLORE_LINK_RE = /\[([^\]]+)\]\(\/explore\/([a-z0-9-]+)\)/g;
 
 // ─────────────────────────────────────────────────────────────────────────
 // DATA LAYER — every page/component reads through these functions, never
@@ -76,6 +74,32 @@ async function fetchDistilleriesFromAirtable(): Promise<Distillery[]> {
     // Airtable has a few blank placeholder rows (no Name/Slug) mixed into
     // the table — skip anything that isn't a real, populated record.
     .filter((r) => r.fields.Name && r.fields.Slug)
+    // PUBLISHED GATE (29 Aug 2026). Only ticked records render anywhere.
+    // Laggan Bay and Portintruan are real, producing distilleries that
+    // take no visitors; their Airtable records are complete, but the
+    // distillery page template still assumes a visitable distillery (a
+    // "Book a Tour" button over an empty tours section, "+ Add to
+    // Journey", an empty Visit panel, "Est. 0"), so they are held back
+    // until the not-yet-open variant of that template exists.
+    //
+    // This one filter is the whole gate, by design: every page, map,
+    // picker and "suggested next stops" list reads distilleries through
+    // getDistilleries() (getDistilleryBySlug and every Day/Journey/Area/
+    // Featured Stay join resolve against this same array), so nothing
+    // downstream needs its own copy of the rule and none can drift from
+    // it. An unpublished slug therefore 404s on /distilleries/[slug]
+    // rather than rendering a broken page.
+    //
+    // Explicitly `=== true`, not truthiness: Airtable omits an unchecked
+    // checkbox from the payload entirely, so missing means unpublished.
+    //
+    // Deliberately NOT gated on `Status` - see AirtableDistilleryFields'
+    // Published doc comment for why that field would hide most of the
+    // site. Also deliberately not softened to "show drafts on preview"
+    // the way mapToArea/mapToFeaturedStay do for Status: these two are
+    // withheld because the template renders them WRONG, not because the
+    // copy is unfinished, so there is nothing useful to preview yet.
+    .filter((r) => r.fields.Published === true)
     .map((r) => {
       const f = r.fields;
       return {
@@ -288,90 +312,285 @@ async function fetchDaysFromAirtable(): Promise<HubDay[]> {
   const tourById = new Map(tourRecords.map((r) => [r.id, mapTour(r.fields)]));
   const distilleryById = new Map(distilleries.map((d) => [d.id, d]));
   const localFeatureBySlug = new Map(localFeatures.map((f) => [f.slug, f]));
+  const localFeatureById = new Map(localFeatures.map((f) => [f.id, f]));
+  const ctx = { dayStopById, tourById, distilleryById, localFeatureBySlug, localFeatureById };
 
   const days: HubDay[] = [];
 
   for (const record of dayRecords) {
-    const f = record.fields;
-    // Airtable has a few blank placeholder rows mixed into the table
-    // (same pattern as Distilleries) - skip anything not a real record,
-    // and gate on Status: Live so drafts never show on the live site.
-    if (!f.Name || !f.Slug || f.Status !== "Live") continue;
+    // Gate on Status: Live so drafts never show on the live Pre-Designed
+    // Days Hub - same "never leak a draft onto the live site" rule as
+    // every other index page. mapAirtableDayRecord itself only skips a
+    // genuinely blank placeholder row (no Name/Slug); it has no opinion
+    // on Status, since getJourneys() below reuses it WITHOUT this gate
+    // (a Journey renders regardless of its own or its Days' Status, for
+    // Mark's pre-launch review - see that function's own comment).
+    if (record.fields.Status !== "Live") continue;
 
-    const stopIds = f["Day Stops"] ?? [];
-    const stops = stopIds
-      .map((id) => dayStopById.get(id))
-      .filter((s): s is AirtableDayStopFields => !!s)
-      .map((s) => ({
-        distillery: s.Distillery?.[0] ? distilleryById.get(s.Distillery[0]) : undefined,
-        tour: s.Tour?.[0] ? tourById.get(s.Tour[0]) : undefined,
-        order: s.Order ?? 0,
-        anchor: s.Anchor === true,
-      }))
-      .filter(
-        (s): s is { distillery: Distillery; tour: Tour | undefined; order: number; anchor: boolean } => !!s.distillery
-      )
-      .sort((a, b) => a.order - b.order);
+    const day = mapAirtableDayRecord(record, ctx);
+    if (!day) continue;
+    if (day.stops.length === 0) continue; // no resolvable stops - not ready to show
 
-    if (stops.length === 0) continue; // no resolvable stops - not ready to show
+    days.push(day);
+  }
 
-    const totalCost = stops.reduce((sum, s) => sum + (s.tour?.price ?? 0), 0);
+  return days;
+}
 
-    // Local Feature map pins + trip stops: resolved from the narrative's
-    // own [label](/explore/slug) links against the live Local Features
-    // list - see EXPLORE_LINK_RE above for why (Day Stops has no Day ->
-    // Local Feature link field). featureStops carries the full records
-    // (not just the map-pin subset) so "+ Add this day to my trip" can
-    // add them as real stops via addFeatureStop, not just plot them -
-    // otherwise a Day like Ardnahoe's, whose narrative walks the visitor
-    // out to the Paps of Jura Panorama afterward, would only ever add the
-    // distillery and silently drop the walk every time.
-    const mapFeatures: HubDay["mapFeatures"] = [];
-    const featureStops: HubDay["featureStops"] = [];
-    const narrative = f.Narrative ?? "";
-    for (const match of narrative.matchAll(EXPLORE_LINK_RE)) {
-      const feature = localFeatureBySlug.get(match[2]);
-      if (feature) {
-        mapFeatures.push({ name: feature.name, slug: feature.slug, lat: feature.lat, lng: feature.lng, icon: feature.icon });
-        featureStops.push(feature);
-      }
+/** Every Day record, mapped regardless of Status - powers /days/[slug]
+ *  (the new per-day detail page, added 13 Aug 2026). Deliberately
+ *  ungated, unlike getDays() above: a Day reachable from inside a Journey
+ *  (via its "Open the day →" link) can itself be Status: Draft - "The
+ *  South Coast Walk"'s Day 1 ("Two Miles Apart") is exactly this case
+ *  (see /journeys/[slug]'s own doc comment on the same reasoning) - so
+ *  gating this page on Status would silently 404 a day a Journey page
+ *  just linked to. Same "never leak a draft onto the live site" concern
+ *  doesn't apply here the way it does to an index page (getDays/getAreas/
+ *  getFeaturedStays): nothing lists/links to a Draft Day's detail page
+ *  except a Journey that itself already renders regardless of Status for
+ *  Mark's own pre-launch review - a real Status gate belongs here once
+ *  Journeys go public, not yet. React's cache() again (see getDistilleries
+ *  above), so this can't persist stale data across separate requests. */
+export const getAllDaysAnyStatus = cache(async (): Promise<HubDay[]> => {
+  const [dayRecords, dayStopRecords, tourRecords, distilleries, localFeatures] = await Promise.all([
+    airtableFetchAll<AirtableDayFields>("Days"),
+    airtableFetchAll<AirtableDayStopFields>("Day Stops"),
+    airtableFetchAll<AirtableTourFields>("Tours"),
+    getDistilleries(),
+    getLocalFeatures(),
+  ]);
+
+  const dayStopById = new Map(dayStopRecords.map((r) => [r.id, r.fields]));
+  const tourById = new Map(tourRecords.map((r) => [r.id, mapTour(r.fields)]));
+  const distilleryById = new Map(distilleries.map((d) => [d.id, d]));
+  const localFeatureBySlug = new Map(localFeatures.map((f) => [f.slug, f]));
+  const localFeatureById = new Map(localFeatures.map((f) => [f.id, f]));
+  const ctx = { dayStopById, tourById, distilleryById, localFeatureBySlug, localFeatureById };
+
+  const days: HubDay[] = [];
+  for (const record of dayRecords) {
+    const day = mapAirtableDayRecord(record, ctx);
+    if (day) days.push(day);
+  }
+  return days;
+});
+
+export async function getDayBySlug(slug: string): Promise<HubDay | undefined> {
+  const days = await getAllDaysAnyStatus();
+  return days.find((d) => d.slug === slug);
+}
+
+/** Every Journey Day junction row is fetched once and reused by both
+ *  getJourneys() (list) and getJourneyBySlug() (detail) - same shape as
+ *  every other "fetch once, resolve in memory" join in this file. Kept
+ *  as its own function (rather than folded into fetchJourneysFromAirtable
+ *  inline) purely for readability given how many tables a Journey joins
+ *  across (Journeys, Journey Days, Days, Day Stops, Tours, Distilleries,
+ *  Local Features). */
+async function fetchJourneysFromAirtable(): Promise<Journey[]> {
+  const [journeyRecords, journeyDayRecords, dayRecords, dayStopRecords, tourRecords, distilleries, localFeatures] =
+    await Promise.all([
+      airtableFetchAll<AirtableJourneyFields>("Journeys"),
+      airtableFetchAll<AirtableJourneyDayFields>("Journey Days"),
+      airtableFetchAll<AirtableDayFields>("Days"),
+      airtableFetchAll<AirtableDayStopFields>("Day Stops"),
+      airtableFetchAll<AirtableTourFields>("Tours"),
+      getDistilleries(),
+      getLocalFeatures(),
+    ]);
+
+  const dayStopById = new Map(dayStopRecords.map((r) => [r.id, r.fields]));
+  const tourById = new Map(tourRecords.map((r) => [r.id, mapTour(r.fields)]));
+  const distilleryById = new Map(distilleries.map((d) => [d.id, d]));
+  const localFeatureBySlug = new Map(localFeatures.map((f) => [f.slug, f]));
+  const localFeatureById = new Map(localFeatures.map((f) => [f.id, f]));
+  const ctx = { dayStopById, tourById, distilleryById, localFeatureBySlug, localFeatureById };
+
+  // mapAirtableDayRecord returns a HubDay per Day record - built once per
+  // unique Day (not per Journey Day row), since the same Day can be
+  // linked into more than one Journey (e.g. "Bowmore, Unhurried" is both
+  // The Islay Grand Tour's Day 2 and The Rhinns Trail's Day 3 - editing
+  // it once updates both, per the Journey Days table's own description).
+  const dayById = new Map<string, HubDay>();
+  for (const record of dayRecords) {
+    const day = mapAirtableDayRecord(record, ctx);
+    if (day) dayById.set(record.id, day);
+  }
+
+  const journeyDayById = new Map(journeyDayRecords.map((r) => [r.id, r.fields]));
+
+  // THE FLOOR (18 Aug 2026). The cheapest publishable, priced tour at
+  // every distillery on the island, keyed by slug - built once here from
+  // the WHOLE Tours table rather than from the tours these journeys
+  // happen to book, because "what is the least this distillery will take
+  // from you" is a fact about the distillery, not about the itinerary.
+  //
+  // Two rows are excluded, for two different reasons:
+  //  - Verification "Placeholder — do not publish". Both of Bowmore's
+  //    are, and one of them (£30) undercuts its real £20 standard tour;
+  //    a floor built from a price nobody stands behind is worse than no
+  //    floor at all.
+  //  - price <= 0. Port Ellen Open Days carries £0 with a duration of
+  //    "Unconfirmed — not publicly listed", which means "we don't know",
+  //    not "free" - and £0 would drag Port Ellen's floor from £250 to
+  //    nothing and take the whole journey's claim band with it.
+  // A distillery left with nothing publishable is simply ABSENT from
+  // this map. Callers must treat absence as "we can't say", never as
+  // zero - see journeyTourFloor.
+  const cheapestTourByDistilleryId = new Map<string, number>();
+  for (const record of tourRecords) {
+    const tour = mapTour(record.fields);
+    if (!isPublishableTour(tour)) continue;
+    const distilleryId = record.fields.Distillery?.[0];
+    if (!distilleryId) continue;
+    const current = cheapestTourByDistilleryId.get(distilleryId);
+    if (current === undefined || tour.price < current) {
+      cheapestTourByDistilleryId.set(distilleryId, tour.price);
     }
+  }
+  const standardTourFloorBySlug: Record<string, number> = {};
+  for (const [distilleryId, price] of cheapestTourByDistilleryId) {
+    const distillery = distilleryById.get(distilleryId);
+    if (distillery) standardTourFloorBySlug[distillery.slug] = price;
+  }
 
-    const mapDistilleries: HubDay["mapDistilleries"] = stops.map((s) => ({
-      name: s.distillery.name,
-      slug: s.distillery.slug,
-      lat: s.distillery.lat,
-      lng: s.distillery.lng,
+  const journeys: Journey[] = [];
+
+  for (const record of journeyRecords) {
+    const f = record.fields;
+    // Same "skip a blank placeholder row" pattern as every other table -
+    // deliberately NOT gated on Status here. Every real Journey record is
+    // Status: Draft as of 12 Aug 2026 and this page is explicitly for
+    // Mark's own pre-launch review on a preview deployment, so gating on
+    // Status would just make the page unreviewable - see the /journeys/
+    // [slug] route itself for where a real Live gate would need adding
+    // once these are ready to go public.
+    if (!f.Name || !f.Slug) continue;
+
+    // Sorted ONCE, then split into the two index-aligned arrays the
+    // Journey type exposes (`days` and `dayBaseLegs`) - deliberately not
+    // two separate sorts, which is the only way those two could ever
+    // disagree about which base leg belongs to which day.
+    const journeyDayIds = f["Journey Days"] ?? [];
+    const orderedJourneyDays = journeyDayIds
+      .map((id) => journeyDayById.get(id))
+      .filter((jd): jd is AirtableJourneyDayFields => !!jd)
+      .map((jd) => ({ order: jd.Order ?? 0, day: jd.Day?.[0] ? dayById.get(jd.Day[0]) : undefined, jd }))
+      .filter((entry): entry is { order: number; day: HubDay; jd: AirtableJourneyDayFields } => !!entry.day)
+      .sort((a, b) => a.order - b.order);
+    const days = orderedJourneyDays.map((entry) => entry.day);
+    const dayBaseLegs = orderedJourneyDays.map((entry) => ({
+      // Undefined (not 0) for a blank cell: "this leg was never routed"
+      // is a different fact from "this leg takes no time", and only the
+      // first should send the reader to its fallback estimate.
+      fromBaseMinutes:
+        typeof entry.jd["Leg From Base Minutes"] === "number" ? entry.jd["Leg From Base Minutes"] : undefined,
+      toBaseMinutes:
+        typeof entry.jd["Leg To Base Minutes"] === "number" ? entry.jd["Leg To Base Minutes"] : undefined,
+      // Airtable returns an unticked checkbox as absent, not false, and
+      // that is exactly the distinction wanted here: undefined means
+      // "this row predates the sub-600m rule, fall back to Transfer
+      // Mode", while an explicit false means "recomputed, and driven".
+      fromBaseWalked:
+        typeof entry.jd["Leg From Base Walked"] === "boolean" ? entry.jd["Leg From Base Walked"] : undefined,
+      toBaseWalked:
+        typeof entry.jd["Leg To Base Walked"] === "boolean" ? entry.jd["Leg To Base Walked"] : undefined,
     }));
 
-    days.push({
+    journeys.push({
       id: record.id,
       slug: f.Slug,
       name: f.Name,
-      type: f.Type === "Multi" ? "Multi" : "Solo",
-      distilleries: stops.map((s) => s.distillery.name),
-      narrative,
-      pacing: f.Pacing ?? "",
-      durationPortEllen: f["Duration from Port Ellen"] ?? "",
-      durationBowmore: f["Duration from Bowmore"] ?? "",
-      cost: totalCost > 0 ? `£${totalCost}pp` : "",
-      // UPDATE 23 July 2026: every Day card now shows the real route map,
-      // regardless of stop count - previously a 1-stop Day showed that
-      // distillery's own Hero Image and a 2-stop Day showed both
-      // distilleries' Hero Images side by side, only falling back to the
-      // map at 3+ stops. Mark didn't want a Day card reusing a
-      // distillery's own page photo - dropped in favour of one
-      // consistent map treatment across every card until genuine
-      // Day-specific photography exists.
-      mapDistilleries,
-      mapFeatures: mapFeatures.length > 0 ? mapFeatures : undefined,
-      stops: stops.map((s) => ({ distillery: s.distillery, tour: s.tour, anchor: s.anchor })),
-      featureStops,
+      cardDescription: f["Card Description"] ?? "",
+      intro: f.Intro ?? "",
+      // Routed through /api/attachment, same pattern/reasoning as
+      // Distilleries' Hero Image (see fetchDistilleriesFromAirtable
+      // above) - Airtable's own attachment URLs expire after a few
+      // hours. Empty string (never a broken/placeholder image) when the
+      // field is blank, which it is for all four Journeys as of 12 Aug
+      // 2026 - the page falls back to a plain navy header for these
+      // rather than fabricating a photo.
+      heroImage: f["Hero Image"]?.[0] ? `/api/attachment?t=tbl7fro0EjvRoqsAo&r=${record.id}&f=fld1V2lL6maIEebAv&i=0` : "",
+      heroImageCredit: f["Hero Image Credit"] || undefined,
+      gettingThereNote: f["Getting There Note"] ?? "",
+      accommodationNote: f["Accommodation Note"] ?? "",
+      days,
+      dayBaseLegs,
+      // Blank is Drive, per the field's own description - not a third
+      // "unknown" state, and never inherited from the Days inside it.
+      transferMode: f["Transfer Mode"] === "Walk" ? "walk" : "drive",
+      baseStayId: f["Base Stay"]?.[0],
+      // Both halves or neither: one coordinate is not a position, and
+      // pairing a stray latitude with a centroid's longitude would put
+      // the origin somewhere nobody authored. Same rule the precompute
+      // script applies, so the two can never disagree about whether an
+      // override is in force.
+      transferOriginLat:
+        typeof f["Transfer Origin Latitude"] === "number" && typeof f["Transfer Origin Longitude"] === "number"
+          ? f["Transfer Origin Latitude"]
+          : undefined,
+      transferOriginLng:
+        typeof f["Transfer Origin Latitude"] === "number" && typeof f["Transfer Origin Longitude"] === "number"
+          ? f["Transfer Origin Longitude"]
+          : undefined,
+      // The label stands on its own - it describes what the STORED legs
+      // were measured from, which stays true even if someone later blanks
+      // the coordinates without recomputing.
+      transferOriginLabel: f["Transfer Origin Label"]?.trim() || undefined,
+      claim: f.Claim ?? "",
+      regionLabel: f["Region Label"] ?? "",
+      nights: f.Nights ?? 0,
+      base: f.Base ?? "",
+      nightNotesLines: (f["Night Notes"] ?? "")
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean),
+      makeItYours: parseMakeItYours(f["Make It Yours"]),
+      gettingHereRows: parseLabelValueLines(f["Getting Here Rows"]),
+      beforeYouBookRows: parseLabelValueLines(f["Before You Book Rows"]),
+      whenToComeRows: parseLabelValueLines(f["When To Come Rows"]),
+      // Every distillery's floor, not just this journey's - the page
+      // narrows it to the ones it visits. Sharing one object across all
+      // four journeys is deliberate: there is only one answer to "what
+      // does the cheapest Bowmore tour cost", and copying it per journey
+      // is how two pages start disagreeing.
+      standardTourFloor: standardTourFloorBySlug,
+      // Undefined (not 0) throughout, so the sidebar can tell "no rate
+      // sourced yet" from a real £0 - and, for car hire, "not needed"
+      // from "not priced". See each field's own doc comment in
+      // airtable-mappers.ts.
+      accommodationFromPerNight:
+        typeof f["Accommodation From (per night)"] === "number"
+          ? f["Accommodation From (per night)"]
+          : undefined,
+      accommodationPeakPerNight:
+        typeof f["Accommodation Peak (per night)"] === "number"
+          ? f["Accommodation Peak (per night)"]
+          : undefined,
+      carHirePerDay: typeof f["Car Hire Per Day"] === "number" ? f["Car Hire Per Day"] : undefined,
+      routeSummary: f["Route Summary"] ?? "",
       source: "airtable",
     });
   }
 
-  return days;
+  return journeys;
+}
+
+/** Classic Journeys (Islay Grand Tour, Rhinns Trail, etc.) - assembled
+ *  from the Journeys + Journey Days tables rather than hardcoded. The
+ *  array this replaced (journeys-data.ts's CLASSIC_JOURNEYS) was deleted
+ *  on 17 Aug 2026, when the homepage's Classic Journeys section moved
+ *  onto this same call - it is the only source of journey content on the
+ *  site now, homepage cards included. React's
+ *  cache() again (see getDistilleries above), so this can't persist
+ *  stale data across separate serverless requests on a warm instance. */
+export const getJourneys = cache(async (): Promise<Journey[]> => {
+  return fetchJourneysFromAirtable();
+});
+
+export async function getJourneyBySlug(slug: string): Promise<Journey | undefined> {
+  const journeys = await getJourneys();
+  return journeys.find((j) => j.slug === slug);
 }
 
 /** Journal blog posts - filters out drafts (Published unchecked) so

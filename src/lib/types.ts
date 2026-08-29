@@ -6,11 +6,78 @@
 
 export type DataSource = "airtable" | "google" | "booking" | "mock";
 
+/** How a visitor gets between a Day's stops. Sourced from the Days
+ *  table's `Travel Mode` singleSelect (Drive/Walk); a blank cell is
+ *  treated as "drive", which is what every Day was implicitly assumed to
+ *  be before the field existed. Drives two things: which OSRM profile
+ *  scripts/compute-day-stop-legs.mjs routes a Day's legs with, and
+ *  whether the site's own copy says "driving" or "walking". */
+export type TravelMode = "drive" | "walk";
+
 export interface Tour {
   name: string;
   duration: string;
   price: number;
   description: string;
+  /** Editorial confidence in this row, from the Tours table's own
+   *  `Verification` singleSelect - "Verified - official source",
+   *  "Needs check before go-live", or "Placeholder - do not publish".
+   *  Read through verbatim (never normalised here) so a new option added
+   *  in Airtable can't silently be mapped onto an old meaning.
+   *
+   *  Undefined when the cell is blank, which is NOT the same as a
+   *  placeholder - see isPublishableTour, the one place the distinction
+   *  is turned into a yes/no. Added 18 Aug 2026: the "standard tours
+   *  start at" floor on /journeys/[slug] must never be computed from a
+   *  price nobody has stood behind, and two of Bowmore's rows are
+   *  flagged exactly that way. */
+  verification?: string;
+  /** The period in which this tour is not what the rest of its own entry
+   *  says it is, and what changes - from the Tours table's own `Seasonal
+   *  From` / `Seasonal To` / `Seasonal Note` (added 18 Aug 2026).
+   *  Undefined on nearly every tour, which is the normal case and means
+   *  "no seasonal variation", not "nobody has checked".
+   *
+   *  Only set when all three cells are populated: a window with no note
+   *  has nothing to say, and a note with no window cannot be tested for
+   *  relevance - and an undateable standing warning is the exact thing
+   *  this field exists to avoid. See seasonalNoticeFor for the rule that
+   *  decides whether it is shown to a given visitor at all. */
+  seasonal?: SeasonalWindow;
+  /** Which weekdays this tour runs (0 = Sunday .. 6 = Saturday), from
+   *  the Tours table's own `Runs On Days` multi-select (added 29 Aug
+   *  2026). An EMPTY array means "no tour-specific restriction", which
+   *  is the normal case and is NOT the same as "unknown" - it is what
+   *  nearly every tour on the island has, and it makes the tour
+   *  available on whatever days its distillery is open.
+   *
+   *  Populated only where a tour genuinely runs on fewer days than its
+   *  distillery does, all year: Ardbeg's two Classic tours are Monday to
+   *  Friday, its Weekend Whisky Wander is Saturday and Sunday. Ardbeg's
+   *  Roaming Dram and Warehouse 3 Tasting are deliberately left blank -
+   *  they are Mon-Fri in April and October but seven days from May to
+   *  September, and half of that rule encoded here would be a
+   *  confidently wrong warning. See stopAvailabilityWarning in
+   *  src/lib/availability.ts, the one place this is turned into
+   *  something a visitor reads. */
+  runsOnDays: number[];
+}
+
+/** A dated period in which a tour runs differently from its published
+ *  form - Islay's silent seasons and maintenance shutdowns, where the
+ *  tour usually still runs but the route, the length, the age limit or
+ *  the accessibility change with it. Dates are inclusive ISO days
+ *  ("2026-07-08") and year-specific: they do not recur, and they will go
+ *  stale. See docs/content-sourcing-standards.md, "Seasonal tour
+ *  variation", for who refreshes them and when. */
+export interface SeasonalWindow {
+  /** First day of the changed period, inclusive. */
+  from: string;
+  /** Last day of the changed period, inclusive. */
+  to: string;
+  /** What is actually different, in the visitor's own terms - verbatim
+   *  from Airtable, never summarised or recomposed in code. */
+  note: string;
 }
 
 export interface NearbyFeature {
@@ -359,6 +426,14 @@ export interface HubDay {
   /** Indicative distillery cost - sum of the Day's stop tours' prices,
    *  formatted e.g. "£60pp". Empty string if no priced tours resolved. */
   cost: string;
+  /** Practical "how you actually get around" detail for the day (bus
+   *  timetables, single-track road warnings, booking-ahead notices) -
+   *  sourced from the Days table's own "Transport Note" field. Present
+   *  on the underlying Airtable record but not read into HubDay anywhere
+   *  until now - wired up 12 Aug 2026 for the Journeys rebuild
+   *  (docs/content-structure-conventions.md's "Classic Journey day-by-day
+   *  template" calls for exactly this). Empty string if blank. */
+  transportNote: string;
   mapDistilleries?: { name: string; slug: string; lat: number; lng: number }[];
   mapFeatures?: { name: string; slug: string; lat: number; lng: number; icon: string }[];
   /** Resolved stops in visiting order - the real Distillery record plus
@@ -368,17 +443,282 @@ export interface HubDay {
    *  functions expect, not just names.
    *
    *  `anchor` - true when this stop is the reason the Day exists (e.g.
-   *  Ardbeg on "Ardbeg, on Foot") and shouldn't be droppable/swappable in
-   *  the day screen's editing UI - sourced from Day Stops' own "Anchor"
+   *  Ardbeg on "Ardbeg and the Kildalton Road") and shouldn't be
+   *  droppable/swappable in the day screen's editing UI - sourced from Day Stops' own "Anchor"
    *  checkbox (added 9 Aug 2026, docs/days-trip-flow-handoff.md §2.2),
    *  read straight through, not recomputed here. */
-  stops: { distillery: Distillery; tour?: Tour; anchor: boolean }[];
+  stops: {
+    distillery: Distillery;
+    tour?: Tour;
+    anchor: boolean;
+    legMinutes?: number;
+    /** The published clock time this stop actually happens at ("13:00")
+     *  - Day Stops' own `Scheduled Time`, read straight through. See
+     *  ItineraryStop.scheduledTime for what the schedule does with it. */
+    scheduledTime?: string;
+  }[];
   /** The real Local Feature records behind mapFeatures above (walks,
    *  viewpoints, pubs the narrative links to) - same "+ Add this day"
    *  flow also adds these via addFeatureStop, so a Day's trip stops match
    *  what its own narrative actually describes, not just the
    *  distillery/tour part of it. */
   featureStops: LocalFeature[];
+  /** EVERY stop of this Day, distilleries and Local Features together,
+   *  in the single visiting order the Day Stops table now states
+   *  (`Order`) - the thing that did not exist before 17 Aug 2026, when
+   *  Day Stops linked only to Distilleries and a Day's features had to
+   *  be inferred from /explore/ links in its Narrative and appended
+   *  after every distillery whatever the narrative actually described.
+   *
+   *  `stops` and `featureStops` above are both still here and both still
+   *  mean what they meant: the distillery-only subset (in order) and the
+   *  Local Features this Day cares about. Plenty of the site genuinely
+   *  wants only one of those - a price total, a "includes Laphroaig"
+   *  badge, a map's distillery pins - and rewriting all of it to filter a
+   *  union type would be churn for its own sake. What needed the
+   *  combined list is anything that walks the day IN ORDER: the
+   *  schedule, the travel total, the map's route line. Those read this.
+   *
+   *  ItineraryStop rather than a new shape because that IS the shape -
+   *  itineraryDayFromHubDay used to build exactly this, badly. */
+  orderedStops: ItineraryStop[];
+  /** One-line teaser for the compact day card (journey spine, /days hub
+   *  card) - shorter than and distinct from `narrative`. Empty string if
+   *  unset in Airtable. Added 13 Aug 2026 for the Journeys page rebuild. */
+  hook: string;
+  /** Only set for days genuinely walkable end-to-end, e.g. "2 miles".
+   *  Undefined for driving days - callers fall back to durationPortEllen
+   *  instead. Added 13 Aug 2026. */
+  distanceOnFoot?: string;
+  /** The WHOLE caption under the numeral on a journey spine day card's
+   *  pace tile - noun first, then the phrase: "distilleries one road",
+   *  "distillery and a beach". Authored per Day in Airtable's `Tile
+   *  Caption` and rendered exactly as written (first word on line one,
+   *  the rest on line two); nothing in it is composed in code, including
+   *  the singular/plural noun, which is part of the authored line and
+   *  agrees with the day's own distillery count in the record.
+   *
+   *  Undefined when blank, in which case the tile shows the numeral
+   *  alone rather than a phrase invented to fill the space. Added 17 Aug
+   *  2026, replacing the second-line-only `Tile Label` - the noun used
+   *  to be generated here, which is exactly the half the site owner
+   *  asked to come from the record instead. */
+  tileCaption?: string;
+  /** When this Day starts, as authored in Airtable's `Start Time`
+   *  (singleLineText, "HH:MM" - e.g. "13:00"). Undefined/blank means the
+   *  09:30 default from docs/days-trip-flow-handoff.md §2.2. Feeds
+   *  scheduleForItineraryDay()'s start, which is the ONE source of the
+   *  times shown on /days/[slug] and in the "THE DAY" strip on
+   *  /journeys/[slug]. Added 16 Aug 2026, replacing the retired,
+   *  hand-written `Day Timeline` field - two hand-written times and a
+   *  computed schedule could and did disagree about the same day. */
+  startTime?: string;
+  /** Short phrase naming WHERE this day happens - "The north east",
+   *  "The Rhinns", "Port Ellen". Shown in the day card's header row and
+   *  over the journey map when this is the day in view. Sourced from the
+   *  Days table's own `Area Note`, and deliberately NOT the Areas link
+   *  beside it: that points at village records (Port Ellen, Bowmore,
+   *  Port Charlotte), is blank on most Days, and can't name a stretch of
+   *  coast. Undefined when blank - the header drops the clause rather
+   *  than inventing a region. Added 18 Aug 2026. */
+  areaNote?: string;
+  /** The one-glance version of `transportNote` for the same header row -
+   *  "Car needed", "Doable by bus", "No car - two miles on foot".
+   *  Authored per Day (`Transport Clause`) rather than derived from
+   *  Travel Mode, which only knows how you move BETWEEN stops and would
+   *  call a bussed-to village walkable. Undefined when blank. Added 18
+   *  Aug 2026. */
+  transportClause?: string;
+  /** What to call this day's SPEND in the cost breakdown's proportion
+   *  bar - "Port Ellen", "The Kildalton three". The Day's `Name` is a
+   *  title and reads wrong beside a figure. Undefined when blank;
+   *  callers fall back to areaNote, then name. Added 18 Aug 2026. */
+  costLabel?: string;
+  /** Drive or Walk, from the Day's own `Travel Mode` (blank = drive).
+   *  Added 17 Aug 2026 alongside the precomputed `Leg Minutes` on Day
+   *  Stops: the stored legs are already routed with the matching OSRM
+   *  profile, so this is NOT needed to pick a travel time - only to keep
+   *  the surrounding copy honest ("walking between stops", not
+   *  "driving between stops"). */
+  travelMode: TravelMode;
+  source: DataSource;
+}
+
+/** A Classic Journey - a curated multi-day route, assembled from linked
+ *  Days records via the Journeys/Journey Days tables (added 12 Aug 2026,
+ *  replacing the previous hardcoded CLASSIC_JOURNEYS array). That array's
+ *  file, journeys-data.ts, was deleted on 17 Aug 2026 once the homepage's
+ *  Classic Journeys section moved onto this type too - Airtable is the
+ *  single source for journey content now, and the two pricing helpers
+ *  that file also held live in pricing.ts. Rendered by
+ *  /journeys/[slug], one Day at a time, reusing HubDay's own shape for
+ *  each day so the exact same day-detail rendering (narrative, grouped
+ *  stops, transport note, map, "add this day" button) applies whether a
+ *  Day is reached from /days or from inside a Journey. */
+export interface Journey {
+  id: string;
+  slug: string;
+  name: string;
+  /** Short one-sentence teaser for the homepage Classic Journeys card -
+   *  not shown on this Journey's own detail page, per the site's
+   *  no-duplication content rule (project-conventions.md) - Intro below
+   *  covers the same ground at full length there. */
+  cardDescription: string;
+  /** Longer standfirst shown at the top of the Journey's own page. */
+  intro: string;
+  /** Routed through /api/attachment, same pattern as Distilleries' Hero
+   *  Image - empty string when no image is set (all four Journeys as of
+   *  12 Aug 2026), in which case the page falls back to a plain
+   *  navy header rather than fabricating or guessing an image. */
+  heroImage: string;
+  /** Same [label](url) markdown-link convention as Distilleries/Local
+   *  Features' own Hero Image Credit fields. */
+  heroImageCredit?: string;
+  /** Logistics for arriving before Day 1 begins - ferry/flight, transfer
+   *  to base. */
+  gettingThereNote: string;
+  /** Where the visitor bases themselves for this Journey and why - shown
+   *  once, above the day-by-day list (there's no per-day overnight
+   *  village/coordinates in the Days data model, so this replaces the
+   *  old hardcoded per-day "Overnight: X" line rather than trying to
+   *  fabricate coordinates for one). */
+  accommodationNote: string;
+  /** This Journey's Days, resolved via Journey Days and sorted by Order -
+   *  each a real HubDay, not a Journey-specific duplicate shape. */
+  days: HubDay[];
+  /** One-sentence "why this route" argument for the dark claim band under
+   *  the hero - markdown `**bold**` for emphasis. Empty string if unset.
+   *  Added 13 Aug 2026 for the Journeys page rebuild. */
+  claim: string;
+  /** Short region/theme kicker shown above the title, e.g. "The Peated
+   *  South". Added 13 Aug 2026. */
+  regionLabel: string;
+  /** Total nights for this journey - an explicit editorial call (not
+   *  always Day count ± 1). Added 13 Aug 2026. */
+  nights: number;
+  /** Where the visitor sleeps for this journey, e.g. "Port Ellen" - shown
+   *  on each night connector. Added 13 Aug 2026. */
+  base: string;
+  /** One line per night, in order, already split/trimmed from the raw
+   *  Airtable field - empty array if unset (callers fall back to
+   *  accommodationNote, repeated). Added 13 Aug 2026. */
+  nightNotesLines: string[];
+  /** "Make it yours" variation cards (max 3), parsed from the pipe-
+   *  delimited Airtable field. `linkSlug` is still a bare slug here - the
+   *  page resolves it to /days/[slug] or /journeys/[slug] depending on
+   *  which record actually exists. Empty array omits the whole section. */
+  makeItYours: { eyebrow: string; title: string; body: string; linkSlug: string }[];
+  /** "Getting here and away" rows, same "Label: Value" parse as Areas'
+   *  inTheVillage. Empty array omits the card. */
+  gettingHereRows: { key: string; value: string }[];
+  /** "Before you book" rows, same shape. Empty array omits the card.
+   *
+   *  NO LONGER RENDERED on /journeys/[slug] as of 18 Aug 2026 - the
+   *  panel it fed is now "When to come" (whenToComeRows below). The
+   *  field and this mapping stay: the copy in it is real, some of it has
+   *  moved onto the days it belongs to, and deleting a populated
+   *  Airtable column to make a layout change is not reversible. */
+  beforeYouBookRows: { key: string; value: string }[];
+  /** "When to come" rows - Silent seasons, Fèis Ìle, Rooms. Same
+   *  "Label: Value" parse. Seasonality is the question that decides
+   *  whether a journey works at all, which is why it replaced "Before
+   *  you book" in that slot; per-tour booking facts now live on the day
+   *  card that needs them. Empty array omits the panel. Added 18 Aug
+   *  2026. */
+  whenToComeRows: { key: string; value: string }[];
+  /** The cheapest PUBLISHABLE tour price at each distillery this journey
+   *  visits, keyed by distillery slug - the raw material for every
+   *  "starts at" figure on the page, including the claim band's "from
+   *  £N" floor and each day card's money note.
+   *
+   *  Computed in fetchJourneysFromAirtable from the whole Tours table
+   *  (not just the tours this journey's days happen to book), because
+   *  the question it answers is "what is the least this distillery will
+   *  take from you", which the journey's own picks can't answer. A
+   *  distillery with no publishable priced tour is simply absent from
+   *  the map rather than present at zero - see isPublishableTour and
+   *  journeyTourFloor. Added 18 Aug 2026. */
+  standardTourFloor: Record<string, number>;
+  /** Indicative lowest (off-season) per-night room rate at `base`. Pairs
+   *  with accommodationPeakPerNight below so the sidebar can show an
+   *  honest RANGE rather than a single number pretending to be the
+   *  price. Undefined where no rate has been sourced (both Bridgend
+   *  journeys, 17 Aug 2026) - the sidebar shows "Not yet confirmed"
+   *  rather than a fabricated total, and never borrows another
+   *  journey's figure. */
+  accommodationFromPerNight?: number;
+  /** Indicative PEAK-season per-night room rate at `base`. Undefined
+   *  unless a real figure has been sourced; the sidebar needs BOTH ends
+   *  to draw a range and falls back to the pending state otherwise. */
+  accommodationPeakPerNight?: number;
+  /** Indicative car hire cost per day. Deliberately undefined where a
+   *  car isn't needed at all (The South Coast Walk) - which is NOT the
+   *  same as "not yet priced", so the sidebar distinguishes the two by
+   *  also checking whether every day is walkable. Never a zero. */
+  carHirePerDay?: number;
+  /** Routed travel from this journey's Base to each day's first stop and
+   *  back from its last, in minutes - index-aligned with `days` above
+   *  (both are built from the same sorted Journey Days rows, so the two
+   *  arrays cannot fall out of step).
+   *
+   *  Lives on the Journey rather than the HubDay because the same Day
+   *  appears in journeys with different bases - "Bowmore, Unhurried" is
+   *  reached from Port Ellen in one journey and Bridgend in another, and
+   *  those are different drives. Sourced from the Journey Days junction's
+   *  own `Leg From Base Minutes`/`Leg To Base Minutes`, precomputed by
+   *  scripts/compute-journey-base-legs.mjs.
+   *
+   *  Either end being undefined is a normal state, not an error: it means
+   *  that leg was never routed (or was deliberately left blank, e.g. a
+   *  Walk day the base is reached from by bus), and the reader falls back
+   *  to the straight-line estimate from the Base's own coordinates - or,
+   *  with no coordinates either, counts no base leg at all. */
+  dayBaseLegs: {
+    fromBaseMinutes?: number;
+    toBaseMinutes?: number;
+    /** Whether each of those two legs was WALKED. Not the same question
+     *  as `transferMode` below: a transfer that routes under 600m is
+     *  walked even on a Drive journey (The Islay Grand Tour's day 5 is
+     *  Port Ellen distillery, from a base in Port Ellen), so the mode
+     *  describes the journey's intent and this describes the leg.
+     *  Undefined on a Journey Day not recomputed since that rule landed,
+     *  in which case readers fall back to `transferMode`. */
+    fromBaseWalked?: boolean;
+    toBaseWalked?: boolean;
+  }[];
+  /** How the visitor gets from `base` to where each day starts, and back
+   *  - the TRANSFER legs only, from the Journey's own `Transfer Mode`
+   *  (blank = drive). Distinct from HubDay.travelMode, which describes
+   *  movement between that day's stops: The Islay Grand Tour drives to
+   *  Bowmore and then walks the village, so its transfer mode is drive
+   *  while that day's travel mode is walk. Added 17 Aug 2026. */
+  transferMode: TravelMode;
+  /** Record ID of the Featured Stay in `Base Stay` - the building the
+   *  transfer legs were actually measured from, so the site's fallback
+   *  estimate for an unrouted leg starts from the same point the
+   *  precompute script did. Undefined when no stay is linked, in which
+   *  case callers fall back to the Base text field's Area centroid. */
+  baseStayId?: string;
+  /** An authored coordinate the TRANSFER legs are measured from, in place
+   *  of `base`'s own centroid - see the Airtable field's own note. Both
+   *  halves present or neither. Undefined on every journey but The South
+   *  Coast Walk as of 17 Aug 2026, and undefined is the normal state.
+   *
+   *  Used by the site only as the fallback origin for a leg that was
+   *  never routed, so that an estimated leg starts from the same point
+   *  scripts/compute-journey-base-legs.mjs routed the real ones from. */
+  transferOriginLat?: number;
+  transferOriginLng?: number;
+  /** What that origin is called on the page - "the pathway start by Port
+   *  Ellen Primary School". Wherever a transfer time or a walking total
+   *  is rendered for this journey, the copy names this instead of leaving
+   *  the reader to assume the figure runs from the Base. Undefined keeps
+   *  the existing "from {base}" wording, which is correct where no
+   *  override exists. */
+  transferOriginLabel?: string;
+  /** The one-sentence route summary under the sidebar map. Authored in
+   *  Airtable, never composed in code. Empty string renders nothing. */
+  routeSummary: string;
   source: DataSource;
 }
 
@@ -607,6 +947,66 @@ export type ItineraryStop = (
    *  freehand in the planner - an anchor is never droppable or swappable
    *  in the day screen's editing UI. */
   anchor?: boolean;
+  /** Real routed travel time in minutes from the PREVIOUS stop in this
+   *  day to this one, precomputed into Airtable's Day Stops table (see
+   *  scripts/compute-day-stop-legs.mjs) and read straight through by
+   *  itineraryDayFromHubDay. Undefined means "no stored leg" - the
+   *  schedule falls back to estimatedDriveMinutes() for that leg only.
+   *
+   *  Deliberately only ever set on a PUBLISHED day rendered as-authored.
+   *  Nothing in trip-context.tsx carries it onto a stop the visitor adds
+   *  or reorders themselves, because a stored leg is only true for the
+   *  stop order it was computed against - an edited day silently keeping
+   *  an old leg time would be worse than an honest estimate. */
+  legMinutes?: number;
+  /** The clock time this stop is fixed to, "HH:MM" - a distillery tour
+   *  runs at its own published times, so a day is often "the 10 o'clock
+   *  at Laphroaig, then the 1 o'clock at Lagavulin" rather than one stop
+   *  chained straight onto the end of the last. Sourced from Day Stops'
+   *  `Scheduled Time` in Airtable (added 17 Aug 2026) and read straight
+   *  through by itineraryDayFromHubDay.
+   *
+   *  Undefined - every stop with no published time, and every stop the
+   *  visitor adds themselves - keeps the original behaviour: the previous
+   *  stop's finish plus the travel leg. See scheduleForItineraryDay.
+   *
+   *  Deliberately only ever set on a PUBLISHED day rendered as-authored,
+   *  the same scope as `legMinutes` above: nothing in trip-context.tsx
+   *  carries it onto a stop added or reordered in the planner, so an
+   *  edited day never claims a booking time it no longer stands behind. */
+  scheduledTime?: string;
+  /** True when the DAY'S OWN narrative frames this stop as a choice
+   *  rather than part of the plan - "if you have the energy... it's
+   *  worth continuing a couple more miles to Kildalton Cross". Sourced
+   *  from Day Stops' `Optional` checkbox (added 17 Aug 2026) and read
+   *  straight through by itineraryDayFromHubDay.
+   *
+   *  It exists so a day's walking total can state the plan and the
+   *  detour as two numbers instead of averaging them into one that
+   *  describes neither - see walkingLineFor. It does NOT drop the stop
+   *  from the day: an optional stop is still shown, still pinned, still
+   *  scheduled. Same published-day-only scope as `legMinutes` above. */
+  optional?: boolean;
+  /** How this stop is REACHED from the previous one in the day - Day
+   *  Stops' own `Arrive By` (added 17 Aug 2026), read straight through.
+   *
+   *  Undefined is the normal case and means "however the rest of the day
+   *  is made": the leg inherits ItineraryDay.travelMode. It is authored
+   *  only where one leg genuinely differs, which today is the walked
+   *  final approach to a beach, a ruin or a viewpoint on a day that is
+   *  otherwise driven - the car is parked and the last bit is on foot.
+   *
+   *  It replaced a hardcoded list of Local Feature slugs in
+   *  scripts/compute-day-stop-legs.mjs, which is why it is worth having
+   *  as a field at all: the fact is about a stop, not about the code.
+   *  Both the stored `legMinutes` and the estimated fallback for a blank
+   *  one are paced by it - see legModeFor in day-derivations.ts.
+   *
+   *  Same published-day-only scope as `legMinutes` above: nothing in
+   *  trip-context.tsx carries it onto a stop the visitor adds or
+   *  reorders, because it describes a leg that no longer exists once the
+   *  order changes. */
+  arriveBy?: TravelMode;
 };
 
 /** Where a day's trip starts/ends - a real, verifiable place (a village,
@@ -644,4 +1044,8 @@ export interface ItineraryDay {
    *  added" tracks "this Hub Day still has a day here", not "still
    *  exactly matches what was originally added". */
   sourceHubDaySlug?: string;
+  /** Carried over from the source HubDay so the day's copy can say
+   *  "on foot" rather than "on the road" - see TravelMode. Undefined
+   *  (a day built freehand in the planner) is treated as driving. */
+  travelMode?: TravelMode;
 }

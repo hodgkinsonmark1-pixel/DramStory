@@ -1,5 +1,5 @@
-import type { Distillery, HubDay, ItineraryDay, ItineraryStop, LocalFeature, Tour, TripDates } from "@/lib/types";
-import { estimatedDriveMinutes } from "@/lib/drive-time";
+import type { Distillery, HubDay, ItineraryDay, ItineraryStop, LocalFeature, Tour, TravelMode, TripDates } from "@/lib/types";
+import { estimatedDriveMinutes, estimatedTravelMinutes } from "@/lib/drive-time";
 import { stopCoords, stopId, stopName, stopVisitMinutes } from "@/lib/itinerary-stop";
 
 /**
@@ -29,26 +29,525 @@ export function isFerryDay(day: HubDay): boolean {
   return day.stops.some((s) => s.distillery.slug === "isle-of-jura");
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// Travel between stops (17 Aug 2026). Every leg on a published Day is now
+// routed ONCE, offline, and stored on its Day Stop record (`Leg Minutes`,
+// see scripts/compute-day-stop-legs.mjs) - so a rendered day shows real
+// road/path times instead of drive-time.ts's straight-line haversine
+// estimate, without any page view calling a routing service. OSRM's public
+// demo server is explicitly non-commercial with no SLA, which is exactly
+// why the site does not call it at render time; the live planner
+// (Workspace.tsx) still does, deliberately, because someone actively
+// dragging stops around needs an answer for an order nobody precomputed.
+//
+// The stored value is already mode-correct - a Walk day's legs were routed
+// on a foot profile, with the walking duration derived from that routed
+// distance at the script's own WALKING_SPEED_KMH (3.75km/h, an editorial
+// pace set by the site owner).
+//
+// FIXED 17 Aug 2026: the blank-leg FALLBACK used to be mode-blind - the
+// 40km/h haversine drive estimate whatever the day's Travel Mode. On a
+// walking day that is not a rough answer, it is the wrong question, and
+// it is wrong in the direction that gets someone caught out: a two-mile
+// leg came back as five minutes. Every fallback below now asks for the
+// relevant mode and estimates at walking pace when that mode is walk
+// (drive-time.ts's estimatedTravelMinutes). Nothing about a STORED leg
+// changed - it was already right.
+//
+// AND MODE IS NOW PER LEG, NOT PER DAY (17 Aug 2026). A day is not
+// uniformly driven or uniformly walked: several driving days park at a
+// distillery and walk the last stretch to a beach, a ruin or a
+// viewpoint. That fact is authored on the stop, as Day Stops' `Arrive
+// By`, and reaches here as ItineraryStop.arriveBy - see legModeFor. The
+// precompute script reads exactly the same field to choose exactly the
+// same profile, which is what stops a stored leg and an estimated one
+// describing the same walk in different units of optimism.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** How the leg INTO this stop is made. The stop's own `Arrive By` when
+ *  it has one, otherwise the day's Travel Mode, otherwise undefined
+ *  (= nobody said, which has always meant driving).
+ *
+ *  The same precedence as scripts/compute-day-stop-legs.mjs, and
+ *  deliberately so: that script picks the routing profile a stored `Leg
+ *  Minutes` was measured on, and this picks the pace of the estimate
+ *  that stands in when there isn't one. If the two disagreed, a day
+ *  would change its mind about how far it walks the moment one leg
+ *  failed to route. */
+export function legModeFor(stop: ItineraryStop, dayMode: TravelMode | undefined): TravelMode | undefined {
+  return stop.arriveBy ?? dayMode;
+}
+
+/** Travel minutes for one leg: the precomputed routed value if this stop
+ *  has one, otherwise the straight-line estimate for that leg alone, at
+ *  the pace this leg is actually made at. A blank `Leg Minutes` is a
+ *  normal state (the first stop of a day, a stop the visitor added
+ *  themselves, a leg whose routing failed), not an error - it just means
+ *  falling back, per leg, exactly as before.
+ *
+ *  `mode` is how THIS leg is made - legModeFor(stop, day.travelMode),
+ *  not the day's mode raw. Undefined means nobody said, which has always
+ *  meant driving. */
+export function legTravelMinutes(
+  from: { lat: number; lng: number },
+  to: { lat: number; lng: number },
+  storedMinutes: number | undefined,
+  mode?: TravelMode
+): number {
+  return storedMinutes ?? estimatedTravelMinutes(from, to, mode);
+}
+
+/**
+ * Where the visitor sleeps, for the day being rendered - the thing that
+ * turns "travel between the stops" into "the whole day, door to door".
+ *
+ * Two independent sources, in this order of trust:
+ *  - `fromBaseMinutes`/`toBaseMinutes` - REAL routed legs, precomputed by
+ *    scripts/compute-journey-base-legs.mjs and stored on the Journey Days
+ *    junction. Out and back are stored separately and neither is derived
+ *    from the other.
+ *  - `lat`/`lng` - the base's own coordinates, used only to fall back to
+ *    drive-time.ts's straight-line estimate for a leg that has no routed
+ *    figure. Same fallback, per leg, as legTravelMinutes does between
+ *    stops.
+ *
+ * With neither, there is no honest leg to add and none is added. A base
+ * is never invented: a Day read cold on /days/[slug], with no journey and
+ * no trip behind it, still has no base and still starts its clock at the
+ * first stop.
+ */
+export interface DayBase {
+  name: string;
+  lat?: number;
+  lng?: number;
+  fromBaseMinutes?: number;
+  toBaseMinutes?: number;
+  /** How the two legs above are actually made - the JOURNEY's own
+   *  `Transfer Mode`, not the Day's `Travel Mode`. Undefined where the
+   *  base isn't a journey's (a trip's own chosen accommodation), which
+   *  means "we don't know how you'd get there" and stops the walking
+   *  line below claiming either way. */
+  transferMode?: TravelMode;
+  /** Whether each of those legs was actually WALKED, per leg, as routed
+   *  and recorded by scripts/compute-journey-base-legs.mjs. Distinct
+   *  from `transferMode` because a transfer under 600m is walked even on
+   *  a Drive journey - The Islay Grand Tour drives everywhere except its
+   *  day 5, which is Port Ellen distillery from a base in Port Ellen and
+   *  was reading as a one-minute drive. Undefined means the leg predates
+   *  that rule, and the mode above stands in. */
+  fromBaseWalked?: boolean;
+  toBaseWalked?: boolean;
+  /** What the two legs above were actually measured FROM, when that is
+   *  not simply `name` - "the pathway start by Port Ellen Primary
+   *  School" for The South Coast Walk, whose transfers run from where the
+   *  Three Distilleries Pathway begins rather than from Port Ellen's
+   *  centroid (Journey.transferOriginLabel, authored in Airtable).
+   *
+   *  Every sentence below that prints one of these figures names this
+   *  when it is set. That is the whole reason the override is allowed to
+   *  exist: a reader must never have to guess which of two points a
+   *  transfer time runs from. Undefined - every other journey, and every
+   *  trip's own accommodation - keeps the "from {name}" phrasing, which
+   *  is accurate there. */
+  transferOriginLabel?: string;
+}
+
+/** Was each transfer leg walked? The stored per-leg fact where there is
+ *  one, otherwise the Journey's Transfer Mode. The 600m threshold itself
+ *  lives in exactly one place - SHORT_TRANSFER_WALK_METRES in
+ *  scripts/lib/routing.mjs - and is deliberately NOT re-implemented here:
+ *  the site has no routed distance to apply it to, only the minutes, and
+ *  a second copy of the rule would be a second thing to get wrong. */
+export function transferLegsWalked(base: DayBase | undefined): { out: boolean; back: boolean } {
+  const fallback = base?.transferMode === "walk";
+  return { out: base?.fromBaseWalked ?? fallback, back: base?.toBaseWalked ?? fallback };
+}
+
+/** The two base legs in minutes, each undefined when neither a routed
+ *  figure nor coordinates exist for it. `first`/`last` are the day's own
+ *  first and last stop coordinates.
+ *
+ *  The ESTIMATED fallback is paced by the base's own `transferMode` (the
+ *  JOURNEY's Transfer Mode, not the Day's Travel Mode - a car journey
+ *  drives to a day that is walked once you arrive), for the same reason
+ *  legTravelMinutes takes a mode. A trip's own accommodation carries no
+ *  transfer mode, so it keeps the drive estimate it has always had. */
+export function resolveBaseLegs(
+  base: DayBase | undefined,
+  first: { lat: number; lng: number } | undefined,
+  last: { lat: number; lng: number } | undefined
+): { out?: number; back?: number } {
+  if (!base || !first || !last) return {};
+  const point = base.lat !== undefined && base.lng !== undefined ? { lat: base.lat, lng: base.lng } : undefined;
+  return {
+    out: base.fromBaseMinutes ?? (point ? estimatedTravelMinutes(point, first, base.transferMode) : undefined),
+    back: base.toBaseMinutes ?? (point ? estimatedTravelMinutes(last, point, base.transferMode) : undefined),
+  };
+}
+
+/** A trip day's own accommodation, expressed as a DayBase - the visitor
+ *  really has said where they're sleeping, so this is a base. No routed
+ *  minutes: a stored leg describes a journey's authored Base, and the
+ *  visitor's chosen hotel isn't that, so these legs stay estimates. */
+function accommodationBase(day: ItineraryDay): DayBase | undefined {
+  const acc = day.accommodation;
+  return acc ? { name: acc.name, lat: acc.lat, lng: acc.lng } : undefined;
+}
+
+/** Mode-aware wording for the "≈40m ___" figures on a day card and the
+ *  day page. Deliberately only swaps the verb - it makes no new claim
+ *  about the walk (distance, difficulty, surface), it just stops calling
+ *  walking "driving". */
+export function travelCopy(mode: TravelMode | undefined): { betweenStops: string; wholeDay: string } {
+  return mode === "walk"
+    ? { betweenStops: "walking between stops", wholeDay: "on foot" }
+    : { betweenStops: "driving between stops", wholeDay: "on the road" };
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Saying the walking out loud (17 Aug 2026). A Walk day currently
+// advertises a mileage ("4 miles") and a pacing tag, and nothing else -
+// so "Ardbeg and the Kildalton Road" inside The South Coast Walk reads
+// like a gentle morning when it is really three hours on your feet, most
+// of it getting there and back. This turns the legs that were routed
+// anyway into one plain sentence.
+//
+// EVERY minute in it is a stored, routed figure. Nothing is estimated
+// here and nothing is converted from a mileage:
+//   - within-day legs come from Day Stops' `Leg Minutes`, routed on a
+//     real foot profile at the editorial WALKING_SPEED_KMH;
+//   - the transfer, when it is walked, comes from Journey Days' `Leg
+//     From/To Base Minutes`, routed the same way.
+// If any leg needed is missing, this returns undefined and the page keeps
+// its existing clearly-labelled estimate rather than printing a confident
+// wrong number. It deliberately does NOT fall back to
+// estimatedDriveMinutes: that is a 40km/h haversine, and a driving
+// estimate dressed up as walking minutes is the exact error this whole
+// precompute exists to remove.
+//
+// THAT GAP IS NOW CLOSED (17 Aug 2026). Feature stops are real Day Stop
+// records with their own `Order` and their own routed `Leg Minutes`, so
+// the cafe, the beach and the ruin are all in this total, in the place
+// the narrative puts them. "Ardbeg and the Kildalton Road" used to state
+// 2h50 counting only the walk out from the trailhead and back, with
+// nothing for the three feature stops its own narrative spends a
+// paragraph on.
+//
+// What replaced it is the OPTIONAL split. A Day Stop the narrative
+// hedges ("if you have the energy... it's worth continuing") is marked
+// `Optional`, and the two are stated as two numbers rather than one
+// average that describes neither day. The detour is counted THERE AND
+// BACK: the day still returns to base from its last non-optional stop,
+// so carrying on and coming back is exactly twice those legs. Nothing is
+// invented - it is the same routed legs, counted both ways, which is
+// what "and back" means.
+//
+// AND IT IS NO LONGER ONLY WALKING DAYS (17 Aug 2026). Once a stop could
+// say how you arrive at it, most days became mixed: you drive to
+// Bunnahabhain and then walk an hour to Rubha Bhachlaig and back, you
+// drive to Kilchoman and then walk to Machir Bay. Gating the sentence on
+// the DAY's Travel Mode hid every one of those. The gate is now the sum
+// of the legs whose OWN mode is Walk, and a threshold under which the
+// day says nothing - see MINIMUM_WALKING_LINE_MINUTES.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Minutes as prose - "50 minutes", "1 hour", "2 hours 25 minutes".
+ *  Deliberately not drive-time.ts's formatDuration ("50m", "2h 25m"),
+ *  which is a meta-row abbreviation: "About 50m on foot" reads as fifty
+ *  metres in the middle of a sentence. */
+function spellMinutes(total: number): string {
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  const hours = `${h} ${h === 1 ? "hour" : "hours"}`;
+  const mins = `${m} ${m === 1 ? "minute" : "minutes"}`;
+  if (h === 0) return mins;
+  return m === 0 ? hours : `${hours} ${mins}`;
+}
+
+/** The same minutes, shorter, for a line that has to fit on a phone -
+ *  "45 minutes", "1 hour", "2 hours 10". Under an hour it keeps the unit
+ *  (a bare "45" says nothing); above one, the trailing minutes ride on
+ *  the hours the way anyone saying it out loud would say it.
+ *
+ *  Separate from spellMinutes rather than replacing it: that one still
+ *  spells a schedule gap out in full ("1 hour 30 minutes before Ardbeg"),
+ *  where there is room for it and where the sentence has no second
+ *  figure to be confused with. Also not drive-time.ts's formatDuration
+ *  ("2h 25m"), which is a meta-row abbreviation, not prose. */
+function spellMinutesShort(total: number): string {
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h === 0) return `${m} ${m === 1 ? "minute" : "minutes"}`;
+  const hours = `${h} ${h === 1 ? "hour" : "hours"}`;
+  return m === 0 ? hours : `${hours} ${m}`;
+}
+
+/**
+ * One sentence stating how much of a day is actually spent on foot, or
+ * undefined when the stored legs can't answer it, or when the answer is
+ * too small to be worth a sentence.
+ *
+ * NOT just walking days (17 Aug 2026). It used to return early unless
+ * the DAY's Travel Mode was Walk, which meant a driving day containing a
+ * real walk printed nothing at all: "Bunnahabhain, Back from Silence"
+ * drives out and then walks 34 minutes each way to Rubha Bhachlaig,
+ * because there is no road, and the page said nothing about it. What
+ * counts now is each LEG's own resolved mode - legModeFor, the stop's
+ * `Arrive By` falling back to the day's Travel Mode - which is the same
+ * question the router was asked when the leg was measured.
+ *
+ * Undefined in four honest cases, all of which leave the existing
+ * mileage/duration copy in place:
+ *  - nothing on this day is walked at all;
+ *  - a leg it would need was walked but never routed;
+ *  - every stop is optional, so there is no plan to state;
+ *  - the plan AND any optional detour are both at or under
+ *    MINIMUM_WALKING_LINE_MINUTES - see there, and see the optional-only
+ *    line below for the case where only the plan is.
+ *
+ * SHORT ENOUGH TO READ (17 Aug 2026). Every variant here is written to
+ * land under WALKING_LINE_MAX_CHARS - one line on a phone. That is what
+ * retired the `Distance on Foot` brackets this used to append (the
+ * mileage still renders in the day's meta row, where it always has) and
+ * what moved the authored transfer origin out of the sentence and onto
+ * the page once - see walkingOriginNote.
+ */
+/** Under this - the site owner's line, in minutes - the day says nothing
+ *  about walking rather than printing a figure too small to plan around.
+ *  Deliberate, not a rounding artefact: "Bowmore, Unhurried" computes
+ *  seven minutes because only three of the village stops are modelled,
+ *  and "About 5 minutes on foot" reads as a precise claim about a day
+ *  that is genuinely spent wandering. Days below the line keep their
+ *  mileage and pacing copy, which promise less and are true. */
+const MINIMUM_WALKING_LINE_MINUTES = 20;
+
+/** A detour worth its own clause. Below this the two figures round to
+ *  almost the same sentence, and "or 15 minutes if you carry on" is
+ *  noise where the whole point is a decision someone has to make. */
+const MEANINGFUL_DETOUR_MINUTES = 15;
+
+/** The site owner's line, in characters, for how long a walking line may
+ *  be (17 Aug 2026). The old wording ran to 125 characters and wrapped to
+ *  three lines on a phone, which is how a sentence meant to warn someone
+ *  about two hours on their feet ends up being skipped. Every variant
+ *  below is written to land under this; the two places that can still
+ *  blow it - a long authored origin label, and a day's own name inside a
+ *  clause - are measured against it rather than trusted. */
+const WALKING_LINE_MAX_CHARS = 60;
+
+/** Connectors that start the "and where is that, exactly" half of an
+ *  authored transfer origin - "the pathway start BY Port Ellen Primary
+ *  School". Cutting there leaves the head phrase, which is still the
+ *  visitor's own words and still true; it is only less precise, and the
+ *  full label is stated once on the page (see walkingOriginNote) so the
+ *  precision is never actually lost. Deliberately conservative: anything
+ *  not in this list is left whole and simply dropped if it won't fit. */
+const ORIGIN_HEAD_RE = /,|\s+(?:by|next to|beside|outside|opposite|behind|near)\s+/i;
+
+/** The longest form of `label` that leaves the finished line under
+ *  WALKING_LINE_MAX_CHARS - the label itself, else its head phrase, else
+ *  nothing at all, in which case the caller says the sentence without an
+ *  origin and the page's own note carries it. */
+function fittedOrigin(label: string | undefined, before: string, after: string): string | undefined {
+  if (!label) return undefined;
+  const head = label.split(ORIGIN_HEAD_RE)[0].trim();
+  for (const candidate of [label, head]) {
+    if (candidate && (before + candidate + after).length <= WALKING_LINE_MAX_CHARS) return candidate;
+  }
+  return undefined;
+}
+
+export function walkingLineFor(day: HubDay, base?: DayBase): string | undefined {
+  // The Day's whole authored order, features included - the same list the
+  // schedule and the map are built from, so the three cannot disagree.
+  const stops = itineraryDayFromHubDay(day).stops;
+
+  // Is the WHOLE day walked, or is this a driving day with walking in
+  // it? Only the wording turns on this; the figure is the same sum
+  // either way.
+  const wholeDayWalked = day.travelMode === "walk";
+
+  // Everything after the LAST stop that is part of the plan is the
+  // optional tail. Deliberately "after the last", not "every optional
+  // stop": an optional stop with real stops after it is something the
+  // day comes back through, so it belongs in the core figure, and only a
+  // trailing detour can honestly be counted there-and-back.
+  let lastCore = -1;
+  stops.forEach((stop, i) => {
+    if (!stop.optional) lastCore = i;
+  });
+  if (lastCore < 0) return undefined; // every stop optional: no plan to state
+
+  // Stop 0 has nothing before it, so it never carries a leg. Every LATER
+  // leg that is made on foot must have a stored figure, or there is no
+  // honest total to state; a leg made in the car is simply not part of
+  // this sentence and a missing figure for it costs nothing.
+  let minutes = 0;
+  for (const stop of stops.slice(1, lastCore + 1)) {
+    if (legModeFor(stop, day.travelMode) !== "walk") continue;
+    if (stop.legMinutes === undefined) return undefined;
+    minutes += stop.legMinutes;
+  }
+
+  // The detour, out and back, and on foot only - same rule as above.
+  // Missing a leg here loses only the second sentence; the plan's own
+  // figure is still true and still printed.
+  const tailOnFoot = stops
+    .slice(lastCore + 1)
+    .filter((s) => legModeFor(s, day.travelMode) === "walk");
+  const detourOneWay = tailOnFoot.every((s) => s.legMinutes !== undefined)
+    ? tailOnFoot.reduce((sum, s) => sum + (s.legMinutes as number), 0)
+    : undefined;
+
+  // The transfer counts only on a day that is walked end to end. Per
+  // leg, not per journey: a Drive journey can still have a walked
+  // transfer once the 600m rule has been applied to it.
+  //
+  // On a DRIVING day it is deliberately left out even when the stored
+  // leg says it was walked. The figure that day prints is what you walk
+  // once the car is parked, and a transfer - by definition - happens
+  // before that. Adding it would put the sentence's own "once you're
+  // there" out by however long the transfer took.
+  const walked = wholeDayWalked ? transferLegsWalked(base) : { out: false, back: false };
+  if (walked.out) {
+    if (base?.fromBaseMinutes === undefined) return undefined;
+    minutes += base.fromBaseMinutes;
+  }
+  if (walked.back) {
+    if (base?.toBaseMinutes === undefined) return undefined;
+    minutes += base.toBaseMinutes;
+  }
+  // Rounded to the nearest five so "about" means it. The underlying
+  // figures are routed to the minute, but a walking pace is an editorial
+  // 3.75km/h and printing "about 46 minutes" claims a precision the pace
+  // itself doesn't have.
+  const rounded = Math.round(minutes / 5) * 5;
+  const withDetour =
+    detourOneWay !== undefined && detourOneWay > 0
+      ? Math.round((minutes + detourOneWay * 2) / 5) * 5
+      : undefined;
+
+  // OPTIONAL WALKING ON ITS OWN (17 Aug 2026). The threshold used to end
+  // the sentence here whatever the detour was, so "Bruichladdich, by the
+  // Loch" - two minutes of core walking, and an optional Museum of Islay
+  // Life leg of 51 minutes each way - printed nothing at all. Anyone who
+  // took the leg the narrative offers walked the best part of two hours
+  // on a page that had said nothing about walking.
+  //
+  // So: a core under the line and a detour over it says the detour, and
+  // says it as the detour - "Little on foot", because that is exactly
+  // what the plan itself is. Both under the line still says nothing,
+  // unchanged. The figure quoted is the same one the two-figure variant
+  // below quotes (core plus the detour there and back), so "with the
+  // detour" means the same thing wherever a reader meets it.
+  if (minutes <= MINIMUM_WALKING_LINE_MINUTES) {
+    if (withDetour === undefined || (detourOneWay as number) * 2 <= MINIMUM_WALKING_LINE_MINUTES) {
+      return undefined;
+    }
+    return `Little on foot — ${spellMinutesShort(withDetour)} with the detour.`;
+  }
+
+  // A detour worth a decision takes the whole sentence: two figures and
+  // nothing else. What the first figure is measured from is said once on
+  // the page (walkingOriginNote) rather than in a line that has to carry
+  // two numbers as well.
+  //
+  // "the detour" and not the stops' own names, deliberately: the names
+  // are right there in the day's own stop list, and dropping them into
+  // this clause needs an article ("the Museum of Islay Life", but not
+  // "the Kildalton Cross") that no rule can pick correctly for every
+  // name a Local Feature might have.
+  if (withDetour !== undefined && withDetour - rounded >= MEANINGFUL_DETOUR_MINUTES) {
+    return `${spellMinutesShort(rounded)} on foot — ${spellMinutesShort(withDetour)} with the detour.`;
+  }
+
+  const lead = `About ${spellMinutesShort(rounded)} on foot`;
+
+  // A driving day with walking in it. The walking happens after you
+  // park, so the sentence says so and names no transfer at all - the
+  // drive out and back is the day's travel time, stated elsewhere, and
+  // folding it in here would describe neither.
+  if (!wholeDayWalked) {
+    return `${lead} once you've parked.`;
+  }
+
+  if (walked.out && walked.back) {
+    // Where the transfers were measured from, said in the visitor's
+    // words and only as far as the line has room for - see
+    // fittedOrigin. Without an authored origin this says nothing about
+    // where it started: the Base is what a reader assumes anyway, and
+    // naming it costs characters that buy nothing.
+    const before = `${spellMinutesShort(rounded)} on foot from `;
+    const origin = fittedOrigin(base?.transferOriginLabel, before, ", there and back.");
+    return origin ? `${before}${origin}, there and back.` : `${lead}, there and back.`;
+  }
+  // One end walked and the other not. No published journey does this
+  // today, but the two legs are stored and routed independently and
+  // nothing stops it, so it says what it counted rather than rounding
+  // the sentence up to a round trip.
+  if (walked.out || walked.back) {
+    const before = `${lead}, one way ${walked.out ? "from " : "back to "}`;
+    const origin = fittedOrigin(base?.transferOriginLabel ?? base?.name, before, ".");
+    return origin ? `${before}${origin}.` : `${lead}, counted one way.`;
+  }
+  // The transfer is driven, so this is the walking once the car is
+  // parked - the same thing a driving day's figure describes, said the
+  // same way.
+  if (base?.transferMode === "drive") {
+    return `${lead} once you've parked.`;
+  }
+  // No base at all: nothing has been said about getting there, so this
+  // is only what the day walks between its own stops. The mileage that
+  // used to ride along in brackets stays in the day's meta row, where it
+  // already renders - it bought characters this line no longer has.
+  return `${lead} between the stops.`;
+}
+
+/**
+ * The one thing a walking line no longer has room to say: what its
+ * figure was measured from, where that is not simply the Base.
+ *
+ * Every variant above is written to fit a phone, and the full authored
+ * origin - "the pathway start by Port Ellen Primary School" - does not
+ * fit inside any of them. It cannot just vanish: it exists so that a
+ * reader cannot mistake a transfer measured from the pathway start for
+ * one measured from the middle of Port Ellen, which is half a village
+ * further on. So the page states it ONCE, next to the day's shape (or
+ * once above a journey's days), and the lines themselves stay short.
+ *
+ * Undefined unless all of it is true at once: an authored origin exists,
+ * this day actually prints a walking line, and that line's figure really
+ * does include a walked transfer. On a driving day the figure is what
+ * you walk once you have parked and the transfer is not in it, so the
+ * note would be describing a number that isn't on the page.
+ */
+export function walkingOriginNote(day: HubDay, base?: DayBase): string | undefined {
+  if (!base?.transferOriginLabel) return undefined;
+  if (day.travelMode !== "walk") return undefined;
+  const walked = transferLegsWalked(base);
+  if (!walked.out && !walked.back) return undefined;
+  if (!walkingLineFor(day, base)) return undefined;
+  return `Times on foot are measured from ${base.transferOriginLabel}.`;
+}
+
 /**
  * Drive time for the whole day: base -> stop 1 -> ... -> stop N -> base
- * (§2.2). Per the task brief, stop coordinates come from HubDay's own
- * mapDistilleries/mapFeatures fields - distilleries first, in their
- * curated stop order (mapDistilleries preserves `stops` order), then
- * feature stops in the order the narrative happens to link them
- * (mapFeatures has no independent route-order field). There's no single
- * combined "visiting order" spanning both in the current data model, so
- * this is an approximation - consistent with drive-time.ts's own
- * haversine estimate already being indicative rather than exact.
+ * (§2.2), over the Day's own whole visiting order via
+ * itineraryDayFromHubDay.
+ *
+ * It used to say, honestly, that this was an approximation: the data
+ * model had no combined order spanning distilleries and features, so it
+ * walked every distillery first and then every feature the narrative
+ * linked. Day Stops now states one order for both (17 Aug 2026), so the
+ * sequence here is the real one and the only remaining approximation is
+ * the haversine fallback for any leg that has no stored routed figure.
  */
 export function driveMinutesForDay(day: HubDay, base: { lat: number; lng: number }): number {
-  const points = [...(day.mapDistilleries ?? []), ...(day.mapFeatures ?? [])];
-  if (points.length === 0) return 0;
-  let total = estimatedDriveMinutes(base, points[0]);
-  for (let i = 1; i < points.length; i++) {
-    total += estimatedDriveMinutes(points[i - 1], points[i]);
-  }
-  total += estimatedDriveMinutes(points[points.length - 1], base);
-  return total;
+  return driveMinutesForItineraryDay(itineraryDayFromHubDay(day), {
+    name: "your base",
+    lat: base.lat,
+    lng: base.lng,
+  });
 }
 
 export type DayGroupId = "easy" | "mid" | "far" | "ferry";
@@ -233,16 +732,60 @@ export function isFerryDayItinerary(day: ItineraryDay): boolean {
  * always set by the time a day reaches trip review - the undefined
  * branch below is just a defensive fallback (stop-to-stop only, no
  * loop) for the theoretical case it isn't.
+ *
+ * THE PLAN, NOT THE PLAN PLUS EVERY MAYBE (17 Aug 2026). This is the
+ * headline figure a day card leads with - "about an hour and a half on
+ * the road" - and it counted the day's `Optional` tail as though the
+ * visitor had already decided to take it. "Bruichladdich, by the Loch"
+ * is a distillery tour and a two-mile lochside detour to the Museum of
+ * Islay Life that its own narrative merely offers ("or lose an hour
+ * in..."); the headline read 1h 31m, of which 51 minutes was that
+ * offer. Everything else on the page had already stopped doing this:
+ * walkingLineFor states the optional tail as a separate "with the
+ * detour" figure, and compute-journey-base-legs.mjs measures the way
+ * home from the day's last non-optional stop. This is the third one.
+ *
+ * "The trailing tail", not "every optional stop" - the same rule, and
+ * for the same reason, as walkingLineFor: an optional stop with real
+ * stops after it is one the day comes back through either way, so it
+ * belongs in the figure. Only a tail the day can simply stop short of
+ * can honestly be left out of it. The way home is then measured from
+ * the last stop of the PLAN, which is where the day actually turns
+ * round; measuring it from a detour the figure doesn't count would be
+ * the same error in a different place.
  */
-export function driveMinutesForItineraryDay(day: ItineraryDay): number {
-  const stopPoints = day.stops.map(stopCoords);
+export function driveMinutesForItineraryDay(day: ItineraryDay, base?: DayBase): number {
+  // Everything after the last stop that is part of the plan is the
+  // optional tail, and no part of this figure. A day whose every stop is
+  // optional has no plan to state and keeps all of them, rather than
+  // reporting a day with no travel in it at all.
+  let lastCore = -1;
+  day.stops.forEach((stop, i) => {
+    if (!stop.optional) lastCore = i;
+  });
+  const stops = lastCore < 0 ? day.stops : day.stops.slice(0, lastCore + 1);
+
+  const stopPoints = stops.map(stopCoords);
   if (stopPoints.length === 0) return 0;
-  const acc = day.accommodation;
-  const points = acc ? [{ lat: acc.lat, lng: acc.lng }, ...stopPoints, { lat: acc.lat, lng: acc.lng }] : stopPoints;
-  let total = 0;
-  for (let i = 0; i < points.length - 1; i++) {
-    total += estimatedDriveMinutes(points[i], points[i + 1]);
+
+  // Stop-to-stop legs prefer the stored routed value (legTravelMinutes).
+  // The base legs have their own stored values now too, on the Journey
+  // Days junction - resolveBaseLegs prefers those and falls back to the
+  // same straight-line estimate this always used. `base` defaults to the
+  // day's own accommodation, so a trip day behaves exactly as before;
+  // callers pass one explicitly for a Day being read inside a Journey,
+  // where the base is the Journey's, not the visitor's.
+  const legs = resolveBaseLegs(base ?? accommodationBase(day), stopPoints[0], stopPoints[stopPoints.length - 1]);
+  let total = legs.out ?? 0;
+  for (let i = 1; i < stopPoints.length; i++) {
+    total += legTravelMinutes(
+      stopPoints[i - 1],
+      stopPoints[i],
+      stops[i].legMinutes,
+      legModeFor(stops[i], day.travelMode)
+    );
   }
+  total += legs.back ?? 0;
   return total;
 }
 
@@ -302,19 +845,53 @@ export function paceForItineraryDay(
 
 /** Background/foreground pair behind PacingTag's own pace pill
  *  (DaysHubGrid.tsx) - pulled out here so trip review's pace badges use
- *  literally the same mapping rather than a second hand-copied one. */
+ *  literally the same mapping rather than a second hand-copied one.
+ *
+ *  Packed's ink is --rust-ink, NOT --rust: this pill is the pairing that
+ *  measured 4.18:1 and failed (29 Aug 2026, see dramstory-legacy.css's
+ *  :root for the full note). Darkened it reads 5.50:1. The undarkened
+ *  --rust is still what paceAccentColour hands out for fills. */
 export function paceTone(pacing: string): { bg: string; fg: string } {
   if (pacing === "Relaxed") return { bg: "var(--green-light)", fg: "var(--green-deep)" };
   if (pacing === "Moderate") return { bg: "var(--amber-pale)", fg: "var(--copper)" };
-  return { bg: "#F7E6E0", fg: "#B5502E" };
+  return { bg: "var(--rust-pale)", fg: "var(--rust-ink)" };
 }
 
-/** Solid pace colour for the shape strip's bars and the Days list's
- *  numbered day badge (§3.3 items 2/4 - "coloured by pace"). Matches
- *  paceTone's own `fg` above exactly (--green-deep/--copper/#B5502E),
- *  just exposed as a single value for places that want a solid fill
- *  rather than a bg/fg pill pair. */
+/* paceTileTone lived here from 17-18 Aug 2026 and is DELETED. It painted
+   the solid colour block down the left of a journey day card; the build
+   spec that landed the next day removed that treatment outright ("NOT a
+   tile, NOT a photograph") in favour of a 5px strip, and nothing else
+   ever called it. Its one interesting note is preserved where it still
+   applied: paceTone's Packed pair measured 4.18:1, under the 4.5:1 this
+   project's accessibility notes require for small type. FIXED 29 Aug
+   2026 - paceTone's Packed ink is --rust-ink now. The strip on
+   /journeys/[slug] never used it - that page declares its own three
+   hues with measured ratios (see journey-extra.css's jr- block). */
+
+/** Solid pace colour for shapes with no type on them: the shape strip's
+ *  bars, swatches (§3.3 item 2 - "coloured by pace"). Packed is the
+ *  undarkened --rust, because contrast is not a question you can even
+ *  ask of a bar with nothing written on it, and Mark's 29 Aug 2026 call
+ *  was to keep the strips reading as the rust they always have.
+ *
+ *  If TYPE is involved in any direction - the colour as ink, or light
+ *  ink sitting on it - use paceInkColour below instead. The two used to
+ *  be one function, which is how the failing pair got everywhere. */
 export function paceAccentColour(pacing: string): string {
+  if (pacing === "Relaxed") return "var(--green-deep)";
+  if (pacing === "Moderate") return "var(--copper)";
+  return "var(--rust)";
+}
+
+/** The same three pace colours in their TEXT-BEARING form - the pace
+ *  label under the shape strip (colour as ink) and the numbered day
+ *  badge in trip review (white ink on the colour). Identical to
+ *  paceAccentColour except for Packed, which darkens to --rust-ink:
+ *  white on --rust was 5.06:1 and white on --rust-ink is 6.66:1.
+ *
+ *  Matches paceTone's `fg` exactly, so a pace pill and a pace label
+ *  sitting next to each other can never drift apart. */
+export function paceInkColour(pacing: string): string {
   return paceTone(pacing).fg;
 }
 
@@ -362,7 +939,7 @@ export function collectionNote(count: number, total: number): string {
  * this function (now here) from TripReview.tsx (Phase 3).
  */
 export function isDayEdited(day: ItineraryDay, hub: HubDay): boolean {
-  const original = [...hub.stops.map((s) => s.distillery.slug), ...hub.featureStops.map((f) => f.id)];
+  const original = itineraryDayFromHubDay(hub).stops.map(stopId);
   const current = day.stops.map(stopId);
   if (original.length !== current.length) return true;
   return original.some((id, i) => id !== current[i]);
@@ -388,11 +965,18 @@ export function resetDayToHub(
   }
 ): void {
   currentStops.map(stopId).forEach((id) => actions.removeStop(dayIndex, id));
-  hub.stops.forEach((s) => {
-    actions.addStop(dayIndex, s.distillery, s.anchor);
-    if (s.tour) actions.setTourForStop(dayIndex, s.distillery, s.tour);
+  // Replayed in the Day's own order, features included - the same list
+  // itineraryDayFromHubDay builds, so "reset to the original" restores
+  // the order the day is published in rather than an all-distilleries-
+  // first approximation of it.
+  itineraryDayFromHubDay(hub).stops.forEach((s) => {
+    if (s.kind === "distillery") {
+      actions.addStop(dayIndex, s.distillery, s.anchor);
+      if (s.tour) actions.setTourForStop(dayIndex, s.distillery, s.tour);
+    } else {
+      actions.addFeatureStop(dayIndex, s.feature);
+    }
   });
-  hub.featureStops.forEach((f) => actions.addFeatureStop(dayIndex, f));
 }
 
 /** One entry per stop that was in the original HubDay but has since been
@@ -414,14 +998,12 @@ export interface DroppedHubStop {
 export function droppedHubStops(day: ItineraryDay, hub: HubDay): DroppedHubStop[] {
   const current = new Set(day.stops.map(stopId));
   const dropped: DroppedHubStop[] = [];
-  for (const s of hub.stops) {
-    if (!current.has(s.distillery.slug)) {
+  for (const s of itineraryDayFromHubDay(hub).stops) {
+    if (current.has(stopId(s))) continue;
+    if (s.kind === "distillery") {
       dropped.push({ id: s.distillery.slug, name: s.distillery.name, kind: "distillery", distillery: s.distillery, tour: s.tour });
-    }
-  }
-  for (const f of hub.featureStops) {
-    if (!current.has(f.id)) {
-      dropped.push({ id: f.id, name: f.name, kind: "feature", feature: f });
+    } else {
+      dropped.push({ id: s.feature.id, name: s.feature.name, kind: "feature", feature: s.feature });
     }
   }
   return dropped;
@@ -433,7 +1015,7 @@ export function droppedHubStops(day: ItineraryDay, hub: HubDay): DroppedHubStop[
  *  and tour swaps aren't mentioned) - honest about what it's counting
  *  rather than claiming to describe every possible edit. */
 export function describeHubDayChanges(day: ItineraryDay, hub: HubDay): string {
-  const originalIds = new Set([...hub.stops.map((s) => s.distillery.slug), ...hub.featureStops.map((f) => f.id)]);
+  const originalIds = new Set(itineraryDayFromHubDay(hub).stops.map(stopId));
   const currentIds = day.stops.map(stopId);
   let added = 0;
   for (const id of currentIds) if (!originalIds.has(id)) added++;
@@ -456,8 +1038,8 @@ export function describeHubDayChanges(day: ItineraryDay, hub: HubDay): string {
 /** Best-effort honest title for a trip day - moved here from
  *  TripReview.tsx (Phase 3) so the day screen can use the exact same
  *  fallback logic rather than a second hand-copied version. HubDay has an
- *  authored name ("Ardbeg, on Foot") - a day that still traces back to
- *  one uses it. A day with no source (built freehand in the planner, or
+ *  authored name ("Ardbeg and the Kildalton Road") - a day that still
+ *  traces back to one uses it. A day with no source (built freehand in the planner, or
  *  whose Hub Day no longer resolves) has no editorial name in the current
  *  data model, so this falls back to the stop names themselves rather
  *  than fabricating one - consistent with the brand-voice "no fabricated
@@ -500,7 +1082,36 @@ export function dateForDayIndex(tripDates: TripDates, index: number): Date | nul
  *  feature's own duration / the flat feature default, or a visitor's
  *  customMinutes override - itinerary-stop.ts's existing single source of
  *  truth for "how long is this stop", reused rather than re-derived). */
-const SCHEDULE_START_MINUTES = 9 * 60 + 30; // 09:30, per §2.2/§3.4 - not adjustable (§8 open question 4)
+/** The 09:30 in §2.2/§3.4 - now only the FALLBACK, used for any Day whose
+ *  Airtable `Start Time` is blank. §8 open question 4 ("Start time - the
+ *  schedule assumes 09:30. Should that be adjustable?") is answered: yes,
+ *  per Day, in Airtable. */
+export const DEFAULT_SCHEDULE_START_MINUTES = 9 * 60 + 30;
+
+/** Parses a Day's `Start Time` ("13:00", "9:30") into minutes after
+ *  midnight. Anything unparseable or out of range falls back to 09:30
+ *  rather than throwing or silently producing a nonsense clock - a bad
+ *  cell in Airtable should degrade to the documented default, not break
+ *  the page. */
+export function parseStartTimeMinutes(startTime?: string): number {
+  return parseClockMinutes(startTime) ?? DEFAULT_SCHEDULE_START_MINUTES;
+}
+
+/** The same parse, but saying "there isn't one" rather than substituting
+ *  a default - which is what a Day Stop's `Scheduled Time` needs: blank
+ *  (much the commoner case) means "this stop has no published time",
+ *  not "assume one". A cell that isn't a clock time is treated the same
+ *  as blank: the stop keeps the chained behaviour rather than the page
+ *  breaking on a typo. */
+export function parseClockMinutes(value?: string): number | undefined {
+  if (!value) return undefined;
+  const m = value.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return undefined;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 23 || min > 59) return undefined;
+  return h * 60 + min;
+}
 
 export interface ScheduleRow {
   stop: ItineraryStop;
@@ -508,34 +1119,281 @@ export interface ScheduleRow {
   arrive: number; // minutes after midnight
   leave: number;
   dur: number;
+  /** Travel minutes counted immediately before `arrive` - the leg in
+   *  from the previous stop, or from the base for the first row. */
+  travel: number;
+  /** Minutes between the end of that travel and `arrive`: time the day
+   *  does not account for, because this stop is pinned to a published
+   *  clock time later than the moment you could have got here. Zero on
+   *  every chained stop, which is every stop with no `Scheduled Time`. */
+  free: number;
+  /** True when `arrive` IS the stop's own `Scheduled Time` rather than a
+   *  computed arrival. False when it has none - and false when it had
+   *  one that couldn't be reached, in which case see `warnings`. */
+  fixed: boolean;
+}
+
+/** A gap only worth saying out loud once it's long enough to be part of
+ *  the day rather than rounding error - twenty minutes, matching the
+ *  brief's own "over ~20 minutes". Measured on the FREE minutes, not the
+ *  whole gap: half an hour of it walking over is travel, and the day
+ *  already accounts for travel. */
+export const MEANINGFUL_GAP_MINUTES = 20;
+
+/** A day-level problem with the day's own content, for someone to fix -
+ *  not something the reader can act on. Today there is exactly one: a
+ *  `Scheduled Time` the day physically cannot reach (see
+ *  scheduleForItineraryDay). Kept structured, with the copy in
+ *  scheduleWarningLine below, so every page that renders a schedule says
+ *  the same sentence about it - the same one-source rule that retired
+ *  the hand-written `Day Timeline` field. */
+export interface ScheduleWarning {
+  kind: "scheduled-time-unreachable";
+  /** The stop the impossible time was authored on. */
+  stopName: string;
+  /** The authored time. Deliberately NOT rendered as this stop's clock
+   *  time anywhere - the schedule shows `earliest` instead - but named
+   *  in the warning, because "which cell is wrong" is the whole point. */
+  scheduled: number;
+  /** The computed arrival that is being shown instead. */
+  earliest: number;
 }
 
 export interface DaySchedule {
   rows: ScheduleRow[];
-  /** Minutes after midnight the visitor is back at their accommodation -
-   *  undefined base (theoretical - see driveMinutesForItineraryDay's own
-   *  comment, every day gets one from addDay) just stops the clock after
-   *  the last stop's visit, with no final drive leg added. */
+  /** Minutes after midnight the visitor actually sets off. Normally the
+   *  Day's own `Start Time`, but pulled EARLIER where the first stop is
+   *  pinned to a published time that couldn't otherwise be made: a
+   *  10 o'clock tour thirty-eight minutes' walk from the bed means
+   *  leaving at 9:22, not missing it. Never pushed later - a Start Time
+   *  earlier than it needs to be is a real, honest wait at the first
+   *  stop, and it shows as one. */
+  depart: number;
+  /** Minutes after midnight the visitor is back at their base - with no
+   *  base at all (a Day read cold on /days/[slug]) the clock simply stops
+   *  after the last stop's visit, with no final leg added. */
   home: number;
+  /** The base this schedule was actually computed against, and the two
+   *  legs it contributed - present only when there IS a base and at
+   *  least one of its legs resolved. Lets a caller say "leaving Port
+   *  Ellen at 9:30, back by 17:20" without re-deriving any of it, and
+   *  lets one that has no base say nothing at all rather than printing a
+   *  door-to-door claim it can't support. */
+  base?: { name: string; out: number; back: number; originLabel?: string };
+  /** Content errors in this day worth showing on the page - empty for
+   *  every day whose times are consistent, which is nearly all of them. */
+  warnings: ScheduleWarning[];
 }
 
-export function scheduleForItineraryDay(day: ItineraryDay): DaySchedule {
-  const acc = day.accommodation;
-  const base = acc ? { lat: acc.lat, lng: acc.lng } : undefined;
-  let t = SCHEDULE_START_MINUTES;
-  let prevPoint = base;
+/**
+ * `startMinutes` is the moment the day BEGINS - i.e. when the visitor
+ * leaves their base, exactly as the original fixed 09:30 constant meant.
+ * With a base set, the first stop's arrival is therefore start + the leg
+ * in from the base; with no base (a published Day being read by someone
+ * who has neither added it to a trip nor reached it through a Journey, so
+ * there is no honest "your door" to travel from), the first stop's
+ * arrival IS the start time. Callers pass parseStartTimeMinutes(
+ * hub.startTime) - see scheduleForHubDay below.
+ *
+ * A stop carrying a `Scheduled Time` breaks the chain: it starts at
+ * exactly that clock time, because a distillery tour runs when it is
+ * published to run and not when the previous stop happens to release
+ * you. Everything before it still travels; what is left over is the
+ * visitor's own time, carried on the row as `free` so the page can say
+ * so rather than leaving an unexplained hole. Every stop without one is
+ * unchanged - previous stop's finish plus the travel leg - so a day with
+ * no scheduled times anywhere computes exactly as it did before.
+ *
+ * `base` defaults to the day's own accommodation, which is what a real
+ * trip day has. A Day read inside a Journey has no accommodation but does
+ * have the Journey's Base, with real routed legs behind it - that comes
+ * in through this parameter (see journeyBaseFor in journey-derivations).
+ */
+export function scheduleForItineraryDay(
+  day: ItineraryDay,
+  startMinutes: number = DEFAULT_SCHEDULE_START_MINUTES,
+  base?: DayBase
+): DaySchedule {
+  const resolved = base ?? accommodationBase(day);
+  const stopPoints = day.stops.map(stopCoords);
+  const legs = resolveBaseLegs(resolved, stopPoints[0], stopPoints[stopPoints.length - 1]);
+
+  // Setting off. The Day's own Start Time, unless the first stop is
+  // pinned to a time you'd have to leave earlier to make - see
+  // DaySchedule.depart. With no base leg the two are the same number
+  // anyway, which is why a Day read cold on /days/[slug] is unaffected.
+  const firstScheduled = parseClockMinutes(day.stops[0]?.scheduledTime);
+  const depart =
+    firstScheduled !== undefined
+      ? Math.min(startMinutes, firstScheduled - (legs.out ?? 0))
+      : startMinutes;
+
+  const warnings: ScheduleWarning[] = [];
+  let t = depart;
+  let prevPoint: { lat: number; lng: number } | undefined;
   const rows: ScheduleRow[] = day.stops.map((stop, index) => {
-    const point = stopCoords(stop);
-    const leg = prevPoint ? estimatedDriveMinutes(prevPoint, point) : 0;
-    t += leg;
+    const point = stopPoints[index];
+    // Stop-to-stop legs use the precomputed routed value when there is
+    // one; the leg in from the base is whatever resolveBaseLegs could
+    // honestly establish, and zero when it could establish nothing.
+    const leg =
+      index === 0
+        ? legs.out ?? 0
+        : legTravelMinutes(prevPoint ?? point, point, stop.legMinutes, legModeFor(stop, day.travelMode));
+    // The soonest you could be here: travelling the moment the last stop
+    // let you go. That is the whole schedule for a stop with no
+    // published time, and the floor for one that has.
+    const earliest = t + leg;
+    const scheduled = parseClockMinutes(stop.scheduledTime);
+    // A published time EARLIER than that is not a schedule, it is a
+    // mistake in the day's own content - two tours that can't both be
+    // made. The computed time stands (it is the only one that could
+    // actually happen) and the clash is surfaced rather than hidden;
+    // silently printing the impossible time would have the visitor turn
+    // up to a tour that had already started.
+    const reachable = scheduled !== undefined && scheduled >= earliest;
+    if (scheduled !== undefined && !reachable) {
+      warnings.push({
+        kind: "scheduled-time-unreachable",
+        stopName: stopName(stop),
+        scheduled,
+        earliest,
+      });
+    }
+    const arrive = reachable ? scheduled : earliest;
     const dur = stopVisitMinutes(stop);
-    const row: ScheduleRow = { stop, index, arrive: t, leave: t + dur, dur };
-    t += dur;
+    const row: ScheduleRow = {
+      stop,
+      index,
+      arrive,
+      leave: arrive + dur,
+      dur,
+      travel: leg,
+      // Whatever is left over once the travel is done - the visitor's
+      // own time, not dead time the schedule should squeeze out.
+      free: arrive - earliest,
+      fixed: reachable,
+    };
+    t = arrive + dur;
     prevPoint = point;
     return row;
   });
-  const home = base && prevPoint && day.stops.length > 0 ? t + estimatedDriveMinutes(prevPoint, base) : t;
-  return { rows, home };
+
+  const home = day.stops.length > 0 ? t + (legs.back ?? 0) : t;
+  // Only claim a door-to-door day when both ends of it are real.
+  const baseSummary =
+    resolved && legs.out !== undefined && legs.back !== undefined
+      ? {
+          name: resolved.name,
+          out: legs.out,
+          back: legs.back,
+          // Carried so that anything printing these two legs' clock times
+          // can name the point they run from, rather than implying the
+          // Base. See DayBase.transferOriginLabel.
+          originLabel: resolved.transferOriginLabel,
+        }
+      : undefined;
+  return { rows, depart, home, base: baseSummary, warnings };
+}
+
+/** A gap length as prose - "1 hour 30 minutes" - rounded to the nearest
+ *  five minutes, the same "these are estimates, not promises" rounding
+ *  formatClockTime already applies to the times either side of it. */
+export function spellGapMinutes(minutes: number): string {
+  return spellMinutes(Math.max(5, Math.round(minutes / 5) * 5));
+}
+
+/** The one sentence for a gap in front of a stop, or undefined when
+ *  there isn't a gap worth a line (see MEANINGFUL_GAP_MINUTES).
+ *
+ *  Says what the day's own data supports and stops: how long, when to
+ *  when, and how much of it is the travel that was routed anyway. It
+ *  deliberately does NOT name an activity - the day's narrative may well
+ *  describe lunch somewhere, but nothing in the schedule knows that, and
+ *  a made-up "lunch and a wander" on a day whose author meant something
+ *  else is exactly the fabricated specific the brand voice rules out. An
+ *  honest empty hour reads fine; an invented one doesn't.
+ *
+ *  `mode` is the DAY's Travel Mode; the verb printed over the travel
+ *  inside the gap is this leg's own (legModeFor), because the leg being
+ *  described may be the walked approach on an otherwise driven day. */
+export function scheduleGapLine(row: ScheduleRow, mode?: TravelMode): string | undefined {
+  if (row.free < MEANINGFUL_GAP_MINUTES) return undefined;
+  const from = row.arrive - row.free - row.travel;
+  const total = spellGapMinutes(row.free + row.travel);
+  const legMode = legModeFor(row.stop, mode);
+  const travelPart =
+    row.travel > 0
+      ? ` — about ${spellGapMinutes(row.travel)} of it ${legMode === "walk" ? "walking" : "driving"} over`
+      : "";
+  return `${formatClockTime(from)}–${formatClockTime(row.arrive)} · ${total} before ${stopName(
+    row.stop
+  )}${travelPart}. Nothing booked in it.`;
+}
+
+/** The one sentence for a day-level schedule warning. Rendered wherever
+ *  a schedule is - the day screen and the journey strip both - because
+ *  it is a fault in the content, and the person who can fix it should
+ *  meet it on whichever page they happen to be reading. */
+export function scheduleWarningLine(warning: ScheduleWarning): string {
+  return `${warning.stopName} is down for ${formatClockTime(
+    warning.scheduled
+  )}, but the day can't get there before ${formatClockTime(
+    warning.earliest
+  )} — that later time is the one shown.`;
+}
+
+/**
+ * A published HubDay expressed in the ItineraryDay shape, so that ONE
+ * schedule/drive/grouping implementation serves both "this day is in my
+ * trip" and "I'm just reading this day". Deliberately no accommodation:
+ * a Day nobody has added to a trip has no base to drive from or home to,
+ * and inventing one (the default Machrie, say) would print a departure
+ * time for a journey the visitor never said they were making.
+ *
+ * Stop ORDER is now simply the Day's own, whole, authored order -
+ * `hub.orderedStops`, distilleries and Local Features interleaved
+ * exactly as the Day Stops table's `Order` states. That closes the gap
+ * this function used to carry and flag: it built "every distillery
+ * first, then every feature the narrative happened to link", so "Ardbeg,
+ * on Foot" put the Old Kiln Cafe - which its narrative reaches on the
+ * way OUT - after Ardbeg, and none of those feature legs existed at all.
+ *
+ * Features the narrative links but no Day Stop covers are still appended
+ * at the end, unchanged: they have no authored position, so the end is
+ * the only honest place for them, and dropping them would lose the map
+ * pin they already earn today.
+ *
+ * `anchor` and `optional` are carried straight through from the Day
+ * Stop's own checkboxes.
+ */
+export function itineraryDayFromHubDay(hub: HubDay): ItineraryDay {
+  const ordered = hub.orderedStops;
+  const orderedIds = new Set(ordered.map(stopId));
+  return {
+    id: `hub-${hub.slug}`,
+    label: hub.name,
+    sourceHubDaySlug: hub.slug,
+    travelMode: hub.travelMode,
+    stops: [
+      ...ordered,
+      ...hub.featureStops
+        .filter((f) => !orderedIds.has(f.id))
+        .map((f): ItineraryStop => ({ kind: "feature", feature: f })),
+    ],
+  };
+}
+
+/**
+ * The schedule for a published Day, computed from its own `Start Time`.
+ * This is what both /days/[slug] (for a day not in the visitor's trip)
+ * and the "THE DAY" strip on /journeys/[slug] render - one function, so
+ * the two pages cannot print different times for the same day. That
+ * disagreement is exactly what the retired, hand-written `Day Timeline`
+ * Airtable field used to cause.
+ */
+export function scheduleForHubDay(hub: HubDay, base?: DayBase): DaySchedule {
+  return scheduleForItineraryDay(itineraryDayFromHubDay(hub), parseStartTimeMinutes(hub.startTime), base);
 }
 
 /** Formats minutes-after-midnight as "9:30", "13:10" - rounded to the

@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import type { Distillery, InterestCategoryId, JournalPost, LocalEvent } from "@/lib/types";
+import type { Distillery, InterestCategoryId, JournalPost, Journey, LocalEvent } from "@/lib/types";
 import { INTEREST_CATEGORIES } from "@/lib/journey-options";
 import SiteHeader from "@/components/SiteHeader";
 import { useBackgroundVideoVisible } from "@/lib/background-video-context";
@@ -12,6 +12,9 @@ interface InterestsStepProps {
   distilleriesPromise: Promise<Distillery[]>;
   localEventsPromise: Promise<LocalEvent[]>;
   journalPostsPromise: Promise<JournalPost[]>;
+  /** For the below-the-fold Classic Journeys section, which reads the
+   *  Journeys table directly (17 Aug 2026). */
+  journeysPromise: Promise<Journey[]>;
   onNext: (interests: InterestCategoryId[]) => void;
   onBack: () => void;
 }
@@ -26,7 +29,7 @@ const SELECTABLE_CATEGORIES = INTEREST_CATEGORIES.filter((c) => !c.alwaysOn);
  * The 5 real categories laid out side by side, multi-select - real trips
  * combine interests rather than picking just one.
  */
-export default function InterestsStep({ distilleriesPromise, localEventsPromise, journalPostsPromise, onNext, onBack }: InterestsStepProps) {
+export default function InterestsStep({ distilleriesPromise, localEventsPromise, journalPostsPromise, journeysPromise, onNext, onBack }: InterestsStepProps) {
   // Claims the shared background video (see SiteBackgroundVideo) while
   // this question is showing. Currently inactivated in JourneyFlow (see
   // that file's header comment) but kept wired up and ready for when a
@@ -91,6 +94,7 @@ export default function InterestsStep({ distilleriesPromise, localEventsPromise,
         distilleriesPromise={distilleriesPromise}
         localEventsPromise={localEventsPromise}
         journalPostsPromise={journalPostsPromise}
+        journeysPromise={journeysPromise}
       />
     </Suspense>
     </>

@@ -7,24 +7,7 @@ import type { FeaturedStay } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 import Footer from "@/components/Footer";
 import { useAddStayToTrip } from "./useAddStayToTrip";
-
-/** Renders plain text containing [label](/path) markdown-style links as
- *  real internal <Link>s - same helper as DistilleryPageClient/
- *  ExploreFeatureClient (each detail page keeps its own copy rather than
- *  sharing one, matching the existing pattern in this codebase). */
-function renderWithLinks(text: string) {
-  const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g);
-  return parts.map((part, i) => {
-    const match = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-    if (!match) return part;
-    const [, label, href] = match;
-    return (
-      <Link href={href} key={i} className="dist-inline-link">
-        {label}
-      </Link>
-    );
-  });
-}
+import { renderWithLinks } from "@/lib/render-links";
 
 /** Small top-right corner tag for photo attribution - same component as
  *  ExploreFeatureClient's PhotoCredit (duplicated per the existing

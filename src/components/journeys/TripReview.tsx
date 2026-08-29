@@ -16,6 +16,7 @@ import {
   isFerryDayItinerary,
   paceForItineraryDay,
   paceAccentColour,
+  paceInkColour,
   tripShapeNote,
   collectionNote,
   isDayEdited,
@@ -23,7 +24,9 @@ import {
   dayTitle,
   addDaysIso,
   formatDayDate,
+  dateForDayIndex,
 } from "@/lib/day-derivations";
+import { stopAvailabilityWarning } from "@/lib/availability";
 import DateRangePicker from "@/components/journey/DateRangePicker";
 
 /**
@@ -100,7 +103,10 @@ function ShapeStrip({ rows, dateLabels }: { rows: DayRow[]; dateLabels: (string 
                   }}
                 />
               </div>
-              <div className="trip-shape-row-pace" style={{ color: paceAccentColour(r.pace) }}>
+              {/* paceInkColour, not paceAccentColour: this is the pace
+                  word itself, set in the colour. The bar above it is the
+                  fill and keeps the undarkened rust. */}
+              <div className="trip-shape-row-pace" style={{ color: paceInkColour(r.pace) }}>
                 {r.ferry ? "Ferry" : r.pace}
               </div>
             </div>
@@ -166,7 +172,9 @@ function DayReviewRow({
   onRemoveDay: () => void;
 }) {
   const { day, index, pace, drive, priceLabel, ferry, title, edited } = row;
-  const accent = paceAccentColour(pace);
+  // The numeral sits IN this colour in white (.trip-day-num), so it is a
+  // text-bearing use and takes the darkened ink, not the fill rust.
+  const accent = paceInkColour(pace);
 
   return (
     <div className="trip-day-row">
@@ -220,9 +228,22 @@ function DayReviewRow({
             stays a distinct action below (the hand-off into /journey),
             so the two affordances remain legible as different things:
             "look at this day" vs "go edit it properly". */}
-        <Link href={`/trip/day/${index}`} className="trip-day-title trip-day-title-link">
-          {title}
-        </Link>
+        {/* 16 Aug 2026: links straight at the merged day page rather
+            than the old /trip/day/[index] route (now only a redirect).
+            ?trip={index} says WHICH instance of this Day - the same Day
+            can be in a trip twice. A day built freehand in the planner
+            has no published Day behind it and so has no page to open;
+            its title stays plain text rather than a link that dead-ends. */}
+        {day.sourceHubDaySlug ? (
+          <Link
+            href={`/days/${day.sourceHubDaySlug}?trip=${index}`}
+            className="trip-day-title trip-day-title-link"
+          >
+            {title}
+          </Link>
+        ) : (
+          <div className="trip-day-title">{title}</div>
+        )}
         {edited && (
           <div className="trip-day-version">
             <span className="trip-day-version-tag">YOUR VERSION</span>
@@ -366,6 +387,36 @@ export default function TripReview({ hubDays, distilleries }: { hubDays: HubDay[
   // six rules are skipped outright rather than faked - see the code
   // comments at each skipped rule for why.
   const todoItems: { id: string; node: React.ReactNode }[] = [];
+  // A STOP THAT CANNOT HAPPEN ON ITS DAY'S DATE - §4.4's own example,
+  // no longer skipped now that both halves of the answer exist in the
+  // data (the distillery's Closed Days and the tour's Runs On Days).
+  // First in the list because it is the only item here that says
+  // something is wrong rather than something is outstanding: a Saturday
+  // day built around Ardbeg's Classic Distillery Experience does not
+  // work, and the visitor finds that out here rather than at the
+  // booking page.
+  //
+  // Silent unless real dates are set: dateForDayIndex is null for the
+  // untouched default AND for a "September" month answer, because
+  // neither pins down a weekday. That is the same gate the day screen
+  // uses, so the two pages can't disagree - see stopAvailabilityWarning.
+  for (const row of rows) {
+    const dayDate = dateForDayIndex(td, row.index);
+    if (!dayDate) continue;
+    for (const stop of row.day.stops) {
+      if (stop.kind !== "distillery") continue;
+      const warning = stopAvailabilityWarning(stop.distillery, stop.tour, dayDate);
+      if (!warning) continue;
+      todoItems.push({
+        id: `unavailable-${row.index}-${stopId(stop)}`,
+        node: (
+          <>
+            <strong>{dateLabels[row.index] ?? `Day ${row.index + 1}`}</strong> — {warning.message}
+          </>
+        ),
+      });
+    }
+  }
   if (anyFerry) {
     todoItems.push({
       id: "ferry",
@@ -382,8 +433,6 @@ export default function TripReview({ hubDays, distilleries }: { hubDays: HubDay[
   // model. Rather than guess from tour names, this rule doesn't run at
   // all here - flagged in the Phase 3 report rather than silently
   // dropped.
-  // SKIPPED: "a stop closed on its day's date" - needs closedDays,
-  // Phase 4, explicitly out of scope.
   if (!td.confirmed) {
     todoItems.push({
       id: "dates",

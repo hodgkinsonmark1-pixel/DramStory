@@ -28,18 +28,21 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       {
         "name": "The Ardbeg Experience",
         "duration": "1 hr 15 min",
+        "runsOnDays": [],
         "price": 15,
         "description": "Guided tour of the distillery with tasting of three expressions."
       },
       {
         "name": "The Warehouse Tasting",
         "duration": "2 hrs",
+        "runsOnDays": [],
         "price": 45,
         "description": "Exclusive access to cask samples straight from the warehouse alongside Ardbeg's whisky specialist."
       },
       {
         "name": "The Committee Room",
         "duration": "3 hrs",
+        "runsOnDays": [],
         "price": 120,
         "description": "A prestige experience for whisky connoisseurs, with rare drams and personalised guidance."
       }
@@ -119,12 +122,14 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       {
         "name": "Lagavulin Distillery Tour",
         "duration": "1 hr",
+        "runsOnDays": [],
         "price": 10,
         "description": "A guided walk through the distillery with two expression tastings."
       },
       {
         "name": "Exclusive Cask Tour",
         "duration": "2 hrs 30 min",
+        "runsOnDays": [],
         "price": 60,
         "description": "In-depth tour including barrel selection and warehouse tasting."
       }
@@ -195,12 +200,14 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       {
         "name": "Water to Whisky Tour",
         "duration": "1 hr",
+        "runsOnDays": [],
         "price": 15,
         "description": "The complete story of Laphroaig, from peat cutting to bottling."
       },
       {
         "name": "Friends of Laphroaig Experience",
         "duration": "2 hrs",
+        "runsOnDays": [],
         "price": 35,
         "description": "Visit your own square foot of Islay, cut your own peat and claim your dram."
       }
@@ -258,18 +265,21 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       {
         "name": "Bowmore Distillery Tour",
         "duration": "1 hr",
+        "runsOnDays": [],
         "price": 10,
         "description": "Classic guided tour with two tastings."
       },
       {
         "name": "The Vault Experience",
         "duration": "2 hrs",
+        "runsOnDays": [],
         "price": 50,
         "description": "Access to the legendary No.1 Vault, below sea level, with warehouse sampling."
       },
       {
         "name": "Masterclass Tasting",
         "duration": "1 hr 30 min",
+        "runsOnDays": [],
         "price": 30,
         "description": "A guided vertical tasting of five expressions with a whisky specialist."
       }
@@ -348,12 +358,14 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       {
         "name": "Distillery Tour",
         "duration": "1 hr 15 min",
+        "runsOnDays": [],
         "price": 10,
         "description": "Guided tour with two spirit tastings."
       },
       {
         "name": "The Progressive Tour",
         "duration": "2 hrs",
+        "runsOnDays": [],
         "price": 40,
         "description": "A deep-dive across all three expressions with a distillery guide."
       }
@@ -418,12 +430,14 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       {
         "name": "Farm Distillery Tour",
         "duration": "1 hr 15 min",
+        "runsOnDays": [],
         "price": 10,
         "description": "Explore the full farm-to-bottle process with tastings."
       },
       {
         "name": "The Field to Bottle Experience",
         "duration": "3 hrs",
+        "runsOnDays": [],
         "price": 75,
         "description": "Exclusive access from barley field to cask with expert guide."
       }
@@ -489,12 +503,14 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       {
         "name": "Caol Ila Distillery Tour",
         "duration": "1 hr",
+        "runsOnDays": [],
         "price": 10,
         "description": "Guided tour with two tastings overlooking the Sound of Islay."
       },
       {
         "name": "The Hidden Giant Experience",
         "duration": "2 hrs",
+        "runsOnDays": [],
         "price": 50,
         "description": "Extended tour including warehouse visit and five expression tasting."
       }
@@ -559,12 +575,14 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       {
         "name": "Bunnahabhain Distillery Tour",
         "duration": "1 hr 15 min",
+        "runsOnDays": [],
         "price": 10,
         "description": "Guided tour with two expression tastings."
       },
       {
         "name": "Warehouse Experience",
         "duration": "2 hrs",
+        "runsOnDays": [],
         "price": 40,
         "description": "Warehouse tasting direct from cask with expert guide."
       }
@@ -622,12 +640,14 @@ export const MOCK_DISTILLERIES: Distillery[] = [
       {
         "name": "Ardnahoe Distillery Tour",
         "duration": "1 hr",
+        "runsOnDays": [],
         "price": 10,
         "description": "Guided tour of Islay's newest distillery with tasting."
       },
       {
         "name": "The Panorama Experience",
         "duration": "2 hrs",
+        "runsOnDays": [],
         "price": 55,
         "description": "Extended tour with warehouse visit and views across to Jura."
       }

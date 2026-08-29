@@ -7,7 +7,17 @@ import type { Distillery } from "@/lib/types";
 import { fetchRouteSegments, type LatLng } from "@/lib/route-geometry";
 
 interface JourneyDayMapProps {
-  base: LatLng & { village: string };
+  /** Home marker for the day (an overnight village with real
+   *  coordinates). Optional as of 12 Aug 2026 - the Airtable-backed
+   *  Journeys rebuild has no per-day overnight coordinates (only a
+   *  free-text, journey-level Accommodation Note - see Journey.
+   *  accommodationNote in types.ts), and fabricating coordinates for a
+   *  village isn't something this codebase does (see content-sourcing-
+   *  standards.md's coordinate verification rules). When omitted, the
+   *  map simply has no home pin and routes only between the day's own
+   *  stops - same behaviour HubDayMap already uses for the /days Hub
+   *  cards, for the same underlying reason (no single fixed base). */
+  base?: LatLng & { village: string };
   /** That day's distillery stops, in visiting order. */
   stops: Distillery[];
   /** Non-distillery activity stops that happen to have a real, verified
@@ -17,6 +27,16 @@ interface JourneyDayMapProps {
    *  mappable location (e.g. "browse the high street") simply aren't
    *  passed here and don't appear on the map at all. */
   featureStops?: { name: string; slug: string; lat: number; lng: number }[];
+  /** False renders the same map as a flat, non-interactive preview: no
+   *  drag, no zoom, no tappable markers. Used below 768px on
+   *  /days/[slug], where a full-height interactive Leaflet canvas in the
+   *  middle of a scrolling article swallows the scroll gesture - the
+   *  visitor's thumb pans the map instead of the page and the article
+   *  becomes a trap. Callers pairing this with `false` are expected to
+   *  offer a real way through to the map instead (the "Open the map ->"
+   *  target on the day screen). Defaults true so every existing caller
+   *  is unchanged. */
+  interactive?: boolean;
 }
 
 /**
@@ -28,7 +48,7 @@ interface JourneyDayMapProps {
  * between them - reusing the same Leaflet setup and OSRM routing utility
  * the main map uses, at a much smaller scope.
  */
-export default function JourneyDayMap({ base, stops, featureStops = [] }: JourneyDayMapProps) {
+export default function JourneyDayMap({ base, stops, featureStops = [], interactive = true }: JourneyDayMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Leaflet.Map | null>(null);
 
@@ -39,7 +59,21 @@ export default function JourneyDayMap({ base, stops, featureStops = [] }: Journe
       const L = (await import("leaflet")).default;
       if (cancelled || !containerRef.current || mapRef.current) return;
 
-      const map = L.map(containerRef.current, { scrollWheelZoom: false });
+      const map = L.map(containerRef.current, {
+        scrollWheelZoom: false,
+        // Every gesture handler off in preview mode, plus `keyboard` so
+        // the container never takes focus in a tab order it can't be
+        // used from. (Leaflet's own `tap` touch-click emulation option
+        // is gone from the installed typings - the wrapping element's
+        // pointer-events: none, see the return below, is what actually
+        // guarantees no touch reaches the canvas at all.)
+        dragging: interactive,
+        touchZoom: interactive,
+        doubleClickZoom: interactive,
+        boxZoom: interactive,
+        keyboard: interactive,
+        zoomControl: interactive,
+      });
       mapRef.current = map;
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -47,16 +81,18 @@ export default function JourneyDayMap({ base, stops, featureStops = [] }: Journe
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       }).addTo(map);
 
-      L.marker([base.lat, base.lng], {
-        icon: L.divIcon({
-          className: "",
-          html: `<div style="background:#5C7A99;color:white;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);font-size:13px">🏠</div>`,
-          iconSize: [26, 26],
-          iconAnchor: [13, 13],
-        }),
-      })
-        .bindPopup(base.village)
-        .addTo(map);
+      if (base) {
+        L.marker([base.lat, base.lng], {
+          icon: L.divIcon({
+            className: "",
+            html: `<div style="background:#5C7A99;color:white;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);font-size:13px">🏠</div>`,
+            iconSize: [26, 26],
+            iconAnchor: [13, 13],
+          }),
+        })
+          .bindPopup(base.village)
+          .addTo(map);
+      }
 
       for (const d of stops) {
         if (!d.lat || !d.lng) continue;
@@ -81,9 +117,11 @@ export default function JourneyDayMap({ base, stops, featureStops = [] }: Journe
         // Opens the distillery's own page in a new tab rather than
         // navigating away from the journey page the visitor is
         // currently reading.
-        marker.on("click", () => {
-          window.open(`/distilleries/${d.slug}`, "_blank", "noopener,noreferrer");
-        });
+        if (interactive) {
+          marker.on("click", () => {
+            window.open(`/distilleries/${d.slug}`, "_blank", "noopener,noreferrer");
+          });
+        }
       }
 
       for (const f of featureStops) {
@@ -102,29 +140,37 @@ export default function JourneyDayMap({ base, stops, featureStops = [] }: Journe
             className: "journey-day-map-label",
           })
           .addTo(map);
-        marker.on("click", () => {
-          window.open(`/explore/${f.slug}`, "_blank", "noopener,noreferrer");
-        });
+        if (interactive) {
+          marker.on("click", () => {
+            window.open(`/explore/${f.slug}`, "_blank", "noopener,noreferrer");
+          });
+        }
       }
 
       const points: LatLng[] = [
-        { lat: base.lat, lng: base.lng },
+        ...(base ? [{ lat: base.lat, lng: base.lng }] : []),
         ...stops.filter((d) => d.lat && d.lng).map((d) => ({ lat: d.lat, lng: d.lng })),
         ...featureStops.map((f) => ({ lat: f.lat, lng: f.lng })),
-        { lat: base.lat, lng: base.lng },
+        ...(base ? [{ lat: base.lat, lng: base.lng }] : []),
       ];
+      if (points.length === 0) return;
 
       const bounds = L.latLngBounds(points.map((p) => [p.lat, p.lng] as [number, number]));
       map.fitBounds(bounds, { padding: [28, 28] });
 
-      const segments = await fetchRouteSegments(points);
-      if (cancelled) return;
-      for (const seg of segments) {
-        if (!seg) continue;
-        L.polyline(
-          seg.points.map((p) => [p.lat, p.lng] as [number, number]),
-          { color: "#C4862A", weight: 4, opacity: 0.85 }
-        ).addTo(map);
+      // Fewer than two points (a base-less single-distillery day, e.g.)
+      // has nothing to route between - same guard HubDayMap already uses
+      // for its own no-base case.
+      if (points.length > 1) {
+        const segments = await fetchRouteSegments(points);
+        if (cancelled) return;
+        for (const seg of segments) {
+          if (!seg) continue;
+          L.polyline(
+            seg.points.map((p) => [p.lat, p.lng] as [number, number]),
+            { color: "#C4862A", weight: 4, opacity: 0.85 }
+          ).addTo(map);
+        }
       }
     }
 
@@ -136,7 +182,18 @@ export default function JourneyDayMap({ base, stops, featureStops = [] }: Journe
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [interactive]);
 
-  return <div ref={containerRef} style={{ height: 220, borderRadius: "var(--radius)", overflow: "hidden" }} />;
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        height: 220,
+        borderRadius: "var(--radius)",
+        overflow: "hidden",
+        pointerEvents: interactive ? undefined : "none",
+      }}
+      aria-hidden={interactive ? undefined : true}
+    />
+  );
 }

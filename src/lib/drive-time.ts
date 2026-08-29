@@ -7,7 +7,24 @@
 // (verified against the approved mockup's Ardbeg -> Bowmore estimate).
 // ─────────────────────────────────────────────────────────────────────────
 
+import type { TravelMode } from "@/lib/types";
+
 const AVERAGE_SPEED_KMH = 40;
+
+/** Walking pace, km/h. The site owner's editorial figure, not a routing
+ *  engine's: this is a whisky trip and people dawdle, so a foot router's
+ *  own ~4.5km/h is a brisk pace that under-promises how long a walking
+ *  day really takes.
+ *
+ *  DELIBERATE SECOND COPY, and the only one: the offline precompute
+ *  (scripts/lib/routing.mjs) owns the same constant, because that is
+ *  plain Node ESM and this is TypeScript compiled by Next - there is no
+ *  build step joining the two, and a `.mjs` imported into the app bundle
+ *  purely to share one number is a worse trade than this comment. The
+ *  two MUST stay equal; each names the other. Everything else about
+ *  walking - the routed distances, the short-transfer rule - still lives
+ *  only in routing.mjs. */
+export const WALKING_SPEED_KMH = 3.75;
 
 function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const R = 6371;
@@ -19,11 +36,36 @@ function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: num
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
+function estimatedMinutesAt(a: { lat: number; lng: number }, b: { lat: number; lng: number }, speedKmh: number): number {
+  const km = haversineKm(a, b);
+  const minutes = (km / speedKmh) * 60;
+  return Math.max(5, Math.round(minutes / 5) * 5);
+}
+
 /** Estimated drive time in whole minutes, rounded to the nearest 5. */
 export function estimatedDriveMinutes(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
-  const km = haversineKm(a, b);
-  const minutes = (km / AVERAGE_SPEED_KMH) * 60;
-  return Math.max(5, Math.round(minutes / 5) * 5);
+  return estimatedMinutesAt(a, b, AVERAGE_SPEED_KMH);
+}
+
+/** The same straight-line estimate at WALKING_SPEED_KMH. Still a
+ *  haversine, so still indicative - but a haversine at a walking pace is
+ *  the honest shape of a wrong answer on a walking day, where the 40km/h
+ *  drive estimate is out by an order of magnitude in the direction that
+ *  gets someone caught out in the dark. */
+export function estimatedWalkMinutes(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  return estimatedMinutesAt(a, b, WALKING_SPEED_KMH);
+}
+
+/** Whichever of the two above matches how this leg is actually made.
+ *  `undefined` means nobody said, and every part of this codebase has
+ *  treated an unstated mode as driving since before TravelMode existed -
+ *  see the field's own doc comment in types.ts. */
+export function estimatedTravelMinutes(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+  mode: TravelMode | undefined
+): number {
+  return mode === "walk" ? estimatedWalkMinutes(a, b) : estimatedDriveMinutes(a, b);
 }
 
 /** Formats minutes as "25m" or "1h 40m", matching the approved mockup. */
@@ -35,14 +77,86 @@ export function formatDuration(totalMinutes: number): string {
   return `${h}h ${m}m`;
 }
 
+/** Every duration/visit string in the base is free text typed by a human,
+ *  so one shared parser handles all of them rather than three near-copies
+ *  drifting apart. Ordered most-specific first:
+ *
+ *    1. compact compound   "~1h15", "1h30"
+ *    2. spelled compound   "1 hr 30 min", "1 hour 15 minutes"
+ *    3. two-unit range     "45 min - 1 hour"        -> upper end
+ *    4. shared-unit range  "30-45 min", "2-2.5 hrs" -> upper end
+ *    5. single value       "1.5 hrs", "50 min", "~90 min"
+ *
+ *  Returns null when nothing numeric is recognisable ("Unconfirmed - not
+ *  publicly listed" is a real value in the Tours table) - null means
+ *  "this string does not state a duration", which is a different fact
+ *  from "the duration is zero", and callers are expected to fall back
+ *  rather than print a fabricated number.
+ *
+ *  Ranges resolve to their UPPER end, matching the rule
+ *  parseFeatureDurationMinutes has documented since 22 July 2026: a
+ *  schedule that assumes the short end of every range runs late. */
+export function parseDurationMinutes(raw: string | undefined): number | null {
+  if (!raw) return null;
+  // Airtable content uses real en/em dashes ("2\u20132.5 hrs"); normalise to a
+  // plain hyphen so one set of range patterns covers both.
+  const text = raw.replace(/[\u2012-\u2015]/g, "-");
+
+  // 1. "1h15" / "~1h30" - hours and minutes run together, no unit on the
+  //    minutes. Anchored on \d rather than [\d.] so "1.5 hrs" can't be
+  //    misread as 1 hour 5 minutes.
+  const compact = text.match(/(\d+)\s*h\s*(\d{1,2})(?!\d)\s*(?:mins?|minutes?|m)?/i);
+  if (compact) return Number(compact[1]) * 60 + Number(compact[2]);
+
+  // 2. "1 hr 30 min" - both parts spelled out, hours first.
+  const compound = text.match(
+    /([\d.]+)\s*(?:hours?|hrs?|h)\b[^\d]{0,6}?([\d.]+)\s*(?:mins?|minutes?|m)\b/i
+  );
+  if (compound) return Math.round(parseFloat(compound[1]) * 60 + parseFloat(compound[2]));
+
+  // 3. Two explicit units either side of the range, e.g. "45 min - 1 hour".
+  const twoUnits = text.match(
+    new RegExp(`([\\d.]+)\\s*${DURATION_UNIT_RE}\\b\\s*-\\s*([\\d.]+)\\s*${DURATION_UNIT_RE}\\b`, "i")
+  );
+  if (twoUnits) {
+    const a = durationUnitToMinutes(parseFloat(twoUnits[1]), twoUnits[2]);
+    const b = durationUnitToMinutes(parseFloat(twoUnits[3]), twoUnits[4]);
+    return Math.round(Math.max(a, b));
+  }
+
+  // 4. A range sharing one trailing unit, e.g. "30-45 min", "2-2.5 hrs".
+  const sharedUnit = text.match(new RegExp(`([\\d.]+)\\s*-\\s*([\\d.]+)\\s*${DURATION_UNIT_RE}\\b`, "i"));
+  if (sharedUnit) return Math.round(durationUnitToMinutes(parseFloat(sharedUnit[2]), sharedUnit[3]));
+
+  // 5. A single value, e.g. "1 hour", "~90 min".
+  const single = text.match(new RegExp(`([\\d.]+)\\s*${DURATION_UNIT_RE}\\b`, "i"));
+  if (single) return Math.round(durationUnitToMinutes(parseFloat(single[1]), single[2]));
+
+  return null;
+}
+
+/** A chosen Tour's own `Duration` in minutes, or null when the Tours
+ *  table doesn't state one in a parseable form (several Port Ellen tours
+ *  are genuinely "Unconfirmed - not publicly listed"). Null, not a
+ *  guess: the caller falls back to the distillery's Avg Visit, which is
+ *  the honest second-best answer rather than a number nobody wrote down.
+ *
+ *  Added 17 Aug 2026. Until now every scheduled stop was sized by the
+ *  DISTILLERY's Avg Visit even when the Day Stop named a specific tour,
+ *  so a day built around Laphroaig's 1.5 hr "Laphroaig Experience" was
+ *  scheduled as 75 minutes (Laphroaig's Avg Visit is 1.25 hrs) and
+ *  every clock time after it inherited the error. */
+export function parseTourDurationMinutes(duration: string | undefined): number | null {
+  return parseDurationMinutes(duration);
+}
+
 /** Parses a distillery's "avgVisit" string (e.g. "1.5 hours", "90 min")
- *  into minutes. Falls back to 90 minutes if the format is unrecognized. */
+ *  into minutes. Falls back to 90 minutes if the format is unrecognized
+ *  or the field is blank (Port Ellen and Isle of Jura both are) - this
+ *  is the last-resort default, so unlike parseDurationMinutes it never
+ *  returns null. */
 export function parseAvgVisitMinutes(avgVisit: string): number {
-  const hourMatch = avgVisit.match(/([\d.]+)\s*h/i);
-  const minMatch = avgVisit.match(/([\d.]+)\s*m/i);
-  if (hourMatch) return Math.round(parseFloat(hourMatch[1]) * 60);
-  if (minMatch) return Math.round(parseFloat(minMatch[1]));
-  return 90;
+  return parseDurationMinutes(avgVisit) ?? 90;
 }
 
 const DURATION_UNIT_RE = "(hours?|hrs?|h|mins?|minutes?|m)";
@@ -59,31 +173,13 @@ function durationUnitToMinutes(value: number, unit: string): number {
  *  in the itinerary while its own duration field, and the Bunnahabhain Day
  *  narrative, both say "30-45 min"). Returns null if duration is missing
  *  or doesn't match a recognizable format - callers should fall back to a
- *  flat default, same as before this existed. */
+ *  flat default, same as before this existed.
+ *
+ *  Now a thin alias over parseDurationMinutes (17 Aug 2026): the range
+ *  handling it used to own was always the more capable of the two
+ *  parsers in this file, so it became the shared implementation rather
+ *  than being duplicated when tour durations needed the same
+ *  treatment. */
 export function parseFeatureDurationMinutes(duration: string | undefined): number | null {
-  if (!duration) return null;
-
-  // Two explicit units either side of the range, e.g. "45 min - 1 hour".
-  const twoUnits = duration.match(
-    new RegExp(`([\\d.]+)\\s*${DURATION_UNIT_RE}\\b\\s*-\\s*([\\d.]+)\\s*${DURATION_UNIT_RE}\\b`, "i")
-  );
-  if (twoUnits) {
-    const a = durationUnitToMinutes(parseFloat(twoUnits[1]), twoUnits[2]);
-    const b = durationUnitToMinutes(parseFloat(twoUnits[3]), twoUnits[4]);
-    return Math.round(Math.max(a, b));
-  }
-
-  // A range sharing one trailing unit, e.g. "30-45 min", "1.5-2 hours".
-  const sharedUnit = duration.match(new RegExp(`([\\d.]+)\\s*-\\s*([\\d.]+)\\s*${DURATION_UNIT_RE}\\b`, "i"));
-  if (sharedUnit) {
-    return Math.round(durationUnitToMinutes(parseFloat(sharedUnit[2]), sharedUnit[3]));
-  }
-
-  // A single value, e.g. "1 hour".
-  const single = duration.match(new RegExp(`([\\d.]+)\\s*${DURATION_UNIT_RE}\\b`, "i"));
-  if (single) {
-    return Math.round(durationUnitToMinutes(parseFloat(single[1]), single[2]));
-  }
-
-  return null;
+  return parseDurationMinutes(duration);
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import type { Distillery, JournalPost, LocalEvent } from "@/lib/types";
+import type { Distillery, JournalPost, Journey, LocalEvent } from "@/lib/types";
 import ClassicJourneys from "./ClassicJourneys";
 import FeaturedContent from "./FeaturedContent";
 import LatestJournal from "./LatestJournal";
@@ -32,18 +32,24 @@ export default function HomeSectionsBelowFold({
   distilleriesPromise,
   localEventsPromise,
   journalPostsPromise,
+  journeysPromise,
 }: {
   distilleriesPromise: Promise<Distillery[]>;
   localEventsPromise: Promise<LocalEvent[]>;
   journalPostsPromise: Promise<JournalPost[]>;
+  /** Deferred like the rest - the Classic Journeys section reads the
+   *  Journeys table itself now (17 Aug 2026) instead of deriving its
+   *  cards from `distilleries`, so this section needs its own data. */
+  journeysPromise: Promise<Journey[]>;
 }) {
   const distilleries = use(distilleriesPromise);
   const localEvents = use(localEventsPromise);
   const journalPosts = use(journalPostsPromise);
+  const journeys = use(journeysPromise);
 
   return (
     <>
-      <ClassicJourneys distilleries={distilleries} />
+      <ClassicJourneys journeys={journeys} />
       <FeaturedContent distilleries={distilleries} localEvents={localEvents} />
       <LatestJournal posts={journalPosts} />
       <Footer />

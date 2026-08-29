@@ -1877,3 +1877,1087 @@ select.location-inline-input {
   background: var(--copper);
   color: white;
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   /journeys/[slug] — REBUILT 18 Aug 2026 to the site owner's written
+   build spec, replacing the 13/17 Aug mockup block that used to sit
+   here. The `jr-` prefix is kept (nothing else in the codebase uses it)
+   but essentially every rule inside is new. The pace TILE is gone
+   entirely: pace is a 5px strip down a day card's left edge now.
+
+   PALETTE. This block is the one deliberate exception to the "no literal
+   hexes, tokens only" rule the rest of this stylesheet follows. The spec
+   specifies exact values with measured contrast ratios against the two
+   surfaces this page uses, and the existing :root tokens are a different
+   system built to different pairings - --copper on white measures 3.19:1
+   where the value below measures 4.9:1. Declaring them once here, as
+   custom properties scoped to the page's own classes, keeps every rule
+   below reading in tokens and leaves the rest of the site untouched.
+
+   THREE HUES, NOT THREE SHADES. Navy-vs-brown was tried and failed:
+   5px of each is indistinguishable. And deliberately not a traffic
+   light - green here is calm, not good.
+
+   TYPE. Spectral for display, Instrument Sans for body, metadata and
+   every standalone numeral. Both are loaded in layout.tsx as of 18 Aug
+   2026; before that Spectral was not loading at all and every heading
+   on this page was silently rendering in Cormorant Garamond.
+
+   FLAGGED: the spec asks for a 9.5px eyebrow AND says nothing goes below
+   11px. Those cannot both hold, so the floor wins and every eyebrow here
+   is 11px. Nothing on this page is smaller.
+   ───────────────────────────────────────────────────────────────────── */
+
+.jr-hero,
+.jr-standfirst,
+.jr-claim,
+.jr-main,
+.jr-wide {
+  --jr-packed-strip: #a8442a;
+  --jr-packed-ink: #9c3f27;
+  --jr-moderate-strip: #8a6a1f;
+  --jr-moderate-ink: #7d5f1a;
+  --jr-relaxed-strip: #20604a;
+  --jr-relaxed-ink: #1c5641;
+  /* Links on white. On cream this steps darker: #96501c measures 4.27:1
+     against #F7ECD8 and fails, which is exactly where the money note
+     and the base row live. */
+  --jr-link: #96501c;
+  --jr-link-cream: #775614;
+  --jr-ink: #14313f;
+  --jr-body: #4b585e;
+  --jr-navy: #16394b;
+  --jr-accent: #dda86a;
+  --jr-page: #f3ede2;
+  --jr-card: #fffdf9;
+  --jr-cream: #f7ecd8;
+  --jr-serif: var(--font-spectral), Georgia, serif;
+  --jr-sans: var(--font-instrument), system-ui, sans-serif;
+}
+
+/* ── 1 · HERO ─────────────────────────────────────────────────────────
+   330px exactly. It is a photograph with a title on it, not a stage. */
+.jr-hero {
+  position: relative;
+  height: 330px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  background: var(--jr-navy);
+}
+.jr-hero-img {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.jr-hero-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(20, 49, 63, 0.62) 0%, rgba(20, 49, 63, 0.34) 42%, rgba(20, 49, 63, 0.86) 100%);
+}
+.jr-hero > nav {
+  position: relative;
+  z-index: 2;
+}
+.jr-hero-inner {
+  position: relative;
+  z-index: 2;
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 32px 30px;
+}
+/* THE WAY OUT. Lower-left, above the title. Until 18 Aug 2026 the logo
+   was the only thing on this page that led anywhere else. */
+.jr-crumb {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 12px;
+  font-family: var(--jr-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+.jr-crumb-link {
+  color: var(--jr-accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(221, 168, 106, 0.45);
+  text-underline-offset: 3px;
+}
+.jr-crumb-link:hover {
+  text-decoration-color: currentColor;
+}
+.jr-crumb-sep,
+.jr-crumb-here {
+  color: rgba(255, 255, 255, 0.82);
+}
+.jr-hero-title {
+  font-family: var(--jr-serif);
+  font-weight: 600;
+  font-size: 50px;
+  line-height: 1.04;
+  letter-spacing: -0.01em;
+  color: #fff;
+  margin: 0;
+  max-width: 15ch;
+}
+
+/* ── STANDFIRST ───────────────────────────────────────────────────────
+   Out of the hero (18 Aug 2026), and doing a second job: the min-height
+   is what pushes the claim band below the laptop fold. 330 (hero) + 130
+   (band) = 460, so anything taller than the remaining viewport puts the
+   band's top edge off screen on first load. Clamped at both ends so a
+   short laptop doesn't get a cramped block and a tall desktop doesn't
+   get a screenful of nothing. */
+.jr-standfirst {
+  background: var(--jr-page);
+  display: flex;
+  align-items: center;
+  min-height: clamp(210px, calc(100svh - 460px), 430px);
+  padding: 44px 32px;
+}
+.jr-standfirst p {
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+  font-family: var(--jr-serif);
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 1.55;
+  color: var(--jr-ink);
+  max-width: 34ch;
+}
+
+/* ── CLAIM BAND ───────────────────────────────────────────────────────
+   130px. It informs; it is not a hero element, and it no longer sits
+   flush under the photograph pretending to be one. Claim left, three
+   stats right - and each stat answers a DIFFERENT question. No two of
+   them measure the same thing. */
+.jr-claim {
+  background: var(--jr-navy);
+  min-height: 130px;
+  display: flex;
+  align-items: center;
+  padding: 22px 32px;
+}
+.jr-claim-inner {
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 48px;
+}
+.jr-claim-text {
+  font-family: var(--jr-serif);
+  font-weight: 400;
+  font-size: 19px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.92);
+  max-width: 44ch;
+}
+.jr-claim-em {
+  font-style: normal;
+  color: var(--jr-accent);
+}
+.jr-claim-stats {
+  display: flex;
+  gap: 34px;
+  flex: 0 0 auto;
+}
+.jr-stat {
+  max-width: 21ch;
+}
+/* STANDALONE NUMERALS ARE INSTRUMENT SANS, with tabular figures.
+   Spectral has no alternate figure set, and at this size its 1 and 0
+   read as l and O. Numerals inside a sentence stay in Spectral - see
+   .jr-num-inline, which does the same job in the other direction. */
+.jr-stat-value {
+  font-family: var(--jr-sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--jr-accent);
+  margin-bottom: 5px;
+}
+.jr-stat-label {
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  line-height: 1.42;
+  color: rgba(255, 255, 255, 0.74);
+}
+
+/* ── 2 · DAY BY DAY ───────────────────────────────────────────────────
+   Two columns. The rail is sticky INSIDE its own grid track, so it stops
+   the moment the day list does - no measuring, no JavaScript. */
+.jr-main {
+  background: var(--jr-page);
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 52px 32px 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 328px;
+  gap: 46px;
+  align-items: start;
+}
+.jr-days {
+  min-width: 0;
+}
+.jr-rail {
+  position: sticky;
+  top: 24px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.jr-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 22px;
+  border-bottom: 2px solid var(--jr-navy);
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+.jr-section-title {
+  font-family: var(--jr-serif);
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1.2;
+  color: var(--jr-ink);
+  margin: 0;
+}
+.jr-section-note {
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  color: var(--jr-body);
+  text-align: right;
+}
+.jr-eyebrow {
+  display: block;
+  font-family: var(--jr-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--jr-body);
+}
+
+/* The legend, right-aligned in the section head. Three swatches, so the
+   strips down the cards below need no caption of their own. */
+.jr-pace-legend {
+  display: flex;
+  gap: 15px;
+  font-family: var(--jr-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--jr-body);
+}
+.jr-pace-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.jr-pace-swatch {
+  width: 14px;
+  height: 5px;
+  border-radius: 1px;
+}
+.jr-pace-swatch-relaxed,
+.jr-pace-fill-relaxed {
+  background: var(--jr-relaxed-strip);
+}
+.jr-pace-swatch-moderate,
+.jr-pace-fill-moderate {
+  background: var(--jr-moderate-strip);
+}
+.jr-pace-swatch-packed,
+.jr-pace-fill-packed {
+  background: var(--jr-packed-strip);
+}
+/* The pace WORD in a day card's header, on white. These are the darker
+   step of each hue - 8.4:1, 5.9:1 and 6.6:1 - not the strip colours. */
+.jr-pace-ink-relaxed {
+  color: var(--jr-relaxed-ink);
+}
+.jr-pace-ink-moderate {
+  color: var(--jr-moderate-ink);
+}
+.jr-pace-ink-packed {
+  color: var(--jr-packed-ink);
+}
+
+/* THE BASE ROW — where you sleep, said once, above night one. */
+.jr-base-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  background: var(--jr-cream);
+  padding: 13px 18px;
+  margin-bottom: 16px;
+  border-radius: 2px;
+}
+.jr-base-label {
+  font-family: var(--jr-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--jr-moderate-ink);
+}
+.jr-base-place {
+  font-family: var(--jr-serif);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--jr-ink);
+}
+.jr-base-note {
+  font-family: var(--jr-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--jr-body);
+  flex: 1 1 240px;
+}
+/* On cream, links take the darker step - see the palette note above. */
+.jr-base-row .jr-link,
+.jr-day-money .jr-link {
+  color: var(--jr-link-cream);
+}
+.jr-base-link {
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── NIGHT ROWS — slim text between cards, not cards. ─────────────── */
+.jr-night {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 13px 4px 13px 20px;
+}
+.jr-night-label {
+  flex: 0 0 auto;
+  font-family: var(--jr-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--jr-moderate-ink);
+  min-width: 92px;
+}
+.jr-night-note {
+  margin: 0;
+  font-family: var(--jr-sans);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--jr-body);
+}
+/* The trailing night a journey offers instead of the boat home. It is a
+   choice, not a step - the copy says so in its own first word, so this
+   only needs to stop it reading as an instruction. */
+.jr-night-optional .jr-night-label,
+.jr-night-optional .jr-night-note {
+  opacity: 0.72;
+}
+
+/* ── DAY CARD — white, and the pace is a 5px strip down its left edge.
+   Not a tile. Not a photograph. THE CARD IS NOT CLICKABLE: it holds four
+   destinations (the title, the stops, the day page, and whatever the
+   money note points at), and a card-wide link would swallow all of
+   them. */
+.jr-day {
+  background: var(--jr-card);
+  border: 1px solid rgba(20, 49, 63, 0.09);
+  border-left-width: 5px;
+  border-left-style: solid;
+  border-radius: 2px;
+  margin: 4px 0;
+}
+.jr-day-relaxed {
+  border-left-color: var(--jr-relaxed-strip);
+}
+.jr-day-moderate {
+  border-left-color: var(--jr-moderate-strip);
+}
+.jr-day-packed {
+  border-left-color: var(--jr-packed-strip);
+}
+.jr-day-inner {
+  padding: 17px 20px 16px;
+}
+.jr-day-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  color: var(--jr-body);
+  margin-bottom: 9px;
+}
+.jr-day-ord {
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  font-size: 11px;
+  color: var(--jr-ink);
+}
+.jr-day-pace {
+  font-weight: 600;
+  text-transform: lowercase;
+}
+.jr-day-meta::before,
+.jr-day-pace::before {
+  content: "·";
+  margin-right: 12px;
+  color: rgba(20, 49, 63, 0.32);
+}
+/* A numeral INSIDE a sentence stays in the serif — Instrument Sans is
+   for standalone figures. The exception is a money figure sitting in a
+   metadata row, which is neither: it reads as a figure, so it gets the
+   tabular sans without leaving the row's own type size. */
+.jr-num-inline {
+  font-family: var(--jr-sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  font-weight: 600;
+  color: var(--jr-ink);
+}
+.jr-day-title {
+  font-family: var(--jr-serif);
+  font-weight: 600;
+  font-size: 23px;
+  line-height: 1.24;
+  margin: 0 0 8px;
+}
+/* THE ONE LINK ON THIS PAGE THAT ISN'T COPPER. The spec describes the
+   day title as "linked (navy, faint warm underline)" and separately puts
+   day titles in the #96501c link colour - which cannot both be true of
+   the same property, so it is read as both being true of DIFFERENT
+   properties: navy ink, warm underline. At 23px the serif carries the
+   emphasis on its own, and a whole column of copper 23px headings was
+   the loudest thing on the page. The underline still says "link", and
+   still goes solid on hover like every other one. */
+.jr-day-title .jr-link {
+  color: var(--jr-ink);
+  text-decoration-color: rgba(150, 80, 28, 0.5);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3.5px;
+}
+.jr-day-title .jr-link:hover,
+.jr-day-title .jr-link:focus-visible {
+  text-decoration-color: var(--jr-link);
+}
+.jr-day-hook {
+  margin: 0 0 12px;
+  font-family: var(--jr-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--jr-body);
+}
+/* THE MONEY NOTE. On cream, so it reads as a fact about price rather
+   than as more prose - and so the standard-tour figure beside the
+   planned one can't be missed. */
+.jr-day-money {
+  background: var(--jr-cream);
+  padding: 10px 13px;
+  border-radius: 2px;
+  margin: 0 0 13px;
+  font-family: var(--jr-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  color: var(--jr-moderate-ink);
+}
+.jr-day-stops {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+  border-top: 1px solid rgba(20, 49, 63, 0.08);
+  padding-top: 11px;
+}
+.jr-day-stops-list {
+  margin: 0;
+  font-family: var(--jr-sans);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--jr-ink);
+}
+.jr-day-stops-arrow {
+  color: rgba(20, 49, 63, 0.38);
+}
+.jr-day-open {
+  flex: 0 0 auto;
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* A TOUR IN ITS SILENT SEASON. Same cream block as the money note above
+   - it is the same kind of thing, a fact about one stop rather than more
+   prose - with an amber rule down its left edge to tie it to the stops
+   row it sits under rather than to the day as a whole. Smaller than the
+   money note, and last in the card, because it applies to one name in
+   that row and only sometimes. The ink is jr-moderate-ink and the label
+   jr-link-cream: both are the values this page already uses ON CREAM,
+   where the on-white ones fail contrast. */
+.jr-day-seasonal {
+  background: var(--jr-cream);
+  border-left: 2px solid var(--jr-accent);
+  border-radius: 0 2px 2px 0;
+  padding: 9px 11px;
+  margin: 11px 0 0;
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--jr-moderate-ink);
+}
+.jr-day-seasonal + .jr-day-seasonal {
+  margin-top: 7px;
+}
+.jr-day-seasonal .seasonal-notice-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--jr-link-cream);
+  margin-bottom: 3px;
+}
+.jr-day-seasonal strong {
+  font-weight: 600;
+}
+
+/* ── LINKS ────────────────────────────────────────────────────────────
+   One rule for every link on this page. Hover takes the underline to
+   solid and the colour to full - no colour change, no movement. */
+.jr-link {
+  color: var(--jr-link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2.5px;
+  text-decoration-color: rgba(150, 80, 28, 0.34);
+  transition: text-decoration-color 0.12s ease;
+}
+.jr-link:hover,
+.jr-link:focus-visible {
+  text-decoration-color: currentColor;
+}
+
+/* ── THE RAIL ─────────────────────────────────────────────────────── */
+.jr-rail-map {
+  background: var(--jr-card);
+  border: 1px solid rgba(20, 49, 63, 0.09);
+  border-radius: 2px;
+  padding: 13px 13px 12px;
+}
+.jr-rail-map-eyebrow {
+  margin-bottom: 9px;
+}
+.jr-map-holder {
+  position: relative;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.jr-map-canvas {
+  height: 236px;
+  width: 100%;
+  background: var(--jr-page);
+}
+/* The day currently in view, named over the map. Two lines: the day, and
+   where it happens. */
+.jr-map-badge {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 400;
+  background: rgba(22, 57, 75, 0.93);
+  padding: 7px 11px;
+  border-radius: 2px;
+  pointer-events: none;
+}
+.jr-map-badge-day {
+  display: block;
+  font-family: var(--jr-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--jr-accent);
+}
+.jr-map-badge-area {
+  display: block;
+  font-family: var(--jr-serif);
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  margin-top: 1px;
+}
+.jr-rail-map-caption {
+  margin: 10px 0 0;
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--jr-body);
+}
+/* ONE ask. This is the slim half of it - it hides the instant the full
+   navy block scrolls into view, so the reader never gets the same
+   sentence twice six inches apart. */
+.jr-rail-ask {
+  display: block;
+  background: var(--jr-navy);
+  padding: 14px 16px;
+  border-radius: 2px;
+  text-decoration: none;
+  transition: opacity 0.18s ease;
+}
+.jr-rail-ask-label {
+  display: block;
+  font-family: var(--jr-serif);
+  font-weight: 600;
+  font-size: 17px;
+  color: #fff;
+}
+.jr-rail-ask-note {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.72);
+}
+.jr-rail-ask:hover .jr-rail-ask-label {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.jr-rail-ask-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+/* Phone only. See the media query at the foot of this block. */
+.jr-mobile-ask {
+  display: none;
+}
+
+/* ── 3 · PANELS, THE ASK, THE COST ────────────────────────────────── */
+.jr-wide {
+  background: var(--jr-page);
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 30px 32px;
+}
+.jr-wide:last-of-type {
+  padding-bottom: 64px;
+}
+.jr-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  padding-top: 46px;
+}
+.jr-panel {
+  background: var(--jr-card);
+  border: 1px solid rgba(20, 49, 63, 0.09);
+  border-radius: 2px;
+  padding: 20px 22px 8px;
+}
+.jr-panel-title {
+  font-family: var(--jr-serif);
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--jr-ink);
+  margin: 0 0 14px;
+}
+.jr-panel-row {
+  display: flex;
+  gap: 16px;
+  padding: 11px 0;
+  border-top: 1px solid rgba(20, 49, 63, 0.08);
+}
+.jr-panel-row-key {
+  flex: 0 0 88px;
+  font-family: var(--jr-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--jr-ink);
+  padding-top: 2px;
+}
+.jr-panel-row-value {
+  flex: 1 1 auto;
+  font-family: var(--jr-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--jr-body);
+}
+
+/* THE ASK — the full navy block. One button, and two text links. */
+.jr-ask {
+  background: var(--jr-navy);
+  border-radius: 2px;
+  padding: 34px 36px 30px;
+}
+.jr-ask-title {
+  font-family: var(--jr-serif);
+  font-weight: 600;
+  font-size: 26px;
+  color: #fff;
+  margin: 0 0 10px;
+}
+.jr-ask-body {
+  margin: 0 0 16px;
+  font-family: var(--jr-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.8);
+  max-width: 58ch;
+}
+.jr-ask-ticks {
+  list-style: none;
+  margin: 0 0 22px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+}
+.jr-ask-ticks li {
+  font-family: var(--jr-sans);
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+.jr-ask-ticks li::before {
+  content: "✓";
+  margin-right: 8px;
+  color: var(--jr-accent);
+}
+.jr-ask-action {
+  margin-bottom: 24px;
+}
+.jr-ask-button {
+  font-family: var(--jr-sans);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--jr-navy);
+  background: var(--jr-accent);
+  border: none;
+  border-radius: 2px;
+  padding: 13px 22px;
+  cursor: pointer;
+}
+.jr-ask-button:hover {
+  filter: brightness(1.06);
+}
+.jr-ask-note {
+  margin: 9px 0 0;
+  font-family: var(--jr-sans);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.82);
+}
+/* Where the trip is ACTUALLY kept, today. Not a footnote - it is the
+   sentence that makes the line above it honest, and it goes the day
+   visitor accounts land. See PutInPlannerButton. */
+.jr-ask-device {
+  margin: 3px 0 0;
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.6);
+  max-width: 52ch;
+}
+.jr-ask-or {
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  padding-top: 16px;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px 26px;
+}
+.jr-ask-or .jr-eyebrow {
+  color: rgba(255, 255, 255, 0.5);
+  flex: 0 0 auto;
+}
+.jr-ask-alt {
+  font-family: var(--jr-sans);
+  font-size: 13.5px;
+  color: var(--jr-accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(221, 168, 106, 0.4);
+  text-underline-offset: 3px;
+}
+.jr-ask-alt:hover {
+  text-decoration-color: currentColor;
+}
+/* One of the two alternatives is a real action rather than a
+   destination, so it is a <button> - stripped back to look exactly like
+   the link beside it, because what it is made of is not the reader's
+   problem and two different-looking alternatives would reintroduce the
+   hierarchy this section exists to remove. */
+.jr-ask-alt-button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  font-family: var(--jr-sans);
+  font-size: 13.5px;
+  text-align: left;
+}
+
+/* WHAT IT COSTS — a stacked proportion bar, then one row per day sorted
+   by spend. The block exists because the biggest number on the whole
+   trip happens on one morning, and five figures in day order never
+   showed that. */
+.jr-cost-bar {
+  display: flex;
+  height: 13px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: rgba(20, 49, 63, 0.08);
+  margin-bottom: 18px;
+}
+.jr-cost-seg {
+  display: block;
+  height: 100%;
+}
+.jr-cost-rows {
+  margin-bottom: 28px;
+}
+.jr-cost-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(20, 49, 63, 0.08);
+}
+.jr-cost-swatch {
+  flex: 0 0 auto;
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  transform: translateY(1px);
+}
+.jr-cost-name {
+  flex: 0 0 auto;
+  font-family: var(--jr-serif);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--jr-ink);
+}
+.jr-cost-note {
+  flex: 1 1 auto;
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  color: var(--jr-body);
+}
+.jr-cost-figure {
+  flex: 0 0 auto;
+  font-family: var(--jr-sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--jr-ink);
+  text-align: right;
+}
+/* PER PERSON vs PER PARTY is on the face of every figure, never in a
+   footnote - see each .jr-figure-note below. */
+.jr-figures {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 22px;
+  border-top: 2px solid var(--jr-navy);
+  padding-top: 18px;
+}
+.jr-figure-value {
+  display: block;
+  font-family: var(--jr-sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--jr-ink);
+  margin: 6px 0 4px;
+}
+.jr-figure-unit {
+  font-size: 15px;
+  font-weight: 600;
+}
+.jr-figure-pending,
+.jr-figure-none {
+  font-size: 18px;
+  color: var(--jr-body);
+}
+.jr-figure-note {
+  display: block;
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--jr-body);
+}
+.jr-cost-foot {
+  margin: 20px 0 0;
+  font-family: var(--jr-sans);
+  font-size: 13px;
+  color: var(--jr-body);
+}
+
+/* ── 4 · WAYS OUT — three honest reasons this might not suit you. ─── */
+.jr-ways {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.jr-way {
+  background: var(--jr-card);
+  border: 1px solid rgba(20, 49, 63, 0.09);
+  border-radius: 2px;
+  padding: 20px;
+}
+.jr-way .jr-eyebrow {
+  color: var(--jr-moderate-ink);
+  margin-bottom: 8px;
+}
+.jr-way-title {
+  font-family: var(--jr-serif);
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1.25;
+  margin: 0 0 9px;
+}
+.jr-way-body {
+  margin: 0;
+  font-family: var(--jr-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--jr-body);
+}
+
+/* ── NARROW ───────────────────────────────────────────────────────────
+   No rail. The map becomes a full-width band ABOVE the days, and the
+   action becomes a bottom bar - which the rail component only shows once
+   day one has gone past, because an ask before anyone has read a single
+   day is what this page's whole structure argues against. */
+@media (max-width: 900px) {
+  .jr-main {
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+  }
+  .jr-rail {
+    order: -1;
+    position: static;
+    gap: 0;
+  }
+  .jr-rail-ask {
+    display: none;
+  }
+  .jr-mobile-ask {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 900;
+    background: var(--jr-navy);
+    padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+    text-decoration: none;
+    box-shadow: 0 -2px 14px rgba(20, 49, 63, 0.28);
+  }
+  .jr-panels,
+  .jr-figures,
+  .jr-ways {
+    grid-template-columns: 1fr;
+  }
+  .jr-claim-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .jr-claim {
+    min-height: 0;
+  }
+  .jr-claim-stats {
+    flex-wrap: wrap;
+    gap: 20px 30px;
+  }
+}
+
+@media (max-width: 640px) {
+  .jr-hero-title {
+    font-size: 34px;
+  }
+  .jr-standfirst p {
+    font-size: 18px;
+  }
+  .jr-hero-inner,
+  .jr-standfirst,
+  .jr-claim,
+  .jr-main,
+  .jr-wide {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+  .jr-day-stops {
+    flex-direction: column;
+    gap: 9px;
+  }
+  .jr-cost-row {
+    flex-wrap: wrap;
+  }
+  .jr-cost-note {
+    flex: 1 1 100%;
+    order: 3;
+  }
+  .jr-night {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+/* Same §7 accessibility rule the planner controls follow, extended to
+   this page's own interactive elements - there is still no site-wide
+   focus-visible style to inherit, so each new surface declares its own.
+   The outline is the page's link colour on light surfaces and the accent
+   on the two navy ones, because 3px of #96501c on #16394b is invisible. */
+.jr-link:focus-visible,
+.jr-crumb-link:focus-visible {
+  outline: 3px solid var(--jr-link);
+  outline-offset: 2px;
+  border-radius: 1px;
+}
+.jr-ask-button:focus-visible,
+.jr-ask-alt:focus-visible,
+.jr-rail-ask:focus-visible,
+.jr-mobile-ask:focus-visible {
+  outline: 3px solid var(--jr-accent);
+  outline-offset: 2px;
+}
+
+/* Nothing on this page depends on the rail's scroll tracking to be
+   readable, and the two asks fade rather than move - but a reader who
+   has asked for less motion still gets no transition at all. */
+@media (prefers-reduced-motion: reduce) {
+  .jr-rail-ask,
+  .jr-mobile-ask,
+  .jr-link {
+    transition: none;
+  }
+}
