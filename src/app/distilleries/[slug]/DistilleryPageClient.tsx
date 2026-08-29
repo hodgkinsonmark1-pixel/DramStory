@@ -8,6 +8,44 @@ import type { Distillery } from "@/lib/types";
 import DetailPageBar from "@/components/DetailPageBar";
 import { renderWithLinks } from "@/lib/render-links";
 
+/** Small corner photo-attribution tag over the hero - same
+ *  `[label](url)` markdown convention, same visual treatment (dark pill,
+ *  top-right of the hero, 10px) as the identically-purposed PhotoCredit
+ *  on Areas and Local Features. Kept as this page's own small copy
+ *  rather than shared, which is the pattern those two already follow.
+ *
+ *  Top-right rather than bottom-right (where /journeys/[slug] puts its
+ *  credit): this hero's bottom-right corner is already occupied by
+ *  "Book a Tour" and "+ Add to Journey".
+ *
+ *  ONE deliberate difference from those copies: they match the WHOLE
+ *  field against `^\[...\]\(...\)$` and fall back to printing the raw
+ *  string when it doesn't match. Laggan Bay's credit opens with a
+ *  sentence of prose before the link ("Laggan Bay, the beach the
+ *  distillery is named after - not the distillery itself.") and would
+ *  have rendered as visible markdown brackets under that rule. This
+ *  splits on the link instead - the same approach renderWithLinks
+ *  already takes for body copy - so prose-then-link, link-only and
+ *  prose-only all render as the reader expects. Not routed through
+ *  renderWithLinks itself because these hrefs are external: they need a
+ *  plain <a> with target/rel, not next/link. */
+function PhotoCredit({ credit }: { credit: string }) {
+  const parts = credit.split(/(\[[^\]]+\]\([^)]+\))/g).filter(Boolean);
+  return (
+    <div className="distillery-hero-credit">
+      {parts.map((part, i) => {
+        const match = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+        if (!match) return <span key={i}>{part}</span>;
+        return (
+          <a key={i} href={match[2]} target="_blank" rel="noopener noreferrer">
+            {match[1]}
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
 interface DistilleryPageClientProps {
   distillery: Distillery;
   nextStops: Distillery[];
@@ -87,6 +125,14 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
             <div className="distillery-hero-overlay" />
           </>
         ) : null}
+        {/* The credit is a licence CONDITION on every one of these
+            photographs (all CC BY or CC BY-SA), so it renders wherever
+            the record carries one - including Laggan Bay, whose credit
+            explains what its picture actually shows. Suppressed only
+            when the field is blank, which is the state of any record
+            whose attribution could not be established, and of
+            Portintruan, which has no photograph at all. */}
+        {d.heroImageCredit && <PhotoCredit credit={d.heroImageCredit} />}
         <div className="distillery-hero-content">
           <div>
             <h1 className="distillery-hero-title">{d.name}</h1>
