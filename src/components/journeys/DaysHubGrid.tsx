@@ -243,15 +243,45 @@ export default function DaysHubGrid({ days, distilleries }: { days: HubDay[]; di
   // the easy sell; a big trek or a ferry crossing is the exception), this
   // counts the easy + short-drive groups. JUDGEMENT CALL, flagged since
   // it's an editorial heuristic rather than a literal spec formula.
-  const worksCount = sorted.filter((e) => e.group === "easy" || e.group === "mid").length;
+  //
+  // FIXED 29 Aug 2026. That count is a REAL filter - dayGroupFor's <=70
+  // minutes, door to door, from the base the visitor actually answered -
+  // but it used to stand alone above a list of every published Day, and
+  // as the Day set grew past the handful this screen was designed around
+  // the two stopped agreeing out loud: "8 days work well from The
+  // Machrie" sat over sixteen cards whose own group counts read
+  // 1 + 7 + 7 + 1. Neither number was wrong; the headline just never
+  // said which sixteen it had taken its eight from.
+  //
+  // The LIST is not what gets fixed. The design doc is explicit twice
+  // over (§3.1's distilleries sheet, "This reorders the list - it never
+  // hides a day", and §4.1 "ranking, never filtering") that this page
+  // shows every published Day whatever the answers are, so filtering it
+  // down to the close ones would trade a confusing headline for a
+  // missing seven days. The headline is what had to start naming both
+  // numbers, and the subline what "work well" means - stated once, in
+  // words, rather than left as an unexplained smaller number.
+  const totalCount = sorted.length;
+  const closeCount = sorted.filter((e) => e.group === "easy" || e.group === "mid").length;
   const pickHitCount = hitEntries.length;
 
-  const headline = `${worksCount} ${worksCount === 1 ? "day" : "days"} work well from ${baseName}`;
+  // "N of M" only while it's actually telling the reader something: if
+  // every day is close (or none is), a fraction against itself is noise,
+  // and the headline falls back to a plain count of what's below.
+  const isSubset = closeCount > 0 && closeCount < totalCount;
+  const headline = isSubset
+    ? `${closeCount} of ${totalCount} days work well from ${baseName}`
+    : `${totalCount} ${totalCount === 1 ? "day" : "days"} from ${baseName}`;
   const singlePickName = picks.length === 1 ? distilleries.find((d) => d.slug === picks[0])?.name : undefined;
   const subline =
     picks.length > 0
-      ? `${pickHitCount} of them include ${singlePickName ?? "a distillery you picked"}`
-      : "Sorted by how far you'd drive from your door";
+      ? // "of them" used to point at the headline's smaller number while
+        // counting hits across every group - the same mismatch in
+        // miniature. Says which pool it counted now.
+        `${pickHitCount} of the ${totalCount} include ${singlePickName ?? "a distillery you picked"}`
+      : isSubset
+        ? "Under about an hour's travel, door to door \u2014 the rest are further out, and nothing below is hidden"
+        : "Sorted by how far you'd drive from your door";
 
   const pickedNames = picks
     .map((slug) => distilleries.find((d) => d.slug === slug)?.name)
