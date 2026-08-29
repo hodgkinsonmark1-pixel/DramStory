@@ -472,7 +472,7 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
           {/* The way out. Until 18 Aug 2026 the logo was the only one. */}
           <nav className="jr-crumb" aria-label="Breadcrumb">
             <Link href="/#classic-journeys" className="jr-crumb-link">
-              Journeys
+              Classic journeys
             </Link>
             {journey.regionLabel && (
               <>
