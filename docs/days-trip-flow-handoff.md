@@ -14,8 +14,9 @@ golden source.
 `--peat #4A4438`, `--green-light #EAE6DC`, `--green-deep #1A3A4A`, `--radius 12px`,
 `--radius-sm 8px`, `--shadow-card 0 2px 12px rgba(26,58,74,0.10)`. The prototype hard-codes
 these hexes because it is a standalone file; **use the CSS variables in the build**. The
-only colour outside the token set is `#B5502E` for Packed pace, which is already what
-`DaysHubGrid.tsx`'s `PacingTag` uses. Relaxed pace and the in-trip state use
+Packed pace is a token pair as of 29 Aug 2026 — `--rust #B5502E` for fills with no type
+on them, `--rust-ink #9C3F27` wherever type is involved — so there is no colour outside
+the token set here any more. Relaxed pace and the in-trip state use
 `--green-light` on `--green-deep`, matching `PacingTag` exactly — there is no green in
 this system, and nothing in this design introduces one.
 

@@ -132,7 +132,7 @@
    line it sits under, in the amber the closed-stop note already uses.
    Tokens/existing values only, per docs/hero-handoff.md section 5. */
 .day-shape-warning {
-  color: #b5502e;
+  color: var(--rust-ink);
   font-weight: 600;
   border-left: 2px solid var(--amber-light);
   padding-left: 9px;
@@ -250,7 +250,7 @@
 .day-stop-closed-note {
   font-size: 12px;
   font-weight: 600;
-  color: #b5502e;
+  color: var(--rust-ink);
   margin-top: 4px;
 }
 .day-stop-appointment-note {
@@ -319,7 +319,7 @@
   color: var(--copper);
 }
 .day-stop-btn-drop {
-  color: #b5502e;
+  color: var(--rust-ink);
 }
 
 /* ---- ghost row (drop + undo, §5: "never silent removal") ---- */

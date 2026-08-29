@@ -2,9 +2,11 @@
    (docs/days-trip-flow-handoff.md §3.3, §4, §5, §10 "Trip review"). Same
    rule as days-hub.css: colours/radii/shadows use the real tokens from
    dramstory-legacy.css's :root, never the prototype's hardcoded hexes.
-   #B5502E (Packed pace) is the one exception, already established by
-   DaysHubGrid's PacingTag and reused here via day-derivations.ts's
-   paceTone/paceAccentColour. */
+   The brand rust is a token pair now (--rust / --rust-ink, see
+   dramstory-legacy.css's :root): --rust for fills with nothing written
+   on them, --rust-ink wherever type is involved. This file only ever
+   wants the ink one. Pace colours still come from day-derivations.ts's
+   paceTone/paceAccentColour/paceInkColour rather than being named here. */
 
 .trip-review {
   background: var(--off-white);
@@ -424,7 +426,7 @@
   cursor: pointer;
 }
 .trip-day-chip-remove:hover {
-  color: #b5502e;
+  color: var(--rust-ink);
 }
 .trip-day-plan-link {
   display: inline-block;

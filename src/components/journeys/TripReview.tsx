@@ -16,6 +16,7 @@ import {
   isFerryDayItinerary,
   paceForItineraryDay,
   paceAccentColour,
+  paceInkColour,
   tripShapeNote,
   collectionNote,
   isDayEdited,
@@ -100,7 +101,10 @@ function ShapeStrip({ rows, dateLabels }: { rows: DayRow[]; dateLabels: (string 
                   }}
                 />
               </div>
-              <div className="trip-shape-row-pace" style={{ color: paceAccentColour(r.pace) }}>
+              {/* paceInkColour, not paceAccentColour: this is the pace
+                  word itself, set in the colour. The bar above it is the
+                  fill and keeps the undarkened rust. */}
+              <div className="trip-shape-row-pace" style={{ color: paceInkColour(r.pace) }}>
                 {r.ferry ? "Ferry" : r.pace}
               </div>
             </div>
@@ -166,7 +170,9 @@ function DayReviewRow({
   onRemoveDay: () => void;
 }) {
   const { day, index, pace, drive, priceLabel, ferry, title, edited } = row;
-  const accent = paceAccentColour(pace);
+  // The numeral sits IN this colour in white (.trip-day-num), so it is a
+  // text-bearing use and takes the darkened ink, not the fill rust.
+  const accent = paceInkColour(pace);
 
   return (
     <div className="trip-day-row">

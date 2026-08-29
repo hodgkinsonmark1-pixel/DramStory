@@ -8,6 +8,24 @@
   --green-light:#EAE6DC;--green-mid:#B87D4B;--green-deep:#1A3A4A;
   --amber:#D4A574;--amber-light:#E8C99A;--amber-pale:#FBF5EA;
   --navy:#1A3A4A;--navy-mid:#2A5A72;--copper:#B87D4B;
+  /* The brand rust, in two forms. --rust is the FILL: pace strips, shape
+     bars, swatches - shapes with no type on or in them, where contrast
+     ratios simply don't apply. --rust-ink is the same hue darkened for
+     anywhere TYPE is involved, either as the ink itself or as the ground
+     under light ink.
+
+     Why two: --rust as ink on the pale rust pill ground measured 4.18:1,
+     under the 4.5:1 this project's accessibility notes require at the
+     sizes the pace pills use (docs/deferred-features.md, 18 Aug 2026).
+     Mark's call on 29 Aug 2026 was to darken it only where text sits on
+     it and leave the strips alone, so the strips still read as the same
+     rust they always have. --rust-ink is #9C3F27 - the value
+     journey-extra.css's --jr-packed-ink already arrived at independently
+     for exactly this reason, reused rather than invented a second time.
+     It clears the bar in every pairing the site actually puts it in:
+     5.50:1 on --rust-pale, 6.66:1 on white, 5.91:1 on --off-white, and
+     6.66:1 the other way round with white type on it. */
+  --rust:#B5502E;--rust-ink:#9C3F27;--rust-pale:#F7E6E0;
   --ease-out:cubic-bezier(0.22,1,0.36,1);
   --shadow-soft:0 4px 24px rgba(26,58,74,0.10);
   --shadow-card:0 2px 12px rgba(26,58,74,0.10);

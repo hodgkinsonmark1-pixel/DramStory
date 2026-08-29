@@ -64,13 +64,23 @@ Broader gamification (route-planning stats, booking streaks, distillery "bingo" 
 
 **Suggested approach:** Probably a `Kind` or `Category` field on Tours (tour / tasting / class) rather than a boolean, since tasting-only experiences are already a meaningful third case and the day page copy already distinguishes them. Decide once rather than case by case as more appear.
 
-## Packed pace colour fails contrast
+## Packed pace colour fails contrast — RESOLVED 29 Aug 2026
 
-**Status:** Logged, needs a palette decision from Mark.
+**Status:** Done, by the suggested approach. Left here rather than deleted because the Moderate pill below is still open and belongs with it.
 
-**Context:** 18 Aug 2026 — the Packed pace rust (`#B5502E`) with light text measures 4.18:1, under the 4.5:1 the project's accessibility notes require at the sizes used on the day cards. Relaxed (9.64:1) and Moderate (8.90:1, after moving to `--peat`) both clear it comfortably. Not changed because it's a sanctioned brand pair already used by `PacingTag`, so darkening it is a brand decision rather than a component fix. Separately, `PacingTag`'s own Moderate pill (copper on `--amber-pale`) measures 3.19:1.
+**Context:** 18 Aug 2026 — the Packed pace rust (`#B5502E`) measured 4.18:1 against the pale rust pill ground it is set on, under the 4.5:1 the project's accessibility notes require at the sizes used on the day cards. Relaxed (9.64:1) and Moderate (8.90:1, after moving to `--peat`) both clear it comfortably. Not changed at the time because it's a sanctioned brand pair already used by `PacingTag`, so darkening it was a brand decision rather than a component fix.
 
-**Suggested approach:** Darken the rust for text-bearing uses only, keeping the existing value for the 5px strips where contrast doesn't apply.
+Worth recording precisely, because the original note was loose about it: the pairing that failed was the rust as **ink**, on the pill's `#F7E6E0` ground. Light type **on** the rust was 5.06:1 and already passed. Both go up when the rust darkens, so the fix is the same either way.
+
+**Resolution:** Mark's call, 29 Aug 2026 — darken the rust only where text is involved, keep the existing value for the 5px strips where contrast doesn't apply. The rust is now a token pair in `dramstory-legacy.css`'s `:root`: `--rust #B5502E` for fills (shape bars, strips, swatches) and `--rust-ink #9C3F27` for anything text-bearing, reusing the value `journey-extra.css`'s `--jr-packed-ink` had already arrived at. `paceAccentColour` (fills) and `paceInkColour` (text) split apart in `day-derivations.ts` so the two can't be confused again. Pill ink 4.18:1 → **5.50:1**; white on the trip-review day numeral 5.06:1 → **6.66:1**; the strips are unchanged.
+
+## `PacingTag`'s Moderate pill fails contrast
+
+**Status:** Logged, needs the same kind of palette decision. NOT covered by the 29 Aug fix above, which Mark scoped to Packed only.
+
+**Context:** `PacingTag`'s Moderate pill is `--copper #B87D4B` on `--amber-pale #FBF5EA` and measures **3.19:1** — still failing, and by a wider margin than Packed ever did. Re-measured 29 Aug 2026, unchanged. It is the same shape, size and weight of type as the Packed pill that was just fixed, so it fails the same 4.5:1 line for the same reason. Note this is the pill only: the Moderate pace *label* elsewhere moved to `--peat` and reads 8.90:1.
+
+**Suggested approach:** Same pattern as the rust — a darkened copper token for text-bearing uses, leaving `--copper` itself alone for fills and rules. `--peat` on `--amber-pale` is already in the system at 8.90:1 if a new token isn't wanted, though it costs the pill its copper identity.
 
 ## "Just dreaming" hands off to an empty planner
 

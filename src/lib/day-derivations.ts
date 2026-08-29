@@ -845,11 +845,16 @@ export function paceForItineraryDay(
 
 /** Background/foreground pair behind PacingTag's own pace pill
  *  (DaysHubGrid.tsx) - pulled out here so trip review's pace badges use
- *  literally the same mapping rather than a second hand-copied one. */
+ *  literally the same mapping rather than a second hand-copied one.
+ *
+ *  Packed's ink is --rust-ink, NOT --rust: this pill is the pairing that
+ *  measured 4.18:1 and failed (29 Aug 2026, see dramstory-legacy.css's
+ *  :root for the full note). Darkened it reads 5.50:1. The undarkened
+ *  --rust is still what paceAccentColour hands out for fills. */
 export function paceTone(pacing: string): { bg: string; fg: string } {
   if (pacing === "Relaxed") return { bg: "var(--green-light)", fg: "var(--green-deep)" };
   if (pacing === "Moderate") return { bg: "var(--amber-pale)", fg: "var(--copper)" };
-  return { bg: "#F7E6E0", fg: "#B5502E" };
+  return { bg: "var(--rust-pale)", fg: "var(--rust-ink)" };
 }
 
 /* paceTileTone lived here from 17-18 Aug 2026 and is DELETED. It painted
@@ -857,17 +862,36 @@ export function paceTone(pacing: string): { bg: string; fg: string } {
    spec that landed the next day removed that treatment outright ("NOT a
    tile, NOT a photograph") in favour of a 5px strip, and nothing else
    ever called it. Its one interesting note is preserved where it still
-   applies: paceTone's Packed pair measures 4.18:1, under the 4.5:1 this
-   project's accessibility notes require for small type. The strip on
-   /journeys/[slug] does not use it - that page declares its own three
+   applied: paceTone's Packed pair measured 4.18:1, under the 4.5:1 this
+   project's accessibility notes require for small type. FIXED 29 Aug
+   2026 - paceTone's Packed ink is --rust-ink now. The strip on
+   /journeys/[slug] never used it - that page declares its own three
    hues with measured ratios (see journey-extra.css's jr- block). */
 
-/** Solid pace colour for the shape strip's bars and the Days list's
- *  numbered day badge (§3.3 items 2/4 - "coloured by pace"). Matches
- *  paceTone's own `fg` above exactly (--green-deep/--copper/#B5502E),
- *  just exposed as a single value for places that want a solid fill
- *  rather than a bg/fg pill pair. */
+/** Solid pace colour for shapes with no type on them: the shape strip's
+ *  bars, swatches (§3.3 item 2 - "coloured by pace"). Packed is the
+ *  undarkened --rust, because contrast is not a question you can even
+ *  ask of a bar with nothing written on it, and Mark's 29 Aug 2026 call
+ *  was to keep the strips reading as the rust they always have.
+ *
+ *  If TYPE is involved in any direction - the colour as ink, or light
+ *  ink sitting on it - use paceInkColour below instead. The two used to
+ *  be one function, which is how the failing pair got everywhere. */
 export function paceAccentColour(pacing: string): string {
+  if (pacing === "Relaxed") return "var(--green-deep)";
+  if (pacing === "Moderate") return "var(--copper)";
+  return "var(--rust)";
+}
+
+/** The same three pace colours in their TEXT-BEARING form - the pace
+ *  label under the shape strip (colour as ink) and the numbered day
+ *  badge in trip review (white ink on the colour). Identical to
+ *  paceAccentColour except for Packed, which darkens to --rust-ink:
+ *  white on --rust was 5.06:1 and white on --rust-ink is 6.66:1.
+ *
+ *  Matches paceTone's `fg` exactly, so a pace pill and a pace label
+ *  sitting next to each other can never drift apart. */
+export function paceInkColour(pacing: string): string {
   return paceTone(pacing).fg;
 }
 
