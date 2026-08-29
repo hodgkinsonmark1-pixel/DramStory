@@ -734,6 +734,16 @@ export interface Distillery {
   tagline: string;
   description: string;
   image: string;
+  /** Photographer attribution for `image`, in the same `[label](url)`
+   *  markdown convention as Area/LocalFeature/FeaturedStay/Journey's
+   *  heroImageCredit. Every distillery hero is CC BY or CC BY-SA, so
+   *  this is a licence condition, not decoration; blank only where the
+   *  attribution could not be established from the source page, in
+   *  which case nothing is rendered rather than something invented.
+   *
+   *  Unlike the others, the value may open with a sentence of prose
+   *  before the link (see AirtableDistilleryFields' own note). */
+  heroImageCredit?: string;
   tours: Tour[];
   hours: string;
   priceFrom: string;

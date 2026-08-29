@@ -17,6 +17,20 @@ export interface AirtableDistilleryFields {
   Tagline?: string;
   Description?: string;
   "Hero Image"?: AirtableAttachment[];
+  /** Attribution for Hero Image, added to the table 29 Aug 2026. Every
+   *  distillery hero on this site came from Geograph or Wikimedia
+   *  Commons under CC BY / CC BY-SA, where crediting the photographer is
+   *  a CONDITION of the licence rather than a courtesy - and none of
+   *  them was credited until this field existed. Same `[label](url)`
+   *  markdown convention as Areas', Local Features', Featured Stays' and
+   *  Journeys' identically-named fields.
+   *
+   *  May carry a sentence of plain prose BEFORE the link where the
+   *  photograph needs explaining - Laggan Bay's says the picture is of
+   *  the beach the distillery is named after, not of the distillery -
+   *  so the page's renderer splits on the link rather than requiring the
+   *  whole value to be one. */
+  "Hero Image Credit"?: string;
   Hours?: string;
   "Price From"?: number;
   "Avg Visit"?: string;

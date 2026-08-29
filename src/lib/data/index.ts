@@ -161,6 +161,7 @@ async function fetchDistilleriesFromAirtable(): Promise<Distillery[]> {
         // expire after a few hours. Safe on Team plan quota - see
         // /api/attachment/route.ts before reintroducing on Free.
         image: f["Hero Image"]?.[0] ? `/api/attachment?t=tblSPRTIf1sFK3UDL&r=${r.id}&f=fldbYJ8xNSPCLwG0h&i=0` : "",
+        heroImageCredit: f["Hero Image Credit"] || undefined,
         tours: (f.Tours ?? [])
           .map((id) => tourById.get(id))
           .filter((t): t is AirtableTourFields => !!t)
