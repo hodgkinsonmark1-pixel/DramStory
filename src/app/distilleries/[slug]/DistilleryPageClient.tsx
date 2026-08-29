@@ -58,6 +58,18 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
   const stopDays = trip.ready ? trip.findStopDays(d.slug) : [];
   const inJourney = stopDays.length > 0;
   const totalStops = trip.days.reduce((sum, day) => sum + day.stops.length, 0);
+
+  /* OPEN, BUT NOTHING TO BOOK (29 Aug 2026). A third state the page has
+     to cover, and the one the not-yet-open variant does NOT catch: a
+     distillery that welcomes visitors but currently sells no tours.
+     Isle of Jura is the live case - it suspended tours while keeping its
+     shop and visitor centre open, so `openToVisitors` is rightly true and
+     the linked Tours are rightly empty. Gating the booking affordances on
+     `openToVisitors` alone put a "Book a Tour" button directly above a
+     notice saying tours were unavailable, pointing at an empty section.
+     So the affordances key off whether tours actually EXIST, not off
+     whether the gates are open. */
+  const hasTours = d.tours.length > 0;
   const safeCurrentDayIndex = Math.min(trip.currentDayIndex, Math.max(0, trip.days.length - 1));
   // A real journey session exists if either signal says so: the intake
   // flow (Q1-Q4) was completed, OR real stops exist even without ever
@@ -154,9 +166,26 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
               See Distillery.openToVisitors. */}
           {d.openToVisitors ? (
             <div className="distillery-hero-actions">
-              <a href="#tours" className="hero-action-btn hero-action-primary">
-                Book a Tour
-              </a>
+              {/* With no tours to jump to, the primary action goes to the
+                  distillery's own site instead - the one place that can
+                  confirm what is open today and when tours resume, and the
+                  source the Status Notice already tells the reader to
+                  check. Dropped entirely if there is no website on the
+                  record: better one honest action than a dead one. */}
+              {hasTours ? (
+                <a href="#tours" className="hero-action-btn hero-action-primary">
+                  Book a Tour
+                </a>
+              ) : d.websiteUrl ? (
+                <a
+                  href={d.websiteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hero-action-btn hero-action-primary"
+                >
+                  Check the Distillery Website ↗
+                </a>
+              ) : null}
               <button
                 className={"hero-action-btn hero-action-secondary" + (inJourney ? " in-journey" : "")}
                 onClick={toggleAddDistillery}
@@ -246,7 +275,7 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
             {/* Not rendered at all for a distillery that takes no visitors:
                 the heading on its own reads as "tours, coming shortly",
                 which is a promise this record does not make. */}
-            {d.openToVisitors && (
+            {d.openToVisitors && hasTours && (
             <div className="dist-section" id="tours">
               <div className="dist-section-title">Tours</div>
               {d.tours.map((t) => {
@@ -326,23 +355,36 @@ export default function DistilleryPageClient({ distillery: d, nextStops }: Disti
             {d.openToVisitors ? (
               <div className="sidebar-card">
                 <div className="sidebar-card-title">Visit info</div>
+                {/* Each tile is suppressed when its own value is blank,
+                    rather than printing a label over nothing - the same rule
+                    the hero badges above already follow. Jura is why: with
+                    tours suspended it has no Price From, so the grid showed
+                    a labelled empty cell next to three real ones. */}
                 <div className="info-grid">
-                  <div className="info-item">
-                    <div className="info-label">Hours</div>
-                    <div className="info-value">{d.hours}</div>
-                  </div>
-                  <div className="info-item">
-                    <div className="info-label">Price from</div>
-                    <div className="info-value">{d.priceFrom}</div>
-                  </div>
-                  <div className="info-item">
-                    <div className="info-label">Avg. visit</div>
-                    <div className="info-value">{d.avgVisit}</div>
-                  </div>
-                  <div className="info-item">
-                    <div className="info-label">Parking</div>
-                    <div className="info-value">{d.parking}</div>
-                  </div>
+                  {d.hours && (
+                    <div className="info-item">
+                      <div className="info-label">Hours</div>
+                      <div className="info-value">{d.hours}</div>
+                    </div>
+                  )}
+                  {d.priceFrom && (
+                    <div className="info-item">
+                      <div className="info-label">Price from</div>
+                      <div className="info-value">{d.priceFrom}</div>
+                    </div>
+                  )}
+                  {d.avgVisit && (
+                    <div className="info-item">
+                      <div className="info-label">Avg. visit</div>
+                      <div className="info-value">{d.avgVisit}</div>
+                    </div>
+                  )}
+                  {d.parking && (
+                    <div className="info-item">
+                      <div className="info-label">Parking</div>
+                      <div className="info-value">{d.parking}</div>
+                    </div>
+                  )}
                 </div>
                 {d.websiteUrl && (
                   <a
