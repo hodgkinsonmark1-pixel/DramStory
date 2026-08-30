@@ -217,3 +217,7 @@ already done are the worked example.
      two of them (the night count and the distillery count) have none at
      all because the code already states both. Airtable-only change, so
      this commit exists to bust the ISR cache. -->
+
+<!-- Day four narrative close rewritten 30 Aug 2026 - it ended on the
+     same thirteen words as its own Hook. Airtable-only, so this commit
+     exists to bust the ISR cache. -->
