@@ -68,10 +68,16 @@
    and shared with Where to stay, Get to know Islay, Before you go and
    the Journal, none of which were part of this brief - so the override
    lives on the wrapper and cannot reach them. */
-.cj-head,
-.hdp-head-text {
+.cj-head {
   max-width: 960px;
   margin: 0 auto;
+}
+/* NOT max-width/auto-margin: this one is a flex child of .hdp-head,
+   which already centres itself at 960px. Giving it auto margins too
+   re-centred the heading inside the flex row and pushed it 213px right
+   of the card grid directly beneath it. */
+.hdp-head-text {
+  min-width: 0;
 }
 .cj-head .how-eyebrow,
 .cj-head .how-title,
