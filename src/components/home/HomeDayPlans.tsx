@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { HubDay } from "@/lib/types";
-import { PacingTag } from "@/components/PacingTag";
+import { paceTone } from "@/lib/day-derivations";
 import { dayTourTotal, formatTourPrice } from "@/lib/journey-derivations";
 
 /**
@@ -84,34 +84,59 @@ function isCarFree(day: HubDay): boolean {
   return !clause.startsWith("car");
 }
 
-/** The clause, plus a link to the timetable when it leans on a bus.
- *  Never a route number, never a departure - the council's page holds
- *  both, and holds them current. */
-function TransportLine({ day }: { day: HubDay }) {
+/** The transport pills that close a card, above the rule - the owner's
+ *  mockup treatment (30 Aug 2026). Two at most, and only ever what a
+ *  record says:
+ *    - a green "Nobody has to drive" pill when the clause offers a way
+ *      without a car, which is the one claim in this section worth
+ *      colouring;
+ *    - the Transport Clause itself, verbatim, in a quiet pill.
+ *  Where the clause leans on a bus the pill carries the timetable link.
+ *  Never a route number and never a departure - see BUS_TIMETABLE_URL. */
+function TransportPills({ day }: { day: HubDay }) {
   const clause = day.transportClause?.trim();
   if (!clause) return null;
+  const carFree = isCarFree(day);
   const mentionsBus = /\bbus(es)?\b/i.test(clause);
   return (
-    <p className="hdp-transport">
-      <span className={isCarFree(day) ? "hdp-transport-free" : undefined}>{clause}</span>
-      {mentionsBus && (
-        <>
-          {" "}
-          <a href={BUS_TIMETABLE_URL} target="_blank" rel="noopener noreferrer">
-            Check the timetable &rarr;
-          </a>
-        </>
+    <div className="hdp-pills">
+      {carFree && (
+        <span className="hdp-pill hdp-pill-good">
+          <span className="hdp-dot" aria-hidden="true" />
+          Nobody has to drive
+        </span>
       )}
-    </p>
+      <span className="hdp-pill">
+        {clause}
+        {mentionsBus && (
+          <>
+            {" "}
+            <a href={BUS_TIMETABLE_URL} target="_blank" rel="noopener noreferrer">
+              timetable &rarr;
+            </a>
+          </>
+        )}
+      </span>
+    </div>
   );
 }
 
 function DayCard({ day }: { day: HubDay }) {
   const total = dayTourTotal(day);
+  const tone = paceTone(day.pacing);
   return (
     <article className="hdp-card">
+      {/* Pacing as a coloured WORD beside the price rather than a filled
+          pill, per the mockup - the pills at the foot of the card are
+          the pill treatment, and two pill styles in one card fought each
+          other. Colour still comes from paceTone, the same source
+          PacingTag and the journey spine read, so the three cannot
+          drift. PacingTag itself is untouched: it is shared with the
+          hero column and the days hub. */}
       <div className="hdp-card-top">
-        <PacingTag pacing={day.pacing} />
+        <span className="hdp-pace" style={{ color: tone.fg }}>
+          {day.pacing}
+        </span>
         {/* Same rule as the journey cards: a day nobody has priced says
             nothing about money rather than printing a zero. */}
         {total > 0 && <span className="hdp-price">{formatTourPrice(total)}pp in tours</span>}
@@ -120,7 +145,7 @@ function DayCard({ day }: { day: HubDay }) {
         <Link href={`/days/${day.slug}`}>{day.name}</Link>
       </h3>
       {day.hook && <p className="hdp-hook">{day.hook}</p>}
-      <TransportLine day={day} />
+      <TransportPills day={day} />
     </article>
   );
 }
