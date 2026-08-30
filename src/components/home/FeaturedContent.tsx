@@ -36,7 +36,19 @@ export default function FeaturedContent({
   const activeRegion = REGIONS.find((r) => r.id === activeRegionId) ?? REGIONS[0];
 
 
+  // "Upcoming" now means it. This sorted by date and took the first
+  // three without asking whether any of them had already happened, so on
+  // 30 Aug 2026 the homepage was still advertising the Agricultural Show
+  // of 13 Aug as something to plan around.
+  //
+  // A multi-day event counts as on until its LAST day: the Book Festival
+  // running 27-30 August is still worth showing on the 30th, and dropping
+  // it at midnight on the 27th would be the opposite mistake. Compared as
+  // ISO date strings, which sort and compare correctly and avoid dragging
+  // a timezone into what is a whole-day question.
+  const today = new Date().toISOString().slice(0, 10);
   const upcomingEvents = [...localEvents]
+    .filter((e) => (e.endDate || e.date) >= today)
     .sort((a, b) => (a.date < b.date ? -1 : 1))
     .slice(0, 3);
 
