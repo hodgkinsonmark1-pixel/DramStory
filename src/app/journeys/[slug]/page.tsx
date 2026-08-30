@@ -70,12 +70,18 @@ import type { HubDay, ItineraryStop, Journey, SeasonalWindow } from "@/lib/types
  *    ONE button, not two - two equal buttons forced a choice before
  *    anyone knew what either did - with the two alternatives demoted to
  *    text links beneath it. And a new cost block, whose whole reason for
- *    existing is that Port Ellen is 47% of the Grand Tour's tour spend
- *    on one morning and five stacked numbers never showed that.
+ *    existing is that one stop can dominate a journey's tour spend and a
+ *    column of stacked numbers never shows it. (The case that proved it
+ *    was Port Ellen at 47% of the Grand Tour - unlinked from the journey
+ *    on 30 Aug 2026, so the block's sharpest example is now Bowmore's
+ *    £100 tasting at 36% of £277.50.)
  *
  *  4 WAYS OUT. "Make it yours" is now "Not quite right?" - same three
  *    Airtable cards, read as three honest reasons this journey might not
- *    suit you rather than three upsells.
+ *    suit you rather than three upsells. The heading and its count are
+ *    hardcoded here and cannot be overridden from Airtable, so a row
+ *    authored as an upsell ("Add X") reads against the frame it sits in.
+ *    Rows belong phrased as limitations of THIS journey.
  *
  * NO MONEY FIGURE ON THIS PAGE IS TYPED. The claim band's floor, every
  * day's "starts at", every row of the proportion bar and all four
@@ -83,13 +89,15 @@ import type { HubDay, ItineraryStop, Journey, SeasonalWindow } from "@/lib/types
  * prices and real per-distillery floors. See journeyTourFloor.
  *
  * JUDGEMENT CALLS made this pass (flagged):
- *  - THE FLOOR COMES OUT AT £435.50 for The Islay Grand Tour, not the
- *    £395 the spec quotes. Ten distilleries, cheapest publishable tour at
- *    each: Ardnahoe £15, Kilchoman £18, Bunnahabhain £20, Bowmore £20,
- *    Caol Ila £21, Laphroaig £22, Lagavulin £22, Ardbeg £22.50,
- *    Bruichladdich £25, Port Ellen £250. The spec is explicit that this
- *    must be computed and never typed, so the computed figure ships and
- *    the difference is reported rather than reconciled with a constant.
+ *  - THE FLOOR IS COMPUTED, NOT TYPED, and it moves. When this pass
+ *    landed it came out at £435.50 for The Islay Grand Tour against the
+ *    £395 the spec quoted, over ten distilleries including Port Ellen at
+ *    £250. Since that day was unlinked (30 Aug 2026) the same function
+ *    sums nine - Ardnahoe £15, Kilchoman £18, Bunnahabhain £20, Bowmore
+ *    £20, Caol Ila £21, Laphroaig £22, Lagavulin £22, Ardbeg £22.50,
+ *    Bruichladdich £25 - and the page prints whatever that is today.
+ *    Reporting the difference rather than reconciling it with a constant
+ *    is the whole point: a typed figure would still say £435.50.
  *  - PLACEHOLDER TOURS are skipped when finding the cheapest, per the
  *    spec - and so is any tour priced at zero, which is a blank Price
  *    cell rather than a free tour (Port Ellen Open Days). See

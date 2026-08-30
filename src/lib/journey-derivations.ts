@@ -381,8 +381,9 @@ export function journeyAccommodationRange(
 /** Car hire, which has THREE states, not two - and the difference between
  *  the last two matters:
  *   - priced:     a real per-day rate × this journey's days
- *   - not-needed: no rate AND every day walkable end to end. The South
- *                 Coast Walk needs no car, and saying so is a feature.
+ *   - not-needed: no rate AND every day walkable end to end. The
+ *                 Kildalton Road needs no car, and saying so is a
+ *                 feature.
  *   - pending:    no rate, and the journey does involve driving. We don't
  *                 know what it costs, so we say that instead of implying
  *                 a car isn't needed. */
@@ -693,9 +694,11 @@ export interface CostRow {
 }
 
 /** Every day that spends anything, sorted by spend descending - the whole
- *  point of the block. Port Ellen is 47% of the Grand Tour's tour spend
- *  and happens on one morning; five numbers in day order never show that,
- *  and a bar sorted by day order doesn't either.
+ *  point of the block. The case that proved it was Port Ellen at 47% of
+ *  the Grand Tour's tour spend on a single day; that day was unlinked on
+ *  30 Aug 2026, and Bowmore's £100 tasting now carries 36% of what is
+ *  left. Numbers in day order never show that, and a bar sorted by day
+ *  order doesn't either.
  *
  *  `share` is that day's fraction of the total, 0-1, computed rather than
  *  authored. Days that book nothing are dropped, not drawn at zero. */
