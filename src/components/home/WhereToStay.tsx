@@ -38,7 +38,41 @@ import { useTrip, DEFAULT_TRIP_ANSWERS } from "@/lib/trip-context";
  *     naming four and dead-linking one.
  */
 
-function StayCard({ stay, isBase }: { stay: FeaturedStay; isBase: boolean }) {
+/** "West Islay" -> "the west". The Areas table's Distillery Region is a
+ *  five-choice singleSelect (South, Central, West, North, Jura) written
+ *  for filtering, not for reading in a sentence; this is the reading
+ *  form, and an unrecognised choice falls through to the raw value
+ *  rather than being dropped, so adding a sixth region shows something
+ *  honest until someone words it. */
+const REGION_PHRASE: Record<string, string> = {
+  "West Islay": "the west",
+  "South Islay": "the south",
+  "Central Islay": "the middle",
+  "North Islay": "the north",
+  Jura: "Jura",
+};
+
+/** The line above the stay's name: its village, and which part of the
+ *  island that village is in.
+ *
+ *  The region comes from the Area this stay LINKS to, matched against the
+ *  Areas this page already has - not inferred from the village name,
+ *  which would go wrong on exactly the record where it matters:
+ *  Bridgend Hotel's Nearest Area reads "Bridgend village centre" and
+ *  there is no Bridgend area, so it links to Bowmore. A stay with no
+ *  link at all (The Machrie today) shows its village and stops. */
+function stayWhere(stay: FeaturedStay, areas: Area[]): string | undefined {
+  const village = stay.nearestArea?.trim();
+  const linked = areas.find((a) => stay.areaNames.includes(a.name));
+  const region = linked?.distilleryRegion
+    ? (REGION_PHRASE[linked.distilleryRegion] ?? linked.distilleryRegion)
+    : undefined;
+  if (village && region) return `${village} \u00b7 ${region}`;
+  return village ?? region;
+}
+
+function StayCard({ stay, isBase, areas }: { stay: FeaturedStay; isBase: boolean; areas: Area[] }) {
+  const where = stayWhere(stay, areas);
   return (
     <article className={isBase ? "wts-card wts-card-base" : "wts-card"}>
       {stay.heroImageUrl && (
@@ -60,7 +94,7 @@ function StayCard({ stay, isBase }: { stay: FeaturedStay; isBase: boolean }) {
         </div>
       )}
       <div className="wts-body">
-        {stay.nearestArea && <div className="wts-where">{stay.nearestArea}</div>}
+        {where && <div className="wts-where">{where}</div>}
         <h3 className="wts-name">
           <Link href={`/stays/${stay.slug}`}>{stay.name}</Link>
         </h3>
@@ -101,6 +135,7 @@ export default function WhereToStay({ areas, featuredStays }: { areas: Area[]; f
           <StayCard
             key={stay.slug}
             stay={stay}
+            areas={areas}
             // Only a hotel answer can mark a hotel. A visitor who
             // answered with a village has told us the area, not the bed,
             // and no card here is their base.

@@ -406,6 +406,7 @@ export interface AirtableFeaturedStayFields {
   Parking?: string;
   "Nearest Area"?: string;
   "Card Note"?: string;
+  Areas?: { id: string; name: string }[];
   "Booking URL"?: string;
   "Website URL"?: string;
   "TripAdvisor URL"?: string;
@@ -510,6 +511,7 @@ export function mapToFeaturedStay(
     parking: fields.Parking || undefined,
     nearestArea: fields["Nearest Area"] || undefined,
     cardNote: fields["Card Note"] || undefined,
+    areaNames: (fields.Areas ?? []).map((a) => a.name),
     bookingUrl: fields["Booking URL"] || undefined,
     websiteUrl: fields["Website URL"] || undefined,
     tripAdvisorUrl: fields["TripAdvisor URL"] || undefined,

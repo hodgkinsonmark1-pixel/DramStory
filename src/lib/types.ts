@@ -234,6 +234,16 @@ export interface FeaturedStay {
   /** Plain text for now, e.g. "Port Ellen" - becomes a real linked field
    *  once an Areas table exists (see docs/deferred-features.md). */
   nearestArea?: string;
+  /** The Areas this stay links to, by NAME, from the Featured Stays
+   *  table's own Areas column. Used by the homepage card to say which
+   *  part of the island the stay is in, by matching against the Areas
+   *  the page already has rather than re-fetching. Empty when nothing is
+   *  linked - The Machrie has no link as of 30 Aug 2026 - in which case
+   *  the card falls back to Nearest Area alone rather than guessing a
+   *  region from a village name. Note the link is the nearest area with
+   *  a RECORD, which is not always the nearest village: Bridgend Hotel
+   *  links to Bowmore because no Bridgend area exists. */
+  areaNames: string[];
   /** One short, concrete line for the homepage "Where to stay" card -
    *  the detail that separates this stay from the other three. Added 30
    *  Aug 2026. Undefined when the cell is blank, in which case the card
