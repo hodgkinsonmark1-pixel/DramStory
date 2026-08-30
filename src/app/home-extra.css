@@ -1441,3 +1441,77 @@ a.hero-dream-card-navy:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   WEIGHT AND COLOUR PASS (30 Aug 2026, against the owner's mockup).
+   Four things the mockup does that the first build did not: heavier
+   display type, a two-line cap on the day hooks, pace colours that read
+   as opposite ends of a scale, and an actually-green "nobody has to
+   drive".
+   ───────────────────────────────────────────────────────────────────── */
+
+/* Cormorant Garamond loads 300/400/500/600 (layout.tsx), so 600 is a
+   real cut rather than a synthetic bold. Scoped to these two sections -
+   the shared .how-title stays at 400 everywhere else. */
+.cj-head .how-title,
+.hdp-head-text .how-title {
+  font-weight: 600;
+}
+.cj-card-name,
+.hdp-name {
+  font-weight: 600;
+}
+
+/* The right-hand note on the eyebrow line. */
+.cj-head-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.cj-head-note {
+  font-size: 12px;
+  color: var(--slate);
+  white-space: nowrap;
+}
+
+/* The heading rule, which was rendering as a hairline. */
+.cj-head {
+  border-bottom-width: 2px;
+}
+
+/* Two lines, hard. The hooks run to three and four lines against the
+   mockup's two, which is what made the day cards look loose - and
+   because the pill row is pinned to the bottom of the card, a long hook
+   pushed the whole card taller rather than just its own paragraph. */
+.hdp-hook {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* PACE, declared here rather than read from paceTone - see the note in
+   HomeDayPlans.tsx. Relaxed was rendering navy, which is why it read as
+   nothing next to Packed's rust; it is the real green now, and the three
+   sit as a scale: green, copper, rust. */
+.hdp-pace-relaxed {
+  color: var(--moss-ink);
+}
+.hdp-pace-moderate {
+  color: var(--copper);
+}
+.hdp-pace-packed {
+  color: var(--rust-ink);
+}
+
+/* And the one claim worth colouring finally is coloured. Was
+   --green-light on --green-deep, which resolves to navy type on a beige
+   ground - identical to every other pill on the card. */
+.hdp-pill-good {
+  background: var(--moss-pale);
+  border-color: transparent;
+  color: var(--moss-ink);
+  font-weight: 600;
+}

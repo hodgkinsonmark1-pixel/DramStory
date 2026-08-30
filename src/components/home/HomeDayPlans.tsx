@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { HubDay } from "@/lib/types";
-import { paceTone } from "@/lib/day-derivations";
+import { paceKey } from "@/lib/journey-derivations";
 import { dayTourTotal, formatTourPrice, spellCount } from "@/lib/journey-derivations";
 
 /**
@@ -137,7 +137,14 @@ function TransportPills({ day }: { day: HubDay }) {
 
 function DayCard({ day }: { day: HubDay }) {
   const total = dayTourTotal(day);
-  const tone = paceTone(day.pacing);
+  // paceKey, not paceTone: paceTone's Relaxed pair resolves to the navy
+  // (--green-deep is not green - see the token block in
+  // dramstory-legacy.css), which is why Relaxed and Packed did not read
+  // as opposite ends of anything. The three colours are declared against
+  // this class in home-extra.css instead, and Relaxed is the real green.
+  // NOTE this makes the homepage's Relaxed differ from /days and the
+  // journey spine, which still read paceTone. Flagged to the owner.
+  const pace = paceKey(day.pacing);
   return (
     <article className="hdp-card">
       {/* Pacing as a coloured WORD beside the price rather than a filled
@@ -148,9 +155,7 @@ function DayCard({ day }: { day: HubDay }) {
           drift. PacingTag itself is untouched: it is shared with the
           hero column and the days hub. */}
       <div className="hdp-card-top">
-        <span className="hdp-pace" style={{ color: tone.fg }}>
-          {day.pacing}
-        </span>
+        <span className={`hdp-pace hdp-pace-${pace}`}>{day.pacing}</span>
         {/* Same rule as the journey cards: a day nobody has priced says
             nothing about money rather than printing a zero. */}
         {total > 0 && <span className="hdp-price">{formatTourPrice(total)}pp in tours</span>}

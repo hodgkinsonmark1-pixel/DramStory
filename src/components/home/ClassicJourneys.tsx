@@ -134,10 +134,18 @@ function JourneyCard({ journey, lead = false }: { journey: Journey; lead?: boole
   // string either way - Region Label, untouched - only where it sits.
   // That is one line less per small card, which is most of why the
   // mockup reads tighter than the first build did.
+  // The distillery count is LEAD-ONLY (30 Aug 2026, the owner's call
+  // against the mockup). On the three smaller cards it was the fourth
+  // item in the line, wrapped it to two, and said what the distillery
+  // names directly beneath it already say. The lead card keeps it
+  // because it carries no name line - it has chips instead, and the
+  // count is the thing the chips are a list of.
   const meta = [
     !lead && journey.regionLabel ? journey.regionLabel : null,
     journey.nights > 0 ? `${journey.nights} ${journey.nights === 1 ? "night" : "nights"}` : null,
-    distilleries > 0 ? `${distilleries} ${distilleries === 1 ? "distillery" : "distilleries"}` : null,
+    lead && distilleries > 0
+      ? `${distilleries} ${distilleries === 1 ? "distillery" : "distilleries"}`
+      : null,
     tourTotal > 0 ? `${formatTourPrice(tourTotal)}pp in tours` : null,
   ].filter((bit): bit is string => bit !== null);
 
@@ -228,7 +236,16 @@ export default function ClassicJourneys({ journeys }: { journeys: Journey[] }) {
   return (
     <section className="journeys-section" id="classic-journeys">
       <div className="cj-head">
-        <div className="how-eyebrow">If you&rsquo;d rather not build it yourself</div>
+        <div className="cj-head-row">
+          <div className="how-eyebrow">If you&rsquo;d rather not build it yourself</div>
+          {/* The mockup's right-aligned note said "Each one drivable
+              exactly as written", which is false of The Kildalton Road
+              sitting directly beneath it selling the opposite. This says
+              the thing that IS true of all four and that nothing else on
+              the page says: every figure on these cards is summed from
+              the tours the days actually book. */}
+          <div className="cj-head-note">Each one costed from the tours it books</div>
+        </div>
         <h2 className="how-title">{heading}</h2>
       </div>
 
