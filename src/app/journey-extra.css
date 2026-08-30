@@ -1919,12 +1919,17 @@ select.location-inline-input {
 .jr-claim,
 .jr-main,
 .jr-wide {
-  --jr-packed-strip: #a8442a;
-  --jr-packed-ink: #9c3f27;
-  --jr-moderate-strip: #8a6a1f;
-  --jr-moderate-ink: #7d5f1a;
-  --jr-relaxed-strip: #20604a;
-  --jr-relaxed-ink: #1c5641;
+  /* Aliases now, not values (30 Aug 2026). The scale moved to :root in
+     dramstory-legacy.css so the homepage day cards can read the same
+     one - it was declared here, scoped to this page's own selectors, and
+     no other page could see it. Same hexes, so nothing on this page
+     changes; there is simply one place to change them. */
+  --jr-packed-strip: var(--pace-packed-strip);
+  --jr-packed-ink: var(--pace-packed-ink);
+  --jr-moderate-strip: var(--pace-moderate-strip);
+  --jr-moderate-ink: var(--pace-moderate-ink);
+  --jr-relaxed-strip: var(--pace-relaxed-strip);
+  --jr-relaxed-ink: var(--pace-relaxed-ink);
   /* Links on white. On cream this steps darker: #96501c measures 4.27:1
      against #F7ECD8 and fails, which is exactly where the money note
      and the base row live. */

@@ -8,20 +8,32 @@
   --green-light:#EAE6DC;--green-mid:#B87D4B;--green-deep:#1A3A4A;
   --amber:#D4A574;--amber-light:#E8C99A;--amber-pale:#FBF5EA;
   --navy:#1A3A4A;--navy-mid:#2A5A72;--copper:#B87D4B;
-  /* THE GREEN THAT ISN'T --green-* (30 Aug 2026). --green-light,
-     --green-mid and --green-deep are misnamed aliases carried over from
-     the original mockup port: they resolve to a beige, the copper and
-     the navy respectively, and not one of them is green. They are used
+  /* THE PACE SCALE, and the green that --green-* is not (30 Aug 2026).
+     --green-light, --green-mid and --green-deep are misnamed aliases
+     carried over from the original mockup port: they resolve to a beige,
+     the copper and the navy, and not one of them is green. They are used
      72 times between them as those colours, so they cannot be corrected
-     without restyling the site - they are left exactly as they are.
+     without restyling the site - they stand exactly as they are.
 
-     --moss is the actual green, and it is not invented: #2A7A6A is
-     already in this stylesheet as the ink on the .bc-cat.tips badge, so
-     the hue is established. --moss-ink is the same hue darkened for
-     type, on the identical precedent as --rust/--rust-ink below:
-     #2A7A6A on --moss-pale measures 4.42:1, under the 4.5:1 this
-     project requires at pill sizes, where #23685A gives 5.65:1. */
-  --moss:#2A7A6A;--moss-pale:#E6F0EE;--moss-ink:#23685A;
+     The real pace scale already existed, but only on /journeys/[slug],
+     scoped to .jr-hero/.jr-claim/.jr-main and therefore invisible to
+     every other page. It is promoted here so the homepage day cards and
+     the journey day spine read ONE definition rather than two sets of
+     hexes that drift apart. journey-extra.css now aliases its --jr-*
+     names to these; the values are unchanged, so that page renders
+     exactly as it did.
+
+     -strip is the FILL (the 5px edge on a spine card, where no type sits
+     and contrast ratios don't apply); -ink is for type. Same split, and
+     the same reason, as --rust/--rust-ink below. */
+  --pace-packed-strip:#a8442a;--pace-packed-ink:#9c3f27;
+  --pace-moderate-strip:#8a6a1f;--pace-moderate-ink:#7d5f1a;
+  --pace-relaxed-strip:#20604a;--pace-relaxed-ink:#1c5641;
+  /* The pale green ground the "nobody has to drive" pill sits on.
+     #E6F0EE is already in this stylesheet on the .bc-cat.tips badge, so
+     the hue is established rather than invented; --pace-relaxed-ink on
+     it measures 7.35:1. */
+  --pace-relaxed-pale:#E6F0EE;
   /* The brand rust, in two forms. --rust is the FILL: pace strips, shape
      bars, swatches - shapes with no type on or in them, where contrast
      ratios simply don't apply. --rust-ink is the same hue darkened for

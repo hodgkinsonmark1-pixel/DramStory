@@ -1492,26 +1492,29 @@ a.hero-dream-card-navy:hover {
   overflow: hidden;
 }
 
-/* PACE, declared here rather than read from paceTone - see the note in
-   HomeDayPlans.tsx. Relaxed was rendering navy, which is why it read as
-   nothing next to Packed's rust; it is the real green now, and the three
-   sit as a scale: green, copper, rust. */
+/* PACE, from the SAME scale the journey day spine uses (30 Aug 2026,
+   the owner's call) - not paceTone, whose Relaxed pair resolves to the
+   navy and is why Relaxed read as nothing next to Packed's rust. Those
+   tokens now live in :root rather than scoped to the journey page, so a
+   day card here and a day card there cannot disagree about what Relaxed
+   looks like. Green, olive, rust. */
 .hdp-pace-relaxed {
-  color: var(--moss-ink);
+  color: var(--pace-relaxed-ink);
 }
 .hdp-pace-moderate {
-  color: var(--copper);
+  color: var(--pace-moderate-ink);
 }
 .hdp-pace-packed {
-  color: var(--rust-ink);
+  color: var(--pace-packed-ink);
 }
 
-/* And the one claim worth colouring finally is coloured. Was
-   --green-light on --green-deep, which resolves to navy type on a beige
-   ground - identical to every other pill on the card. */
+/* And the one claim worth colouring finally is coloured, in the same
+   green. Was --green-light on --green-deep, which resolves to navy type
+   on a beige ground - indistinguishable from every other pill on the
+   card. */
 .hdp-pill-good {
-  background: var(--moss-pale);
+  background: var(--pace-relaxed-pale);
   border-color: transparent;
-  color: var(--moss-ink);
+  color: var(--pace-relaxed-ink);
   font-weight: 600;
 }
