@@ -27,6 +27,12 @@ import {
  * the top, the other three in a row beneath it, all four stacked in one
  * column on a narrow screen.
  *
+ * The "Prefer to plan day by day?" line that used to close this section
+ * is GONE (30 Aug 2026). It was standing in for a day-plans section that
+ * did not exist; that section is now directly underneath this one and
+ * carries its own "Browse all sixteen" link, so the line was pointing
+ * past the thing it was pointing at.
+ *
  * 30 AUG 2026 - to the site owner's mockup, decisions taken in session:
  *   - Section heading is now "Four journeys, already planned" over an
  *     eyebrow, replacing "Curated routes / Classic journeys". The count
@@ -259,10 +265,6 @@ export default function ClassicJourneys({ journeys }: { journeys: Journey[] }) {
           </div>
         )}
       </div>
-
-      <p className="journeys-hub-link">
-        Prefer to plan day by day? <Link href="/days">Browse all Pre-Designed Days &rarr;</Link>
-      </p>
     </section>
   );
 }
