@@ -38,6 +38,12 @@ function cheapestTour(d: Distillery): Tour | undefined {
     .sort((a, b) => a.price - b.price)[0];
 }
 
+/** spellCount returns lower case, which is right mid-sentence and wrong
+ *  at the start of one. */
+function sentenceCase(word: string): string {
+  return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
 function bookableTours(d: Distillery): Tour[] {
   return d.tours.filter((t) => isPublishableTour(t) && t.price > 0);
 }
@@ -53,6 +59,13 @@ function bookableTours(d: Distillery): Tour[] {
  *  the site was verified within the last six weeks as of today - which is
  *  the point. It exists for the month nobody looks. */
 const STALE_AFTER_MONTHS = 6;
+
+/** The order the three featured cards appear in, which is editorial and
+ *  not Airtable's record order - the pick leads, the discovery sits in
+ *  the middle, the newcomer closes. Without this the row came out
+ *  Kilchoman, Ardnahoe, Ardbeg, which is just the order those rows
+ *  happen to sit in the table. */
+const BADGE_ORDER = ["Editor's Pick", "Hidden Gem", "Newest Opening"];
 
 function pricesAreStale(d: Distillery, now: Date): boolean {
   const tours = bookableTours(d);
@@ -126,9 +139,9 @@ function DistilleryCard({ distillery: d, stale }: { distillery: Distillery; stal
               <p className="hd-range">
                 {tours.length === 1
                   ? "One tour"
-                  : `${spellCount(tours.length)} tours, ${formatPrice(cheapest.price)} – ${formatPrice(
-                      dearest!.price
-                    )}`}
+                  : `${sentenceCase(spellCount(tours.length))} tours, ${formatPrice(
+                      cheapest.price
+                    )} – ${formatPrice(dearest!.price)}`}
                 {cafe ? ` · ${cafe}` : ""}
               </p>
             </>
@@ -140,9 +153,11 @@ function DistilleryCard({ distillery: d, stale }: { distillery: Distillery; stal
         <Link className="hd-link" href={`/distilleries/${d.slug}`}>
           {stale
             ? "Current times & prices"
-            : tours.length > 1
-              ? `See all ${spellCount(tours.length)} and book`
-              : "Times & prices"}{" "}
+            : tours.length === 2
+              ? "See both and book"
+              : tours.length > 2
+                ? `See all ${spellCount(tours.length)} and book`
+                : "Times & prices"}{" "}
           &rarr;
         </Link>
       </div>
@@ -162,7 +177,10 @@ export default function HomeDistilleries({
   // Featured = whichever carry a badge, in Airtable's own order, capped
   // at three. "the rest" is genuinely everything else, so a distillery
   // can never fall out of this section entirely by losing its badge.
-  const featured = distilleries.filter((d) => d.homepageBadge).slice(0, 3);
+  const featured = distilleries
+    .filter((d) => d.homepageBadge)
+    .sort((a, b) => BADGE_ORDER.indexOf(a.homepageBadge!) - BADGE_ORDER.indexOf(b.homepageBadge!))
+    .slice(0, 3);
   const featuredSlugs = new Set(featured.map((d) => d.slug));
   const rest = distilleries.filter((d) => !featuredSlugs.has(d.slug));
 
