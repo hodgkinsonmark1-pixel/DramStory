@@ -221,3 +221,6 @@ already done are the worked example.
 <!-- Day four narrative close rewritten 30 Aug 2026 - it ended on the
      same thirteen words as its own Hook. Airtable-only, so this commit
      exists to bust the ISR cache. -->
+
+<!-- Card Note written for all four Featured Stays 30 Aug 2026.
+     Airtable-only, so this commit exists to bust the ISR cache. -->
