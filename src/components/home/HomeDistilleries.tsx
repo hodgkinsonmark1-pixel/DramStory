@@ -234,7 +234,7 @@ export default function HomeDistilleries({
 
       {journalPost && (
         <Link className="hd-journal" href={`/journal/${journalPost.slug}`}>
-          <span className="hd-journal-eyebrow">From the journal</span>
+          <span className="hd-journal-eyebrow">From the blog</span>
           <span className="hd-journal-title">{journalPost.title}</span>
           {/* No reading time on JournalPost, and the homepage is not the
               place to start estimating one from the body text. */}
