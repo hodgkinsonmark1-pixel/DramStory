@@ -234,6 +234,13 @@ export interface FeaturedStay {
   /** Plain text for now, e.g. "Port Ellen" - becomes a real linked field
    *  once an Areas table exists (see docs/deferred-features.md). */
   nearestArea?: string;
+  /** One short, concrete line for the homepage "Where to stay" card -
+   *  the detail that separates this stay from the other three. Added 30
+   *  Aug 2026. Undefined when the cell is blank, in which case the card
+   *  renders without the line rather than inventing one; every claim in
+   *  it has to trace to this record's own sourced fields or the hotel's
+   *  own site, and the Airtable column's description says so. */
+  cardNote?: string;
   bookingUrl?: string;
   /** The hotel's own official website - shown only when it differs from
    *  Booking URL, same deliberate external-link exception as Distillery/

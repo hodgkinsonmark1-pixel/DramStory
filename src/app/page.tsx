@@ -46,13 +46,14 @@ export default async function HomePage() {
           the `days` already fetched above for the hero - no second
           Airtable round-trip. */}
       <HomeDayPlans days={days} />
-      <FeaturedContent distilleries={distilleries} localEvents={localEvents} />
-      {/* Moved here from the /journey workspace's own below-map section
-          (11 Aug 2026, Mark's request) - that section is hidden now
-          /journey is a secondary page post-pivot, so "Where to stay" and
-          "Before you go" (TripEssentials) live on the homepage instead,
-          right after "Get to know Islay" and before the Journal. */}
+      {/* Where to stay sits directly under the day plans (30 Aug 2026,
+          Mark's layout): the three planning steps - a whole journey, a
+          single day, a bed - run together, and discovery comes after
+          them rather than between them. It was previously below "Get to
+          know Islay", which put a browse section in the middle of the
+          decision. */}
       <WhereToStay areas={areas} featuredStays={featuredStays} />
+      <FeaturedContent distilleries={distilleries} localEvents={localEvents} />
       <TripEssentials />
       <LatestJournal posts={journalPosts} />
       <Footer />
