@@ -652,7 +652,7 @@ export interface Journey {
    *  to draw a range and falls back to the pending state otherwise. */
   accommodationPeakPerNight?: number;
   /** Indicative car hire cost per day. Deliberately undefined where a
-   *  car isn't needed at all (The South Coast Walk) - which is NOT the
+   *  car isn't needed at all (The Kildalton Road) - which is NOT the
    *  same as "not yet priced", so the sidebar distinguishes the two by
    *  also checking whether every day is walkable. Never a zero. */
   carHirePerDay?: number;
@@ -678,9 +678,11 @@ export interface Journey {
     toBaseMinutes?: number;
     /** Whether each of those two legs was WALKED. Not the same question
      *  as `transferMode` below: a transfer that routes under 600m is
-     *  walked even on a Drive journey (The Islay Grand Tour's day 5 is
-     *  Port Ellen distillery, from a base in Port Ellen), so the mode
-     *  describes the journey's intent and this describes the leg.
+     *  walked even on a Drive journey (the case that prompted it was the
+     *  Islay Grand Tour's old day five, Port Ellen distillery from a
+     *  base in Port Ellen - unlinked 30 Aug 2026, but the rule is not
+     *  about that day), so the mode describes the journey's intent and
+     *  this describes the leg.
      *  Undefined on a Journey Day not recomputed since that rule landed,
      *  in which case readers fall back to `transferMode`. */
     fromBaseWalked?: boolean;

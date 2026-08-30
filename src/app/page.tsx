@@ -1,5 +1,6 @@
 import Hero from "@/components/Hero";
 import ClassicJourneys from "@/components/home/ClassicJourneys";
+import HomeDayPlans from "@/components/home/HomeDayPlans";
 import FeaturedContent from "@/components/home/FeaturedContent";
 import WhereToStay from "@/components/home/WhereToStay";
 import TripEssentials from "@/components/journey/TripEssentials";
@@ -39,6 +40,12 @@ export default async function HomePage() {
           getDays() already calls it internally too). */}
       <Hero days={days} distilleries={distilleries} journalPosts={journalPosts} localFeatures={localFeatures} />
       <ClassicJourneys journeys={journeys} />
+      {/* Day plans sit directly under the journeys, per the owner's
+          30 Aug 2026 layout: the whole-trip commitment first, the
+          one-day-at-a-time alternative immediately after it. Reuses
+          the `days` already fetched above for the hero - no second
+          Airtable round-trip. */}
+      <HomeDayPlans days={days} />
       <FeaturedContent distilleries={distilleries} localEvents={localEvents} />
       {/* Moved here from the /journey workspace's own below-map section
           (11 Aug 2026, Mark's request) - that section is hidden now

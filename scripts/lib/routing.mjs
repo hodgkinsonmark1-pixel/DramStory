@@ -56,10 +56,11 @@ export const WALKING_SPEED_KMH = 3.75;
 /** A TRANSFER leg shorter than this is walked whatever the Journey's
  *  `Transfer Mode` says, because nobody gets a car out for it.
  *
- *  Islay Grand Tour day 5 is why this exists. It is based in Port Ellen
- *  and its day 5 is Port Ellen distillery — the same village — so the
- *  journey's Drive transfer mode produced "a 1 minute drive" over a few
- *  hundred metres, which is both daft to read and wrong: you would find
+ *  The Islay Grand Tour's old day 5 is why this exists. It was based in
+ *  Port Ellen and that day was Port Ellen distillery — the same village
+ *  — so the journey's Drive transfer mode produced "a 1 minute drive"
+ *  over a few hundred metres, which is both daft to read and wrong: you
+ *  would find
  *  the car, reverse it out and park it again in less time than the walk
  *  takes. 600m is the site owner's line, chosen as comfortably under the
  *  shortest transfer anyone would sensibly drive and comfortably over the

@@ -1050,7 +1050,7 @@ export interface AirtableJourneyFields {
   "Accommodation Peak (per night)"?: number;
   /** Indicative car hire per day. Blank means one of two DIFFERENT
    *  things and the sidebar has to tell them apart: "no car needed"
-   *  (The South Coast Walk, every day walkable) or "not priced yet"
+   *  (The Kildalton Road, every day walkable) or "not priced yet"
    *  (the Bridgend journeys). Added 17 Aug 2026. */
   "Car Hire Per Day"?: number;
   /** One factual sentence under the sidebar route map. Written in
@@ -1078,7 +1078,7 @@ export interface AirtableJourneyFields {
    *  overriding both the `Base` village's Areas centroid and `Base Stay`.
    *  Both halves are required; one on its own is ignored.
    *
-   *  Populated 17 Aug 2026 for The South Coast Walk only. Port Ellen's
+   *  Populated 17 Aug 2026 for The Kildalton Road only. Port Ellen's
    *  Areas centroid (55.629332, -6.188077) sits about 360m west of where
    *  the Three Distilleries Pathway actually starts, so every transfer on
    *  that journey was being measured across half a village the visitor

@@ -100,8 +100,9 @@ export function journeyPacingSummary(journey: Journey): string {
  *  saying out loud ("both in Port Ellen"); three or more isn't.
  *
  *  Counts PRICED nights only (`Nights`), never the authored Night Notes
- *  lines - the Grand Tour's stat reads five, and its optional sixth
- *  night appears in the spine without being counted here. */
+ *  lines. Since 30 Aug 2026 no journey authors more lines than it
+ *  prices, so the two agree everywhere today - the distinction is kept
+ *  because it is the honest rule, not because a journey exercises it. */
 export function journeyNightsStatLabel(journey: Journey): string {
   const noun = journey.nights === 1 ? "night" : "nights";
   if (!journey.base) return noun;
@@ -233,9 +234,11 @@ export function journeyNightCounts(journey: Journey): { total: number; priced: n
  * is never billed and never counted. Placement is separate, and comes
  * from the day count above.
  *
- * All four real journeys line up: Grand Tour 5 days, 6 authored nights,
- * 5 priced (the sixth sits after day five and is optional); South Coast
- * Walk 2/2/2; Rhinns Trail 3/3/3; Hidden Coast 2/2/2.
+ * All four real journeys line up: Grand Tour 4 days, 5 authored nights,
+ * 5 priced - the Port Ellen day was unlinked on 30 Aug 2026 and the day
+ * after the last one became the sail home from Port Askaig, so there is
+ * no optional night on any journey any more; Kildalton Road 2/2/2;
+ * Rhinns Trail 3/3/3; Hidden Coast 2/2/2.
  *
  * What this replaces, and why: the first version packed the nights into
  * the gaps BETWEEN day cards and then appended whatever was left over
@@ -361,9 +364,12 @@ export function journeyBaseFor(
  *
  *  `nights` here is the Journey's `Nights`, which is the count of PRICED
  *  nights and deliberately not the number of nights the spine renders
- *  (17 Aug 2026). The Grand Tour offers six and prices five, so this
- *  quotes five - charging for a night the page itself calls optional
- *  would be the sort of quiet padding this sidebar exists to avoid. */
+ *  (17 Aug 2026). No journey offers more than it prices today - the
+ *  Grand Tour's optional sixth went with the Port Ellen day on 30 Aug
+ *  2026 - so this quotes the same number the spine renders. The rule
+ *  stands for the next journey that needs it: charging for a night the
+ *  page itself calls optional would be the sort of quiet padding this
+ *  sidebar exists to avoid. */
 export function journeyAccommodationRange(
   journey: Journey
 ): { low: number; high: number; nights: number } | undefined {
@@ -375,8 +381,9 @@ export function journeyAccommodationRange(
 /** Car hire, which has THREE states, not two - and the difference between
  *  the last two matters:
  *   - priced:     a real per-day rate × this journey's days
- *   - not-needed: no rate AND every day walkable end to end. The South
- *                 Coast Walk needs no car, and saying so is a feature.
+ *   - not-needed: no rate AND every day walkable end to end. The
+ *                 Kildalton Road needs no car, and saying so is a
+ *                 feature.
  *   - pending:    no rate, and the journey does involve driving. We don't
  *                 know what it costs, so we say that instead of implying
  *                 a car isn't needed. */
@@ -687,9 +694,11 @@ export interface CostRow {
 }
 
 /** Every day that spends anything, sorted by spend descending - the whole
- *  point of the block. Port Ellen is 47% of the Grand Tour's tour spend
- *  and happens on one morning; five numbers in day order never show that,
- *  and a bar sorted by day order doesn't either.
+ *  point of the block. The case that proved it was Port Ellen at 47% of
+ *  the Grand Tour's tour spend on a single day; that day was unlinked on
+ *  30 Aug 2026, and Bowmore's £100 tasting now carries 36% of what is
+ *  left. Numbers in day order never show that, and a bar sorted by day
+ *  order doesn't either.
  *
  *  `share` is that day's fraction of the total, 0-1, computed rather than
  *  authored. Days that book nothing are dropped, not drawn at zero. */
@@ -815,16 +824,66 @@ export function journeyClaimStats(
   return stats;
 }
 
-/** The Accommodation Note, cut to its first sentence for the base row
- *  above night one. Those notes run to a paragraph on the longer
- *  journeys (the Grand Tour's is five sentences and covers the optional
- *  sixth night), and the base row is a single line beside a village name.
- *  The full note still has a home - it is what nightNoteFor falls back to
- *  when a journey authors no Night Notes at all. */
+/** The Accommodation Note's opening sentence - the base row above night
+ *  one is one line beside a village name, so the lead sentence is what
+ *  fits in it.
+ *
+ *  30 AUG 2026, AND THIS IS THE POINT OF THE PAIR: everything after that
+ *  sentence used to go nowhere. The claim in this comment that "the full
+ *  note still has a home - it is what nightNoteFor falls back to" was
+ *  FALSE for every journey that authors Night Notes, which is all four of
+ *  them: nightNoteFor only reaches accommodationNote when nightNotesLines
+ *  is empty. So on the Grand Tour, four authored sentences - including
+ *  the only statement anywhere that the boat home leaves from Port Askaig
+ *  and not the closed terminal in Port Ellen - were stored, reviewed, and
+ *  silently discarded at render.
+ *
+ *  A field that quietly drops what an editor writes into it is worse than
+ *  a field that renders it badly: the copy passes review, ships, and
+ *  nobody can tell from the page that it is missing. So firstSentence now
+ *  has a partner, and the caller renders both. */
 export function firstSentence(text: string): string {
   const trimmed = text.trim();
   const match = trimmed.match(/^[^.!?]+[.!?]/);
   return match ? match[0].trim() : trimmed;
+}
+
+/** Everything after the lead sentence firstSentence returns - empty when
+ *  the note is a single sentence, in which case the caller renders
+ *  nothing rather than an empty paragraph.
+ *
+ *  firstSentence(t) + " " + restAfterFirstSentence(t) reconstitutes the
+ *  whole trimmed note, which is the property assertNothingDropped checks
+ *  in development. Keep it that way: the two functions exist to be
+ *  exhaustive together. */
+export function restAfterFirstSentence(text: string): string {
+  const trimmed = text.trim();
+  return trimmed.slice(firstSentence(trimmed).length).trim();
+}
+
+/** Development-only tripwire for the bug above: shout when a field's
+ *  authored content is not fully accounted for by the strings a page
+ *  actually renders from it.
+ *
+ *  Deliberately a warning and not a throw - a missing sentence should
+ *  never take a page down, and an editor mid-draft in Airtable should not
+ *  break the dev server. Compares on non-whitespace characters so that
+ *  re-wrapping, joining or re-punctuating between field and page is not
+ *  reported, and only genuinely absent copy is.
+ *
+ *  No-ops in production: this is a signal for whoever is changing the
+ *  template, not a runtime check on visitors' behalf. */
+export function assertNothingDropped(label: string, authored: string, rendered: string[]): void {
+  if (process.env.NODE_ENV === "production") return;
+  const strip = (t: string) => t.replace(/\s+/g, "");
+  const whole = strip(authored);
+  if (!whole) return;
+  const shown = strip(rendered.join(""));
+  if (shown.length >= whole.length) return;
+  console.warn(
+    `[authored content] ${label}: ${whole.length - shown.length} of ${whole.length} characters ` +
+      `are stored but never rendered. Either render them or stop asking an editor to write them.`
+  );
 }
 
 /** relaxed | moderate | packed - the CSS suffix behind the 5px strip down

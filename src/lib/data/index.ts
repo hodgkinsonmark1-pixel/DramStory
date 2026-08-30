@@ -403,7 +403,7 @@ async function fetchDaysFromAirtable(): Promise<HubDay[]> {
  *  (the new per-day detail page, added 13 Aug 2026). Deliberately
  *  ungated, unlike getDays() above: a Day reachable from inside a Journey
  *  (via its "Open the day →" link) can itself be Status: Draft - "The
- *  South Coast Walk"'s Day 1 ("Two Miles Apart") is exactly this case
+ *  Kildalton Road"'s Day 1 ("Two Miles Apart") is exactly this case
  *  (see /journeys/[slug]'s own doc comment on the same reasoning) - so
  *  gating this page on Status would silently 404 a day a Journey page
  *  just linked to. Same "never leak a draft onto the live site" concern

@@ -23,6 +23,8 @@ import {
   dayMoneyNote,
   dayTourTotal,
   firstSentence,
+  restAfterFirstSentence,
+  assertNothingDropped,
   journeyAccommodationRange,
   journeyBaseFor,
   journeyCarHire,
@@ -68,12 +70,18 @@ import type { HubDay, ItineraryStop, Journey, SeasonalWindow } from "@/lib/types
  *    ONE button, not two - two equal buttons forced a choice before
  *    anyone knew what either did - with the two alternatives demoted to
  *    text links beneath it. And a new cost block, whose whole reason for
- *    existing is that Port Ellen is 47% of the Grand Tour's tour spend
- *    on one morning and five stacked numbers never showed that.
+ *    existing is that one stop can dominate a journey's tour spend and a
+ *    column of stacked numbers never shows it. (The case that proved it
+ *    was Port Ellen at 47% of the Grand Tour - unlinked from the journey
+ *    on 30 Aug 2026, so the block's sharpest example is now Bowmore's
+ *    £100 tasting at 36% of £277.50.)
  *
  *  4 WAYS OUT. "Make it yours" is now "Not quite right?" - same three
  *    Airtable cards, read as three honest reasons this journey might not
- *    suit you rather than three upsells.
+ *    suit you rather than three upsells. The heading and its count are
+ *    hardcoded here and cannot be overridden from Airtable, so a row
+ *    authored as an upsell ("Add X") reads against the frame it sits in.
+ *    Rows belong phrased as limitations of THIS journey.
  *
  * NO MONEY FIGURE ON THIS PAGE IS TYPED. The claim band's floor, every
  * day's "starts at", every row of the proportion bar and all four
@@ -81,13 +89,15 @@ import type { HubDay, ItineraryStop, Journey, SeasonalWindow } from "@/lib/types
  * prices and real per-distillery floors. See journeyTourFloor.
  *
  * JUDGEMENT CALLS made this pass (flagged):
- *  - THE FLOOR COMES OUT AT £435.50 for The Islay Grand Tour, not the
- *    £395 the spec quotes. Ten distilleries, cheapest publishable tour at
- *    each: Ardnahoe £15, Kilchoman £18, Bunnahabhain £20, Bowmore £20,
- *    Caol Ila £21, Laphroaig £22, Lagavulin £22, Ardbeg £22.50,
- *    Bruichladdich £25, Port Ellen £250. The spec is explicit that this
- *    must be computed and never typed, so the computed figure ships and
- *    the difference is reported rather than reconciled with a constant.
+ *  - THE FLOOR IS COMPUTED, NOT TYPED, and it moves. When this pass
+ *    landed it came out at £435.50 for The Islay Grand Tour against the
+ *    £395 the spec quoted, over ten distilleries including Port Ellen at
+ *    £250. Since that day was unlinked (30 Aug 2026) the same function
+ *    sums nine - Ardnahoe £15, Kilchoman £18, Bunnahabhain £20, Bowmore
+ *    £20, Caol Ila £21, Laphroaig £22, Lagavulin £22, Ardbeg £22.50,
+ *    Bruichladdich £25 - and the page prints whatever that is today.
+ *    Reporting the difference rather than reconciling it with a constant
+ *    is the whole point: a typed figure would still say £435.50.
  *  - PLACEHOLDER TOURS are skipped when finding the cheapest, per the
  *    spec - and so is any tour priced at zero, which is a blank Price
  *    cell rather than a free tour (Port Ellen Open Days). See
@@ -442,6 +452,39 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
     })
     .filter((c): c is NonNullable<typeof c> => c !== null);
 
+  // Dropping a row rather than rendering a 404 is right. Dropping it
+  // WITHOUT SAYING SO is what cost us a card: on 30 Aug 2026 a journey
+  // was renamed, this journey's first row went on pointing at the old
+  // slug, and the section quietly rendered two cards where three were
+  // authored - correctly, silently, and wrongly. The count in the
+  // heading comes from waysOut.length too, so even that read "two" and
+  // looked deliberate. Same failure as the Accommodation Note
+  // truncation: authored copy discarded with nothing on the page or in
+  // the log to show it.
+  if (process.env.NODE_ENV !== "production" && waysOut.length < journey.makeItYours.length) {
+    const dropped = journey.makeItYours
+      .filter((card) => !daySlugs.has(card.linkSlug) && !journeySlugs.has(card.linkSlug))
+      .map((card) => card.linkSlug);
+    console.warn(
+      `[authored content] Journey "${journey.slug}" Make It Yours: ${dropped.length} row(s) ` +
+        `dropped because their slug matches no live Day or Journey - ${dropped.join(", ")}. ` +
+        `Fix the slug or delete the row; the section is silently shorter until you do.`
+    );
+  }
+
+  // Both halves of the Accommodation Note, and a development-only check
+  // that between them they account for all of it. This is the pair that
+  // replaced a silent truncation - see firstSentence in
+  // journey-derivations.ts for what was being dropped and why it
+  // mattered.
+  const baseNoteRest = journey.accommodationNote
+    ? restAfterFirstSentence(journey.accommodationNote)
+    : "";
+  assertNothingDropped(`Journey "${journey.slug}" Accommodation Note`, journey.accommodationNote, [
+    firstSentence(journey.accommodationNote ?? ""),
+    baseNoteRest,
+  ]);
+
   const nightsWord = ordinalWord(journey.nights).toLowerCase();
   // Counted, not typed: "the fifteen days" is however many Days the hub
   // actually publishes today.
@@ -541,19 +584,31 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
 
           {/* THE BASE ROW. Where you sleep, said once, above the first
               night - rather than repeated on every night connector the
-              way it was until 18 Aug 2026. */}
+              way it was until 18 Aug 2026.
+
+              30 Aug 2026: the row itself is still one line, but the rest
+              of the Accommodation Note now renders UNDER it instead of
+              being thrown away by firstSentence. Those notes carry real
+              logistics - on the Grand Tour, the fact that the boat home
+              goes from Port Askaig rather than the closed terminal in
+              Port Ellen - and until today none of it reached the page.
+              See firstSentence/restAfterFirstSentence for the full
+              account. */}
           {journey.base && (
-            <div className="jr-base-row">
-              <span className="jr-base-label">Every night</span>
-              <span className="jr-base-place">{journey.base}</span>
-              {journey.accommodationNote && (
-                <span className="jr-base-note">{firstSentence(journey.accommodationNote)}</span>
-              )}
-              {stayLink && (
-                <Link href={stayLink.href} className="jr-link jr-base-link">
-                  {stayLink.label} &rarr;
-                </Link>
-              )}
+            <div className="jr-base-block">
+              <div className="jr-base-row">
+                <span className="jr-base-label">Every night</span>
+                <span className="jr-base-place">{journey.base}</span>
+                {journey.accommodationNote && (
+                  <span className="jr-base-note">{firstSentence(journey.accommodationNote)}</span>
+                )}
+                {stayLink && (
+                  <Link href={stayLink.href} className="jr-link jr-base-link">
+                    {stayLink.label} &rarr;
+                  </Link>
+                )}
+              </div>
+              {baseNoteRest && <p className="jr-base-more">{baseNoteRest}</p>}
             </div>
           )}
 
