@@ -171,3 +171,9 @@ uses (a clause starting "car" means a car), which is brittle by nature
 and known to be - it returns five days today, and it is documented as
 conservative: "Car, or walk it from Port Ellen" counts as needing a car
 even though it is walkable.
+
+<!-- Homepage journeys/days sections: Airtable content synced 30 Aug 2026
+     (Grand Tour Card Description ten -> nine distilleries; Port Ellen day
+     Hook corrected). Touched to bust the ISR cache so the branch preview
+     renders the new values - see docs/technical-notes.md on why an
+     Airtable-only change needs a commit behind it. -->
