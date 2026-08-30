@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { HubDay } from "@/lib/types";
 import { paceTone } from "@/lib/day-derivations";
-import { dayTourTotal, formatTourPrice } from "@/lib/journey-derivations";
+import { dayTourTotal, formatTourPrice, spellCount } from "@/lib/journey-derivations";
 
 /**
  * "Or take one day at a time" - the homepage's day-plans section, new on
@@ -59,7 +59,21 @@ import { dayTourTotal, formatTourPrice } from "@/lib/journey-derivations";
 const BUS_TIMETABLE_URL =
   "https://www.argyll-bute.gov.uk/roads-and-travel/roads-and-travel/public-transport-timetables/bus-travel#islay-and-jura";
 
-type FilterId = "all" | "relaxed" | "no-car";
+type FilterId = "all" | "relaxed" | "no-car" | "under-50";
+
+/** The price a day has to come in under to count as the cheap way in.
+ *  Splits the sixteen days 4/12 today, which is what makes it worth a
+ *  chip - a threshold that caught fourteen of them would filter nothing.
+ *  Named rather than inlined so the number is in one place when the
+ *  tour prices move it. */
+const CHEAP_DAY_CEILING = 50;
+
+/** How many day cards the homepage shows at once, per the owner's
+ *  mockup (30 Aug 2026). The section is a taste of the hub, not a copy
+ *  of it: the chips still count the WHOLE matching set, so a chip
+ *  reading "Relaxed 9" over three cards is an invitation to the hub
+ *  rather than a miscount. "Browse all sixteen" is the way through. */
+const CARDS_SHOWN = 3;
 
 /** Whether a day can be done without hiring a car.
  *
@@ -155,18 +169,37 @@ export default function HomeDayPlans({ days }: { days: HubDay[] }) {
 
   const relaxed = useMemo(() => days.filter((d) => d.pacing === "Relaxed"), [days]);
   const carFree = useMemo(() => days.filter(isCarFree), [days]);
+  // A day with no priced tour at all (Jura today) is NOT cheap, it is
+  // unpriced - so it stays out rather than sorting to the top of a
+  // price filter on a zero nobody entered.
+  const cheap = useMemo(
+    () => days.filter((d) => {
+      const total = dayTourTotal(d);
+      return total > 0 && total < CHEAP_DAY_CEILING;
+    }),
+    [days]
+  );
 
-  const shown = filter === "relaxed" ? relaxed : filter === "no-car" ? carFree : days;
+  const matching =
+    filter === "relaxed"
+      ? relaxed
+      : filter === "no-car"
+        ? carFree
+        : filter === "under-50"
+          ? cheap
+          : days;
+  const shown = matching.slice(0, CARDS_SHOWN);
 
   if (days.length === 0) return null;
 
-  // Counts are rendered, never typed - a chip that offers a filter says
-  // how many it will leave you with, and is hidden entirely when it
-  // would leave you with none.
+  // Counts are rendered, never typed, and they count the WHOLE matching
+  // set rather than the three cards on screen - see CARDS_SHOWN. A chip
+  // is hidden entirely when it would match nothing.
   const chips: { id: FilterId; label: string; count: number }[] = [
-    { id: "all", label: "All days", count: days.length },
+    { id: "all", label: `All ${spellCount(days.length)}`, count: days.length },
     { id: "relaxed", label: "Relaxed", count: relaxed.length },
     { id: "no-car", label: "Nobody has to drive", count: carFree.length },
+    { id: "under-50", label: `Under ${formatTourPrice(CHEAP_DAY_CEILING)}pp`, count: cheap.length },
   ];
 
   return (
@@ -177,8 +210,10 @@ export default function HomeDayPlans({ days }: { days: HubDay[] }) {
           {/* No count here, deliberately - see the file comment. */}
           <h2 className="how-title">Days, ready to drop into a trip</h2>
         </div>
+        {/* Counted, never typed - publish a seventeenth Day and this
+            says seventeen on the next build. */}
         <Link className="hdp-browse" href="/days">
-          Browse them all &rarr;
+          Browse all {spellCount(days.length)} &rarr;
         </Link>
       </div>
 
