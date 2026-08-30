@@ -128,7 +128,14 @@ function JourneyCard({ journey, lead = false }: { journey: Journey; lead?: boole
   // today) drops the clause rather than printing "0 nights", same rule
   // the count already follows - and the tours subtotal drops the same
   // way rather than printing a zero for a journey nobody has priced yet.
+  // 30 Aug 2026, to the owner's mockup: on the LEAD card the region is a
+  // badge over the photograph; on the three smaller cards it folds into
+  // the meta line instead of owning a line of its own above it. Same
+  // string either way - Region Label, untouched - only where it sits.
+  // That is one line less per small card, which is most of why the
+  // mockup reads tighter than the first build did.
   const meta = [
+    !lead && journey.regionLabel ? journey.regionLabel : null,
     journey.nights > 0 ? `${journey.nights} ${journey.nights === 1 ? "night" : "nights"}` : null,
     distilleries > 0 ? `${distilleries} ${distilleries === 1 ? "distillery" : "distilleries"}` : null,
     tourTotal > 0 ? `${formatTourPrice(tourTotal)}pp in tours` : null,
@@ -165,11 +172,13 @@ function JourneyCard({ journey, lead = false }: { journey: Journey; lead?: boole
             sizes={lead ? "(max-width: 760px) 100vw, 480px" : "(max-width: 760px) 100vw, 320px"}
             style={{ objectFit: "cover" }}
           />
+          {lead && journey.regionLabel && (
+            <span className="cj-card-badge">{journey.regionLabel}</span>
+          )}
           {journey.heroImageCredit && <PhotoCredit credit={journey.heroImageCredit} />}
         </div>
       )}
       <div className="cj-card-body">
-        {journey.regionLabel && <div className="cj-card-kicker">{journey.regionLabel}</div>}
         {meta.length > 0 && <div className="cj-card-meta">{meta.join(" · ")}</div>}
         {/* The link is on the title, and its ::after covers the whole
             card - so the card is clickable everywhere without wrapping
@@ -218,8 +227,10 @@ export default function ClassicJourneys({ journeys }: { journeys: Journey[] }) {
 
   return (
     <section className="journeys-section" id="classic-journeys">
-      <div className="how-eyebrow">If you&rsquo;d rather not build it yourself</div>
-      <h2 className="how-title">{heading}</h2>
+      <div className="cj-head">
+        <div className="how-eyebrow">If you&rsquo;d rather not build it yourself</div>
+        <h2 className="how-title">{heading}</h2>
+      </div>
 
       <div className="cj-layout">
         <JourneyCard journey={lead} lead />

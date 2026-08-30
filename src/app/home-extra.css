@@ -62,6 +62,33 @@
   background: var(--off-white);
   padding: 64px 24px;
 }
+/* SECTION HEAD (30 Aug 2026, to the owner's mockup). Left-aligned over a
+   rule, rather than the centred head the other homepage sections use.
+   SCOPED DELIBERATELY: .how-eyebrow and .how-title are text-align:center
+   and shared with Where to stay, Get to know Islay, Before you go and
+   the Journal, none of which were part of this brief - so the override
+   lives on the wrapper and cannot reach them. */
+.cj-head,
+.hdp-head-text {
+  max-width: 960px;
+  margin: 0 auto;
+}
+.cj-head .how-eyebrow,
+.cj-head .how-title,
+.hdp-head-text .how-eyebrow,
+.hdp-head-text .how-title {
+  text-align: left;
+}
+.cj-head .how-title,
+.hdp-head-text .how-title {
+  margin-bottom: 0;
+}
+.cj-head {
+  padding-bottom: 14px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--dark);
+}
+
 /* CLASSIC JOURNEYS (rebuilt 17 Aug 2026, the site owner's own layout):
    the lead journey full-width across the top, the other three in a row
    beneath it, everything in one column below 760px. Replaces the old
@@ -278,6 +305,63 @@ a.cj-card-credit:hover {
   .cj-chip {
     font-size: 10px;
     padding: 4px 8px;
+  }
+}
+
+
+/* TIGHTENING PASS (30 Aug 2026), measured off the owner's mockup rather
+   than eyeballed. Four changes, all geometry:
+     - lead photo 46% -> 40% of the card, which is where the mockup puts
+       the split and gives the copy the room it was short of;
+     - small-card photos were 16/10 and are much shorter in the mockup,
+       roughly 8/3 - they are a band above the text, not a picture in
+       their own right;
+     - body padding down a few pixels throughout;
+     - the region badge, which is why the lead card's body starts at the
+       meta line now instead of a kicker. */
+.cj-card-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--dark);
+  color: var(--off-white);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.cj-row .cj-card-media {
+  aspect-ratio: 8 / 3;
+}
+.cj-row .cj-card-body {
+  padding: 14px 18px 18px;
+}
+/* Region now rides in the meta line on the small cards, so it carries
+   the mockup's quieter treatment rather than the copper kicker's. */
+.cj-row .cj-card-meta {
+  text-transform: lowercase;
+  font-weight: 500;
+  color: var(--slate);
+}
+.cj-row .cj-card-desc {
+  margin-bottom: 10px;
+}
+.cj-card-names {
+  margin-bottom: 12px;
+}
+@media (min-width: 761px) {
+  .cj-card-lead .cj-card-media {
+    flex: 0 0 40%;
+    min-height: 268px;
+  }
+  .cj-card-lead .cj-card-body {
+    padding: 26px 30px;
+  }
+  .cj-chips {
+    margin-bottom: 14px;
   }
 }
 

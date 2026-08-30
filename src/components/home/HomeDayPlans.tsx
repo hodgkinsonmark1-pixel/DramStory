@@ -147,7 +147,7 @@ export default function HomeDayPlans({ days }: { days: HubDay[] }) {
   return (
     <section className="hdp-section" id="day-plans">
       <div className="hdp-head">
-        <div>
+        <div className="hdp-head-text">
           <div className="how-eyebrow">Or take one day at a time</div>
           {/* No count here, deliberately - see the file comment. */}
           <h2 className="how-title">Days, ready to drop into a trip</h2>
