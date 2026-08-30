@@ -416,7 +416,6 @@ export default function JourneyFlow({ timing, distilleriesPromise, localFeatures
   if (step === "interests") {
     return (
       <InterestsStep
-        distilleriesPromise={distilleriesPromise}
         localEventsPromise={localEventsPromise}
         journalPostsPromise={journalPostsPromise}
         journeysPromise={journeysPromise}

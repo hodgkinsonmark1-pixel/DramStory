@@ -2,17 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { Distillery, LocalEvent } from "@/lib/types";
+import type { LocalEvent } from "@/lib/types";
 import { REGIONS } from "@/lib/journey-options";
 
-// Same editorial curation DiscoverDistilleries used to show as its own
-// full section - now a compact preview column here instead, since that
-// standalone section was merged into "Get to know Islay".
-const EDITORIAL: Record<string, { tag: string; description: string }> = {
-  ardbeg: { tag: "Editor's Pick", description: "The peatiest dram on Islay — and the most celebrated." },
-  kilchoman: { tag: "Hidden Gem", description: "Islay's only farm distillery. Intimate, authentic, unmissable." },
-  ardnahoe: { tag: "Newest Opening", description: "Opened 2019 — already turning heads with its unpeated spirit." },
-};
+// EDITORIAL lived here until 30 Aug 2026 and is DELETED. It held three
+// distillery slugs and their descriptions as typed strings, which meant
+// the homepage's featured picks could only change by deploying code.
+// Both now come off the record - Homepage Badge and Tagline - and the
+// section itself moved to HomeDistilleries.tsx, above this one.
 
 function formatEventDate(iso: string): string {
   if (!iso) return "";
@@ -20,10 +17,8 @@ function formatEventDate(iso: string): string {
 }
 
 export default function FeaturedContent({
-  distilleries,
   localEvents,
 }: {
-  distilleries: Distillery[];
   localEvents: LocalEvent[];
 }) {
   // Region tabs (July 2026, revised 21 July 2026 for MVP scope). Only
@@ -40,9 +35,6 @@ export default function FeaturedContent({
   const [activeRegionId, setActiveRegionId] = useState(liveRegions[0]?.id ?? REGIONS[0].id);
   const activeRegion = REGIONS.find((r) => r.id === activeRegionId) ?? REGIONS[0];
 
-  const featuredDistilleries = Object.keys(EDITORIAL)
-    .map((slug) => distilleries.find((d) => d.slug === slug))
-    .filter((d): d is Distillery => !!d);
 
   const upcomingEvents = [...localEvents]
     .sort((a, b) => (a.date < b.date ? -1 : 1))
@@ -50,7 +42,7 @@ export default function FeaturedContent({
 
   return (
     <section className="featured-section">
-      <h2 className="how-title">Get to know {activeRegion.label}</h2>
+      <h2 className="how-title">What else is on</h2>
 
       {liveRegions.length > 1 && (
         <div className="featured-region-tabs">
@@ -68,32 +60,6 @@ export default function FeaturedContent({
 
       {activeRegion.live ? (
         <>
-          <div className="featured-col-title">Distilleries</div>
-          <div className="discover-grid featured-compact-grid">
-            {featuredDistilleries.map((d) => {
-              const editorial = EDITORIAL[d.slug];
-              return (
-                <Link href={`/distilleries/${d.slug}`} className="discover-card" key={d.slug}>
-                  <div className="discover-card-image" style={{ backgroundImage: `url(${d.image})` }} />
-                  <div className="discover-card-body">
-                    <div className="discover-card-tag">{editorial.tag}</div>
-                    <div className="discover-card-name">{d.name}</div>
-                    <p className="discover-card-desc">{editorial.description}</p>
-                    <div className="discover-card-footer">
-                      <span className="discover-card-meta">
-                        {d.region} &middot; Est. {d.founded}
-                      </span>
-                      <span className="discover-card-link">Explore &rarr;</span>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-          <Link href="/distilleries" className="featured-view-all">
-            View all distilleries &rarr;
-          </Link>
-
           <div className="featured-col-title">Events &amp; Experiences</div>
           {upcomingEvents.length > 0 ? (
             <div className="featured-events-list">

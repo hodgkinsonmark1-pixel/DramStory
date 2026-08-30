@@ -32,6 +32,13 @@ export interface Tour {
    *  price nobody has stood behind, and two of Bowmore's rows are
    *  flagged exactly that way. */
   verification?: string;
+  /** When this row's price and duration were last checked against the
+   *  distillery's own site, from the Tours table's own `Last Verified`.
+   *  Undefined when nobody has recorded a check, which is NOT the same
+   *  as an old one - see pricesAreStale in HomeDistilleries.tsx, which
+   *  treats a missing date as a sourcing gap rather than a stale price.
+   *  Mapped 30 Aug 2026; the column already existed and was populated. */
+  lastVerified?: string;
   /** The period in which this tour is not what the rest of its own entry
    *  says it is, and what changes - from the Tours table's own `Seasonal
    *  From` / `Seasonal To` / `Seasonal Note` (added 18 Aug 2026).
@@ -843,6 +850,18 @@ export interface Distillery {
    *  False is the safe default: Airtable omits an unchecked checkbox from
    *  the payload entirely, so missing means not open. */
   openToVisitors: boolean;
+  /** Which badge this distillery wears on the homepage, from the
+   *  Distilleries table's own Homepage Badge singleSelect - "Editor's
+   *  Pick", "Hidden Gem", "Newest Opening". Undefined on every
+   *  distillery that is not featured, which is most of them.
+   *
+   *  Added 30 Aug 2026, replacing an EDITORIAL object hardcoded in
+   *  FeaturedContent.tsx that held both the three slugs AND their
+   *  descriptions as typed strings - so changing which three the
+   *  homepage featured, or what they said, needed a code deploy. The
+   *  description now comes from Tagline, which every distillery already
+   *  has. */
+  homepageBadge?: string;
   source: DataSource;
 }
 

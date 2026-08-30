@@ -84,6 +84,7 @@ export interface AirtableDistilleryFields {
    *  publishes them - which is the whole point of the not-yet-open page
    *  variant. See Distillery.openToVisitors in types.ts. */
   "Open To Visitors"?: boolean;
+  "Homepage Badge"?: string;
 }
 
 export interface AirtableTourFields {
@@ -99,6 +100,7 @@ export interface AirtableTourFields {
    *  rows nobody stands behind. Two Bowmore alternatives are flagged
    *  Placeholder and would otherwise undercut a real published price. */
   Verification?: string;
+  "Last Verified"?: string;
   /** Inclusive ISO dates bounding a period in which this tour runs
    *  differently from the rest of this record - Laphroaig's and Ardbeg's
    *  silent seasons, Ardnahoe's summer maintenance shutdown. Blank on
@@ -256,6 +258,7 @@ export function mapTour(fields: AirtableTourFields): Tour {
     // Verbatim, trimmed, undefined when blank - never normalised into a
     // boolean here. See Tour.verification and isPublishableTour.
     verification: fields.Verification?.trim() || undefined,
+    lastVerified: fields["Last Verified"] || undefined,
     // All three or nothing. A window with no note has nothing to say,
     // and a note with no window can't be tested against a visitor's
     // dates - so it would have to be shown always or never, and "always"

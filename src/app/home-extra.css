@@ -1658,3 +1658,232 @@ a.hero-dream-card-navy:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   THE DISTILLERIES (30 Aug 2026, Mark's mockup). Three featured cards,
+   then every other distillery as a priced chip, then one journal line.
+   Same left-over-a-rule head as the journeys and stays sections.
+   ───────────────────────────────────────────────────────────────────── */
+.hd-section {
+  background: var(--off-white);
+  padding: 8px 24px 64px;
+}
+.hd-head-link {
+  color: var(--copper);
+  font-weight: 600;
+  text-decoration: none;
+}
+.hd-head-link:hover {
+  text-decoration: underline;
+}
+.hd-grid {
+  max-width: 960px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.hd-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: var(--radius);
+  border: 1px solid var(--stone);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out),
+    border-color 0.2s var(--ease-out);
+}
+.hd-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+  border-color: var(--green-mid);
+}
+.hd-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 5 / 2;
+  background: var(--stone);
+  flex: 0 0 auto;
+}
+/* Navy, not amber: this is an editorial label, not the visitor's own
+   choice the way "Your base" is on a stay card. */
+.hd-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--dark);
+  color: var(--off-white);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.hd-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px 16px;
+}
+.hd-where {
+  font-size: 11px;
+  color: var(--slate);
+  margin-bottom: 5px;
+}
+.hd-name {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--dark);
+  margin: 0 0 7px;
+  line-height: 1.2;
+}
+.hd-name a {
+  color: inherit;
+  text-decoration: none;
+}
+.hd-name a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.hd-tagline {
+  font-size: 12.5px;
+  color: var(--slate);
+  line-height: 1.5;
+  margin: 0 0 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* The money block, pinned to the bottom so prices line up across a row
+   whose taglines run to different lengths. */
+.hd-money {
+  margin-top: auto;
+  padding-top: 11px;
+  border-top: 1px solid var(--stone);
+}
+.hd-price {
+  margin: 0 0 3px;
+  font-size: 12.5px;
+  color: var(--slate);
+}
+.hd-price strong {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 600;
+  color: var(--dark);
+  margin-right: 5px;
+}
+.hd-range {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--slate);
+}
+/* The page has stopped quoting a price it can no longer stand behind. */
+.hd-stale {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--peat);
+}
+.hd-link {
+  margin-top: 10px;
+  align-self: flex-start;
+  position: relative;
+  z-index: 2;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--copper);
+  text-decoration: none;
+}
+.hd-card:hover .hd-link {
+  text-decoration: underline;
+}
+
+/* "And the rest" - every distillery not featured above, with the
+   cheapest tour it actually sells. */
+.hd-rest {
+  max-width: 960px;
+  margin: 20px auto 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.hd-rest-label {
+  font-size: 12px;
+  color: var(--slate);
+  margin-right: 2px;
+}
+.hd-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--stone);
+  background: white;
+  font-size: 12px;
+  color: var(--peat);
+  text-decoration: none;
+  transition: border-color 0.2s var(--ease-out);
+}
+.hd-chip:hover {
+  border-color: var(--green-mid);
+}
+.hd-chip-price {
+  font-weight: 600;
+  color: var(--dark);
+}
+
+/* One journal piece, as a single line rather than a card - it is a
+   footnote to the section, not a fourth thing to choose between. */
+.hd-journal {
+  max-width: 960px;
+  margin: 22px auto 0;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 15px 18px;
+  background: white;
+  border: 1px solid var(--stone);
+  border-radius: var(--radius);
+  text-decoration: none;
+}
+.hd-journal:hover {
+  border-color: var(--green-mid);
+}
+.hd-journal-eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--copper);
+  white-space: nowrap;
+}
+.hd-journal-title {
+  flex: 1 1 240px;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--dark);
+}
+.hd-journal-meta {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--copper);
+  white-space: nowrap;
+}
+@media (max-width: 900px) {
+  .hd-grid {
+    grid-template-columns: 1fr;
+  }
+}

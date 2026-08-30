@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import type { Distillery, JournalPost, Journey, LocalEvent } from "@/lib/types";
+import type { JournalPost, Journey, LocalEvent } from "@/lib/types";
 import ClassicJourneys from "./ClassicJourneys";
 import FeaturedContent from "./FeaturedContent";
 import LatestJournal from "./LatestJournal";
@@ -29,12 +29,10 @@ import Footer from "@/components/Footer";
  * would.
  */
 export default function HomeSectionsBelowFold({
-  distilleriesPromise,
   localEventsPromise,
   journalPostsPromise,
   journeysPromise,
 }: {
-  distilleriesPromise: Promise<Distillery[]>;
   localEventsPromise: Promise<LocalEvent[]>;
   journalPostsPromise: Promise<JournalPost[]>;
   /** Deferred like the rest - the Classic Journeys section reads the
@@ -42,7 +40,6 @@ export default function HomeSectionsBelowFold({
    *  cards from `distilleries`, so this section needs its own data. */
   journeysPromise: Promise<Journey[]>;
 }) {
-  const distilleries = use(distilleriesPromise);
   const localEvents = use(localEventsPromise);
   const journalPosts = use(journalPostsPromise);
   const journeys = use(journeysPromise);
@@ -50,7 +47,11 @@ export default function HomeSectionsBelowFold({
   return (
     <>
       <ClassicJourneys journeys={journeys} />
-      <FeaturedContent distilleries={distilleries} localEvents={localEvents} />
+      {/* The distillery half of this section moved to HomeDistilleries
+          on 30 Aug 2026, which lives on the homepage only. These two
+          /journey steps keep the events half; adding the new section
+          here would change a page that was not in that brief. */}
+      <FeaturedContent localEvents={localEvents} />
       <LatestJournal posts={journalPosts} />
       <Footer />
     </>

@@ -196,6 +196,7 @@ async function fetchDistilleriesFromAirtable(): Promise<Distillery[]> {
         // entirely, so a missing value has to mean "not open", never
         // "unknown, assume yes".
         openToVisitors: f["Open To Visitors"] === true,
+        homepageBadge: f["Homepage Badge"] || undefined,
         source: "airtable" as const,
       };
     });

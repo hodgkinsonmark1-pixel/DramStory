@@ -186,7 +186,6 @@ export default function LocationStep({ distilleriesPromise, localEventsPromise, 
         promises in the first place. */}
     <Suspense fallback={null}>
       <HomeSectionsBelowFold
-        distilleriesPromise={distilleriesPromise}
         localEventsPromise={localEventsPromise}
         journalPostsPromise={journalPostsPromise}
         journeysPromise={journeysPromise}

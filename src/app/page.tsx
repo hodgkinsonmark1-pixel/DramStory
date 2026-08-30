@@ -2,6 +2,7 @@ import Hero from "@/components/Hero";
 import ClassicJourneys from "@/components/home/ClassicJourneys";
 import HomeDayPlans from "@/components/home/HomeDayPlans";
 import FeaturedContent from "@/components/home/FeaturedContent";
+import HomeDistilleries from "@/components/home/HomeDistilleries";
 import WhereToStay from "@/components/home/WhereToStay";
 import TripEssentials from "@/components/journey/TripEssentials";
 import LatestJournal from "@/components/home/LatestJournal";
@@ -53,7 +54,12 @@ export default async function HomePage() {
           know Islay", which put a browse section in the middle of the
           decision. */}
       <WhereToStay areas={areas} featuredStays={featuredStays} />
-      <FeaturedContent distilleries={distilleries} localEvents={localEvents} />
+      {/* The distilleries, after the bed - a visitor picks a shape of
+          trip, then days, then somewhere to sleep, and only then browses
+          what is actually on the island. FeaturedContent keeps the events
+          half; its distillery half moved here on 30 Aug 2026. */}
+      <HomeDistilleries distilleries={distilleries} journalPosts={journalPosts} />
+      <FeaturedContent localEvents={localEvents} />
       <TripEssentials />
       <LatestJournal posts={journalPosts} />
       <Footer />
