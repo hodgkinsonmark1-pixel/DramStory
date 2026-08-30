@@ -47,9 +47,10 @@
 //   ONE EXCEPTION, and it overrides the Journey (17 Aug 2026): a
 //   transfer that routes shorter than SHORT_TRANSFER_WALK_METRES (600m)
 //   is walked whatever `Transfer Mode` says. The Islay Grand Tour is
-//   based in Port Ellen and its day 5 is Port Ellen distillery, so a
-//   Drive transfer mode was producing "a 1 minute drive" across the
-//   village. Nobody does that. The leg is re-routed on foot and timed at
+//   based in Port Ellen and its old day 5 was Port Ellen distillery, so
+//   a Drive transfer mode was producing "a 1 minute drive" across the
+//   village. Nobody does that. (That day was unlinked from the journey
+//   on 30 Aug 2026; the rule outlives the example that prompted it.) The leg is re-routed on foot and timed at
 //   WALKING_SPEED_KMH, and the fact that it was walked is written to the
 //   record so the site prints the right verb over it. See that constant
 //   in lib/routing.mjs for the full reasoning; within-day legs are NOT
@@ -66,7 +67,8 @@
 //      Longitude`, when BOTH are set. AN AUTHORED OVERRIDE, and it beats
 //      every rule below.
 //
-//      Added 17 Aug 2026 for The South Coast Walk, which is the case a
+//      Added 17 Aug 2026 for The Kildalton Road (then named The South
+//      Coast Walk), which is the case a
 //      village centroid genuinely cannot describe. That journey is walked
 //      along the Three Distilleries Pathway, and the pathway does not
 //      begin in the middle of Port Ellen: it begins next to Port Ellen

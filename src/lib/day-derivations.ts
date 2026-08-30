@@ -139,7 +139,7 @@ export interface DayBase {
   toBaseWalked?: boolean;
   /** What the two legs above were actually measured FROM, when that is
    *  not simply `name` - "the pathway start by Port Ellen Primary
-   *  School" for The South Coast Walk, whose transfers run from where the
+   *  School" for The Kildalton Road, whose transfers run from where the
    *  Three Distilleries Pathway begins rather than from Port Ellen's
    *  centroid (Journey.transferOriginLabel, authored in Airtable).
    *
@@ -207,7 +207,7 @@ export function travelCopy(mode: TravelMode | undefined): { betweenStops: string
 // ─────────────────────────────────────────────────────────────────────────
 // Saying the walking out loud (17 Aug 2026). A Walk day currently
 // advertises a mileage ("4 miles") and a pacing tag, and nothing else -
-// so "Ardbeg and the Kildalton Road" inside The South Coast Walk reads
+// so "Ardbeg and the Kildalton Road" inside The Kildalton Road reads
 // like a gentle morning when it is really three hours on your feet, most
 // of it getting there and back. This turns the legs that were routed
 // anyway into one plain sentence.

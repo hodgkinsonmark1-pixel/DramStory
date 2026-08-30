@@ -100,8 +100,9 @@ export function journeyPacingSummary(journey: Journey): string {
  *  saying out loud ("both in Port Ellen"); three or more isn't.
  *
  *  Counts PRICED nights only (`Nights`), never the authored Night Notes
- *  lines - the Grand Tour's stat reads five, and its optional sixth
- *  night appears in the spine without being counted here. */
+ *  lines. Since 30 Aug 2026 no journey authors more lines than it
+ *  prices, so the two agree everywhere today - the distinction is kept
+ *  because it is the honest rule, not because a journey exercises it. */
 export function journeyNightsStatLabel(journey: Journey): string {
   const noun = journey.nights === 1 ? "night" : "nights";
   if (!journey.base) return noun;
@@ -233,9 +234,11 @@ export function journeyNightCounts(journey: Journey): { total: number; priced: n
  * is never billed and never counted. Placement is separate, and comes
  * from the day count above.
  *
- * All four real journeys line up: Grand Tour 5 days, 6 authored nights,
- * 5 priced (the sixth sits after day five and is optional); South Coast
- * Walk 2/2/2; Rhinns Trail 3/3/3; Hidden Coast 2/2/2.
+ * All four real journeys line up: Grand Tour 4 days, 5 authored nights,
+ * 5 priced - the Port Ellen day was unlinked on 30 Aug 2026 and the day
+ * after the last one became the sail home from Port Askaig, so there is
+ * no optional night on any journey any more; Kildalton Road 2/2/2;
+ * Rhinns Trail 3/3/3; Hidden Coast 2/2/2.
  *
  * What this replaces, and why: the first version packed the nights into
  * the gaps BETWEEN day cards and then appended whatever was left over
@@ -361,9 +364,12 @@ export function journeyBaseFor(
  *
  *  `nights` here is the Journey's `Nights`, which is the count of PRICED
  *  nights and deliberately not the number of nights the spine renders
- *  (17 Aug 2026). The Grand Tour offers six and prices five, so this
- *  quotes five - charging for a night the page itself calls optional
- *  would be the sort of quiet padding this sidebar exists to avoid. */
+ *  (17 Aug 2026). No journey offers more than it prices today - the
+ *  Grand Tour's optional sixth went with the Port Ellen day on 30 Aug
+ *  2026 - so this quotes the same number the spine renders. The rule
+ *  stands for the next journey that needs it: charging for a night the
+ *  page itself calls optional would be the sort of quiet padding this
+ *  sidebar exists to avoid. */
 export function journeyAccommodationRange(
   journey: Journey
 ): { low: number; high: number; nights: number } | undefined {
@@ -817,8 +823,9 @@ export function journeyClaimStats(
 
 /** The Accommodation Note, cut to its first sentence for the base row
  *  above night one. Those notes run to a paragraph on the longer
- *  journeys (the Grand Tour's is five sentences and covers the optional
- *  sixth night), and the base row is a single line beside a village name.
+ *  journeys (the Grand Tour's runs to several sentences and covers the
+ *  sail home from Port Askaig), and the base row is a single line
+ *  beside a village name.
  *  The full note still has a home - it is what nightNoteFor falls back to
  *  when a journey authors no Night Notes at all. */
 export function firstSentence(text: string): string {

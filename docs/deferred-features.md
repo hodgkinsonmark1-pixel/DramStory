@@ -132,25 +132,42 @@ Both also need opening dates. Elixir's site was re-checked on 29 Aug 2026 and st
 
 **Suggested approach:** One approach to each of Ian Macleod (Laggan Bay) and Elixir (Portintruan): ask for a press image cleared for use with credit, and for a visitor-opening date. Both records' Sources fields carry the full provenance and the reasoning, so whoever picks this up does not have to reconstruct it.
 
-## Homepage: rebuild the Classic journeys and Day plans sections to Mark's design
+## Homepage day cards: drams for the driver, and structured transport
 
-**Status:** Briefed 29 Aug 2026 from two design mockups Mark supplied. Not started. Four content questions below are Mark's to answer first — they change what gets built, so do not assume them.
+**Status:** Both DECLINED by Mark on 30 Aug 2026, recorded here so nobody
+proposes them again without knowing they were considered and turned down.
+The homepage rebuild they were blocking shipped without them.
 
-**Context — section one, "Four journeys, already planned".** An amend, not a rebuild. Live today is four equal cards under "Classic journeys"; the design is the hero-plus-three Mark asked for on 22 Aug (Grand Tour full width, the other three below). On top of the layout it adds, per journey: a row of distillery chips, a tours subtotal in the meta line ("6 nights · all 10 distilleries · £188pp in tours"), a driver-rotation pill, a secondary "Start it as your own trip" action beside the primary CTA, and a right-aligned section note "Each one drivable exactly as written". Most of this is derivable from what Journeys, Journey Days and Day Stops already hold.
+**Context.** The design mockup for the day-plans section carried two
+things no record could support. The first was a **"Driver keeps N drams"**
+pill. It reads as a count of distilleries, which is derivable, but it
+*claims* a miniatures policy - that each distillery hands the designated
+driver a dram to take away - and nothing in Distilleries, Tours or Days
+records that. Deriving the number from the stop count would have produced
+a figure that was arithmetically right and factually unsourced, which is
+the exact failure mode `content-sourcing-standards.md` exists to prevent.
+The second was a set of **structured transport fields** to replace the
+prose in `Transport Clause`, so the mockup's "Taxi-able" / "Bus 450" /
+"No bus route" pills could be rendered and the "Nobody has to drive"
+filter counted. Bus route numbers were never held anywhere at all.
 
-**Context — section two, "Fifteen days, ready to drop into a trip".** This does **not exist**. Live, the entire day-plan presence on the homepage is one line of text: "Prefer to plan day by day? Browse all Pre-Designed Days →". The design is a full section with filter tabs (All / Relaxed / Under an hour's driving / Nobody has to drive) and rich day cards carrying a pacing tag, driving time, per-person cost and two transport pills.
+**What was done instead**, and why it is better rather than merely
+cheaper: where a day's `Transport Clause` mentions a bus, the card links
+out to Argyll and Bute Council's own Islay and Jura bus section - the
+transport authority that sets the timetable. The site therefore never
+states a departure, a route number or a frequency it would have to
+maintain, and cannot go stale when the council reissues the timetable.
+That was Mark's own reasoning for the approach. Note the council
+publishes the 450/451 timetable as a DATED PDF whose URL changes on each
+reissue, so the link deliberately points at the section page, not the
+file. See `BUS_TIMETABLE_URL` in `src/components/home/HomeDayPlans.tsx`
+for the verified URL and why the tidier-looking variants 404 and 403.
 
-**Two data gaps behind section two — these are the real cost, and neither is a UI problem:**
-
-1. **"Driver keeps N drams" is not modelled anywhere.** Nothing in Days, Day Stops or Tours records how many drams the designated driver has to take away rather than drink. It would have to be derived from the tours scheduled on that day, which means first knowing which tours include a tasting and how many pours — Tours has no such field.
-
-2. **Transport is free text, and the design needs it structured.** `Transport Clause` on Days holds prose: "Doable by bus", "Bus, taxi, or two miles on foot", "Car needed — single-track at the end", "No car — four miles on foot". The mockup's pills ("Taxi-able", "No bus route", "Bus 450") and the "Nobody has to drive · 4" filter both need boolean/enumerated fields, and the count in that filter chip has to be computable. Note we do not hold bus route numbers at all — "Bus 450" is new data, and route numbers are the kind of fact that needs an official source.
-
-**Four questions for Mark, all raised 29 Aug 2026 and none safe to guess:**
-
-- **Grand Tour nights.** Airtable says `Nights: 5`; the mockup says "6 nights" and "See the six days". After the Port Ellen day was added, with night one sitting before the first day and night six optional, is the honest number 6, or 5 plus an optional sixth? The live homepage card currently says 5.
-- **"The Kildalton Road" vs "The South Coast Walk".** The mockup renames the journey *and* re-pitches it away from walking — "the carved cross most people **drive** straight past". That journey exists because Mark asked for one that was totally walkable and cheaper, and its stored Claim still reads "no car to hire, no timetable, and nobody left out of the tasting". Deliberate rethink or mockup placeholder?
-- **"all 10 distilleries".** This restores the exact phrasing removed in `8866eaa` ("Say every distillery you can visit, not all of them"). There are now twelve distilleries on the island and ten a visitor can walk into, so "all" is the word that made it wrong.
-- **Fifteen or sixteen days.** The mockup says "Fifteen days" and "Browse all fifteen". There are **sixteen** real Day records — plus three completely empty ones created 15 July 2026 (`recJj9QkySh8xfqxy`, `recTVYPpnsRGg8s7Q`, `rect0eQlvXRAniZbs`) that should be deleted, the same housekeeping as the empty Journeys.
-
-**Suggested approach:** Take section one first — it is a layout change over data that mostly exists, and it is the half a visitor sees before scrolling. Treat section two as its own piece, starting with the two Airtable modelling decisions rather than the component, because the filters are only as honest as the fields underneath them. The mockups themselves live with Mark; ask for them rather than working from this description.
+**If this is ever revisited:** the honest version of the drams pill needs
+a per-distillery field sourced from each distillery's own site, not an
+inference from stop counts. The "Nobody has to drive" filter currently
+reads the `Transport Clause` prose with the same test `journeyClaimStats`
+uses (a clause starting "car" means a car), which is brittle by nature
+and known to be - it returns five days today, and it is documented as
+conservative: "Car, or walk it from Port Ellen" counts as needing a car
+even though it is walkable.
