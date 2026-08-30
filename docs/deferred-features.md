@@ -209,3 +209,11 @@ truncation case; it cannot catch a field that was never rendered at all.
 removing the mapping AND renaming the Airtable column, because removing
 the mapping alone still leaves a column that invites authoring. The two
 already done are the worked example.
+
+<!-- Grand Tour journey copy rewritten 30 Aug 2026 against the field
+     ownership map: Intro, Card Description, Route Summary, Claim,
+     Accommodation Note, Night Notes and the Getting Here car row. Each
+     of the five repeated facts now has exactly one authored owner, and
+     two of them (the night count and the distillery count) have none at
+     all because the code already states both. Airtable-only change, so
+     this commit exists to bust the ISR cache. -->
