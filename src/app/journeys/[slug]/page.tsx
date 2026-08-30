@@ -23,6 +23,8 @@ import {
   dayMoneyNote,
   dayTourTotal,
   firstSentence,
+  restAfterFirstSentence,
+  assertNothingDropped,
   journeyAccommodationRange,
   journeyBaseFor,
   journeyCarHire,
@@ -442,6 +444,19 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
     })
     .filter((c): c is NonNullable<typeof c> => c !== null);
 
+  // Both halves of the Accommodation Note, and a development-only check
+  // that between them they account for all of it. This is the pair that
+  // replaced a silent truncation - see firstSentence in
+  // journey-derivations.ts for what was being dropped and why it
+  // mattered.
+  const baseNoteRest = journey.accommodationNote
+    ? restAfterFirstSentence(journey.accommodationNote)
+    : "";
+  assertNothingDropped(`Journey "${journey.slug}" Accommodation Note`, journey.accommodationNote, [
+    firstSentence(journey.accommodationNote ?? ""),
+    baseNoteRest,
+  ]);
+
   const nightsWord = ordinalWord(journey.nights).toLowerCase();
   // Counted, not typed: "the fifteen days" is however many Days the hub
   // actually publishes today.
@@ -541,19 +556,31 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
 
           {/* THE BASE ROW. Where you sleep, said once, above the first
               night - rather than repeated on every night connector the
-              way it was until 18 Aug 2026. */}
+              way it was until 18 Aug 2026.
+
+              30 Aug 2026: the row itself is still one line, but the rest
+              of the Accommodation Note now renders UNDER it instead of
+              being thrown away by firstSentence. Those notes carry real
+              logistics - on the Grand Tour, the fact that the boat home
+              goes from Port Askaig rather than the closed terminal in
+              Port Ellen - and until today none of it reached the page.
+              See firstSentence/restAfterFirstSentence for the full
+              account. */}
           {journey.base && (
-            <div className="jr-base-row">
-              <span className="jr-base-label">Every night</span>
-              <span className="jr-base-place">{journey.base}</span>
-              {journey.accommodationNote && (
-                <span className="jr-base-note">{firstSentence(journey.accommodationNote)}</span>
-              )}
-              {stayLink && (
-                <Link href={stayLink.href} className="jr-link jr-base-link">
-                  {stayLink.label} &rarr;
-                </Link>
-              )}
+            <div className="jr-base-block">
+              <div className="jr-base-row">
+                <span className="jr-base-label">Every night</span>
+                <span className="jr-base-place">{journey.base}</span>
+                {journey.accommodationNote && (
+                  <span className="jr-base-note">{firstSentence(journey.accommodationNote)}</span>
+                )}
+                {stayLink && (
+                  <Link href={stayLink.href} className="jr-link jr-base-link">
+                    {stayLink.label} &rarr;
+                  </Link>
+                )}
+              </div>
+              {baseNoteRest && <p className="jr-base-more">{baseNoteRest}</p>}
             </div>
           )}
 

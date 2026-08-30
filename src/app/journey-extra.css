@@ -2967,3 +2967,30 @@ select.location-inline-input {
     transition: none;
   }
 }
+
+/* THE REST OF THE ACCOMMODATION NOTE (30 Aug 2026). The base row above
+   stays a single line beside a village name - that constraint was always
+   right. What was wrong was throwing the remaining sentences away rather
+   than giving them somewhere to go, so they now sit directly beneath it,
+   indented to read as a continuation of the same row rather than as a
+   new section. */
+.jr-base-block {
+  display: flex;
+  flex-direction: column;
+}
+.jr-base-more {
+  margin: 6px 0 0;
+  padding-left: 2px;
+  max-width: 78ch;
+  /* Same three tokens .jr-base-note uses - this is a continuation of
+     that sentence, not a different kind of text. */
+  font-family: var(--jr-sans);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--jr-body);
+}
+@media (max-width: 720px) {
+  .jr-base-more {
+    font-size: 12.5px;
+  }
+}

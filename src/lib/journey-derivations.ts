@@ -821,17 +821,66 @@ export function journeyClaimStats(
   return stats;
 }
 
-/** The Accommodation Note, cut to its first sentence for the base row
- *  above night one. Those notes run to a paragraph on the longer
- *  journeys (the Grand Tour's runs to several sentences and covers the
- *  sail home from Port Askaig), and the base row is a single line
- *  beside a village name.
- *  The full note still has a home - it is what nightNoteFor falls back to
- *  when a journey authors no Night Notes at all. */
+/** The Accommodation Note's opening sentence - the base row above night
+ *  one is one line beside a village name, so the lead sentence is what
+ *  fits in it.
+ *
+ *  30 AUG 2026, AND THIS IS THE POINT OF THE PAIR: everything after that
+ *  sentence used to go nowhere. The claim in this comment that "the full
+ *  note still has a home - it is what nightNoteFor falls back to" was
+ *  FALSE for every journey that authors Night Notes, which is all four of
+ *  them: nightNoteFor only reaches accommodationNote when nightNotesLines
+ *  is empty. So on the Grand Tour, four authored sentences - including
+ *  the only statement anywhere that the boat home leaves from Port Askaig
+ *  and not the closed terminal in Port Ellen - were stored, reviewed, and
+ *  silently discarded at render.
+ *
+ *  A field that quietly drops what an editor writes into it is worse than
+ *  a field that renders it badly: the copy passes review, ships, and
+ *  nobody can tell from the page that it is missing. So firstSentence now
+ *  has a partner, and the caller renders both. */
 export function firstSentence(text: string): string {
   const trimmed = text.trim();
   const match = trimmed.match(/^[^.!?]+[.!?]/);
   return match ? match[0].trim() : trimmed;
+}
+
+/** Everything after the lead sentence firstSentence returns - empty when
+ *  the note is a single sentence, in which case the caller renders
+ *  nothing rather than an empty paragraph.
+ *
+ *  firstSentence(t) + " " + restAfterFirstSentence(t) reconstitutes the
+ *  whole trimmed note, which is the property assertNothingDropped checks
+ *  in development. Keep it that way: the two functions exist to be
+ *  exhaustive together. */
+export function restAfterFirstSentence(text: string): string {
+  const trimmed = text.trim();
+  return trimmed.slice(firstSentence(trimmed).length).trim();
+}
+
+/** Development-only tripwire for the bug above: shout when a field's
+ *  authored content is not fully accounted for by the strings a page
+ *  actually renders from it.
+ *
+ *  Deliberately a warning and not a throw - a missing sentence should
+ *  never take a page down, and an editor mid-draft in Airtable should not
+ *  break the dev server. Compares on non-whitespace characters so that
+ *  re-wrapping, joining or re-punctuating between field and page is not
+ *  reported, and only genuinely absent copy is.
+ *
+ *  No-ops in production: this is a signal for whoever is changing the
+ *  template, not a runtime check on visitors' behalf. */
+export function assertNothingDropped(label: string, authored: string, rendered: string[]): void {
+  if (process.env.NODE_ENV === "production") return;
+  const strip = (t: string) => t.replace(/\s+/g, "");
+  const whole = strip(authored);
+  if (!whole) return;
+  const shown = strip(rendered.join(""));
+  if (shown.length >= whole.length) return;
+  console.warn(
+    `[authored content] ${label}: ${whole.length - shown.length} of ${whole.length} characters ` +
+      `are stored but never rendered. Either render them or stop asking an editor to write them.`
+  );
 }
 
 /** relaxed | moderate | packed - the CSS suffix behind the 5px strip down
