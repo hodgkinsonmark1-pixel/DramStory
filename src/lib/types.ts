@@ -574,9 +574,6 @@ export interface Journey {
   /** Same [label](url) markdown-link convention as Distilleries/Local
    *  Features' own Hero Image Credit fields. */
   heroImageCredit?: string;
-  /** Logistics for arriving before Day 1 begins - ferry/flight, transfer
-   *  to base. */
-  gettingThereNote: string;
   /** Where the visitor bases themselves for this Journey and why - shown
    *  once, above the day-by-day list (there's no per-day overnight
    *  village/coordinates in the Days data model, so this replaces the
@@ -611,14 +608,22 @@ export interface Journey {
   /** "Getting here and away" rows, same "Label: Value" parse as Areas'
    *  inTheVillage. Empty array omits the card. */
   gettingHereRows: { key: string; value: string }[];
-  /** "Before you book" rows, same shape. Empty array omits the card.
-   *
-   *  NO LONGER RENDERED on /journeys/[slug] as of 18 Aug 2026 - the
-   *  panel it fed is now "When to come" (whenToComeRows below). The
-   *  field and this mapping stay: the copy in it is real, some of it has
-   *  moved onto the days it belongs to, and deleting a populated
-   *  Airtable column to make a layout change is not reversible. */
-  beforeYouBookRows: { key: string; value: string }[];
+  /* gettingThereNote and beforeYouBookRows were REMOVED on 30 Aug 2026.
+     Both were mapped here and read by nothing - "Getting Here Rows" and
+     "When To Come Rows" replaced them in the template on 18 Aug and the
+     mappings outlived the fields that rendered them. Copy kept being
+     written into them; beforeYouBookRows still held "Rooms: Five nights
+     in one place" on a trip that is four days long.
+
+     That is the same trap that cost us half of every Accommodation Note:
+     a field an editor can fill and no reader can see. The Airtable
+     columns are renamed rather than deleted - the copy in them is real
+     and deleting a populated column is not reversible - but nothing in
+     this codebase reaches for them now. An audit the same day found four
+     more in this position: Journey.source, HubDay.durationBowmore,
+     HubDay.mapFeatures and HubDay.source. Left mapped pending the site
+     owner's call, and listed here so the next person does not have to
+     find them again. */
   /** "When to come" rows - Silent seasons, Fèis Ìle, Rooms. Same
    *  "Label: Value" parse. Seasonality is the question that decides
    *  whether a journey works at all, which is why it replaced "Before

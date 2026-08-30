@@ -844,7 +844,19 @@ export function journeyClaimStats(
  *  has a partner, and the caller renders both. */
 export function firstSentence(text: string): string {
   const trimmed = text.trim();
-  const match = trimmed.match(/^[^.!?]+[.!?]/);
+  // A full stop only ends a sentence if whitespace or the end of the
+  // string follows it. Without that test this split "A room is £22.50 a
+  // night." after "£22.", handed "50 a night." back as the remainder,
+  // and reported nothing wrong because assertNothingDropped counts
+  // characters and none were lost - the page just rendered nonsense. No
+  // Accommodation Note carries a decimal today; the tour prices all do,
+  // and they are one edit away from one of these fields.
+  //
+  // Known limit, deliberately not solved: "e.g. " and "St. Andrews" still
+  // split, because they are a full stop followed by a space and nothing
+  // short of an abbreviation list can tell them from a sentence end. No
+  // authored note contains either.
+  const match = trimmed.match(/^[\s\S]*?[.!?](?=\s|$)/);
   return match ? match[0].trim() : trimmed;
 }
 

@@ -574,7 +574,6 @@ async function fetchJourneysFromAirtable(): Promise<Journey[]> {
       // rather than fabricating a photo.
       heroImage: f["Hero Image"]?.[0] ? `/api/attachment?t=tbl7fro0EjvRoqsAo&r=${record.id}&f=fld1V2lL6maIEebAv&i=0` : "",
       heroImageCredit: f["Hero Image Credit"] || undefined,
-      gettingThereNote: f["Getting There Note"] ?? "",
       accommodationNote: f["Accommodation Note"] ?? "",
       days,
       dayBaseLegs,
@@ -609,7 +608,6 @@ async function fetchJourneysFromAirtable(): Promise<Journey[]> {
         .filter(Boolean),
       makeItYours: parseMakeItYours(f["Make It Yours"]),
       gettingHereRows: parseLabelValueLines(f["Getting Here Rows"]),
-      beforeYouBookRows: parseLabelValueLines(f["Before You Book Rows"]),
       whenToComeRows: parseLabelValueLines(f["When To Come Rows"]),
       // Every distillery's floor, not just this journey's - the page
       // narrows it to the ones it visits. Sharing one object across all
