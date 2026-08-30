@@ -452,6 +452,26 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
     })
     .filter((c): c is NonNullable<typeof c> => c !== null);
 
+  // Dropping a row rather than rendering a 404 is right. Dropping it
+  // WITHOUT SAYING SO is what cost us a card: on 30 Aug 2026 a journey
+  // was renamed, this journey's first row went on pointing at the old
+  // slug, and the section quietly rendered two cards where three were
+  // authored - correctly, silently, and wrongly. The count in the
+  // heading comes from waysOut.length too, so even that read "two" and
+  // looked deliberate. Same failure as the Accommodation Note
+  // truncation: authored copy discarded with nothing on the page or in
+  // the log to show it.
+  if (process.env.NODE_ENV !== "production" && waysOut.length < journey.makeItYours.length) {
+    const dropped = journey.makeItYours
+      .filter((card) => !daySlugs.has(card.linkSlug) && !journeySlugs.has(card.linkSlug))
+      .map((card) => card.linkSlug);
+    console.warn(
+      `[authored content] Journey "${journey.slug}" Make It Yours: ${dropped.length} row(s) ` +
+        `dropped because their slug matches no live Day or Journey - ${dropped.join(", ")}. ` +
+        `Fix the slug or delete the row; the section is silently shorter until you do.`
+    );
+  }
+
   // Both halves of the Accommodation Note, and a development-only check
   // that between them they account for all of it. This is the pair that
   // replaced a silent truncation - see firstSentence in
