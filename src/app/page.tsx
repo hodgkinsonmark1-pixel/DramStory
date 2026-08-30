@@ -1,16 +1,16 @@
 import Hero from "@/components/Hero";
 import ClassicJourneys from "@/components/home/ClassicJourneys";
 import HomeDayPlans from "@/components/home/HomeDayPlans";
-import FeaturedContent from "@/components/home/FeaturedContent";
 import HomeDistilleries from "@/components/home/HomeDistilleries";
+import WhenToGo from "@/components/home/WhenToGo";
 import WhereToStay from "@/components/home/WhereToStay";
 import TripEssentials from "@/components/journey/TripEssentials";
 import LatestJournal from "@/components/home/LatestJournal";
 import Footer from "@/components/Footer";
-import { getVisitableDistilleries, getLocalEvents, getJournalPosts, getDays, getJourneys, getLocalFeatures, getAreas, getFeaturedStays } from "@/lib/data";
+import { getVisitableDistilleries, getLocalEvents, getJournalPosts, getDays, getJourneys, getLocalFeatures, getAreas, getFeaturedStays, getSeasons, getMonths } from "@/lib/data";
 
 export default async function HomePage() {
-  const [distilleries, localEvents, journalPosts, days, journeys, localFeatures, areas, featuredStays] = await Promise.all([
+  const [distilleries, localEvents, journalPosts, days, journeys, localFeatures, areas, featuredStays, seasons, months] = await Promise.all([
     // Visitable only - every distillery on this page (the hero's
     // "which distilleries" picks, the Discover cards) is presented as
     // somewhere to go. See getVisitableDistilleries.
@@ -26,6 +26,8 @@ export default async function HomePage() {
     getLocalFeatures(),
     getAreas(),
     getFeaturedStays(),
+    getSeasons(),
+    getMonths(),
   ]);
 
   return (
@@ -59,7 +61,16 @@ export default async function HomePage() {
           what is actually on the island. FeaturedContent keeps the events
           half; its distillery half moved here on 30 Aug 2026. */}
       <HomeDistilleries distilleries={distilleries} journalPosts={journalPosts} />
-      <FeaturedContent localEvents={localEvents} />
+      {/* When to go, below the distilleries. It takes the events over
+          from FeaturedContent - the same list, but shown against the
+          shape of the year rather than as a loose column. */}
+      <WhenToGo seasons={seasons} months={months} localEvents={localEvents} journalPosts={journalPosts} />
+      {/* FeaturedContent is no longer on the homepage (30 Aug 2026). Its
+          distilleries became HomeDistilleries and its events became the
+          What's on column of WhenToGo, so rendering it here would have
+          put the same three events on the page twice. The component
+          still exists and still renders on the two /journey steps via
+          HomeSectionsBelowFold, which were not part of this brief. */}
       <TripEssentials />
       <LatestJournal posts={journalPosts} />
       <Footer />

@@ -1,5 +1,5 @@
 import { cache } from "react";
-import type { Area, Distillery, FeaturedStay, HubDay, JournalPost, Journey, LocalEvent, LocalFeature, PlaceListing, Tour } from "@/lib/types";
+import type { Area, Distillery, FeaturedStay, HubDay, JournalPost, Journey, LocalEvent, LocalFeature, MonthBand, PlaceListing, Season, Tour } from "@/lib/types";
 import { airtableFetchAll } from "@/lib/airtable";
 import { searchAccommodation, searchNearbyByCategory } from "@/lib/google-places";
 import { isPublishableTour, formatPrice } from "@/lib/pricing";
@@ -710,6 +710,56 @@ export async function getDistilleryBySlug(slug: string): Promise<Distillery | un
   const all = await getDistilleries();
   return all.find((d) => d.slug === slug);
 }
+
+interface AirtableSeasonFields {
+  Name?: string;
+  Eyebrow?: string;
+  Copy?: string;
+  Busyness?: number;
+  Order?: number;
+  "Show As Card"?: boolean;
+}
+
+interface AirtableMonthFields {
+  Name?: string;
+  Order?: number;
+  Season?: string[];
+}
+
+/** The bands of Islay's year, ordered. Feeds the homepage's "When to go"
+ *  cards and, via Months, the colour of the twelve-month bar. */
+export const getSeasons = cache(async (): Promise<Season[]> => {
+  const records = await airtableFetchAll<AirtableSeasonFields>("Seasons");
+  return records
+    .filter((r) => !!r.fields.Name)
+    .map((r) => ({
+      id: r.id,
+      name: r.fields.Name as string,
+      eyebrow: r.fields.Eyebrow ?? "",
+      copy: r.fields.Copy ?? "",
+      busyness: r.fields.Busyness ?? 0,
+      order: r.fields.Order ?? 0,
+      // === true for the same reason every other checkbox on this site
+      // reads that way: Airtable omits an unchecked box entirely.
+      showAsCard: r.fields["Show As Card"] === true,
+    }))
+    .sort((a, b) => a.order - b.order);
+});
+
+/** Twelve months in calendar order, each carrying the Season it belongs
+ *  to. Sorted by Order rather than Airtable's record order, so re-sorting
+ *  the grid view cannot scramble the year on the page. */
+export const getMonths = cache(async (): Promise<MonthBand[]> => {
+  const records = await airtableFetchAll<AirtableMonthFields>("Months");
+  return records
+    .filter((r) => !!r.fields.Name)
+    .map((r) => ({
+      name: r.fields.Name as string,
+      order: r.fields.Order ?? 0,
+      seasonId: r.fields.Season?.[0],
+    }))
+    .sort((a, b) => a.order - b.order);
+});
 
 export async function getLocalEvents(): Promise<LocalEvent[]> {
   const [records, distilleries] = await Promise.all([

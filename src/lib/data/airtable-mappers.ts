@@ -1171,6 +1171,8 @@ export interface AirtableEventFields {
   Category?: string;
   Price?: string;
   "Source URL"?: string;
+  "Dates Confirmed"?: boolean;
+  "Provisional Timing"?: string;
   Distilleries?: string[];
 }
 
@@ -1205,6 +1207,13 @@ export function mapToLocalEvent(
     category: EVENT_CATEGORY_MAP[fields.Category ?? ""] ?? "Other",
     price: fields.Price,
     sourceUrl: fields["Source URL"],
+    // Explicitly === true. Airtable omits an unchecked checkbox from the
+    // payload entirely, so a missing value has to mean "not confirmed",
+    // never "unknown, assume yes" - the same reasoning as the Published
+    // and Open To Visitors gates on Distilleries. Unconfirmed is the safe
+    // default for a date nobody has announced.
+    datesConfirmed: fields["Dates Confirmed"] === true,
+    provisionalTiming: fields["Provisional Timing"] || undefined,
     distillerySlugs,
     source: "airtable",
   };

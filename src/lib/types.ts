@@ -865,6 +865,33 @@ export interface Distillery {
   source: DataSource;
 }
 
+/** One band of Islay's year, from the Seasons table - the copy behind
+ *  the homepage's "When to go" cards, and the busyness that colours that
+ *  band's months in the twelve-month bar. */
+export interface Season {
+  id: string;
+  name: string;
+  eyebrow: string;
+  copy: string;
+  /** 1 (quietest) to 4 (festival week). Drives the bar's colour ramp, so
+   *  it is a display value as much as a fact. */
+  busyness: number;
+  order: number;
+  /** Whether this band appears as one of the small cards. Fèis Ìle is
+   *  false - it gets the feature panel instead, and showing it twice
+   *  would be saying the same thing twice. */
+  showAsCard: boolean;
+}
+
+/** One calendar month, from the Months table. Takes its colour from the
+ *  Season it links to; a month linked to nothing renders unbanded rather
+ *  than guessing, which is visibly incomplete on purpose. */
+export interface MonthBand {
+  name: string;
+  order: number;
+  seasonId?: string;
+}
+
 export interface LocalEvent {
   id: string;
   name: string;
@@ -881,6 +908,22 @@ export interface LocalEvent {
    *  kept for the same audit-trail transparency as Local Features'
    *  Location Source field. */
   sourceUrl?: string;
+  /** True only when the organiser or venue has PUBLISHED these exact
+   *  dates and sourceUrl points at where they said so.
+   *
+   *  False means the row is provisional: we know roughly when the event
+   *  falls because it recurs, but nobody has announced the year yet. The
+   *  stored `date` on a provisional row is a SORT ANCHOR ONLY - it puts
+   *  the row in the right place in the year and is never rendered.
+   *  `provisionalTiming` is shown instead. Added 30 Aug 2026.
+   *
+   *  Deliberately not the Events table's Status column, which is a Todo /
+   *  In progress / Done marker about our own editing. */
+  datesConfirmed: boolean;
+  /** When a provisional event usually falls, in words - "usually early
+   *  July". Rendered in place of a date whenever datesConfirmed is
+   *  false. Undefined on confirmed rows, where it is not used. */
+  provisionalTiming?: string;
   /** Distilleries hosting/associated with this event, if any - drives the
    *  pulsing map highlight. Empty for island-wide events with no single
    *  venue (e.g. the Book Festival). */
