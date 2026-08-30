@@ -177,3 +177,35 @@ even though it is walkable.
      Hook corrected). Touched to bust the ISR cache so the branch preview
      renders the new values - see docs/technical-notes.md on why an
      Airtable-only change needs a commit behind it. -->
+
+## Four more mapped fields that nothing reads
+
+**Status:** Found 30 Aug 2026 by auditing all 56 fields on the Journey and
+HubDay types against their consumers. Two others found in the same pass
+(`gettingThereNote`, `beforeYouBookRows`) were removed from the codebase
+and their Airtable columns renamed with a RETIRED marker and a
+description saying where to write instead. These four are left mapped
+pending Mark's call.
+
+- `Journey.source`
+- `Journey` accommodation range fields are NOT in this list - they read
+  fine via destructuring in `journeyAccommodationRange`, which a naive
+  `.fieldName` grep misses. Worth knowing before running this audit again.
+- `HubDay.durationBowmore` - the whole-day length measured from Bowmore.
+  Mapped, never rendered; `durationPortEllen` is the one in use.
+- `HubDay.mapFeatures` - distinct from the local `mapFeatures` variable
+  in DayScreen.tsx, which is computed from `featureStops` and is what
+  actually reaches the map.
+- `HubDay.source`
+
+**Why this matters more than tidiness.** A field an editor can fill and
+no reader can see is the same failure that cost us more than half of
+every Accommodation Note (see the firstSentence note in
+journey-derivations.ts). The copy passes review, ships, and nothing on
+the page shows it is missing. `assertNothingDropped` catches the
+truncation case; it cannot catch a field that was never rendered at all.
+
+**Suggested approach:** for each, decide render or retire. Retiring means
+removing the mapping AND renaming the Airtable column, because removing
+the mapping alone still leaves a column that invites authoring. The two
+already done are the worked example.
