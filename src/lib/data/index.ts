@@ -1,8 +1,8 @@
 import { cache } from "react";
-import type { Area, Distillery, FeaturedStay, HubDay, JournalPost, Journey, LocalEvent, LocalFeature, PlaceListing } from "@/lib/types";
+import type { Area, Distillery, FeaturedStay, HubDay, JournalPost, Journey, LocalEvent, LocalFeature, PlaceListing, Tour } from "@/lib/types";
 import { airtableFetchAll } from "@/lib/airtable";
 import { searchAccommodation, searchNearbyByCategory } from "@/lib/google-places";
-import { isPublishableTour } from "@/lib/pricing";
+import { isPublishableTour, formatPrice } from "@/lib/pricing";
 import {
   deriveNextStops,
   mapAirtableDayRecord,
@@ -167,7 +167,30 @@ async function fetchDistilleriesFromAirtable(): Promise<Distillery[]> {
           .filter((t): t is AirtableTourFields => !!t)
           .map(mapTour),
         hours: f.Hours ?? "",
-        priceFrom: f["Price From"] != null ? `£${f["Price From"]}` : "",
+        // COMPUTED from this distillery's own Tours, not read from the
+        // Distilleries table's `Price From` column (30 Aug 2026).
+        //
+        // That column disagreed with Tours on every single distillery -
+        // £10 for Lagavulin, Bowmore, Bruichladdich, Bunnahabhain, Caol
+        // Ila, Kilchoman and Ardnahoe, and £15 for Laphroaig and Ardbeg,
+        // against cheapest real tours of £20, £25, £25, £20, £21, £18,
+        // £15, £22 and £22.50. Seven identical figures across seven very
+        // different distilleries is a seeded default, and unlike Tours
+        // the column carried no source and no verified date.
+        //
+        // /distilleries renders this as "Tours from £N" and sorts by it,
+        // so it is the same measure the homepage computes - which is
+        // exactly why the two pages must not derive it differently. Same
+        // publishable-tour rule as everywhere else: placeholders and
+        // unpriced rows are excluded, so Port Ellen's free Open Days
+        // cannot make it read "Tours from £0", and a distillery with
+        // nothing bookable returns "" and prints no label at all.
+        priceFrom: cheapestPublishableTourPrice(
+          (f.Tours ?? [])
+            .map((id) => tourById.get(id))
+            .filter((t): t is AirtableTourFields => !!t)
+            .map(mapTour)
+        ),
         avgVisit: f["Avg Visit"] ?? "",
         parking: f.Parking ?? "",
         accessibility: f.Accessibility ?? "",
@@ -248,6 +271,15 @@ export async function getLocalFeatureBySlug(slug: string): Promise<LocalFeature 
  *  mapToFeaturedStay in airtable-mappers.ts for the full reasoning.
  *  React's cache() again (see getDistilleries above for why), not a
  *  module-level variable. */
+/** The cheapest tour a visitor can actually book at this distillery,
+ *  formatted for display, or "" when there is nothing bookable. Feeds
+ *  Distillery.priceFrom - see the note at its assignment for why this is
+ *  computed rather than read from Airtable's own Price From column. */
+function cheapestPublishableTourPrice(tours: Tour[]): string {
+  const prices = tours.filter((t) => isPublishableTour(t) && t.price > 0).map((t) => t.price);
+  return prices.length > 0 ? formatPrice(Math.min(...prices)) : "";
+}
+
 export const getFeaturedStays = cache(async (): Promise<FeaturedStay[]> => {
   return fetchFeaturedStaysFromAirtable();
 });
