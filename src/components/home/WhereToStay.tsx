@@ -63,7 +63,7 @@ const REGION_PHRASE: Record<string, string> = {
  *  link at all (The Machrie today) shows its village and stops. */
 function stayWhere(stay: FeaturedStay, areas: Area[]): string | undefined {
   const village = stay.nearestArea?.trim();
-  const linked = areas.find((a) => stay.areaNames.includes(a.name));
+  const linked = areas.find((a) => stay.areaIds.includes(a.id));
   const region = linked?.distilleryRegion
     ? (REGION_PHRASE[linked.distilleryRegion] ?? linked.distilleryRegion)
     : undefined;
