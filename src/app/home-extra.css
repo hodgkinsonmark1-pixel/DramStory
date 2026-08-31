@@ -2426,3 +2426,76 @@ a.hero-dream-card-navy:hover {
   color: rgba(245, 241, 232, 0.62);
   white-space: nowrap;
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   WHAT IT COSTS (31 Aug 2026). The last thing on the page, above the
+   footer. Deliberately the plainest section on the homepage: no cards,
+   no photographs, no colour beyond the type. It is the one place making
+   a checkable claim, and it should look like a statement of fact rather
+   than a piece of marketing.
+   ───────────────────────────────────────────────────────────────────── */
+.wic-section {
+  background: var(--off-white);
+  padding: 8px 24px 72px;
+}
+.wic-inner {
+  max-width: 960px;
+  margin: 0 auto;
+}
+.wic-title {
+  margin-bottom: 0;
+}
+.wic-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 22px 26px;
+  margin: 0 0 22px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--stone);
+}
+.wic-item {
+  min-width: 0;
+}
+.wic-figure {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 2.6vw, 30px);
+  font-weight: 600;
+  color: var(--dark);
+  line-height: 1.1;
+  /* Figures sit in a row and are read across, so the digits line up. */
+  font-variant-numeric: tabular-nums;
+}
+.wic-label {
+  margin: 7px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--slate);
+}
+/* The caveat a figure cannot carry - the £900 ceiling under a £15–£70
+   headline. Quieter than the label, because it is the exception. */
+.wic-sub {
+  display: block;
+  margin-top: 3px;
+  color: var(--copper);
+}
+.wic-trust {
+  margin: 0;
+  max-width: 76ch;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--slate);
+}
+.wic-trust strong { color: var(--dark); }
+.wic-trust a {
+  color: var(--copper);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.wic-trust a:hover { text-decoration: underline; }
+@media (max-width: 780px) {
+  .wic-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 420px) {
+  .wic-grid { grid-template-columns: 1fr; }
+}

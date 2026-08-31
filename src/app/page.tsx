@@ -5,12 +5,13 @@ import HomeDistilleries from "@/components/home/HomeDistilleries";
 import WhenToGo from "@/components/home/WhenToGo";
 import WhereToStay from "@/components/home/WhereToStay";
 import BeforeYouGo from "@/components/home/BeforeYouGo";
+import WhatItCosts from "@/components/home/WhatItCosts";
 import LatestJournal from "@/components/home/LatestJournal";
 import Footer from "@/components/Footer";
-import { getVisitableDistilleries, getLocalEvents, getJournalPosts, getDays, getJourneys, getLocalFeatures, getAreas, getFeaturedStays, getSeasons, getMonths, getPracticalities } from "@/lib/data";
+import { getVisitableDistilleries, getLocalEvents, getJournalPosts, getDays, getJourneys, getLocalFeatures, getAreas, getFeaturedStays, getSeasons, getMonths, getPracticalities, getCostLines } from "@/lib/data";
 
 export default async function HomePage() {
-  const [distilleries, localEvents, journalPosts, days, journeys, localFeatures, areas, featuredStays, seasons, months, practicalities] = await Promise.all([
+  const [distilleries, localEvents, journalPosts, days, journeys, localFeatures, areas, featuredStays, seasons, months, practicalities, costLines] = await Promise.all([
     // Visitable only - every distillery on this page (the hero's
     // "which distilleries" picks, the Discover cards) is presented as
     // somewhere to go. See getVisitableDistilleries.
@@ -29,6 +30,7 @@ export default async function HomePage() {
     getSeasons(),
     getMonths(),
     getPracticalities(),
+    getCostLines(),
   ]);
 
   return (
@@ -79,6 +81,11 @@ export default async function HomePage() {
           Practicalities table, because those are what go stale. */}
       <BeforeYouGo practicalities={practicalities} days={days} journalPosts={journalPosts} />
       <LatestJournal posts={journalPosts} />
+      {/* The cost strip closes the page, above the footer. It is the one
+          section that badges itself "checked", so it sits last - after a
+          reader has seen what the trip is, and at the point they start
+          working out whether they can afford it. */}
+      <WhatItCosts costLines={costLines} distilleries={distilleries} journeys={journeys} />
       <Footer />
     </>
   );

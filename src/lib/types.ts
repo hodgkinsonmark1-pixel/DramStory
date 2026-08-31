@@ -918,6 +918,27 @@ export interface Practicality {
   affiliate: boolean;
 }
 
+/** One figure in the homepage's "what three days actually costs" strip.
+ *  See the Cost Lines table's own description for why these are records
+ *  with sources and dates rather than four numbers in a component. */
+export interface CostLine {
+  id: string;
+  label: string;
+  /** The figure as displayed. Empty on auto rows, which compute it. */
+  figure: string;
+  sub?: string;
+  /** True when the site derives the figure from its own records at
+   *  render - the tour range from Tours, the room range from the
+   *  Journeys accommodation rates. Those cannot go stale. */
+  auto: boolean;
+  order: number;
+  /** When the figure was last checked. Meaningful only on non-auto rows;
+   *  the strip prints the OLDEST of these as its "checked" date, so one
+   *  neglected row ages the whole section rather than being hidden by a
+   *  fresher one. */
+  verified?: string;
+}
+
 export interface LocalEvent {
   id: string;
   name: string;

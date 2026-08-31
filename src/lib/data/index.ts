@@ -1,5 +1,5 @@
 import { cache } from "react";
-import type { Area, Distillery, FeaturedStay, HubDay, JournalPost, Journey, LocalEvent, LocalFeature, MonthBand, PlaceListing, Practicality, Season, Tour } from "@/lib/types";
+import type { Area, Distillery, FeaturedStay, HubDay, JournalPost, Journey, LocalEvent, CostLine, LocalFeature, MonthBand, PlaceListing, Practicality, Season, Tour } from "@/lib/types";
 import { airtableFetchAll } from "@/lib/airtable";
 import { searchAccommodation, searchNearbyByCategory } from "@/lib/google-places";
 import { isPublishableTour, formatPrice } from "@/lib/pricing";
@@ -789,6 +789,31 @@ export const getPracticalities = cache(async (): Promise<Practicality[]> => {
       // === true: Airtable omits an unchecked box, and "not stated" must
       // mean "not paid", never the reverse.
       affiliate: r.fields.Affiliate === true,
+    }))
+    .sort((a, b) => a.order - b.order);
+});
+
+interface AirtableCostLineFields {
+  Label?: string;
+  Figure?: string;
+  Sub?: string;
+  Auto?: boolean;
+  Order?: number;
+  Verified?: string;
+}
+
+export const getCostLines = cache(async (): Promise<CostLine[]> => {
+  const records = await airtableFetchAll<AirtableCostLineFields>("Cost Lines");
+  return records
+    .filter((r) => !!r.fields.Label)
+    .map((r) => ({
+      id: r.id,
+      label: r.fields.Label as string,
+      figure: r.fields.Figure ?? "",
+      sub: r.fields.Sub || undefined,
+      auto: r.fields.Auto === true,
+      order: r.fields.Order ?? 0,
+      verified: r.fields.Verified || undefined,
     }))
     .sort((a, b) => a.order - b.order);
 });
