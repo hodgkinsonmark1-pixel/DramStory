@@ -2499,3 +2499,199 @@ a.hero-dream-card-navy:hover {
 @media (max-width: 420px) {
   .wic-grid { grid-template-columns: 1fr; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   ISLAY HAS FOUR MOODS (31 Aug 2026). The island cut into its four
+   areas on the left, the four descriptions on the right, and a number
+   tying each pair together. Pointing at either half lights the other.
+
+   Sits between the day plans and where to stay: having seen what a day
+   looks like, and before choosing a bed, which part of the island do you
+   want to wake up in.
+
+   NOTHING HERE IS A LINK except the one at the foot. The area cards are
+   deliberately flat - no lift, no arrow, no pointer cursor - because
+   there are no area pages behind them yet. The hover state changes
+   emphasis only; a card that looks clickable and isn't is worse than one
+   that looks like what it is.
+   ───────────────────────────────────────────────────────────────────── */
+.fm-section {
+  background: var(--off-white);
+  padding: 8px 24px 64px;
+}
+.fm-layout {
+  max-width: 960px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 330px) minmax(0, 1fr);
+  gap: 40px;
+  align-items: center;
+}
+
+/* THE MAP. The SVG carries its own aspect ratio from the viewBox that
+   islay-outline.ts computes off the real coordinates, so it is never
+   given a fixed height - a height would stretch the island. */
+.fm-map {
+  margin: 0;
+}
+.fm-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+/* The four areas. Distinct hues rather than four steps of one colour,
+   because these are categories with no order - a light-to-dark ramp
+   would imply the south ranks above the north. All four are muted
+   enough for the white number to hold its contrast on top. */
+.fm-region-fill {
+  stroke: var(--off-white);
+  stroke-width: 1;
+  transition: opacity 0.18s var(--ease-out);
+}
+.fm-region-1 .fm-region-fill { fill: #B87D4B; }
+.fm-region-2 .fm-region-fill { fill: #D4A574; }
+.fm-region-3 .fm-region-fill { fill: #7E9AA6; }
+.fm-region-4 .fm-region-fill { fill: #6E7F63; }
+
+.fm-num-1 { background: #B87D4B; }
+.fm-num-2 { background: #D4A574; }
+.fm-num-3 { background: #7E9AA6; }
+.fm-num-4 { background: #6E7F63; }
+/* Amber is the one of the four light enough that white type on it fails
+   contrast, so its number sits in the navy instead. */
+.fm-num-2 { color: var(--navy); }
+
+/* HOVER. Everything not pointed at drops back rather than the pointed-at
+   thing jumping forward, so the section doesn't lurch. */
+.fm-region,
+.fm-marker,
+.fm-card {
+  transition: opacity 0.18s var(--ease-out);
+}
+.fm-region.is-dim .fm-region-fill { opacity: 0.32; }
+.fm-marker.is-dim { opacity: 0.35; }
+.fm-card.is-dim { opacity: 0.45; }
+.fm-region .fm-region-fill { opacity: 0.92; }
+.fm-region.is-active .fm-region-fill { opacity: 1; }
+
+.fm-island-edge {
+  fill: none;
+  stroke: var(--navy);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none; /* the regions underneath own the pointer */
+}
+
+/* THE NUMBERS ON THE MAP. Sized to be read at a glance from across the
+   section - they are the whole mechanism connecting the map to the
+   writing, so they are markers, not annotations. */
+.fm-marker-disc {
+  fill: var(--navy);
+  stroke: var(--white);
+  stroke-width: 2.5;
+}
+.fm-marker.is-active .fm-marker-disc {
+  fill: var(--copper);
+}
+.fm-marker-num {
+  fill: var(--white);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  text-anchor: middle;
+  pointer-events: none;
+}
+.fm-attrib {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--slate);
+  text-align: center;
+}
+
+/* THE CARDS. An ordered list, because the numbers are what link a card
+   to its area - a <ul> with decorative digits would tell a screen reader
+   nothing about which is which. */
+.fm-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.fm-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.fm-card-num {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+.fm-card-body {
+  min-width: 0;
+}
+.fm-card-name {
+  font-family: var(--font-display), Garamond, serif;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--navy);
+  margin: 0 0 4px;
+}
+.fm-card-copy {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--peat);
+  margin: 0;
+}
+/* The distillery names - the one line on the card that comes straight
+   from Airtable and grows as the island does. */
+.fm-card-meta {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--slate);
+}
+
+.fm-all {
+  margin: 22px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--stone);
+}
+.fm-all-link {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+  text-decoration: none;
+  border-bottom: 1px solid var(--amber);
+  padding-bottom: 2px;
+}
+.fm-all-link:hover {
+  color: var(--copper);
+  border-bottom-color: var(--copper);
+}
+
+/* Below 860px the two columns stop fitting: the map shrinks past the
+   point where four numbers are legible. It goes above the list instead,
+   capped so it doesn't take a whole phone screen on its own. */
+@media (max-width: 860px) {
+  .fm-layout {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .fm-map {
+    max-width: 280px;
+    margin: 0 auto;
+  }
+}

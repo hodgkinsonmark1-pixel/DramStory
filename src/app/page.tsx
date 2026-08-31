@@ -1,6 +1,7 @@
 import Hero from "@/components/Hero";
 import ClassicJourneys from "@/components/home/ClassicJourneys";
 import HomeDayPlans from "@/components/home/HomeDayPlans";
+import FourMoods from "@/components/home/FourMoods";
 import HomeDistilleries from "@/components/home/HomeDistilleries";
 import WhenToGo from "@/components/home/WhenToGo";
 import WhereToStay from "@/components/home/WhereToStay";
@@ -51,6 +52,15 @@ export default async function HomePage() {
           the `days` already fetched above for the hero - no second
           Airtable round-trip. */}
       <HomeDayPlans days={days} />
+      {/* "Islay has four moods" sits between the day plans and where to
+          stay (31 Aug 2026, Mark's layout), because it is the question
+          that comes between them: having seen what a day looks like, and
+          before choosing a bed, which part of the island do you want to
+          wake up in. MVP - no clickthrough, no area pages; see the
+          component's own note. It reuses `distilleries`, already fetched
+          above, only to count and name-check the four groupings, which
+          are defined in DREAM_AREAS rather than here. */}
+      <FourMoods distilleries={distilleries} />
       {/* Where to stay sits directly under the day plans (30 Aug 2026,
           Mark's layout): the three planning steps - a whole journey, a
           single day, a bed - run together, and discovery comes after
