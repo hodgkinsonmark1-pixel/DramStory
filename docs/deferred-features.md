@@ -224,3 +224,7 @@ already done are the worked example.
 
 <!-- Card Note written for all four Featured Stays 30 Aug 2026.
      Airtable-only, so this commit exists to bust the ISR cache. -->
+
+<!-- Practicalities: D & N MacKenzie replaced by Cresswell Cars 31 Aug
+     2026, succession confirmed by matching address and phone on the
+     firm own site. Airtable-only, so this commit busts the ISR cache. -->
