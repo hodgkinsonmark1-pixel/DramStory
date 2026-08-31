@@ -779,7 +779,14 @@ export default function MapCanvas({
         // itself, so it's no longer reliably short enough to use as-is and
         // gets truncated the same way Description does. Same fallback-chain
         // pattern as the Tours "Short Summary" field (docs/deferred-features.md).
-        const popupSummary = f.pinSummary ?? truncateSummary(f.whyVisit ?? f.description);
+        const isFoodDrink = f.category === "pub" || f.category === "cafe" || f.category === "restaurant";
+        // Food and drink pins with no Google card lost their "More info"
+        // button (31 Aug 2026, Mark's call), so the popup itself has to do
+        // the describing. They get a longer write-up than the 140-character
+        // default - enough for a real sentence or two about the place -
+        // while every other category keeps the tighter one, since those
+        // still have a detail page to send people to.
+        const popupSummary = f.pinSummary ?? truncateSummary(f.whyVisit ?? f.description, isFoodDrink ? 260 : 140);
         // Only food/drink pins carry a Google Place ID, and only some of
         // those have been matched up yet - so this stays off unless the
         // record genuinely has one and the caller can show the panel.
@@ -815,7 +822,6 @@ export default function MapCanvas({
         //
         // Only for food/drink: a beach or a walk has no proprietor, and
         // "Official site" under a coastline would be meaningless.
-        const isFoodDrink = f.category === "pub" || f.category === "cafe" || f.category === "restaurant";
         const officialUrl = isFoodDrink ? safeExternalUrl(f.websiteUrl) : null;
         const officialSource = officialUrl
           ? `<a class="popup-official" href="${esc(officialUrl)}" target="_blank" rel="noreferrer">Official site &#8599;</a>`
@@ -825,8 +831,18 @@ export default function MapCanvas({
             <div class="popup-tag">${esc(categoryLabel)}</div>
             <div class="popup-name">${esc(f.name)}</div>
             <div class="popup-detail">${esc(popupSummary)}</div>
-            <div class="popup-actions">
-              <a class="popup-btn popup-btn-secondary" href="/explore/${f.slug}">More info &rarr;</a>
+            <div class="popup-actions">${
+              // "More info" is dropped for food and drink (31 Aug 2026):
+              // /explore/[slug] is thin for a pub or cafe, and for a venue
+              // with no Google card it was sending people to a weaker page
+              // than the popup they were already reading. Every other
+              // category keeps it - a beach or a walk has real content
+              // there, and no official site to link to instead.
+              isFoodDrink
+                ? ""
+                : `
+              <a class="popup-btn popup-btn-secondary" href="/explore/${f.slug}">More info &rarr;</a>`
+            }
               <button class="popup-btn popup-btn-primary" data-add-feature="${f.id}">+ Add to Trip</button>
             </div>${officialSource}
           </div>`,
