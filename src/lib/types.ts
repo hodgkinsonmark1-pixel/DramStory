@@ -881,6 +881,11 @@ export interface Season {
    *  false - it gets the feature panel instead, and showing it twice
    *  would be saying the same thing twice. */
   showAsCard: boolean;
+  /** One word beside the month in the feature panel - "Late", so it
+   *  reads "May / LATE". Undefined on the card bands. It matters because
+   *  "May" alone would mislead: the festival is the last week of the
+   *  month, and someone booking early May would miss it entirely. */
+  monthNote?: string;
 }
 
 /** One calendar month, from the Months table. Takes its colour from the

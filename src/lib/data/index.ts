@@ -718,6 +718,7 @@ interface AirtableSeasonFields {
   Busyness?: number;
   Order?: number;
   "Show As Card"?: boolean;
+  "Month Note"?: string;
 }
 
 interface AirtableMonthFields {
@@ -742,6 +743,7 @@ export const getSeasons = cache(async (): Promise<Season[]> => {
       // === true for the same reason every other checkbox on this site
       // reads that way: Airtable omits an unchecked box entirely.
       showAsCard: r.fields["Show As Card"] === true,
+      monthNote: r.fields["Month Note"] || undefined,
     }))
     .sort((a, b) => a.order - b.order);
 });

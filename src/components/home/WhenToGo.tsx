@@ -30,13 +30,21 @@ const BUSYNESS_CLASS: Record<number, string> = {
   4: "wtg-b4",
 };
 
-/** "13 Aug", and "27–30 Aug" when an event runs across days. Confirmed
- *  events only - a provisional row has no date worth printing. */
-function formatDateRange(event: LocalEvent): string {
-  const fmt = (iso: string) =>
-    new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-  if (!event.endDate || event.endDate === event.date) return fmt(event.date);
-  return `${fmt(event.date)} – ${fmt(event.endDate)}`;
+/** The date block: the day as a numeral over its month, with the end day
+ *  added only when the event runs across days. Stacked rather than run
+ *  together because four of these sit in a column and the numeral is
+ *  what the eye scans down. Confirmed events only - a provisional row has
+ *  no day worth printing. */
+function dateParts(event: LocalEvent): { day: string; month: string; end?: string } {
+  const d = new Date(event.date);
+  const day = String(d.getDate());
+  const month = d.toLocaleDateString("en-GB", { month: "short" }).toUpperCase();
+  if (!event.endDate || event.endDate === event.date) return { day, month };
+  const e = new Date(event.endDate);
+  const endMonth = e.toLocaleDateString("en-GB", { month: "short" }).toUpperCase();
+  // "13–15" inside one month, "30 Aug – 2 Sep" across two.
+  const end = endMonth === month ? `–${e.getDate()}` : `– ${e.getDate()} ${endMonth}`;
+  return { day, month, end };
 }
 
 /** "Tomorrow" / "In two weeks" / "In nine months" - how far off this is,
@@ -61,13 +69,40 @@ function relativeWhen(event: LocalEvent, today: Date): string | undefined {
   return `In ${SPELLED[months] ?? months} months`;
 }
 
+/** "nine months away" / "three weeks away" - the same arithmetic as
+ *  relativeWhen, phrased to sit inside a sentence rather than stand as a
+ *  label. */
+function awayPhrase(event: LocalEvent, today: Date): string | undefined {
+  const label = relativeWhen(event, today);
+  if (!label || !label.startsWith("In ")) return undefined;
+  return `${label.slice(3)} away`;
+}
+
+/** An event name without its parenthetical subtitle: "Fèis Íle 2027
+ *  (Islay Festival of Music & Malt)" reads fine as a listing but not
+ *  mid-sentence. */
+function shortEventName(name: string): string {
+  return name.replace(/\s*\([^)]*\)\s*$/, "").trim();
+}
+
 function EventRow({ event, today }: { event: LocalEvent; today: Date }) {
   const when = relativeWhen(event, today);
   return (
     <li className="wtg-event">
       <div className="wtg-event-date">
         {event.datesConfirmed ? (
-          formatDateRange(event)
+          (() => {
+            const { day, month, end } = dateParts(event);
+            return (
+              <>
+                <span className="wtg-event-day">
+                  {day}
+                  {end}
+                </span>
+                <span className="wtg-event-month">{month}</span>
+              </>
+            );
+          })()
         ) : (
           /* No day, because nobody has announced one. The month and year
              are as far as this can honestly go. */
@@ -135,6 +170,16 @@ export default function WhenToGo({
     .filter((e) => (e.endDate || e.date) >= todayIso)
     .sort((a, b) => (a.date < b.date ? -1 : 1));
 
+  // The event the feature band is actually about - found by month rather
+  // than by name, so renaming either the band or the festival cannot
+  // silently empty the notice. Confirmed only: a provisional date is not
+  // something to tell people to book against.
+  const featureMonthOrder = featureMonth?.order;
+  const featureEvent = upcoming.find(
+    (e) => e.datesConfirmed && featureMonthOrder !== undefined && new Date(e.date).getMonth() + 1 === featureMonthOrder
+  );
+  const featureAway = featureEvent ? awayPhrase(featureEvent, today) : undefined;
+
   const journalPost = journalPosts[0];
 
   return (
@@ -174,13 +219,44 @@ export default function WhenToGo({
             <div className="wtg-feature">
               <div className="wtg-feature-when">
                 <span className="wtg-feature-month">{featureMonth?.name ?? ""}</span>
-                <span className="wtg-feature-sub">{feature.name}</span>
+                {feature.monthNote && (
+                  <span className="wtg-feature-sub">{feature.monthNote}</span>
+                )}
               </div>
               <div className="wtg-feature-body">
                 <h3 className="wtg-feature-title">{feature.eyebrow}</h3>
                 <p className="wtg-feature-copy">{feature.copy}</p>
               </div>
+              {/* Goes to the day plans rather than the festival's own
+                  site: "plan for" is the thing this site does, and
+                  feisile.co.uk is already linked from the event row two
+                  columns over. */}
+              <Link className="wtg-feature-cta" href="/days">
+                Plan for {feature.name} &rarr;
+              </Link>
             </div>
+          )}
+
+          {featureEvent && featureAway && (
+            /* The one booking consequence on this whole section, and it
+               is only shown when there is a real dated event to hang it
+               on - the countdown is computed from that event's own date,
+               so it cannot go stale or need editing each year.
+               "Where's still free" in the mockup promised live
+               availability, which this site does not have and cannot
+               honestly claim; it points at the stays section instead. */
+            <p className="wtg-notice">
+              <span>
+                <strong>
+                  {shortEventName(featureEvent.name)} is {featureAway} and Islay is already filling
+                  up.
+                </strong>{" "}
+                If that&rsquo;s your week, book the bed before anything else.
+              </span>
+              <Link className="wtg-notice-link" href="#where-to-stay">
+                Where to stay &rarr;
+              </Link>
+            </p>
           )}
 
           {cards.length > 0 && (
