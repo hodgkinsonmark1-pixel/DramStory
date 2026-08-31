@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { hasGoogleMapsBrowserKey, loadPlacesUiKit } from "@/lib/google-maps-loader";
+import { googleAuthFailed, hasGoogleMapsBrowserKey, loadPlacesUiKit } from "@/lib/google-maps-loader";
+
+/** A rendered card carries a photo, rating and hours and runs to several
+ *  hundred pixels. An upgraded-but-empty element still occupies a few. */
+const MIN_RENDERED_HEIGHT = 80;
 
 // ─────────────────────────────────────────────────────────────────────────
 // LIVE DETAILS PANEL — Google Places UI Kit, food/drink pins only.
@@ -43,6 +47,11 @@ interface PlaceLiveDetailsProps {
    *  (31 Aug 2026), so the action has to be reachable without scrolling
    *  past a few hundred pixels of Google content to find it. */
   onAddToTrip: () => void;
+  /** The venue's own site, already validated as absolute http(s). Shown
+   *  only when Google's card fails - since this panel replaced the popup,
+   *  a dead card would otherwise leave the visitor no way to reach the
+   *  venue at all. */
+  websiteUrl?: string;
   onClose: () => void;
 }
 
@@ -59,6 +68,7 @@ export default function PlaceLiveDetails({
   categoryLabel,
   summary,
   onAddToTrip,
+  websiteUrl,
   onClose,
 }: PlaceLiveDetailsProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -141,8 +151,22 @@ export default function PlaceLiveDetails({
       const startedAt = Date.now();
       const poll = window.setInterval(() => {
         if (cancelled) return;
-        const rendered = details.getBoundingClientRect().height > 0;
-        if (rendered) {
+        // Google rejected the key outright - wrong referrer, API not
+        // enabled, billing off. Fail immediately rather than waiting out
+        // the timeout, because the element WILL have upgraded and WILL
+        // have a box, so height alone would call this a success.
+        if (googleAuthFailed()) {
+          setState("error");
+          window.clearInterval(poll);
+          return;
+        }
+        // MIN_RENDERED_HEIGHT, not "> 0": an upgraded-but-empty custom
+        // element still occupies a few pixels of layout. A real card with
+        // a photo, rating and hours is several hundred tall, so this
+        // threshold separates "Google answered" from "the element exists".
+        // Measuring the box is all that is available - the shadow root is
+        // closed - so the threshold has to do the work.
+        if (details.getBoundingClientRect().height > MIN_RENDERED_HEIGHT) {
           setState("ready");
           window.clearInterval(poll);
         } else if (Date.now() - startedAt > 8000) {
@@ -181,11 +205,26 @@ export default function PlaceLiveDetails({
           UI Kit attribution guidance explicitly requires. */}
       <div className="place-live-panel-body" ref={hostRef} />
 
-      {state === "loading" ? <p className="place-live-panel-note">Checking with Google&hellip;</p> : null}
+      {state === "loading" ? (
+        <p className="place-live-panel-note" role="status">
+          Checking with Google&hellip;
+        </p>
+      ) : null}
       {state === "error" ? (
-        <p className="place-live-panel-note">
-          Live details aren&rsquo;t available for this venue right now. Opening hours on Islay change with the season &mdash;
-          it&rsquo;s worth ringing ahead.
+        // This panel replaced the map popup entirely for venues with a
+        // place ID, so a failed card must not leave the visitor with
+        // nothing. The venue's own site is the fallback that matters.
+        <p className="place-live-panel-note" role="status">
+          Live details aren&rsquo;t available just now. Opening hours on Islay change with the season &mdash; it&rsquo;s
+          worth ringing ahead.
+          {websiteUrl ? (
+            <>
+              {" "}
+              <a href={websiteUrl} target="_blank" rel="noreferrer">
+                Official site &#8599;
+              </a>
+            </>
+          ) : null}
         </p>
       ) : null}
     </aside>

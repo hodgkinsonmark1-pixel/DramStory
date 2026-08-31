@@ -35,7 +35,7 @@ Service Specific Terms §15.1:
 > Agreement.
 
 This is why `PlaceLiveDetails.tsx` renders Google's own
-`<gmp-place-details-compact>` element rather than our own markup. The
+`<gmp-place-details>` element rather than our own markup. The
 Google-styled card is not a design choice we settled for — it is the
 mechanism that makes showing Google's hours and ratings lawful here.
 
@@ -95,7 +95,7 @@ Two separate keys, deliberately:
 | Key | Where | Restriction |
 | --- | --- | --- |
 | `GOOGLE_PLACES_API_KEY` | Server only | Places API (New). Never sent to the browser; photos are proxied via `/api/places-photo`. |
-| `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY` | Browser | Must be HTTP-referrer restricted to dramstory.com and Vercel preview domains, and limited to the Places UI Kit API only. |
+| `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY` | Browser | HTTP-referrer restricted to dramstory.com and the Vercel preview domains, and restricted to **both** Places UI Kit **and** Maps JavaScript API. Both are required: the loader boots `maps/api/js`, so a key restricted to Places UI Kit alone is rejected — and Google's rejection is silent unless `gm_authFailure` is wired up, which it now is. |
 
 The UI Kit runs client-side, so its key is public by design. That is expected
 and safe **only** with the referrer restriction applied. Do not reuse the
@@ -105,8 +105,13 @@ server key.
 
 Places UI Kit is billed per request at the Places UI Kit rate, with 10,000
 free requests per month, then roughly $1.00 per 1,000. For comparison, Places
-API Nearby Search Pro is $32.00 per 1,000. One panel open is one request, and
-only when a visitor actively asks for it.
+API Nearby Search Pro is $32.00 per 1,000.
+
+One panel open is one request. Note this got more expensive on 31 Aug 2026
+when the panel started opening WITH the pin rather than behind a second
+click: every tap of a food or drink pin now bills, including a re-tap after
+the panel was dismissed by a map drag. Still trivial at current traffic —
+10,000 free opens a month — but it scales with pin clicks, not with intent.
 
 ## Status caveat
 

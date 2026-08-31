@@ -19,6 +19,30 @@ import MapCanvas from "./MapCanvas";
 import AccommodationControl from "./AccommodationControl";
 import PlaceLiveDetails from "./PlaceLiveDetails";
 import { hasGoogleMapsBrowserKey } from "@/lib/google-maps-loader";
+
+/** Mirrors MapCanvas's popup truncation so the live-details panel and the
+ *  popup read the same for a venue with no Pin Summary. */
+function truncatePanelSummary(text: string): string {
+  const clean = (text || "").trim();
+  if (clean.length <= 160) return clean;
+  const cut = clean.slice(0, 160);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${(lastSpace > 100 ? cut.slice(0, lastSpace) : cut).replace(/[,.;:]$/, "")}…`;
+}
+
+/** Only absolute http(s) URLs reach the panel. A scheme-less Airtable value
+ *  like "peatzeria.co.uk" would otherwise resolve as a relative path and
+ *  404 on dramstory.com. */
+function safePanelUrl(raw: string | undefined): string | undefined {
+  if (!raw?.trim()) return undefined;
+  const withScheme = /^https?:\/\//i.test(raw.trim()) ? raw.trim() : `https://${raw.trim()}`;
+  try {
+    const url = new URL(withScheme);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : undefined;
+  } catch {
+    return undefined;
+  }
+}
 import DateRangePicker from "./DateRangePicker";
 import OnboardingOverlay from "./OnboardingOverlay";
 import PlannerContextBar from "./PlannerContextBar";
@@ -462,8 +486,19 @@ export default function Workspace({
   // passed independently to stay visible regardless of that filter -
   // ids alone would have nothing to resolve against if its category
   // wasn't toggled on.
+  // Re-hydrated against the freshly-fetched localFeatures, not used as
+  // stored (second-pass review, 31 Aug 2026). trip-context serialises whole
+  // LocalFeature records into localStorage and restores them verbatim, so a
+  // visitor returning to a saved trip carries records captured before this
+  // branch existed - with no googlePlaceId on them. Left alone, the same
+  // venue would show a Google card when browsed and the old popup when it
+  // is already in the day. Falls back to the stored copy for anything no
+  // longer in the live data, so a saved stop never silently vanishes.
+  const featureById = new Map(localFeatures.map((f) => [f.id, f]));
   const activeDayFeatures = activeDay
-    ? activeDay.stops.filter((s) => s.kind === "feature").map((s) => s.feature)
+    ? activeDay.stops
+        .filter((s) => s.kind === "feature")
+        .map((s) => featureById.get(s.feature.id) ?? s.feature)
     : [];
   // When a base is set, the day's route becomes a loop: base -> stops -> base,
   // so drive-time/cost totals reflect the actual journey, not just
@@ -573,7 +608,20 @@ export default function Workspace({
       ? localFeatures.filter(
           (f) =>
             (f.category === "pub" || f.category === "cafe" || f.category === "restaurant") &&
-            (activeEatSubcats.length === 0 || activeEatSubcats.includes(f.category))
+            (activeEatSubcats.length === 0 || activeEatSubcats.includes(f.category)) &&
+            // Mark's rule, 31 Aug 2026: a food or drink venue earns a pin
+            // only if it carries a live Google card OR an official source
+            // the visitor can act on. Anything with neither gives a
+            // visitor a pin they cannot check, verify or book from - which
+            // on a trip planner is worse than no pin at all.
+            //
+            // This is deliberately a RENDER gate, not a delete. The four
+            // records it currently hides (The Munchie Box, The Islay
+            // Bakery, Cafe Life, The Wee Box) are all closed or
+            // unverifiable, and keeping them means next month's FHIS diff
+            // recognises them as already-assessed rather than surfacing
+            // them again as missing venues to add back.
+            Boolean(f.googlePlaceId || f.websiteUrl)
         )
       : []),
   ];
@@ -1417,11 +1465,12 @@ export default function Workspace({
                 placeId={liveDetailsFeature.googlePlaceId}
                 name={liveDetailsFeature.name}
                 categoryLabel={liveDetailsFeature.category.replace("-", " ")}
-                // Same fallback chain the map popup uses for every other
-                // pin, so a venue reads identically whether or not it has
-                // a Google card behind it.
-                summary={liveDetailsFeature.pinSummary || liveDetailsFeature.whyVisit || liveDetailsFeature.description}
+                // Truncated the same way the map popup truncates, so a
+                // venue with no Pin Summary can't dump a full-paragraph
+                // Why Visit blockquote into a 340px panel.
+                summary={liveDetailsFeature.pinSummary || truncatePanelSummary(liveDetailsFeature.whyVisit || liveDetailsFeature.description)}
                 onAddToTrip={() => handleAddFeature(liveDetailsFeature.id)}
+                websiteUrl={safePanelUrl(liveDetailsFeature.websiteUrl)}
                 onClose={() => setLiveDetailsFeatureId(null)}
               />
             )}

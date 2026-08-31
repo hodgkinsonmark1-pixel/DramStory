@@ -34,6 +34,18 @@ const MAPS_JS_SRC = "https://maps.googleapis.com/maps/api/js";
 
 let loaderPromise: Promise<void> | null = null;
 
+/** Set by Google's own gm_authFailure callback, which fires when the key is
+ *  rejected - wrong referrer restriction, API not enabled, billing off.
+ *  This is the single most likely failure on a first deploy, and it is NOT
+ *  observable any other way: the custom elements still upgrade and still
+ *  take up space, so a panel measuring its own height would call a rejected
+ *  request "ready" and show an empty box (second-pass review, 31 Aug 2026). */
+let authFailed = false;
+
+export function googleAuthFailed(): boolean {
+  return authFailed;
+}
+
 /** True when a browser key is configured. Callers use this to hide the
  *  live-details affordance entirely rather than offering a button that
  *  can only fail - matches the site's "honest empty state over broken
@@ -68,6 +80,9 @@ export function loadPlacesUiKit(): Promise<void> {
     });
 
     const w = window as unknown as Record<string, unknown>;
+    w.gm_authFailure = () => {
+      authFailed = true;
+    };
     w.__dramstoryMapsReady = () => {
       // The custom elements register slightly after the callback fires,
       // so wait for the specific tag we render rather than assuming.
@@ -82,6 +97,13 @@ export function loadPlacesUiKit(): Promise<void> {
     script.async = true;
     script.onerror = () => reject(new Error("Google Maps JS API failed to load"));
     document.head.appendChild(script);
+  });
+
+  // A rejected promise must not be cached, or one transient failure - an ad
+  // blocker, a dropped connection - poisons every later panel open for the
+  // rest of the page session.
+  loaderPromise.catch(() => {
+    loaderPromise = null;
   });
 
   return loaderPromise;

@@ -108,6 +108,37 @@ interface MapCanvasProps {
   onShowLiveDetails?: (featureId: string | null) => void;
 }
 
+// Leaflet popups are built as HTML strings, so every Airtable-sourced value
+// interpolated into one has to be escaped. Airtable is only editable by us,
+// so this is not a public XSS surface - but a stray quote or ampersand in a
+// venue name silently breaks the markup, and an unescaped value in an href
+// is a foot-gun worth closing anyway (second-pass review, 31 Aug 2026).
+function esc(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** Returns a safe absolute http(s) URL, or null. Guards two real cases from
+ *  the Airtable Website column: a `javascript:` value, which would execute
+ *  on click; and a scheme-less value like "peatzeria.co.uk", which the
+ *  browser resolves as a RELATIVE path and 404s on dramstory.com. */
+function safeExternalUrl(raw: string | undefined): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const url = new URL(withScheme);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 // Rough center of Scotland, used when a region has no pins yet so the map
 // doesn't default to (0,0) in the Atlantic.
 const SCOTLAND_CENTER: [number, number] = [56.8, -4.2];
@@ -785,15 +816,15 @@ export default function MapCanvas({
         // Only for food/drink: a beach or a walk has no proprietor, and
         // "Official site" under a coastline would be meaningless.
         const isFoodDrink = f.category === "pub" || f.category === "cafe" || f.category === "restaurant";
-        const officialSource =
-          isFoodDrink && f.websiteUrl
-            ? `<a class="popup-official" href="${f.websiteUrl}" target="_blank" rel="noreferrer">Official site &#8599;</a>`
-            : "";
+        const officialUrl = isFoodDrink ? safeExternalUrl(f.websiteUrl) : null;
+        const officialSource = officialUrl
+          ? `<a class="popup-official" href="${esc(officialUrl)}" target="_blank" rel="noreferrer">Official site &#8599;</a>`
+          : "";
         marker.bindPopup(
           `<div class="popup-inner">
-            <div class="popup-tag">${categoryLabel}</div>
-            <div class="popup-name">${f.name}</div>
-            <div class="popup-detail">${popupSummary}</div>
+            <div class="popup-tag">${esc(categoryLabel)}</div>
+            <div class="popup-name">${esc(f.name)}</div>
+            <div class="popup-detail">${esc(popupSummary)}</div>
             <div class="popup-actions">
               <a class="popup-btn popup-btn-secondary" href="/explore/${f.slug}">More info &rarr;</a>
               <button class="popup-btn popup-btn-primary" data-add-feature="${f.id}">+ Add to Trip</button>
