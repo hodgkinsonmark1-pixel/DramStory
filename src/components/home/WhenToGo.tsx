@@ -30,21 +30,28 @@ const BUSYNESS_CLASS: Record<number, string> = {
   4: "wtg-b4",
 };
 
-/** The date block: the day as a numeral over its month, with the end day
- *  added only when the event runs across days. Stacked rather than run
- *  together because four of these sit in a column and the numeral is
- *  what the eye scans down. Confirmed events only - a provisional row has
- *  no day worth printing. */
-function dateParts(event: LocalEvent): { day: string; month: string; end?: string } {
+/** The date block, as two lines. Which two depends on whether the event
+ *  crosses a month boundary, because one shape cannot carry both:
+ *    13 SEPT        a single day
+ *    11–13 SEPT     inside one month
+ *    28 MAY / – 6 JUN   across two
+ *
+ *  The first build appended the end day to the start day and then printed
+ *  the start month after it, which rendered Fèis Ìle as "28– 6 JUNMAY".
+ *  Confirmed events only - a provisional row has no day worth printing. */
+function dateLines(event: LocalEvent): { top: string; bottom: string } {
   const d = new Date(event.date);
-  const day = String(d.getDate());
-  const month = d.toLocaleDateString("en-GB", { month: "short" }).toUpperCase();
-  if (!event.endDate || event.endDate === event.date) return { day, month };
+  const mon = (x: Date) => x.toLocaleDateString("en-GB", { month: "short" }).toUpperCase();
+  const startMonth = mon(d);
+  if (!event.endDate || event.endDate === event.date) {
+    return { top: String(d.getDate()), bottom: startMonth };
+  }
   const e = new Date(event.endDate);
-  const endMonth = e.toLocaleDateString("en-GB", { month: "short" }).toUpperCase();
-  // "13–15" inside one month, "30 Aug – 2 Sep" across two.
-  const end = endMonth === month ? `–${e.getDate()}` : `– ${e.getDate()} ${endMonth}`;
-  return { day, month, end };
+  const endMonth = mon(e);
+  if (endMonth === startMonth) {
+    return { top: `${d.getDate()}–${e.getDate()}`, bottom: startMonth };
+  }
+  return { top: `${d.getDate()} ${startMonth}`, bottom: `– ${e.getDate()} ${endMonth}` };
 }
 
 /** "Tomorrow" / "In two weeks" / "In nine months" - how far off this is,
@@ -92,14 +99,11 @@ function EventRow({ event, today }: { event: LocalEvent; today: Date }) {
       <div className="wtg-event-date">
         {event.datesConfirmed ? (
           (() => {
-            const { day, month, end } = dateParts(event);
+            const { top, bottom } = dateLines(event);
             return (
               <>
-                <span className="wtg-event-day">
-                  {day}
-                  {end}
-                </span>
-                <span className="wtg-event-month">{month}</span>
+                <span className="wtg-event-day">{top}</span>
+                <span className="wtg-event-month">{bottom}</span>
               </>
             );
           })()
@@ -128,7 +132,7 @@ function EventRow({ event, today }: { event: LocalEvent; today: Date }) {
         {when && <div className="wtg-event-when">{when}</div>}
         {!event.datesConfirmed && (
           <div className="wtg-event-tbc-note">
-            {event.provisionalTiming ?? "dates not yet announced"} &mdash; not yet announced
+            {event.provisionalTiming ?? "dates"} &mdash; not yet announced
           </div>
         )}
       </div>
