@@ -228,3 +228,50 @@ already done are the worked example.
 <!-- Practicalities: D & N MacKenzie replaced by Cresswell Cars 31 Aug
      2026, succession confirmed by matching address and phone on the
      firm own site. Airtable-only, so this commit busts the ISR cache. -->
+
+## Commission disclosure, and the sixteen dead links in the footer
+
+**Status:** Logged 31 Aug 2026, when the first visibly-marked affiliate
+link went live on the homepage. Needs Mark. Two of these are legal
+rather than editorial.
+
+**What now earns commission, and what says so.** The "Before you go" car
+hire card links to Discover Cars, which pays DramStory a commission. It
+is marked in place — the row carries "we earn a commission" beside the
+name and the anchor carries `rel="sponsored nofollow"` — driven by the
+`Affiliate` checkbox on the Practicalities table. That treatment is
+deliberate and should be the pattern for every paid link added later:
+Islay Car Hire and Cresswell Cars sit directly above it and pay nothing,
+and `/journeys/[slug]` states outright that "nothing here is paid to
+DramStory". An unmarked commission link between unpaid ones does not just
+mislead about that link — it makes every other recommendation on the site
+harder to believe.
+
+**The footer promises a disclosure page that does not exist.** "Affiliate
+Disclosure" is `href="#"`. A dead disclosure link is worse than no link:
+it looks like the page exists and is being kept out of reach. Either
+write it or remove the link.
+
+**And it is not alone.** `Footer.tsx` carries SIXTEEN `href="#"` links:
+
+- **Legal, and the urgent ones** — Privacy Policy, Terms of Use, Cookie
+  Policy, Affiliate Disclosure. The site runs a newsletter signup that
+  collects email addresses and sets cookies, so the first three are not
+  editorial niceties. Worth a view from someone who does this for a
+  living rather than a best guess written here.
+- **Journal categories** — Whisky Reviews, Travel Stories, Islay News,
+  Planning Tips, Events. Every published article is currently "Planning
+  Tips", so four of the five would be empty pages today; the honest fix is
+  probably to render only categories that have articles in them, the same
+  way the days filters only show chips that match something.
+- **Company** — Work With Us, Distillery Partners, Advertise, Press.
+  Distillery Partners in particular reads like an offer to distilleries
+  that does not exist yet, on a site actively seeking direct property
+  partnerships.
+- **Social** — the four icons go nowhere, and the accounts exist.
+
+**Suggested approach:** treat the four legal links and the four social
+icons as one job — they are either real or they should not be in the
+footer. The category and company links can wait, but each one that stays
+dead is a visitor learning that this site's links do not work, on the one
+part of the page that appears identically everywhere.
