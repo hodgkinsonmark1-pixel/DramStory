@@ -6,7 +6,6 @@ import WhenToGo from "@/components/home/WhenToGo";
 import WhereToStay from "@/components/home/WhereToStay";
 import BeforeYouGo from "@/components/home/BeforeYouGo";
 import WhatItCosts from "@/components/home/WhatItCosts";
-import LatestJournal from "@/components/home/LatestJournal";
 import Footer from "@/components/Footer";
 import { getVisitableDistilleries, getLocalEvents, getJournalPosts, getDays, getJourneys, getLocalFeatures, getAreas, getFeaturedStays, getSeasons, getMonths, getPracticalities, getCostLines } from "@/lib/data";
 
@@ -80,7 +79,12 @@ export default async function HomePage() {
           in the component; the hire firms and taxi links come from the
           Practicalities table, because those are what go stale. */}
       <BeforeYouGo practicalities={practicalities} days={days} journalPosts={journalPosts} />
-      <LatestJournal posts={journalPosts} />
+      {/* LatestJournal came off the homepage 31 Aug 2026 (Mark's call).
+          The blog still reaches this page twice, in the two strips that
+          carry one piece each in context - under the distilleries and
+          beside What's on - rather than as a three-card block of its
+          own. The component is unchanged and still renders on the two
+          /journey steps via HomeSectionsBelowFold. */}
       {/* The cost strip closes the page, above the footer. It is the one
           section that badges itself "checked", so it sits last - after a
           reader has seen what the trip is, and at the point they start
