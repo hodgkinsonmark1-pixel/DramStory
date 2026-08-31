@@ -63,8 +63,17 @@ export default function PlaceLiveDetails({ placeId, name, onClose }: PlaceLiveDe
       // with hyphenated tag names React would need type augmentation for,
       // and the `place` value is set as a DOM property (not an attribute)
       // per the Places UI Kit reference.
-      const details = document.createElement("gmp-place-details-compact");
-      details.setAttribute("orientation", "vertical");
+      // The full element rather than the compact one (31 Aug 2026): now
+      // that this opens with the pin instead of behind a second click, it
+      // is the venue detail for food/drink pins, so it has to carry enough
+      // to decide on - full opening hours for the week, phone and website,
+      // not just an open/closed line. gmp-place-opening-hours and the two
+      // contact tags only exist on the full element.
+      //
+      // gmp-place-reviews is deliberately left out: it renders a long
+      // scrolling list that would dwarf the map panel. The one-line
+      // review-summary carries the useful signal.
+      const details = document.createElement("gmp-place-details");
 
       const request = document.createElement("gmp-place-details-place-request");
       (request as unknown as { place: string }).place = placeId;
@@ -76,7 +85,10 @@ export default function PlaceLiveDetails({ placeId, name, onClose }: PlaceLiveDe
         "gmp-place-rating",
         "gmp-place-type",
         "gmp-place-price",
-        "gmp-place-open-now-status",
+        "gmp-place-opening-hours",
+        "gmp-place-review-summary",
+        "gmp-place-phone-number",
+        "gmp-place-website",
         "gmp-place-address",
         "gmp-place-attribution",
       ]) {

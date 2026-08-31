@@ -119,6 +119,13 @@ a broken card if the element fails to load or Google rejects the request.
 
 - The mobile bottom sheet (`MobilePlannerSheet.tsx`) does not offer live
   details yet — the desktop popup does. Deciding how a Google card should sit
-  inside the sheet is a layout question, not a port.
+  inside the sheet is a layout question, not a port. This matters more than
+  it sounds: the panel now opens automatically with the pin on desktop, so
+  mobile is the only place a food/drink pin still shows nothing live.
+- Food/drink pins with a place ID no longer show "More info". Their
+  `/explore/[slug]` pages still exist and are still reachable by URL and from
+  `/local-features` — they are simply no longer linked from the map popup, so
+  they now get no traffic from the planner. If those pages are ever fleshed
+  out for pubs and cafes, put the link back.
 - Only venues with a `Google Place ID` in Airtable show the button. Populating
   that field across the 38 food/drink records is content work, not code.

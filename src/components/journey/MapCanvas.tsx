@@ -95,17 +95,17 @@ interface MapCanvasProps {
    *  undefined on desktop, which keeps today's popup behaviour exactly
    *  as it was. */
   onPinTap?: (target: { kind: "distillery" | "feature"; id: string; name: string; lat: number; lng: number }) => void;
-  /** Desktop only. Called with a Local Feature id when the visitor asks
-   *  for live Google details from a food/drink pin's popup - the caller
-   *  raises the Places UI Kit panel (see PlaceLiveDetails.tsx). Only
-   *  offered for features that actually carry a googlePlaceId, so the
-   *  button never appears where it could only fail.
+  /** Desktop only. Called with a Local Feature id when a food/drink pin's
+   *  popup opens, and with null when it closes - the caller raises and
+   *  drops the Places UI Kit panel accordingly (see PlaceLiveDetails.tsx).
+   *  Only fired for features that actually carry a googlePlaceId, so the
+   *  panel never opens where it could only fail.
    *
    *  Deliberately not wired into the mobile onPinTap sheet card yet -
    *  that's a separate template (MobilePlannerSheet.tsx) and adding a
    *  Google-rendered card inside the bottom sheet is a layout decision
    *  of its own, not a like-for-like port of this button. */
-  onShowLiveDetails?: (featureId: string) => void;
+  onShowLiveDetails?: (featureId: string | null) => void;
 }
 
 // Rough center of Scotland, used when a region has no pins yet so the map
@@ -412,14 +412,14 @@ export default function MapCanvas({
         if (addFeature) {
           const id = addFeature.getAttribute("data-add-feature");
           if (id) onAddFeatureRef.current?.(id);
-          return;
-        }
-        const liveDetails = target.closest("[data-live-details]");
-        if (liveDetails) {
-          const id = liveDetails.getAttribute("data-live-details");
-          if (id) onShowLiveDetailsRef.current?.(id);
         }
       });
+
+      // One listener for every feature popup: closing the popup drops the
+      // Google panel with it. Bound on the map rather than per-marker
+      // because Leaflet only ever has one popup open at a time, so a
+      // marker-level handler would fight with the next pin's popupopen.
+      map.on("popupclose", () => onShowLiveDetailsRef.current?.(null));
 
       setMapReady(true);
     }
@@ -737,26 +737,41 @@ export default function MapCanvas({
         // An always-visible button that sometimes does nothing would be
         // worse than no button.
         const liveDetailsAvailable = Boolean(f.googlePlaceId) && Boolean(onShowLiveDetailsRef.current);
-        // "More info" now links to a real DramStory detail page (parking,
+        // "More info" links to a real DramStory detail page (parking,
         // accessibility, hours, highlights, length/difficulty for walks and
         // rides) - deliberately keeping visitors on-site rather than sending
         // them to Google Maps, per the monetization/retention goal.
+        //
+        // Dropped only for food/drink venues that have a live Google card
+        // (31 Aug 2026, Mark's call): /explore/[slug] is thin for a pub or
+        // cafe next to Google's hours, rating and photo, so the second link
+        // was sending people to a weaker page. Venues WITHOUT a place ID
+        // keep it - for those it's still the only detail there is, and
+        // removing it would leave the pin with nothing behind it.
+        const showMoreInfo = !liveDetailsAvailable;
         marker.bindPopup(
           `<div class="popup-inner">
             <div class="popup-tag">${categoryLabel}</div>
             <div class="popup-name">${f.name}</div>
             <div class="popup-detail">${popupSummary}</div>
-            <div class="popup-actions">
-              <a class="popup-btn popup-btn-secondary" href="/explore/${f.slug}">More info &rarr;</a>
-              <button class="popup-btn popup-btn-primary" data-add-feature="${f.id}">+ Add to Trip</button>
-            </div>${
-              liveDetailsAvailable
-                ? `<button class="popup-live-link" data-live-details="${f.id}">Hours &amp; ratings from Google &rarr;</button>`
+            <div class="popup-actions">${
+              showMoreInfo
+                ? `
+              <a class="popup-btn popup-btn-secondary" href="/explore/${f.slug}">More info &rarr;</a>`
                 : ""
             }
+              <button class="popup-btn popup-btn-primary" data-add-feature="${f.id}">+ Add to Trip</button>
+            </div>
           </div>`,
           { minWidth: 240 }
         );
+        // The Google card now opens WITH the popup rather than behind a
+        // second click - Mark's note that it read as a two-stage pin. The
+        // panel closes again on popupclose, wired once on the map below,
+        // so the two always appear and disappear together.
+        if (liveDetailsAvailable) {
+          marker.on("popupopen", () => onShowLiveDetailsRef.current?.(f.id));
+        }
       }
       return marker;
     }

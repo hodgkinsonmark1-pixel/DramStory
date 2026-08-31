@@ -72,7 +72,7 @@ export function loadPlacesUiKit(): Promise<void> {
       // The custom elements register slightly after the callback fires,
       // so wait for the specific tag we render rather than assuming.
       customElements
-        .whenDefined("gmp-place-details-compact")
+        .whenDefined("gmp-place-details")
         .then(() => resolve())
         .catch(reject);
     };
