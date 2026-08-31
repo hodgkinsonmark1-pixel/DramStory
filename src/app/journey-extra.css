@@ -3058,11 +3058,33 @@ select.location-inline-input {
   border-radius: var(--radius-sm);
   overflow: hidden;
 }
+/* Places UI Kit design tokens. Google's defaults are sized for a
+   full-width mobile sheet and read very large in a 340px map panel, so the
+   type scale is pulled down and the palette pointed at our own tokens.
+   Verified against the live element - these are the documented
+   --gmp-mat-* custom properties, and the font ones take a full CSS font
+   shorthand, NOT a bare size.
+
+   Two deliberate constraints:
+   - font-family is NOT overridden. Google's attribution text is required
+     to render in Roboto, and that token would change it along with
+     everything else.
+   - nothing drops below 12px. The attribution policy sets a 12sp floor,
+     and body-small/label-medium are the tokens most likely to be carrying
+     it, so both sit exactly on the floor rather than under it. */
 .place-live-panel-body gmp-place-details {
   width: 100%;
-  --gmp-mat-font-family: var(--font-body);
-  --gmp-mat-color-primary: var(--copper);
+  --gmp-mat-font-display-small: 500 16px/22px;
+  --gmp-mat-font-headline-medium: 500 17px/23px;
+  --gmp-mat-font-title-small: 500 14px/19px;
+  --gmp-mat-font-body-medium: 400 13px/18px;
+  --gmp-mat-font-body-small: 400 12px/16px;
+  --gmp-mat-font-label-large: 500 13px/18px;
+  --gmp-mat-font-label-medium: 500 12px/16px;
   --gmp-mat-color-on-surface: var(--peat);
+  --gmp-mat-color-on-surface-variant: var(--slate);
+  --gmp-mat-color-primary: var(--copper);
+  --gmp-mat-color-outline-decorative: var(--stone);
 }
 
 .place-live-panel-note {

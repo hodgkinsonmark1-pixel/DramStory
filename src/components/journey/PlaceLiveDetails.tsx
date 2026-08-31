@@ -45,6 +45,7 @@ export default function PlaceLiveDetails({ placeId, name, onClose }: PlaceLiveDe
 
   useEffect(() => {
     let cancelled = false;
+    let cleanup: (() => void) | undefined;
 
     async function render() {
       const host = hostRef.current;
@@ -90,24 +91,40 @@ export default function PlaceLiveDetails({ placeId, name, onClose }: PlaceLiveDe
         "gmp-place-phone-number",
         "gmp-place-website",
         "gmp-place-address",
-        "gmp-place-attribution",
       ]) {
         config.appendChild(document.createElement(tag));
       }
+      // Attribution colour is pinned rather than left to inherit: the ToS
+      // allows only white, black (#1F1F1F) or gray (#5E5E5E) for this text,
+      // so the panel's own colour tokens must not be able to drag it
+      // somewhere non-compliant. Gray on our cream/white panel.
+      const attribution = document.createElement("gmp-place-attribution");
+      attribution.setAttribute("light-scheme-color", "gray");
+      attribution.setAttribute("dark-scheme-color", "white");
+      config.appendChild(attribution);
       details.appendChild(config);
 
-      // gmp-error fires when Google rejects the request (bad key, bad
-      // place ID, quota). Neither event is guaranteed for every failure
-      // mode, so the timeout below is the backstop rather than the
-      // primary path.
-      details.addEventListener("gmp-load", () => {
-        if (!cancelled) setState("ready");
-      });
-      details.addEventListener("gmp-error", () => {
-        if (!cancelled) setState("error");
-      });
-
       host.appendChild(details);
+
+      // Readiness is measured, not listened for. The obvious approach -
+      // a "gmp-load" event listener - was wrong: verified against the
+      // live element on 31 Aug 2026, that event never fires, so the
+      // timeout below always won and printed "live details aren't
+      // available" underneath a perfectly good card.
+      //
+      // Height is the honest signal instead. The element renders at zero
+      // height until Google returns, and settles at a few hundred pixels
+      // once it has content, whatever its internal markup does - and its
+      // shadow root is closed, so there is nothing finer to inspect.
+      const observer = new ResizeObserver(() => {
+        if (cancelled) return;
+        if (details.getBoundingClientRect().height > 0) {
+          setState("ready");
+          observer.disconnect();
+        }
+      });
+      observer.observe(details);
+      cleanup = () => observer.disconnect();
 
       window.setTimeout(() => {
         if (!cancelled) setState((s) => (s === "loading" ? "error" : s));
@@ -117,6 +134,7 @@ export default function PlaceLiveDetails({ placeId, name, onClose }: PlaceLiveDe
     render();
     return () => {
       cancelled = true;
+      cleanup?.();
     };
   }, [placeId]);
 
