@@ -106,29 +106,30 @@ export default function PlaceLiveDetails({ placeId, name, onClose }: PlaceLiveDe
 
       host.appendChild(details);
 
-      // Readiness is measured, not listened for. The obvious approach -
-      // a "gmp-load" event listener - was wrong: verified against the
-      // live element on 31 Aug 2026, that event never fires, so the
-      // timeout below always won and printed "live details aren't
-      // available" underneath a perfectly good card.
-      //
-      // Height is the honest signal instead. The element renders at zero
-      // height until Google returns, and settles at a few hundred pixels
-      // once it has content, whatever its internal markup does - and its
-      // shadow root is closed, so there is nothing finer to inspect.
-      const observer = new ResizeObserver(() => {
+      // Readiness is polled, not listened for, and this is the third
+      // approach - the first two were verified wrong against the live
+      // element on 31 Aug 2026:
+      //   1. addEventListener("gmp-load") - that event never fires, so the
+      //      timeout always won and printed "live details aren't
+      //      available" underneath a perfectly good card.
+      //   2. ResizeObserver on the element - also never fired usefully,
+      //      even though the element measurably goes from 0 to ~300px.
+      // The element's shadow root is closed, so there is nothing finer to
+      // inspect than its own box. A plain poll is the one thing that can't
+      // fail quietly: it asks the same question the eye would.
+      const startedAt = Date.now();
+      const poll = window.setInterval(() => {
         if (cancelled) return;
-        if (details.getBoundingClientRect().height > 0) {
+        const rendered = details.getBoundingClientRect().height > 0;
+        if (rendered) {
           setState("ready");
-          observer.disconnect();
+          window.clearInterval(poll);
+        } else if (Date.now() - startedAt > 8000) {
+          setState("error");
+          window.clearInterval(poll);
         }
-      });
-      observer.observe(details);
-      cleanup = () => observer.disconnect();
-
-      window.setTimeout(() => {
-        if (!cancelled) setState((s) => (s === "loading" ? "error" : s));
-      }, 8000);
+      }, 200);
+      cleanup = () => window.clearInterval(poll);
     }
 
     render();
