@@ -910,6 +910,12 @@ export interface Practicality {
   url?: string;
   note?: string;
   order: number;
+  /** True when DramStory earns a commission on this link. The site marks
+   *  these visibly and adds rel="sponsored nofollow" - the same card
+   *  lists local firms who pay nothing, and an unmarked commission link
+   *  beside unpaid ones would undermine every other recommendation on
+   *  the site. */
+  affiliate: boolean;
 }
 
 export interface LocalEvent {

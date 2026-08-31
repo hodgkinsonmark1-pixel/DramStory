@@ -769,6 +769,7 @@ interface AirtablePracticalityFields {
   URL?: string;
   Note?: string;
   Order?: number;
+  Affiliate?: boolean;
 }
 
 /** The hire firms, taxi guides and collection points behind "Before you
@@ -785,6 +786,9 @@ export const getPracticalities = cache(async (): Promise<Practicality[]> => {
       url: r.fields.URL || undefined,
       note: r.fields.Note || undefined,
       order: r.fields.Order ?? 0,
+      // === true: Airtable omits an unchecked box, and "not stated" must
+      // mean "not paid", never the reverse.
+      affiliate: r.fields.Affiliate === true,
     }))
     .sort((a, b) => a.order - b.order);
 });

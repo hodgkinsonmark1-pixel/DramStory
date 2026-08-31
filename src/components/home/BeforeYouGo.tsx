@@ -33,7 +33,13 @@ function isCarFree(day: HubDay): boolean {
 function LinkRow({ item }: { item: Practicality }) {
   const inner = (
     <>
-      <span className="byg-link-name">{item.name}</span>
+      <span className="byg-link-name">
+        {item.name}
+        {/* Said out loud, in the same breath as the name. The two firms
+            above this one pay us nothing, and the reader cannot tell
+            which is which unless we say so. */}
+        {item.affiliate && <span className="byg-affiliate">we earn a commission</span>}
+      </span>
       {item.note && <span className="byg-link-note">{item.note}</span>}
     </>
   );
@@ -42,7 +48,14 @@ function LinkRow({ item }: { item: Practicality }) {
   if (!item.url) return <li className="byg-link byg-link-flat">{inner}</li>;
   return (
     <li className="byg-link">
-      <a href={item.url} target="_blank" rel="noopener noreferrer">
+      <a
+        href={item.url}
+        target="_blank"
+        // sponsored + nofollow on anything we are paid for. Search
+        // engines ask for it, and it is the machine-readable half of the
+        // label the reader sees below.
+        rel={item.affiliate ? "sponsored nofollow noopener noreferrer" : "noopener noreferrer"}
+      >
         {inner}
       </a>
     </li>
