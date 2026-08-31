@@ -775,6 +775,20 @@ export default function MapCanvas({
           marker.on("click", () => onShowLiveDetailsRef.current?.(f.id));
           return marker;
         }
+        // A food/drink venue with no Google card still has to give the
+        // visitor something they can act on (31 Aug 2026, Mark's rule: a
+        // venue earns a pin if it has a live card OR an official source).
+        // For those, the popup carries a direct link to the venue's own
+        // site - the distillery cafes are the case this exists for, since
+        // Google has no listing for any of them, only the distillery.
+        //
+        // Only for food/drink: a beach or a walk has no proprietor, and
+        // "Official site" under a coastline would be meaningless.
+        const isFoodDrink = f.category === "pub" || f.category === "cafe" || f.category === "restaurant";
+        const officialSource =
+          isFoodDrink && f.websiteUrl
+            ? `<a class="popup-official" href="${f.websiteUrl}" target="_blank" rel="noreferrer">Official site &#8599;</a>`
+            : "";
         marker.bindPopup(
           `<div class="popup-inner">
             <div class="popup-tag">${categoryLabel}</div>
@@ -783,7 +797,7 @@ export default function MapCanvas({
             <div class="popup-actions">
               <a class="popup-btn popup-btn-secondary" href="/explore/${f.slug}">More info &rarr;</a>
               <button class="popup-btn popup-btn-primary" data-add-feature="${f.id}">+ Add to Trip</button>
-            </div>
+            </div>${officialSource}
           </div>`,
           { minWidth: 240 }
         );

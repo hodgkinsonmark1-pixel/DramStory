@@ -3007,6 +3007,22 @@ select.location-inline-input {
    around it, which is also what satisfies the Places UI Kit requirement to
    "visually distinguish" Google's content from ours. */
 
+/* Official-source link on a food/drink popup that has no Google card.
+   Sits under the action row rather than beside it, so it reads as a
+   citation for the venue rather than a third button competing with
+   "+ Add to Trip". */
+.popup-official {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--copper);
+  text-decoration: none;
+}
+.popup-official:hover {
+  text-decoration: underline;
+}
+
 .place-live-panel {
   position: absolute;
   top: 16px;
