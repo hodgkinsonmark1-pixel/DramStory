@@ -597,6 +597,14 @@ export default function MapCanvas({
   // toolbar, or switching days/editing stops, not a one-time mount.
   // Adds/removes just the feature markers from the shared cluster group -
   // the distillery markers already in that same group are left untouched.
+  // Content signatures for the effect below - see the note on its
+  // dependency array for why identity alone can't be used. Feature records
+  // only change on a full page load (they come from server props), so the
+  // id list is a sufficient signature; the offset maths also reads each
+  // feature's coordinates, which cannot change without the ids changing.
+  const localFeaturesKey = localFeatures.map((f) => f.id).join(",");
+  const activeDayFeaturesKey = activeDayFeatures.map((f) => f.id).join(",");
+
   useEffect(() => {
     if (!mapReady || !mapRef.current || !leafletRef.current || !clusterGroupRef.current) return;
     const L = leafletRef.current;
@@ -793,7 +801,22 @@ export default function MapCanvas({
 
     featureMarkersRef.current = markers;
     activeDayFeatureMarkersRef.current = activeDayMarkers;
-  }, [mapReady, localFeatures, distilleries, currentZoom, activeDayFeatures]);
+    // Keyed on the CONTENT of the two feature lists, not their array
+    // identity (31 Aug 2026). Workspace builds visibleLocalFeatures and
+    // activeDayFeatures inline on every render, so they are a new array
+    // each time even when nothing about them has changed - which made this
+    // effect re-run, tear down every marker, and silently destroy whatever
+    // popup the visitor had open, on ANY unrelated state change in the
+    // workspace.
+    //
+    // That surfaced as the Google panel flashing and vanishing 3ms after a
+    // food pin was clicked: opening the panel is itself a state change, so
+    // it rebuilt the markers, killed its own popup, and the popupclose
+    // handler above then closed the panel. The same bug was quietly
+    // closing popups on date changes and day switches before any of this.
+    //
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapReady, localFeaturesKey, distilleries, currentZoom, activeDayFeaturesKey]);
 
   // Pulsing ring behind any distillery hosting a Local Event within the
   // currently-selected date range - redrawn whenever that set changes
