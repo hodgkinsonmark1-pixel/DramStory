@@ -156,9 +156,17 @@ export function areaMembership(distilleries: Distillery[]): AreaMembership[] {
       }
       /* A record filed under the wrong Region would move an area's
          centre - and therefore its shape on the map - without anything
-         looking broken. Laggan Bay, for instance, is filed West Islay
-         but sits near Bowmore; the day it opens to visitors this will
-         say so rather than letting the west quietly stretch east. */
+         looking broken.
+
+         This has already happened once: Laggan Bay was filed West Islay
+         while sitting 5.1 mi from Bowmore and 7.0 mi from Bruichladdich,
+         which would have dragged the west's centre 2.9 mi southeast the
+         day it opened to visitors. Corrected to Central Islay in
+         Airtable on 31 Aug 2026. Worth noting that this guard would NOT
+         have caught it - at 5.9 mi from the shifted centre it sits well
+         inside OUTLIER_MILES - so the threshold below is a backstop for
+         gross misfiling, not a substitute for checking a new record's
+         Region when it is added. */
       for (const d of m.distilleries) {
         const away = milesApart(m.centre, d);
         if (away > OUTLIER_MILES) {
