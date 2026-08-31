@@ -25,10 +25,24 @@ import { hasGoogleMapsBrowserKey, loadPlacesUiKit } from "@/lib/google-maps-load
 interface PlaceLiveDetailsProps {
   /** Google Place ID, e.g. "ChIJ...". */
   placeId: string;
-  /** Venue name - shown in our own heading above the Google card so the
-   *  panel reads as DramStory's, and so there's something meaningful on
-   *  screen while Google's element is still loading. */
+  /** Venue name. Not rendered - Google's card carries the name, and
+   *  showing ours directly above it read as a stutter ("Peatzeria" over
+   *  "Peatzeria - Restaurant and Takeaway"). Kept for the accessible
+   *  label, which needs to name the venue even though the visible
+   *  heading no longer does. */
   name: string;
+  /** Category label ("Restaurant", "Pub", "Cafe") - the one bit of our own
+   *  framing left above Google's block. */
+  categoryLabel: string;
+  /** Our own one-line description of the venue, in DramStory's voice.
+   *  This is the whole reason the panel isn't just a Google card in a
+   *  box - it's the editorial line Google can't supply. */
+  summary: string;
+  /** Adds this venue to the current day. Sits at the TOP of the panel:
+   *  for a food/drink pin this card replaced the map popup entirely
+   *  (31 Aug 2026), so the action has to be reachable without scrolling
+   *  past a few hundred pixels of Google content to find it. */
+  onAddToTrip: () => void;
   onClose: () => void;
 }
 
@@ -39,7 +53,14 @@ interface PlaceLiveDetailsProps {
 
 type LoadState = "loading" | "ready" | "error";
 
-export default function PlaceLiveDetails({ placeId, name, onClose }: PlaceLiveDetailsProps) {
+export default function PlaceLiveDetails({
+  placeId,
+  name,
+  categoryLabel,
+  summary,
+  onAddToTrip,
+  onClose,
+}: PlaceLiveDetailsProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const [state, setState] = useState<LoadState>("loading");
 
@@ -144,14 +165,17 @@ export default function PlaceLiveDetails({ placeId, name, onClose }: PlaceLiveDe
   return (
     <aside className="place-live-panel" aria-label={`Live details for ${name}`}>
       <div className="place-live-panel-head">
-        <div>
-          <p className="place-live-panel-eyebrow">Live details</p>
-          <h3 className="place-live-panel-name">{name}</h3>
-        </div>
-        <button type="button" className="place-live-panel-close" onClick={onClose} aria-label="Close live details">
+        <p className="place-live-panel-eyebrow">{categoryLabel}</p>
+        <button type="button" className="place-live-panel-close" onClick={onClose} aria-label={`Close ${name}`}>
           &times;
         </button>
       </div>
+
+      {summary ? <p className="place-live-panel-summary">{summary}</p> : null}
+
+      <button type="button" className="popup-btn popup-btn-primary place-live-panel-add" onClick={onAddToTrip}>
+        + Add to Trip
+      </button>
 
       {/* Visually separates Google's content from ours, which the Places
           UI Kit attribution guidance explicitly requires. */}

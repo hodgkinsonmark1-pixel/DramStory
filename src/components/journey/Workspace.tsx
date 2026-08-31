@@ -1416,6 +1416,12 @@ export default function Workspace({
                 key={liveDetailsFeature.googlePlaceId}
                 placeId={liveDetailsFeature.googlePlaceId}
                 name={liveDetailsFeature.name}
+                categoryLabel={liveDetailsFeature.category.replace("-", " ")}
+                // Same fallback chain the map popup uses for every other
+                // pin, so a venue reads identically whether or not it has
+                // a Google card behind it.
+                summary={liveDetailsFeature.pinSummary || liveDetailsFeature.whyVisit || liveDetailsFeature.description}
+                onAddToTrip={() => handleAddFeature(liveDetailsFeature.id)}
                 onClose={() => setLiveDetailsFeatureId(null)}
               />
             )}

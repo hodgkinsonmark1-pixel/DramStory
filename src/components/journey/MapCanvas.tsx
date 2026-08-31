@@ -415,11 +415,21 @@ export default function MapCanvas({
         }
       });
 
-      // One listener for every feature popup: closing the popup drops the
-      // Google panel with it. Bound on the map rather than per-marker
-      // because Leaflet only ever has one popup open at a time, so a
-      // marker-level handler would fight with the next pin's popupopen.
-      map.on("popupclose", () => onShowLiveDetailsRef.current?.(null));
+      // Food/drink pins with a Google card bind no popup at all now, so
+      // the panel needs its own way to be dismissed by the map: a click on
+      // open water or a different pin's popup closes it, matching what
+      // Leaflet's own closeOnClick does for popups. The panel's × does the
+      // rest.
+      map.on("click", () => onShowLiveDetailsRef.current?.(null));
+      map.on("popupopen", () => onShowLiveDetailsRef.current?.(null));
+      // Dragging the map away from a venue drops its card too, so it can't
+      // sit there describing a pin that's now off-screen. Deliberately
+      // "dragstart" and not "movestart": movestart also fires for the
+      // programmatic fitBounds/setView calls this file makes on day
+      // switches and recentres, which would close the card for reasons the
+      // visitor didn't cause. Wheel-zoom is left alone for the same
+      // reason - zoomstart can't tell a user's scroll from our own fit.
+      map.on("dragstart", () => onShowLiveDetailsRef.current?.(null));
 
       setMapReady(true);
     }
@@ -756,30 +766,27 @@ export default function MapCanvas({
         // was sending people to a weaker page. Venues WITHOUT a place ID
         // keep it - for those it's still the only detail there is, and
         // removing it would leave the pin with nothing behind it.
-        const showMoreInfo = !liveDetailsAvailable;
+        if (liveDetailsAvailable) {
+          // ONE card, not two (31 Aug 2026, Mark's call). A food/drink pin
+          // with a Google card used to raise a Leaflet popup AND the panel
+          // side by side, repeating the venue name across both. The panel
+          // now carries everything - our category, our summary line, the
+          // Add to Trip action - so no popup is bound here at all.
+          marker.on("click", () => onShowLiveDetailsRef.current?.(f.id));
+          return marker;
+        }
         marker.bindPopup(
           `<div class="popup-inner">
             <div class="popup-tag">${categoryLabel}</div>
             <div class="popup-name">${f.name}</div>
             <div class="popup-detail">${popupSummary}</div>
-            <div class="popup-actions">${
-              showMoreInfo
-                ? `
-              <a class="popup-btn popup-btn-secondary" href="/explore/${f.slug}">More info &rarr;</a>`
-                : ""
-            }
+            <div class="popup-actions">
+              <a class="popup-btn popup-btn-secondary" href="/explore/${f.slug}">More info &rarr;</a>
               <button class="popup-btn popup-btn-primary" data-add-feature="${f.id}">+ Add to Trip</button>
             </div>
           </div>`,
           { minWidth: 240 }
         );
-        // The Google card now opens WITH the popup rather than behind a
-        // second click - Mark's note that it read as a two-stage pin. The
-        // panel closes again on popupclose, wired once on the map below,
-        // so the two always appear and disappear together.
-        if (liveDetailsAvailable) {
-          marker.on("popupopen", () => onShowLiveDetailsRef.current?.(f.id));
-        }
       }
       return marker;
     }

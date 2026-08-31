@@ -3024,10 +3024,10 @@ select.location-inline-input {
 
 .place-live-panel-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 .place-live-panel-eyebrow {
   margin: 0;
@@ -3036,11 +3036,20 @@ select.location-inline-input {
   text-transform: uppercase;
   color: var(--slate);
 }
-.place-live-panel-name {
-  margin: 2px 0 0;
-  font-family: var(--font-display, var(--font-body));
-  font-size: 17px;
-  color: var(--navy);
+/* Our own line about the venue, above Google's block. The venue NAME is
+   deliberately not repeated here - Google's card states it, and printing
+   ours immediately above read as a stutter. */
+.place-live-panel-summary {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--peat);
+}
+.place-live-panel-add {
+  display: block;
+  width: 100%;
+  margin-bottom: 12px;
+  text-align: center;
 }
 .place-live-panel-close {
   background: none;
