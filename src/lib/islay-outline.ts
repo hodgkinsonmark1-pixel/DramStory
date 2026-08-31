@@ -20,15 +20,12 @@
  * label and neighbouring island into a graphic whose whole job is to
  * show four places and nothing else.
  *
- * WHY THE ZONES ARE DOTS AND NOT SHADED AREAS. There are no zone
- * boundaries. The four "moods" are an editorial grouping of distilleries
- * (see DREAM_AREAS in dream-areas.ts), not administrative or geographic
- * regions, and no boundary data exists for them in Airtable or anywhere
- * else. Drawing four tinted polygons would mean inventing lines on a map
- * of a real island and presenting the invention with the same authority
- * as the coastline around it - a visitor would reasonably read a shaded
- * edge as "the west ends here". Dots at real computed positions claim
- * exactly what is true: these four groups sit here.
+ * HOW THE ISLAND IS DIVIDED. There is no boundary data for the four
+ * "moods" - they are an editorial grouping of distilleries (see
+ * DREAM_AREAS in dream-areas.ts), not administrative regions, and nobody
+ * has ever drawn a line across Islay saying "the west ends here". So the
+ * shapes are not drawn, they are computed: see partitionIslay at the
+ * foot of this file.
  */
 
 /** Simplified coastline, [longitude, latitude], closed ring. */
@@ -144,3 +141,140 @@ export const ISLAY_OUTLINE_PATH =
     const { x, y } = projectToIslaySvg(lon, lat);
     return `${i === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`;
   }).join(" ") + " Z";
+
+/* ── Dividing the island between the four areas ───────────────────────
+   Added 31 Aug 2026, when Mark asked for "actual areas" on the map
+   rather than four dots.
+
+   The earlier note in this file said shading was refused because there
+   is no boundary data. That still holds - nobody has ever drawn a line
+   across Islay saying "the west ends here" - so the shapes below are NOT
+   drawn. They are COMPUTED, by the only rule that can be stated without
+   inventing anything: every point on the island belongs to whichever
+   area's distilleries are nearest to it. That is a Voronoi partition,
+   and it means the boundaries are a consequence of where the
+   distilleries actually are rather than an editorial guess. When a new
+   distillery opens and an area's centre moves, the shapes move with it.
+
+   The result is honest about what it claims - "this is the part of the
+   island closest to these distilleries" - and it never needs a source,
+   because it is arithmetic on coordinates the site already holds.
+   ─────────────────────────────────────────────────────────────────── */
+
+export type SvgPoint = { x: number; y: number };
+
+/** Signed side of the perpendicular bisector of a|b: positive when p is
+ *  nearer to `a`. Linear in p, which is what lets the clip below find
+ *  the crossing point by simple interpolation. */
+function bisectorSide(p: SvgPoint, a: SvgPoint, b: SvgPoint): number {
+  return (
+    2 * (p.x * (a.x - b.x) + p.y * (a.y - b.y)) +
+    (b.x * b.x + b.y * b.y) -
+    (a.x * a.x + a.y * a.y)
+  );
+}
+
+/** Sutherland-Hodgman: clip `poly` to the half-plane of points nearer to
+ *  `a` than to `b`. The clip region is a half-plane and therefore
+ *  convex, which is the condition this algorithm needs; the subject
+ *  polygon (a coastline) is wildly non-convex, which it tolerates. */
+function clipToNearer(poly: SvgPoint[], a: SvgPoint, b: SvgPoint): SvgPoint[] {
+  const out: SvgPoint[] = [];
+  for (let i = 0; i < poly.length; i++) {
+    const cur = poly[i];
+    const prev = poly[(i + poly.length - 1) % poly.length];
+    const sCur = bisectorSide(cur, a, b);
+    const sPrev = bisectorSide(prev, a, b);
+    if (sCur >= 0) {
+      if (sPrev < 0) {
+        const t = sPrev / (sPrev - sCur);
+        out.push({ x: prev.x + (cur.x - prev.x) * t, y: prev.y + (cur.y - prev.y) * t });
+      }
+      out.push(cur);
+    } else if (sPrev >= 0) {
+      const t = sPrev / (sPrev - sCur);
+      out.push({ x: prev.x + (cur.x - prev.x) * t, y: prev.y + (cur.y - prev.y) * t });
+    }
+  }
+  return out;
+}
+
+function toPath(poly: SvgPoint[]): string {
+  if (poly.length < 3) return "";
+  return poly.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ") + " Z";
+}
+
+/** Area-weighted centroid, used to place each area's number. */
+function polygonCentroid(poly: SvgPoint[]): SvgPoint {
+  let a2 = 0;
+  let cx = 0;
+  let cy = 0;
+  for (let i = 0; i < poly.length; i++) {
+    const p = poly[i];
+    const q = poly[(i + 1) % poly.length];
+    const cross = p.x * q.y - q.x * p.y;
+    a2 += cross;
+    cx += (p.x + q.x) * cross;
+    cy += (p.y + q.y) * cross;
+  }
+  if (Math.abs(a2) < 1e-9) return poly[0];
+  return { x: cx / (3 * a2), y: cy / (3 * a2) };
+}
+
+export function pointInPolygon(pt: SvgPoint, poly: SvgPoint[]): boolean {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const a = poly[i];
+    const b = poly[j];
+    if (
+      a.y > pt.y !== b.y > pt.y &&
+      pt.x < ((b.x - a.x) * (pt.y - a.y)) / (b.y - a.y) + a.x
+    ) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+const ISLAND_POLYGON: SvgPoint[] = ISLAY_OUTLINE.map(([lon, lat]) => projectToIslaySvg(lon, lat));
+
+export interface IslayRegion<T> {
+  site: T;
+  /** The area's share of the island, as an SVG path. Empty string if the
+   *  partition left it with nothing - which can only happen if two areas
+   *  are given the same centre. */
+  path: string;
+  /** Where to put the area's label, guaranteed to sit on land: the
+   *  centroid of its own share, or the site itself if that centroid
+   *  falls in a bay (the shapes are non-convex, so it can). */
+  labelAt: SvgPoint;
+}
+
+/**
+ * Cuts the island into one region per site, each holding the points
+ * nearer to that site than to any other.
+ *
+ * @param sites one per area, in lon/lat, each carrying whatever the
+ *   caller needs back out with it.
+ */
+export function partitionIslay<T extends { lat: number; lng: number }>(
+  sites: T[],
+): IslayRegion<T>[] {
+  const projected = sites.map((s) => projectToIslaySvg(s.lng, s.lat));
+  return sites.map((site, i) => {
+    let poly = ISLAND_POLYGON;
+    for (let j = 0; j < projected.length; j++) {
+      if (j === i || poly.length === 0) continue;
+      poly = clipToNearer(poly, projected[i], projected[j]);
+    }
+    if (poly.length < 3) {
+      return { site, path: "", labelAt: projected[i] };
+    }
+    const centroid = polygonCentroid(poly);
+    return {
+      site,
+      path: toPath(poly),
+      labelAt: pointInPolygon(centroid, poly) ? centroid : projected[i],
+    };
+  });
+}

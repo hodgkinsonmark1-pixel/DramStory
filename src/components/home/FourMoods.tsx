@@ -1,150 +1,110 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import Link from "next/link";
 import type { Distillery } from "@/lib/types";
-import { DREAM_AREAS } from "@/lib/dream-areas";
+import { areaMembership } from "@/lib/area-membership";
 import {
   ISLAY_OUTLINE_PATH,
   ISLAY_VIEWBOX,
   ISLAY_OUTLINE_ATTRIBUTION,
-  projectToIslaySvg,
+  partitionIslay,
 } from "@/lib/islay-outline";
 
 /**
- * "Islay has four moods" - MVP, built 31 Aug 2026 to Mark's brief:
- * "basically an island map outline with 4 areas? no clickthrough or area
- * pages at this stage". So: no links off any card, no /areas/[mood]
- * routes, nothing that implies a page exists behind it. The full
- * treatment in `area sections.pdf` stays on the backlog (task #25).
+ * "Islay has four moods" - built 31 Aug 2026, revised the same day to
+ * Mark's notes: real areas on the map rather than dots, prominent
+ * numbers, hover linking the map to the writing, distillery information
+ * that updates as more open, and a way through to all of them.
  *
  * THE FOUR AREAS ARE NOT NEW. DREAM_AREAS in lib/dream-areas.ts already
- * defined exactly these four groupings - same names, same distilleries -
- * and drives the hero's "drawn to" question, trip-context's default
- * answer and the /dreaming pages. This section reads that same array
- * rather than restating it, so a change to the grouping can't leave the
- * homepage disagreeing with the question that set it.
+ * defined these four groupings and drives the hero's "drawn to"
+ * question, trip-context's default answer and the /dreaming pages. This
+ * section reads that same array rather than restating it.
  *
- * WHAT THE MOCKUP ASKED FOR AND DOES NOT GET:
+ * WHAT IS COMPUTED AND WHAT IS WRITTEN. Everything factual on this
+ * section is derived at render time from the Distilleries table:
+ * which distilleries are in each area, how many, where each area's
+ * centre is, and therefore the shape of each area on the map. The only
+ * hand-written things are the area names and the one-line descriptions
+ * below, which are voice - a new distillery opening in the west does not
+ * change what the west is like. That split is the point of Mark's
+ * "dynamic as more open" note: MOOD_COPY deliberately names no
+ * distilleries and counts nothing, so it cannot go stale. The names and
+ * the count live in the row beneath it, and come from the data.
  *
- *   - Shaded zone areas. There is no boundary data for these four - they
- *     are an editorial grouping of distilleries, not regions - so any
- *     shading would be a line invented by us, drawn on a real coastline,
- *     and read by a visitor as fact. See the note in islay-outline.ts.
+ * Portintruan and Laggan Bay are already in the table, unopened. The day
+ * their records become visitable they appear in their areas, the counts
+ * move, the centres shift and the map redraws itself - with no code
+ * change and nothing to remember.
  *
- *   - The "N min away" drive time on each card. That needs twenty routed
- *     journey times we don't hold; Stay Distillery Distances has four
- *     rows in the whole table. Straight-line distance is not a usable
- *     stand-in on an island where the road to Bunnahabhain is a
- *     single-track switchback - it would read as a promise and be wrong
- *     by a factor of two. Same call, and the same reason, as the drive
- *     times WhereToStay.tsx declines to show.
+ * ABOUT THE MAP. The four regions are a Voronoi partition of the real
+ * coastline: every point on the island is coloured for whichever area's
+ * distilleries are nearest to it. This matters - the shapes are a
+ * consequence of where the distilleries are, not lines someone drew.
+ * See partitionIslay in lib/islay-outline.ts.
  *
- * ON THE COPY. Two of the mockup's four descriptions made claims the
- * data doesn't support, and both were rewritten rather than shipped:
- *
- *   - "Bowmore, Bridgend and the shortest drives to everywhere else" is
- *     a comparative drive-time claim, which is the exact claim
- *     WhereToStay.tsx already refuses to make about Bridgend for want of
- *     the data. It is replaced by a centrality claim that is measured on
- *     every render rather than asserted - see the second dev guard in
- *     the component body.
- *   - "Single-track to Bunnahabhain and Ardnahoe" names two of the three
- *     distilleries in the north east and silently drops Caol Ila, which
- *     DREAM_AREAS lists first. The card names all three.
- *
- * The other two are the mockup's own claims, verified: the peated
- * south's four distilleries span 3.2 miles at their widest (Port Ellen
- * to Ardbeg), so "inside four miles" is true and conservative; and
- * Kilchoman's own Airtable record is the source for the farm line - it
- * is "the only distillery in Scotland that grows, malts, distills,
- * matures, and bottles its whisky entirely on one farm".
+ * STILL NOT HERE: the "N min away" drive time from the original mockup.
+ * It needs twenty routed journey times we don't hold - Stay Distillery
+ * Distances has four rows in the whole table - and straight-line
+ * distance is not a stand-in on an island where the road to Bunnahabhain
+ * is a single-track switchback. Same call, and the same reason, as the
+ * drive times WhereToStay.tsx declines to show.
  */
 
-/** The editorial line under each area name, keyed by DREAM_AREAS id.
+/** The line under each area name, keyed by DREAM_AREAS id.
+ *
+ *  Written to survive the island changing: no distillery is named and no
+ *  count appears in any of these four sentences, because both of those
+ *  now render from the data directly beneath. The one number-like claim
+ *  is "the island's oldest", which a distillery opening in future cannot
+ *  falsify.
+ *
  *  Hardcoded here rather than in Airtable, the same split BeforeYouGo
  *  uses: this is written voice that doesn't go stale, and there is no
- *  Areas record for any of these four to hold it (they are groupings,
- *  not the three real /areas pages). If a fifth mood is ever added,
- *  the guard below will say so rather than rendering a blank card. */
+ *  Areas record for any of these four to hold it - they are groupings,
+ *  not the three real /areas pages. */
 const MOOD_COPY: Record<string, string> = {
   "peated-south":
-    "Four distilleries inside four miles. Laphroaig, Lagavulin and Ardbeg along one shore road, with Port Ellen at the end of it.",
+    "The smokiest corner of the island, its distilleries strung close together along one shore road above the Kildalton coast.",
   "the-middle":
-    "Bowmore, the island's oldest, on Loch Indaal — and the shortest way back from wherever you spent the day.",
+    "The island's oldest distillery, on Loch Indaal — and the shortest way back from wherever you spent the day.",
   "the-west":
-    "Bruichladdich on the loch, and Kilchoman, the one distillery in Scotland that grows, malts and bottles everything on its own farm, out past Machir Bay.",
+    "Farm distilling out on the Rhinns, where the barley is grown, malted and bottled within sight of the Atlantic at Machir Bay.",
   "north-east":
-    "Caol Ila, Ardnahoe and Bunnahabhain, strung along the Sound of Islay with the Paps of Jura filling the window opposite.",
+    "The far shore, above the Sound of Islay, with the Paps of Jura filling the window opposite.",
 };
 
-/** The four Islay areas' own distilleries, flattened. Isle of Jura is
- *  deliberately not among them - it is a different island and belongs to
- *  none of the four - which is why this is built from DREAM_AREAS rather
- *  than from the `distilleries` prop, whose Jura record would quietly
- *  widen every figure below. */
-const ISLAY_DISTILLERY_NAMES = DREAM_AREAS.flatMap((a) => a.distilleries);
-
-const R_MILES = 3958.8;
-function milesApart(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(b.lat - a.lat);
-  const dLng = toRad(b.lng - a.lng);
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
-  return R_MILES * 2 * Math.asin(Math.sqrt(h));
+/** "4 distilleries" / "1 distillery" / "none open to visitors yet". Used
+ *  by the map's tooltip and its description, both of which read the
+ *  count aloud and so cannot say "1 distilleries". */
+function countPhrase(n: number): string {
+  if (n === 0) return "none open to visitors yet";
+  return `${n} ${n === 1 ? "distillery" : "distilleries"}`;
 }
 
 export default function FourMoods({ distilleries }: { distilleries: Distillery[] }) {
-  const byName = new Map(distilleries.map((d) => [d.name, d]));
+  /** Which area the visitor is pointing at, or null. Drives the
+   *  highlight in both directions: hovering a card lights its region on
+   *  the map, and hovering a region lights its card. */
+  const [activeId, setActiveId] = useState<string | null>(null);
 
-  /* Every name in DREAM_AREAS must still exist in the Distilleries
-     table. A renamed record would otherwise drop out of the count in the
-     kicker without anything failing to compile - the same silent-drop
-     class as the ways-out card and the truncated accommodation notes.
-     Dev-only warning, never a thrown error: a missing distillery must
-     not take the homepage down. */
-  if (process.env.NODE_ENV !== "production") {
-    const missing = ISLAY_DISTILLERY_NAMES.filter((n) => !byName.has(n));
-    if (missing.length > 0) {
-      console.warn(
-        `[FourMoods] DREAM_AREAS names ${missing.length} distillery/distilleries not in the ` +
-          `Distilleries table: ${missing.join(", ")}. Either the record was renamed or it is ` +
-          `no longer visitable. The area counts on the homepage are now short by that many.`,
-      );
-    }
-  }
+  /* Both of these walk every distillery, so they are memoised against
+     the prop rather than recomputed on every hover - and hover changes
+     state on this component several times a second. */
+  const membership = useMemo(() => areaMembership(distilleries), [distilleries]);
+  const regions = useMemo(
+    () =>
+      partitionIslay(
+        membership.map((m) => ({ id: m.area.id, lat: m.centre.lat, lng: m.centre.lng })),
+      ),
+    [membership],
+  );
 
-  /* "The shortest way back from wherever you spent the day" is the one
-     comparative claim on this section, so it is measured rather than
-     asserted, and measured on every render from the real coordinates:
-     the middle's centroid is the closest of the four to all ten Islay
-     distilleries (8.1 mi mean against 9.1 for the next best), and no
-     distillery on the island is more than 10.8 mi from it. If a new
-     distillery opens somewhere that stops being true, this recomputes
-     and the dev warning fires rather than the page continuing to say it.
-
-     Note this is straight-line distance, which is why the copy says
-     "shortest way back" comparatively and never states a figure - the
-     claim it supports is "the middle is the most central", which
-     straight-line distance is sufficient to establish, and not "it is N
-     minutes away", which it is not. */
-  if (process.env.NODE_ENV !== "production") {
-    const points = ISLAY_DISTILLERY_NAMES.map((n) => byName.get(n)).filter(
-      (d): d is Distillery => Boolean(d?.lat && d?.lng),
-    );
-    if (points.length > 0) {
-      const meanFrom = (a: { lat: number; lng: number }) =>
-        points.reduce((sum, d) => sum + milesApart(a, d), 0) / points.length;
-      const ranked = DREAM_AREAS.map((a) => ({ id: a.id, mean: meanFrom(a) })).sort(
-        (x, y) => x.mean - y.mean,
-      );
-      if (ranked[0].id !== "the-middle") {
-        console.warn(
-          `[FourMoods] The middle is no longer the most central area (${ranked[0].id} is now, ` +
-            `at ${ranked[0].mean.toFixed(1)} mi mean vs the middle's). The middle's card still ` +
-            `claims "the shortest way back from wherever you spent the day" - rewrite it.`,
-        );
-      }
-    }
-  }
+  /** Map an area id to its position in the list, which is what the
+   *  numbering and the colour classes key off. Built from `membership`
+   *  so the number on a region always matches the number on its card. */
+  const indexOf = new Map(membership.map((m, i) => [m.area.id, i]));
 
   return (
     <section className="fm-section" id="four-moods">
@@ -167,16 +127,51 @@ export default function FourMoods({ distilleries }: { distilleries: Distillery[]
             viewBox={ISLAY_VIEWBOX}
             className="fm-svg"
             role="img"
-            aria-label="An outline of Islay with the four areas marked: the peated south, the middle, the west and the north east."
+            aria-label={`A map of Islay divided into its four areas: ${membership
+              .map((m) => `the ${m.area.name}, ${countPhrase(m.distilleries.length)}`)
+              .join("; ")}.`}
           >
-            <path d={ISLAY_OUTLINE_PATH} className="fm-island" />
-            {DREAM_AREAS.map((area, i) => {
-              const { x, y } = projectToIslaySvg(area.lng, area.lat);
+            {regions.map((r) => {
+              const i = indexOf.get(r.site.id) ?? 0;
+              const m = membership[i];
+              const dim = activeId !== null && activeId !== r.site.id;
               return (
-                <g key={area.id} className="fm-dot-group">
-                  <circle cx={x} cy={y} r={17} className="fm-dot-halo" />
-                  <circle cx={x} cy={y} r={7} className="fm-dot" />
-                  <text x={x} y={y + 3.5} className="fm-dot-num">
+                <g
+                  key={r.site.id}
+                  className={`fm-region fm-region-${i + 1}${dim ? " is-dim" : ""}${
+                    activeId === r.site.id ? " is-active" : ""
+                  }`}
+                  onMouseEnter={() => setActiveId(r.site.id)}
+                  onMouseLeave={() => setActiveId(null)}
+                >
+                  {/* Named for anyone reading the SVG with a pointer or
+                      assistive tech; the region is decorative on its own
+                      because every word of it is repeated in the card. */}
+                  <title>{`The ${m.area.name} — ${countPhrase(m.distilleries.length)}`}</title>
+                  <path d={r.path} className="fm-region-fill" />
+                </g>
+              );
+            })}
+
+            {/* The coastline is drawn last and unfilled, so it sits as
+                one continuous line over the four region edges rather
+                than being broken up by them. */}
+            <path d={ISLAY_OUTLINE_PATH} className="fm-island-edge" />
+
+            {regions.map((r) => {
+              const i = indexOf.get(r.site.id) ?? 0;
+              const dim = activeId !== null && activeId !== r.site.id;
+              return (
+                <g
+                  key={`n-${r.site.id}`}
+                  className={`fm-marker${dim ? " is-dim" : ""}${
+                    activeId === r.site.id ? " is-active" : ""
+                  }`}
+                  onMouseEnter={() => setActiveId(r.site.id)}
+                  onMouseLeave={() => setActiveId(null)}
+                >
+                  <circle cx={r.labelAt.x} cy={r.labelAt.y} r={19} className="fm-marker-disc" />
+                  <text x={r.labelAt.x} y={r.labelAt.y + 7} className="fm-marker-num">
                     {i + 1}
                   </text>
                 </g>
@@ -186,29 +181,51 @@ export default function FourMoods({ distilleries }: { distilleries: Distillery[]
           <figcaption className="fm-attrib">{ISLAY_OUTLINE_ATTRIBUTION}</figcaption>
         </figure>
 
-        <ol className="fm-cards">
-          {DREAM_AREAS.map((area, i) => {
-            /* Counted from the records that actually resolved, not from
-               the length of the names array - so a distillery that has
-               left the table is missing from the count rather than
-               inflating it. */
-            const found = area.distilleries.filter((n) => byName.has(n)).length;
-            return (
-              <li key={area.id} className="fm-card">
-                <span className="fm-card-num" aria-hidden="true">
-                  {i + 1}
-                </span>
-                <div className="fm-card-body">
-                  <h3 className="fm-card-name">The {area.name}</h3>
-                  <p className="fm-card-copy">{MOOD_COPY[area.id]}</p>
-                  <p className="fm-card-meta">
-                    {found} {found === 1 ? "distillery" : "distilleries"}
-                  </p>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
+        <div className="fm-right">
+          <ol className="fm-cards">
+            {membership.map((m, i) => {
+              const dim = activeId !== null && activeId !== m.area.id;
+              return (
+                <li
+                  key={m.area.id}
+                  className={`fm-card${dim ? " is-dim" : ""}${
+                    activeId === m.area.id ? " is-active" : ""
+                  }`}
+                  onMouseEnter={() => setActiveId(m.area.id)}
+                  onMouseLeave={() => setActiveId(null)}
+                >
+                  <span className={`fm-card-num fm-num-${i + 1}`} aria-hidden="true">
+                    {i + 1}
+                  </span>
+                  <div className="fm-card-body">
+                    <h3 className="fm-card-name">The {m.area.name}</h3>
+                    <p className="fm-card-copy">{MOOD_COPY[m.area.id]}</p>
+                    {/* The one line on this section that is pure data.
+                        An area with nothing open to visitors says so
+                        rather than rendering an empty line. */}
+                    <p className="fm-card-meta">
+                      {m.distilleries.length === 0
+                        ? "None open to visitors yet"
+                        : m.distilleries.map((d) => d.name).join(" · ")}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+
+          {/* Deliberately carries no count. This section counts what is
+              open to visitors and groups it into the four Islay areas;
+              /distilleries lists every record in the table, including
+              Jura and the two distilleries not yet open. Any number here
+              would contradict the page it lands on. */}
+          <p className="fm-all">
+            <Link href="/distilleries" className="fm-all-link">
+              Browse every distillery
+              <span aria-hidden="true"> →</span>
+            </Link>
+          </p>
+        </div>
       </div>
     </section>
   );
