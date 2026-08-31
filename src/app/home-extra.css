@@ -2499,3 +2499,139 @@ a.hero-dream-card-navy:hover {
 @media (max-width: 420px) {
   .wic-grid { grid-template-columns: 1fr; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   ISLAY HAS FOUR MOODS (MVP, 31 Aug 2026). A traced coastline on the
+   left, four numbered areas on the right, the numbers tying one to the
+   other. Sits between the day plans and where to stay: the visitor has
+   just seen what a day looks like, and this is the question of which
+   part of the island they wake up in.
+
+   Nothing here is a link. Mark's brief was explicit that the MVP has no
+   clickthrough and no area pages, so the cards are deliberately styled
+   flat - no hover lift, no arrow, no pointer cursor. A card that looks
+   clickable and isn't is worse than one that looks like what it is.
+   ───────────────────────────────────────────────────────────────────── */
+.fm-section {
+  background: var(--off-white);
+  padding: 8px 24px 64px;
+}
+.fm-layout {
+  max-width: 960px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  gap: 40px;
+  align-items: center;
+}
+
+/* THE MAP. The SVG carries its own aspect ratio via the viewBox that
+   islay-outline.ts computes from the real coordinates, so it is never
+   given a fixed height here - a height would stretch the island. */
+.fm-map {
+  margin: 0;
+}
+.fm-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible; /* the outermost dot halos sit just past the coast */
+}
+.fm-island {
+  fill: var(--stone);
+  stroke: var(--navy);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+/* A soft ring under each dot so the marker reads against both the fill
+   of the island and the page behind it, for the two areas that sit
+   close enough to the coast to straddle the edge. */
+.fm-dot-halo {
+  fill: var(--amber);
+  opacity: 0.28;
+}
+.fm-dot {
+  fill: var(--navy);
+}
+.fm-dot-num {
+  fill: var(--white);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+.fm-attrib {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--slate);
+  text-align: center;
+}
+
+/* THE CARDS. An ordered list, because the numbers are the whole
+   mechanism linking a card to its dot - a <ul> with decorative digits
+   would say nothing to a screen reader about which is which. */
+.fm-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.fm-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.fm-card-num {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: var(--white);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+.fm-card-body {
+  min-width: 0;
+}
+.fm-card-name {
+  font-family: var(--font-display), Garamond, serif;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--navy);
+  margin: 0 0 4px;
+}
+.fm-card-copy {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--peat);
+  margin: 0;
+}
+.fm-card-meta {
+  margin: 6px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--slate);
+}
+
+/* Below 820px the two columns stop fitting side by side: the map shrinks
+   past the point where four dots are distinguishable. It goes above the
+   list instead, capped so it doesn't eat a phone screen on its own. */
+@media (max-width: 820px) {
+  .fm-layout {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .fm-map {
+    max-width: 260px;
+    margin: 0 auto;
+  }
+}
