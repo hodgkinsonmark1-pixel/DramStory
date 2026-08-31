@@ -2999,3 +2999,92 @@ select.location-inline-input {
     font-size: 12.5px;
   }
 }
+
+/* LIVE GOOGLE DETAILS PANEL — food/drink pins on the journey map.
+   Sits over the map as a sibling of .weather-popup / .events-notice-popup,
+   using the same token set. The Google element inside supplies its own
+   card styling and attribution; everything here is the DramStory frame
+   around it, which is also what satisfies the Places UI Kit requirement to
+   "visually distinguish" Google's content from ours. */
+
+.popup-live-link {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--copper);
+  text-align: left;
+  cursor: pointer;
+}
+.popup-live-link:hover {
+  text-decoration: underline;
+}
+
+.place-live-panel {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+  width: 280px;
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+  background: var(--white);
+  border: 1px solid var(--stone);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  padding: 14px;
+}
+
+.place-live-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.place-live-panel-eyebrow {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--slate);
+}
+.place-live-panel-name {
+  margin: 2px 0 0;
+  font-family: var(--font-display, var(--font-body));
+  font-size: 17px;
+  color: var(--navy);
+}
+.place-live-panel-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--slate);
+  cursor: pointer;
+}
+
+/* The border is doing compliance work, not just decoration — see the
+   comment at the top of this block. */
+.place-live-panel-body {
+  border: 1px solid var(--stone);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.place-live-panel-body gmp-place-details-compact {
+  width: 100%;
+  --gmp-mat-font-family: var(--font-body);
+  --gmp-mat-color-primary: var(--copper);
+  --gmp-mat-color-on-surface: var(--peat);
+}
+
+.place-live-panel-note {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--slate);
+}

@@ -95,6 +95,17 @@ interface MapCanvasProps {
    *  undefined on desktop, which keeps today's popup behaviour exactly
    *  as it was. */
   onPinTap?: (target: { kind: "distillery" | "feature"; id: string; name: string; lat: number; lng: number }) => void;
+  /** Desktop only. Called with a Local Feature id when the visitor asks
+   *  for live Google details from a food/drink pin's popup - the caller
+   *  raises the Places UI Kit panel (see PlaceLiveDetails.tsx). Only
+   *  offered for features that actually carry a googlePlaceId, so the
+   *  button never appears where it could only fail.
+   *
+   *  Deliberately not wired into the mobile onPinTap sheet card yet -
+   *  that's a separate template (MobilePlannerSheet.tsx) and adding a
+   *  Google-rendered card inside the bottom sheet is a layout decision
+   *  of its own, not a like-for-like port of this button. */
+  onShowLiveDetails?: (featureId: string) => void;
 }
 
 // Rough center of Scotland, used when a region has no pins yet so the map
@@ -161,6 +172,7 @@ export default function MapCanvas({
   sheetPaddingBottom,
   recenterSignal,
   onPinTap,
+  onShowLiveDetails,
 }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Leaflet.Map | null>(null);
@@ -225,9 +237,11 @@ export default function MapCanvas({
   // always calls whatever the latest onPinTap prop is, not a stale one
   // captured the moment the map first mounted.
   const onPinTapRef = useRef(onPinTap);
+  const onShowLiveDetailsRef = useRef(onShowLiveDetails);
   useEffect(() => {
     onPinTapRef.current = onPinTap;
-  }, [onPinTap]);
+    onShowLiveDetailsRef.current = onShowLiveDetails;
+  }, [onPinTap, onShowLiveDetails]);
   // Read once at mount, same reasoning as routeStopsAtMountRef above -
   // this only seeds the FIRST fit's padding; every later change goes
   // through the dedicated effect further down that watches
@@ -398,6 +412,12 @@ export default function MapCanvas({
         if (addFeature) {
           const id = addFeature.getAttribute("data-add-feature");
           if (id) onAddFeatureRef.current?.(id);
+          return;
+        }
+        const liveDetails = target.closest("[data-live-details]");
+        if (liveDetails) {
+          const id = liveDetails.getAttribute("data-live-details");
+          if (id) onShowLiveDetailsRef.current?.(id);
         }
       });
 
@@ -711,6 +731,12 @@ export default function MapCanvas({
         // gets truncated the same way Description does. Same fallback-chain
         // pattern as the Tours "Short Summary" field (docs/deferred-features.md).
         const popupSummary = f.pinSummary ?? truncateSummary(f.whyVisit ?? f.description);
+        // Only food/drink pins carry a Google Place ID, and only some of
+        // those have been matched up yet - so this stays off unless the
+        // record genuinely has one and the caller can show the panel.
+        // An always-visible button that sometimes does nothing would be
+        // worse than no button.
+        const liveDetailsAvailable = Boolean(f.googlePlaceId) && Boolean(onShowLiveDetailsRef.current);
         // "More info" now links to a real DramStory detail page (parking,
         // accessibility, hours, highlights, length/difficulty for walks and
         // rides) - deliberately keeping visitors on-site rather than sending
@@ -723,7 +749,11 @@ export default function MapCanvas({
             <div class="popup-actions">
               <a class="popup-btn popup-btn-secondary" href="/explore/${f.slug}">More info &rarr;</a>
               <button class="popup-btn popup-btn-primary" data-add-feature="${f.id}">+ Add to Trip</button>
-            </div>
+            </div>${
+              liveDetailsAvailable
+                ? `<button class="popup-live-link" data-live-details="${f.id}">Hours &amp; ratings from Google &rarr;</button>`
+                : ""
+            }
           </div>`,
           { minWidth: 240 }
         );

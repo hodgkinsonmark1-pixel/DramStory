@@ -129,6 +129,18 @@ export interface LocalFeature {
    *  review or star rating, purely the statutory hygiene inspection
    *  result. Food/drink venues only. */
   hygieneRating?: string;
+  /** Google Place ID (e.g. "ChIJ..."), food/drink venues only. The ONLY
+   *  piece of Google Maps content we are permitted to store: ToS 3.2.3(b)
+   *  with Service Specific Terms 14.3 allows place IDs indefinitely and
+   *  lat/lng for 30 days, nothing else. Ratings, hours, photos, names and
+   *  addresses must stay live-fetched through the Places UI Kit element -
+   *  see PlaceLiveDetails.tsx and docs/google-places-policy.md.
+   *
+   *  Note this does NOT source our coordinates: lat/lng stay OSM- and
+   *  postcode-derived per docs/content-sourcing-standards.md, both to
+   *  respect the 30-day cache limit and because those pins predate this
+   *  field entirely. */
+  googlePlaceId?: string;
   // ─── Natural Features content model (Beach/Walk/Bike Route/Local Gem) ───
   /** Punchy 1-2 sentence hook shown as a callout under the hero. */
   whyVisit?: string;

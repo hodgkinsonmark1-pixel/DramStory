@@ -17,6 +17,8 @@ import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MapCanvas from "./MapCanvas";
 import AccommodationControl from "./AccommodationControl";
+import PlaceLiveDetails from "./PlaceLiveDetails";
+import { hasGoogleMapsBrowserKey } from "@/lib/google-maps-loader";
 import DateRangePicker from "./DateRangePicker";
 import OnboardingOverlay from "./OnboardingOverlay";
 import PlannerContextBar from "./PlannerContextBar";
@@ -168,6 +170,10 @@ export default function Workspace({
   );
   const [showTodayNotice, setShowTodayNotice] = useState(!!todayNotice);
   const [expandedCategory, setExpandedCategory] = useState<InterestCategoryId | null>(null);
+  // Desktop only: which food/drink pin (if any) has its live Google
+  // details panel open. Holds the Local Feature id rather than the place
+  // id so the panel can show our own name/heading above Google's card.
+  const [liveDetailsFeatureId, setLiveDetailsFeatureId] = useState<string | null>(null);
   const [activeSubcats, setActiveSubcats] = useState<Set<string>>(new Set());
   // activeDayIndex is derived from the shared, persisted trip.currentDayIndex
   // (not local state) so it survives navigating away to a distillery page
@@ -571,6 +577,13 @@ export default function Workspace({
         )
       : []),
   ];
+
+  // Resolved from the full localFeatures list rather than
+  // visibleLocalFeatures: if the visitor closes the Places to Eat filter
+  // while the panel is open, the panel shouldn't vanish mid-read.
+  const liveDetailsFeature = liveDetailsFeatureId
+    ? localFeatures.find((f) => f.id === liveDetailsFeatureId)
+    : undefined;
 
   // Local Events: resolve the currently-selected date range (fixed to
   // today for "today" timing; otherwise the header's shared date/month
@@ -1357,6 +1370,7 @@ export default function Workspace({
 
           <div style={{ position: "relative", flex: 1, minHeight: 0 }} id="onboard-map">
             <MapCanvas
+              onShowLiveDetails={hasGoogleMapsBrowserKey() ? setLiveDetailsFeatureId : undefined}
               distilleries={isLive ? distilleries : []}
               localFeatures={isLive ? visibleLocalFeatures : []}
               highlightedDistillerySlugs={isLive ? highlightedDistillerySlugs : []}
@@ -1396,6 +1410,14 @@ export default function Workspace({
               >
                 {title} is on the roadmap — Islay is the only region loaded so far.
               </div>
+            )}
+            {liveDetailsFeature?.googlePlaceId && (
+              <PlaceLiveDetails
+                key={liveDetailsFeature.googlePlaceId}
+                placeId={liveDetailsFeature.googlePlaceId}
+                name={liveDetailsFeature.name}
+                onClose={() => setLiveDetailsFeatureId(null)}
+              />
             )}
             {showEventsNotice && (
               <div className="events-notice-popup">

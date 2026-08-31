@@ -180,6 +180,7 @@ export interface AirtableLocalFeatureFields {
   Difficulty?: string;
   Website?: string;
   "Food Hygiene Rating"?: string;
+  "Google Place ID"?: string;
   "Why Visit"?: string;
   "Pin Summary"?: string;
   History?: string;
@@ -339,6 +340,7 @@ export function mapToLocalFeature(id: string, fields: AirtableLocalFeatureFields
     difficulty: fields.Difficulty,
     websiteUrl: fields.Website,
     hygieneRating: fields["Food Hygiene Rating"],
+    googlePlaceId: fields["Google Place ID"]?.trim() || undefined,
     whyVisit: fields["Why Visit"],
     pinSummary: fields["Pin Summary"],
     history: fields.History,
