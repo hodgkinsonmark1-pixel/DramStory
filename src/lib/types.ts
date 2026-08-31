@@ -852,7 +852,7 @@ export interface Distillery {
   openToVisitors: boolean;
   /** Which badge this distillery wears on the homepage, from the
    *  Distilleries table's own Homepage Badge singleSelect - "Editor's
-   *  Pick", "Hidden Gem", "Newest Opening". Undefined on every
+   *  Pick", "Hidden Gem", "Highest Distillery". Undefined on every
    *  distillery that is not featured, which is most of them.
    *
    *  Added 30 Aug 2026, replacing an EDITORIAL object hardcoded in

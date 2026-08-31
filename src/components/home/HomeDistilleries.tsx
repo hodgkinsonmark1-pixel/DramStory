@@ -62,10 +62,26 @@ const STALE_AFTER_MONTHS = 6;
 
 /** The order the three featured cards appear in, which is editorial and
  *  not Airtable's record order - the pick leads, the discovery sits in
- *  the middle, the newcomer closes. Without this the row came out
+ *  the middle, the oddity closes. Without this the row came out
  *  Kilchoman, Ardnahoe, Ardbeg, which is just the order those rows
- *  happen to sit in the table. */
-const BADGE_ORDER = ["Editor's Pick", "Hidden Gem", "Newest Opening"];
+ *  happen to sit in the table.
+ *
+ *  MUST STAY IN STEP WITH the Homepage Badge choices in Airtable. The
+ *  sort below is indexOf-based, and indexOf returns -1 for a value not
+ *  listed here - which sorts that card to the FRONT of the row rather
+ *  than failing. So a badge renamed in Airtable and not renamed here
+ *  silently reorders the section instead of breaking visibly.
+ *
+ *  "Newest Opening" became "Highest Distillery" on 31 Aug 2026 (Mark's
+ *  call): Ardnahoe wore the newest badge and had not been Islay's newest
+ *  since Laggan Bay began producing in April 2026. Highest is checked
+ *  rather than repeated - Ardnahoe's own site claims it nowhere, so it
+ *  was verified against terrain data instead, and three independent
+ *  elevation models agree by a wide margin (EU-DEM 25m 60 m, Mapzen
+ *  56 m, ASTER 30m 44 m, against a next-highest of 18 m at Kilchoman).
+ *  The gap is large enough that disagreement between the models cannot
+ *  touch the ranking. */
+const BADGE_ORDER = ["Editor's Pick", "Hidden Gem", "Highest Distillery"];
 
 function pricesAreStale(d: Distillery, now: Date): boolean {
   const tours = bookableTours(d);
