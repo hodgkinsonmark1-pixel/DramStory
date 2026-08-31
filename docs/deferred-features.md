@@ -279,3 +279,62 @@ part of the page that appears identically everywhere.
 <!-- Where to stay: The Machrie relabelled Machrie and linked to the
      Bowmore area, Bridgend Hotel shortened to Bridgend, both 31 Aug
      2026. Airtable-only, so this commit busts the ISR cache. -->
+
+## The four zones: an "Islay has four moods" homepage section, and four area pages
+
+**Status:** Deferred 31 Aug 2026 — Mark's call, on the grounds that it is a
+lot of work against other higher-value options. Not started. Mark holds
+both mockups: a homepage section to sit between the day plans and Where
+to stay, and a four-page PDF of full area pages, one per zone.
+
+**What it is.** A dark section with Islay's outline on the left, the four
+zones tinted with a dot at each centroid, and four cards on the right —
+the peated south, the middle, the west, the north east — each with a
+drive time from wherever the visitor is sleeping. Hovering a card lights
+its zone; clicking goes to that zone's page. The PDF is those pages: hero
+and stat bar, come-here-if / go-elsewhere-if, what the stretch is like,
+the road itself, the distilleries in road order, two day plans, basing
+yourself, eating, what else is here, where to go next.
+
+**Four things block it, and none of them is the component.**
+
+1. **The zones do not exist as records, and are not the same thing as
+   Areas.** `Areas` holds three VILLAGES — Port Charlotte, Port Ellen,
+   Bowmore. The mockup's areas are four ZONES, with villages sitting
+   inside them ("Basing yourself here → Port Ellen"). The taxonomy
+   already exists as `Distillery Region` on both Areas and Distilleries
+   (South / Central / West / North Islay, plus Jura), but nothing holds a
+   zone's own name, description, centroid or copy. Needs a decision
+   first: a new Zones table, or Areas extended with a type field so it
+   can carry both. Every other piece waits on this.
+
+2. **The drive times need routing data we do not have.** Each card shows
+   "25 min away" from the visitor's base, defaulting to Bowmore. That is
+   five origins (the four Featured Stays plus the default) against four
+   zone centroids — twenty routed figures. `Stay Distillery Distances`
+   currently holds FOUR rows, all of them Bridgend Hotel. The approach
+   already exists in `scripts/compute-journey-base-legs.mjs`, which
+   routes against OSRM and stores the result; this is the same job with
+   different endpoints.
+
+3. **There is no coastline data in the repo.** Every existing map
+   (`MapCanvas`, `HubDayMap`, `JourneyDayMap`, `JourneyRouteMap`) is
+   Leaflet over OpenStreetMap tiles, and the spec explicitly rules tiles
+   and road detail out — the point is the island's size, not navigation.
+   So Islay's outline has to be sourced as a simplified polygon and
+   stored, on the same ODbL basis the site already uses for pins.
+
+4. **"Twenty-five miles end to end" needs a source.** It is the section's
+   opening line and the frame for the whole idea. Commonly cited for
+   Islay, which is not the same as checked.
+
+**Scale, honestly.** The homepage section alone is a day's work once the
+zones and the twenty drive times exist. The four area pages are around a
+dozen distinct content blocks each, every one needing sourced copy — that
+is comparable to the entire homepage rebuild of 30–31 August.
+
+**Suggested approach:** settle the Zones-versus-Areas question before
+anything else, then the twenty routed figures, then the homepage section
+with the four cards linking to stub pages, then the full page template
+one zone at a time. The section can ship against stub pages; it cannot
+ship against no zones.
