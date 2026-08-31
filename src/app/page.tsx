@@ -4,13 +4,13 @@ import HomeDayPlans from "@/components/home/HomeDayPlans";
 import HomeDistilleries from "@/components/home/HomeDistilleries";
 import WhenToGo from "@/components/home/WhenToGo";
 import WhereToStay from "@/components/home/WhereToStay";
-import TripEssentials from "@/components/journey/TripEssentials";
+import BeforeYouGo from "@/components/home/BeforeYouGo";
 import LatestJournal from "@/components/home/LatestJournal";
 import Footer from "@/components/Footer";
-import { getVisitableDistilleries, getLocalEvents, getJournalPosts, getDays, getJourneys, getLocalFeatures, getAreas, getFeaturedStays, getSeasons, getMonths } from "@/lib/data";
+import { getVisitableDistilleries, getLocalEvents, getJournalPosts, getDays, getJourneys, getLocalFeatures, getAreas, getFeaturedStays, getSeasons, getMonths, getPracticalities } from "@/lib/data";
 
 export default async function HomePage() {
-  const [distilleries, localEvents, journalPosts, days, journeys, localFeatures, areas, featuredStays, seasons, months] = await Promise.all([
+  const [distilleries, localEvents, journalPosts, days, journeys, localFeatures, areas, featuredStays, seasons, months, practicalities] = await Promise.all([
     // Visitable only - every distillery on this page (the hero's
     // "which distilleries" picks, the Discover cards) is presented as
     // somewhere to go. See getVisitableDistilleries.
@@ -28,6 +28,7 @@ export default async function HomePage() {
     getFeaturedStays(),
     getSeasons(),
     getMonths(),
+    getPracticalities(),
   ]);
 
   return (
@@ -71,7 +72,12 @@ export default async function HomePage() {
           put the same three events on the page twice. The component
           still exists and still renders on the two /journey steps via
           HomeSectionsBelowFold, which were not part of this brief. */}
-      <TripEssentials />
+      {/* Before you go, rebuilt 30 Aug 2026 and moved out of
+          TripEssentials, which was 151 lines of hardcoded copy on the
+          /journey workspace's component. The editorial is still written
+          in the component; the hire firms and taxi links come from the
+          Practicalities table, because those are what go stale. */}
+      <BeforeYouGo practicalities={practicalities} days={days} journalPosts={journalPosts} />
       <LatestJournal posts={journalPosts} />
       <Footer />
     </>

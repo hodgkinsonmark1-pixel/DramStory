@@ -897,6 +897,21 @@ export interface MonthBand {
   seasonId?: string;
 }
 
+/** One perishable practical detail for "Before you go" - a hire firm, a
+ *  taxi guide, a mainland collection point. The editorial copy around
+ *  these lives in the component; only what goes stale lives in Airtable. */
+export interface Practicality {
+  id: string;
+  name: string;
+  category: string;
+  /** The firm's own site. Undefined where there is no official page to
+   *  point at, in which case the row renders as plain text rather than a
+   *  link we cannot stand behind. */
+  url?: string;
+  note?: string;
+  order: number;
+}
+
 export interface LocalEvent {
   id: string;
   name: string;

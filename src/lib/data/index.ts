@@ -1,5 +1,5 @@
 import { cache } from "react";
-import type { Area, Distillery, FeaturedStay, HubDay, JournalPost, Journey, LocalEvent, LocalFeature, MonthBand, PlaceListing, Season, Tour } from "@/lib/types";
+import type { Area, Distillery, FeaturedStay, HubDay, JournalPost, Journey, LocalEvent, LocalFeature, MonthBand, PlaceListing, Practicality, Season, Tour } from "@/lib/types";
 import { airtableFetchAll } from "@/lib/airtable";
 import { searchAccommodation, searchNearbyByCategory } from "@/lib/google-places";
 import { isPublishableTour, formatPrice } from "@/lib/pricing";
@@ -759,6 +759,32 @@ export const getMonths = cache(async (): Promise<MonthBand[]> => {
       name: r.fields.Name as string,
       order: r.fields.Order ?? 0,
       seasonId: r.fields.Season?.[0],
+    }))
+    .sort((a, b) => a.order - b.order);
+});
+
+interface AirtablePracticalityFields {
+  Name?: string;
+  Category?: string;
+  URL?: string;
+  Note?: string;
+  Order?: number;
+}
+
+/** The hire firms, taxi guides and collection points behind "Before you
+ *  go". Rows with no Name are skipped; rows with no URL still render, as
+ *  plain text. */
+export const getPracticalities = cache(async (): Promise<Practicality[]> => {
+  const records = await airtableFetchAll<AirtablePracticalityFields>("Practicalities");
+  return records
+    .filter((r) => !!r.fields.Name)
+    .map((r) => ({
+      id: r.id,
+      name: r.fields.Name as string,
+      category: r.fields.Category ?? "",
+      url: r.fields.URL || undefined,
+      note: r.fields.Note || undefined,
+      order: r.fields.Order ?? 0,
     }))
     .sort((a, b) => a.order - b.order);
 });
