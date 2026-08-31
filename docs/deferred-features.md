@@ -275,3 +275,7 @@ icons as one job — they are either real or they should not be in the
 footer. The category and company links can wait, but each one that stays
 dead is a visitor learning that this site's links do not work, on the one
 part of the page that appears identically everywhere.
+
+<!-- Where to stay: The Machrie relabelled Machrie and linked to the
+     Bowmore area, Bridgend Hotel shortened to Bridgend, both 31 Aug
+     2026. Airtable-only, so this commit busts the ISR cache. -->
