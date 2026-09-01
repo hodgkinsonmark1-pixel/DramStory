@@ -74,7 +74,11 @@
    The note now sits UNDER the title as a subtitle rather than opposite
    the eyebrow - a centred head has no right-hand side to hang it on -
    so .cj-head-row is gone from the markup in every section. */
-.cj-head,
+.cj-head {
+  max-width: 760px;
+  margin: 0 auto 26px;
+  text-align: center;
+}
 .cj-head .how-eyebrow,
 .cj-head .how-title,
 .cj-head .cj-head-note {
