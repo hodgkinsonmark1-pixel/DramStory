@@ -31,7 +31,7 @@ import { spellCount } from "@/lib/journey-derivations";
  *  nothing bookable - the three at the foot of the wall, and any
  *  distillery whose tours are suspended - in which case no price is
  *  printed rather than a zero. */
-function cheapestTour(d: Distillery): Tour | undefined {
+export function cheapestTour(d: Distillery): Tour | undefined {
   return d.tours
     .filter((t) => isPublishableTour(t) && t.price > 0)
     .sort((a, b) => a.price - b.price)[0];
@@ -44,7 +44,7 @@ function cheapestTour(d: Distillery): Tour | undefined {
  *  Port Ellen keeps its full name - it is a village, not a compass
  *  point, and "Port" would be nonsense. Anything unrecognised falls
  *  through unchanged rather than being truncated blindly. */
-function shortRegion(region: string): string {
+export function shortRegion(region: string): string {
   const trimmed = region.replace(/\s+Islay$/i, "").trim();
   return trimmed.length > 0 ? trimmed : region;
 }
@@ -54,7 +54,7 @@ function shortRegion(region: string): string {
  *  "Unpeated / Heavily Peated" is the one that cannot just be
  *  lower-cased: it means a distillery making both, and the slash reads
  *  as an either/or. Bruichladdich and Isle of Jura both carry it. */
-function peatLabel(style: string): string {
+export function peatLabel(style: string): string {
   if (!style) return "";
   if (/^unpeated\s*\/\s*heavily peated$/i.test(style)) return "Unpeated to heavily peated";
   return style.charAt(0).toUpperCase() + style.slice(1).toLowerCase();
@@ -67,21 +67,21 @@ function peatLabel(style: string): string {
  *  carries the second one. An exact match drops it, and the summary line
  *  at the foot of this section names the cafés, so it would have been
  *  wrong in a place a reader could check. */
-function hasCafe(d: Distillery): boolean {
+export function hasCafe(d: Distillery): boolean {
   return d.facilities.some((f) => /caf[eé]/i.test(f));
 }
 
 /** Jura is a different island. It is shown in the wall because a visitor
  *  planning Islay will be offered it, but it is not counted among the
  *  island's own and it shows its position rather than a region. */
-function isJura(d: Distillery): boolean {
+export function isJura(d: Distillery): boolean {
   return /jura/i.test(d.region);
 }
 
 /** Open to visitors AND on Islay - the "ten you can visit today" of the
  *  eyebrow, and the ten that appear in full colour above the fold of the
  *  wall. */
-function isOpenOnIslay(d: Distillery): boolean {
+export function isOpenOnIslay(d: Distillery): boolean {
   return d.openToVisitors && !isJura(d);
 }
 
