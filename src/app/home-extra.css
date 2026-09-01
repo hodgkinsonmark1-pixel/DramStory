@@ -2609,7 +2609,9 @@ a.hero-dream-card-navy:hover {
   color: var(--off-white);
 }
 .fm-section .how-eyebrow {
-  color: var(--amber);
+  /* --amber is 3.36:1 on this blue, under AA for 11px type.
+     --amber-light is 4.73:1. */
+  color: var(--amber-light);
 }
 .fm-section .cj-head-note {
   color: rgba(245, 241, 232, 0.68);
@@ -2648,18 +2650,28 @@ a.hero-dream-card-navy:hover {
   stroke-width: 1;
   transition: opacity 0.18s var(--ease-out);
 }
-.fm-region-1 .fm-region-fill { fill: #C98A52; }
+/* The four area fills, and the matching card numbers.
+
+   MEASURED, not picked by eye. Each has to clear two thresholds at once
+   on the mid-blue section: 3:1 against the background (WCAG non-text, so
+   the four areas are distinguishable from the sea around them) and 4.5:1
+   against the navy digit sitting on the card number (WCAG AA small
+   text). The copper and the green failed both at their first values -
+   4.14 and 4.38 against navy, 2.58 and 2.73 against the section - so
+   both were lifted about 15% toward white. Current ratios:
+     1 copper #D19C6C   navy 4.97   section 3.10
+     2 amber  #E3B87F   navy 6.54   section 4.08
+     3 slate  #A7C2CE   navy 6.44   section 4.01
+     4 green  #9DB191   navy 5.22   section 3.26 */
+.fm-region-1 .fm-region-fill { fill: #D19C6C; }
 .fm-region-2 .fm-region-fill { fill: #E3B87F; }
 .fm-region-3 .fm-region-fill { fill: #A7C2CE; }
-.fm-region-4 .fm-region-fill { fill: #8CA37E; }
+.fm-region-4 .fm-region-fill { fill: #9DB191; }
 
-.fm-num-1 { background: #C98A52; }
+.fm-num-1 { background: #D19C6C; }
 .fm-num-2 { background: #E3B87F; }
 .fm-num-3 { background: #A7C2CE; }
-.fm-num-4 { background: #8CA37E; }
-/* All four are now light enough that white type on them fails contrast
-   against a dark section, so every number sits in the navy. */
-.fm-card-num { color: var(--navy); }
+.fm-num-4 { background: #9DB191; }
 
 /* HOVER. Everything not pointed at drops back rather than the pointed-at
    thing jumping forward, so the section doesn't lurch. */
@@ -2733,7 +2745,10 @@ a.hero-dream-card-navy:hover {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  color: var(--white);
+  /* Navy, not white. The four discs are pale by design (they have to
+     hold their own against a dark section), which puts white type on
+     them at ratios between 1.8 and 2.9 - illegible. */
+  color: var(--navy);
   font-size: 13px;
   font-weight: 700;
   display: flex;
@@ -2762,7 +2777,9 @@ a.hero-dream-card-navy:hover {
 .fm-card-meta {
   margin: 6px 0 0;
   font-size: 12px;
-  color: var(--amber);
+  /* Same reason as the eyebrow above: --amber fails AA at this size on
+     the mid-blue, --amber-light clears it. */
+  color: var(--amber-light);
 }
 
 .fm-all {
