@@ -97,12 +97,10 @@ export default function WhatItCosts({
     <section className="wic-section" id="what-it-costs">
       <div className="wic-inner">
         <div className="cj-head">
-          <div className="cj-head-row">
-            <h2 className="how-title wic-title">What three days on Islay actually costs</h2>
-            {checkedLabel && (
-              <div className="cj-head-note">Checked {checkedLabel} &middot; ranges, not quotes</div>
-            )}
-          </div>
+          <h2 className="how-title wic-title">What three days on Islay actually costs</h2>
+          {checkedLabel && (
+            <div className="cj-head-note">Checked {checkedLabel} &middot; ranges, not quotes</div>
+          )}
         </div>
 
         <dl className="wic-grid">

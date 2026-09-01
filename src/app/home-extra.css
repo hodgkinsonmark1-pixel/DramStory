@@ -62,37 +62,39 @@
   background: var(--off-white);
   padding: 64px 24px;
 }
-/* SECTION HEAD (30 Aug 2026, to the owner's mockup). Left-aligned over a
-   rule, rather than the centred head the other homepage sections use.
-   SCOPED DELIBERATELY: .how-eyebrow and .how-title are text-align:center
-   and shared with Where to stay, Get to know Islay, Before you go and
-   the Journal, none of which were part of this brief - so the override
-   lives on the wrapper and cannot reach them. */
-.cj-head {
-  max-width: 960px;
-  margin: 0 auto;
-}
-/* NOT max-width/auto-margin: this one is a flex child of .hdp-head,
-   which already centres itself at 960px. Giving it auto margins too
-   re-centred the heading inside the flex row and pushed it 213px right
-   of the card grid directly beneath it. */
+/* SECTION HEAD (rebuilt 31 Aug 2026, Mark's items 9 and 10: centred,
+   bolder and less tall).
+
+   WHAT IT REPLACES: a left-aligned head sitting over a 2px rule, with
+   the eyebrow and a note on one flex row and the title beneath. That
+   cost roughly 40px of height per section across eight sections, and
+   the rule drew a hard line between a heading and the cards it was
+   introducing.
+
+   The note now sits UNDER the title as a subtitle rather than opposite
+   the eyebrow - a centred head has no right-hand side to hang it on -
+   so .cj-head-row is gone from the markup in every section. */
+.cj-head,
 .hdp-head-text {
+  max-width: 720px;
+  margin: 0 auto 22px;
+  text-align: center;
   min-width: 0;
 }
 .cj-head .how-eyebrow,
 .cj-head .how-title,
+.cj-head .cj-head-note,
 .hdp-head-text .how-eyebrow,
 .hdp-head-text .how-title {
-  text-align: left;
+  text-align: center;
+}
+.cj-head .how-eyebrow,
+.hdp-head-text .how-eyebrow {
+  margin-bottom: 6px;
 }
 .cj-head .how-title,
 .hdp-head-text .how-title {
   margin-bottom: 0;
-}
-.cj-head {
-  padding-bottom: 14px;
-  margin-bottom: 22px;
-  border-bottom: 1px solid var(--dark);
 }
 
 /* CLASSIC JOURNEYS (rebuilt 17 Aug 2026, the site owner's own layout):
@@ -1240,19 +1242,18 @@ a.hero-dream-card-navy:hover {
    should read as the easier ask.
    ───────────────────────────────────────────────────────────────────── */
 .hdp-section {
-  background: var(--off-white);
+  /* Darker beige (31 Aug 2026, item 1) so the day plans read as
+     their own band rather than running into the journeys above. */
+  background: var(--stone);
   padding: 8px 24px 64px;
 }
 .hdp-head {
   max-width: 960px;
-  margin: 0 auto 20px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
+  margin: 0 auto 18px;
 }
 .hdp-browse {
+  display: inline-block;
+  margin-top: 8px;
   font-size: 13px;
   font-weight: 600;
   color: var(--copper);
@@ -1264,9 +1265,10 @@ a.hero-dream-card-navy:hover {
 }
 .hdp-filters {
   max-width: 960px;
-  margin: 0 auto 18px;
+  margin: 0 auto 16px;
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
 }
 .hdp-chip {
@@ -1295,12 +1297,89 @@ a.hero-dream-card-navy:hover {
   margin-left: 4px;
   font-weight: 400;
 }
-.hdp-grid {
+/* THE DAY RAIL (31 Aug 2026, Mark's item 2). Was a 3-column grid holding
+   the first three matching days; now every matching day is rendered and
+   the row scrolls, with an arrow at each side.
+
+   The arrows sit OUTSIDE the scrolling element, in a wrapper that is
+   wider than the 960px content column, so they flank the cards rather
+   than covering the first and last one. Below 1080px there is no room
+   beside the rail, so they are hidden and the rail is swiped or
+   keyboard-scrolled instead - which is why the rail itself is
+   focusable and not solely arrow-driven. */
+.hdp-rail-wrap {
+  position: relative;
   max-width: 960px;
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hdp-rail {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
   gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  /* Room for the cards' hover lift and shadow, which a plain
+     overflow:auto would clip along the top and bottom edges. */
+  padding: 4px 2px 8px;
+  scrollbar-width: none;
+}
+.hdp-rail::-webkit-scrollbar {
+  display: none;
+}
+.hdp-rail > * {
+  /* Three across, matching the grid this replaced. flex-basis is the
+     card width minus its share of the two visible gaps. */
+  flex: 0 0 calc((100% - 32px) / 3);
+  scroll-snap-align: start;
+}
+.hdp-arrow {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--mist);
+  background: var(--white);
+  color: var(--navy);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.18s var(--ease-out), opacity 0.18s var(--ease-out);
+}
+.hdp-arrow:hover:not(:disabled) {
+  border-color: var(--copper);
+  color: var(--copper);
+}
+/* Kept in the layout rather than removed when it cannot be used, so the
+   rail does not jump sideways by 50px on reaching either end. */
+.hdp-arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+@media (max-width: 1080px) {
+  .hdp-arrow {
+    display: none;
+  }
+  .hdp-rail-wrap {
+    gap: 0;
+  }
+}
+@media (max-width: 860px) {
+  .hdp-rail > * {
+    flex-basis: calc((100% - 16px) / 2);
+  }
+}
+@media (max-width: 560px) {
+  .hdp-rail > * {
+    flex-basis: 86%;
+  }
 }
 .hdp-card {
   position: relative;
@@ -1416,16 +1495,6 @@ a.hero-dream-card-navy:hover {
 .hdp-pill a:hover {
   text-decoration: underline;
 }
-@media (max-width: 900px) {
-  .hdp-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-@media (max-width: 620px) {
-  .hdp-grid {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* ─────────────────────────────────────────────────────────────────────
    WEIGHT AND COLOUR PASS (30 Aug 2026, against the owner's mockup).
@@ -1436,10 +1505,10 @@ a.hero-dream-card-navy:hover {
    ───────────────────────────────────────────────────────────────────── */
 
 /* Cormorant Garamond loads 300/400/500/600 (layout.tsx), so 600 is a
-   real cut rather than a synthetic bold. Scoped to these two sections -
-   the shared .how-title stays at 400 everywhere else. */
+   real cut rather than a synthetic bold. */
 .cj-head .how-title,
-.hdp-head-text .how-title {
+.hdp-head-text .how-title,
+.byg-title {
   font-weight: 600;
 }
 .cj-card-name,
@@ -1447,23 +1516,15 @@ a.hero-dream-card-navy:hover {
   font-weight: 600;
 }
 
-/* The right-hand note on the eyebrow line. */
-.cj-head-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
+/* The subtitle under the title. NOT white-space:nowrap any more - it sat
+   on one line beside the eyebrow before and now runs full width under a
+   centred title, where forcing one line would push it off narrow
+   screens. */
 .cj-head-note {
-  font-size: 12px;
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
   color: var(--slate);
-  white-space: nowrap;
-}
-
-/* The heading rule, which was rendering as a hairline. */
-.cj-head {
-  border-bottom-width: 2px;
 }
 
 /* Two lines, hard. The hooks run to three and four lines against the
@@ -1665,7 +1726,10 @@ a.hero-dream-card-navy:hover {
    Same left-over-a-rule head as the journeys and stays sections.
    ───────────────────────────────────────────────────────────────────── */
 .hd-section {
-  background: var(--off-white);
+  /* Darker beige (31 Aug 2026, item 5), the same tone as the day
+     plans - the page alternates cream and beige rather than stacking
+     three dark sections together. */
+  background: var(--stone);
   padding: 8px 24px 64px;
 }
 .hd-head-link {
@@ -1823,12 +1887,17 @@ a.hero-dream-card-navy:hover {
   margin-right: 2px;
 }
 .hd-chip {
+  /* White bubbles (31 Aug 2026, item 5). The section background moved to
+     --stone, which is exactly what this border used to be - so the
+     border was invisible against it and the chips lost their edges. The
+     white fill now does the separating and the border only softens it. */
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 7px 13px;
   border-radius: 999px;
-  border: 1px solid var(--stone);
+  border: 1px solid rgba(26, 58, 74, 0.10);
+  box-shadow: 0 1px 2px rgba(26, 58, 74, 0.06);
   background: white;
   font-size: 12px;
   color: var(--peat);
@@ -2229,25 +2298,28 @@ a.hero-dream-card-navy:hover {
    of register after five sections of cream.
    ───────────────────────────────────────────────────────────────────── */
 .byg-section {
-  background: var(--off-white);
+  /* Navy (31 Aug 2026, item 6). The inner panel was already this
+     colour, so it loses its own background below and the section
+     carries it instead. */
+  background: var(--navy);
   padding: 8px 24px 64px;
 }
 .byg-inner {
   max-width: 960px;
   margin: 0 auto;
-  background: var(--dark);
+  /* No background of its own since 31 Aug 2026: the SECTION is navy now
+     (item 6), and a navy panel on a navy section is an invisible panel.
+     It keeps its padding so the cards inside still sit off the edges. */
   color: var(--off-white);
-  border-radius: var(--radius);
-  padding: 34px 32px 32px;
+  padding: 34px 0 8px;
 }
 .byg-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
 }
 .byg-eyebrow {
+  margin-bottom: 6px;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -2255,18 +2327,23 @@ a.hero-dream-card-navy:hover {
   color: var(--amber);
 }
 .byg-head-note {
-  font-size: 12px;
+  margin-top: 6px;
+  font-size: 13px;
   color: rgba(245, 241, 232, 0.62);
 }
 .byg-title {
   font-family: var(--font-display);
-  font-size: clamp(26px, 3vw, 34px);
+  font-size: clamp(26px, 2.6vw, 32px);
   font-weight: 600;
-  margin: 8px 0 22px;
+  margin: 6px 0 0;
+  color: var(--off-white);
 }
 /* Two narrow, one wide - the third card carries four answers and needs
    the room; the first two carry one idea each. */
 .byg-grid {
+  /* The title used to carry 22px of bottom margin; it now sits inside a
+     centred head with no trailing space, so the gap lives here. */
+  margin-top: 24px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 14px;
@@ -2435,8 +2512,12 @@ a.hero-dream-card-navy:hover {
    than a piece of marketing.
    ───────────────────────────────────────────────────────────────────── */
 .wic-section {
+  /* Tightened 31 Aug 2026 (item 7): 72px of trailing padding under a
+     section that is already the last thing before the newsletter left a
+     visible dead band. Stays cream - Mark's call, against the mockup,
+     which showed it navy. */
   background: var(--off-white);
-  padding: 8px 24px 72px;
+  padding: 8px 24px 44px;
 }
 .wic-inner {
   max-width: 960px;
@@ -2448,9 +2529,9 @@ a.hero-dream-card-navy:hover {
 .wic-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 22px 26px;
-  margin: 0 0 22px;
-  padding-bottom: 22px;
+  gap: 16px 26px;
+  margin: 18px 0 16px;
+  padding-bottom: 16px;
   border-bottom: 1px solid var(--stone);
 }
 .wic-item {
@@ -2466,9 +2547,9 @@ a.hero-dream-card-navy:hover {
   font-variant-numeric: tabular-nums;
 }
 .wic-label {
-  margin: 7px 0 0;
+  margin: 5px 0 0;
   font-size: 12px;
-  line-height: 1.45;
+  line-height: 1.4;
   color: var(--slate);
 }
 /* The caveat a figure cannot carry - the £900 ceiling under a £15–£70
@@ -2482,7 +2563,7 @@ a.hero-dream-card-navy:hover {
   margin: 0;
   max-width: 76ch;
   font-size: 12.5px;
-  line-height: 1.6;
+  line-height: 1.5;
   color: var(--slate);
 }
 .wic-trust strong { color: var(--dark); }
@@ -2516,8 +2597,22 @@ a.hero-dream-card-navy:hover {
    that looks like what it is.
    ───────────────────────────────────────────────────────────────────── */
 .fm-section {
-  background: var(--off-white);
-  padding: 8px 24px 64px;
+  /* Mid-blue (31 Aug 2026, item 4). Everything below is the consequence:
+     a section that was drawn for navy-on-cream had to be inverted, not
+     just repainted. The region fills, the coastline stroke, the markers
+     and all four text colours changed with it. */
+  background: var(--navy-mid);
+  padding: 40px 24px 56px;
+}
+.fm-section .how-title,
+.fm-section .byg-title {
+  color: var(--off-white);
+}
+.fm-section .how-eyebrow {
+  color: var(--amber);
+}
+.fm-section .cj-head-note {
+  color: rgba(245, 241, 232, 0.68);
 }
 .fm-layout {
   max-width: 960px;
@@ -2546,22 +2641,25 @@ a.hero-dream-card-navy:hover {
    would imply the south ranks above the north. All four are muted
    enough for the white number to hold its contrast on top. */
 .fm-region-fill {
-  stroke: var(--off-white);
+  /* The dividing lines between areas are the section colour, so the four
+     regions read as pieces cut out of one island rather than four
+     separate shapes laid on it. */
+  stroke: var(--navy-mid);
   stroke-width: 1;
   transition: opacity 0.18s var(--ease-out);
 }
-.fm-region-1 .fm-region-fill { fill: #B87D4B; }
-.fm-region-2 .fm-region-fill { fill: #D4A574; }
-.fm-region-3 .fm-region-fill { fill: #7E9AA6; }
-.fm-region-4 .fm-region-fill { fill: #6E7F63; }
+.fm-region-1 .fm-region-fill { fill: #C98A52; }
+.fm-region-2 .fm-region-fill { fill: #E3B87F; }
+.fm-region-3 .fm-region-fill { fill: #A7C2CE; }
+.fm-region-4 .fm-region-fill { fill: #8CA37E; }
 
-.fm-num-1 { background: #B87D4B; }
-.fm-num-2 { background: #D4A574; }
-.fm-num-3 { background: #7E9AA6; }
-.fm-num-4 { background: #6E7F63; }
-/* Amber is the one of the four light enough that white type on it fails
-   contrast, so its number sits in the navy instead. */
-.fm-num-2 { color: var(--navy); }
+.fm-num-1 { background: #C98A52; }
+.fm-num-2 { background: #E3B87F; }
+.fm-num-3 { background: #A7C2CE; }
+.fm-num-4 { background: #8CA37E; }
+/* All four are now light enough that white type on them fails contrast
+   against a dark section, so every number sits in the navy. */
+.fm-card-num { color: var(--navy); }
 
 /* HOVER. Everything not pointed at drops back rather than the pointed-at
    thing jumping forward, so the section doesn't lurch. */
@@ -2578,7 +2676,7 @@ a.hero-dream-card-navy:hover {
 
 .fm-island-edge {
   fill: none;
-  stroke: var(--navy);
+  stroke: rgba(245, 241, 232, 0.55);
   stroke-width: 1.5;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
@@ -2590,11 +2688,14 @@ a.hero-dream-card-navy:hover {
    writing, so they are markers, not annotations. */
 .fm-marker-disc {
   fill: var(--navy);
-  stroke: var(--white);
+  stroke: var(--off-white);
   stroke-width: 2.5;
 }
 .fm-marker.is-active .fm-marker-disc {
-  fill: var(--copper);
+  fill: var(--white);
+}
+.fm-marker.is-active .fm-marker-num {
+  fill: var(--navy);
 }
 .fm-marker-num {
   fill: var(--white);
@@ -2607,7 +2708,7 @@ a.hero-dream-card-navy:hover {
 .fm-attrib {
   margin-top: 10px;
   font-size: 11px;
-  color: var(--slate);
+  color: rgba(245, 241, 232, 0.5);
   text-align: center;
 }
 
@@ -2647,13 +2748,13 @@ a.hero-dream-card-navy:hover {
   font-family: var(--font-display), Garamond, serif;
   font-size: 19px;
   font-weight: 600;
-  color: var(--navy);
+  color: var(--white);
   margin: 0 0 4px;
 }
 .fm-card-copy {
   font-size: 14px;
   line-height: 1.55;
-  color: var(--peat);
+  color: rgba(245, 241, 232, 0.84);
   margin: 0;
 }
 /* The distillery names - the one line on the card that comes straight
@@ -2661,25 +2762,24 @@ a.hero-dream-card-navy:hover {
 .fm-card-meta {
   margin: 6px 0 0;
   font-size: 12px;
-  color: var(--slate);
+  color: var(--amber);
 }
 
 .fm-all {
   margin: 22px 0 0;
   padding-top: 16px;
-  border-top: 1px solid var(--stone);
+  border-top: 1px solid rgba(245, 241, 232, 0.18);
 }
 .fm-all-link {
   font-size: 14px;
   font-weight: 600;
-  color: var(--navy);
+  color: var(--off-white);
   text-decoration: none;
   border-bottom: 1px solid var(--amber);
   padding-bottom: 2px;
 }
 .fm-all-link:hover {
-  color: var(--copper);
-  border-bottom-color: var(--copper);
+  color: var(--amber);
 }
 
 /* Below 860px the two columns stop fitting: the map shrinks past the
@@ -2693,5 +2793,92 @@ a.hero-dream-card-navy:hover {
   .fm-map {
     max-width: 280px;
     margin: 0 auto;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   NEWSLETTER BAND (31 Aug 2026, Mark's item 8). Lifted out of the dark
+   footer onto its own light band directly above it. The old rules in
+   dramstory-legacy.css styled it for a dark ground - white type, a
+   translucent white fill, a translucent border - all of which are
+   invisible or wrong on cream, so the type and field colours are
+   restated here rather than left to inherit.
+
+   It renders on every page, not just the homepage - see Footer.tsx.
+   ───────────────────────────────────────────────────────────────────── */
+.newsletter-band {
+  background: var(--off-white);
+  padding: 8px 24px 56px;
+}
+.newsletter-card {
+  max-width: 960px;
+  margin: 0 auto;
+  background: var(--white);
+  border: 1px solid var(--stone);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  padding: 28px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+}
+.newsletter-text {
+  min-width: 0;
+}
+/* Overrides of the dark-footer versions, which are still in
+   dramstory-legacy.css and still correct for nothing else on the page. */
+.newsletter-card .footer-newsletter-title {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+.newsletter-card .footer-newsletter-sub {
+  font-size: 13.5px;
+  color: var(--slate);
+  margin-bottom: 0;
+  max-width: 52ch;
+}
+.newsletter-card .footer-newsletter-row {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 300px;
+}
+.newsletter-card .footer-newsletter-input {
+  flex: none;
+  width: 100%;
+  background: var(--white);
+  border: 1px solid var(--mist);
+  color: var(--peat);
+}
+.newsletter-card .footer-newsletter-input::placeholder {
+  color: var(--slate);
+}
+.newsletter-card .footer-newsletter-input:focus {
+  border-color: var(--amber);
+}
+/* Navy rather than the footer's amber: on cream the amber button had far
+   too little contrast against the card behind it. */
+.newsletter-card .footer-newsletter-btn {
+  width: 100%;
+  background: var(--navy);
+  color: var(--white);
+}
+.newsletter-card .footer-newsletter-btn:hover {
+  background: var(--navy-mid);
+}
+@media (max-width: 780px) {
+  .newsletter-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 18px;
+    padding: 24px 22px;
+  }
+  .newsletter-card .footer-newsletter-row {
+    width: 100%;
   }
 }

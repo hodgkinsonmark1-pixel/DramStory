@@ -109,16 +109,14 @@ export default function FourMoods({ distilleries }: { distilleries: Distillery[]
   return (
     <section className="fm-section" id="four-moods">
       <div className="cj-head">
-        <div className="cj-head-row">
-          {/* Measured off the coastline in islay-outline.ts, not
-              repeated from a guidebook: Islay's longest axis is 25.6 mi
-              and it is 24.8 mi north to south. "Twenty-five" rounds the
-              longer figure DOWN, so the section opens by understating
-              rather than overstating the island. */}
-          <div className="how-eyebrow">Twenty-five miles end to end</div>
-          <div className="cj-head-note">Where you stay decides what the week feels like</div>
-        </div>
+        {/* Measured off the coastline in islay-outline.ts, not repeated
+            from a guidebook: Islay's longest axis is 25.6 mi and it is
+            24.8 mi north to south. "Twenty-five" rounds the longer
+            figure DOWN, so the section opens by understating rather than
+            overstating the island. */}
+        <div className="how-eyebrow">Twenty-five miles end to end</div>
         <h2 className="how-title">Islay has four moods</h2>
+        <div className="cj-head-note">Where you stay decides what the week feels like.</div>
       </div>
 
       <div className="fm-layout">

@@ -189,11 +189,9 @@ export default function WhenToGo({
   return (
     <section className="wtg-section" id="when-to-go">
       <div className="cj-head">
-        <div className="cj-head-row">
-          <div className="how-eyebrow">The decision that comes before all the others</div>
-          <div className="cj-head-note">Islay&rsquo;s year, in one line</div>
-        </div>
+        <div className="how-eyebrow">The decision that comes before all the others</div>
         <h2 className="how-title">When to go</h2>
+        <div className="cj-head-note">Islay&rsquo;s year, in one line.</div>
       </div>
 
       <div className="wtg-layout">

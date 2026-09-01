@@ -216,13 +216,11 @@ export default function HomeDistilleries({
   return (
     <section className="hd-section" id="distilleries">
       <div className="cj-head">
-        <div className="cj-head-row">
-          <div className="how-eyebrow">{eyebrow}</div>
-          <Link className="cj-head-note hd-head-link" href="/distilleries">
-            All of them, with tour times &amp; prices &rarr;
-          </Link>
-        </div>
+        <div className="how-eyebrow">{eyebrow}</div>
         <h2 className="how-title">The distilleries</h2>
+        <Link className="cj-head-note hd-head-link" href="/distilleries">
+          All of them, with tour times &amp; prices &rarr;
+        </Link>
       </div>
 
       <div className="hd-grid">

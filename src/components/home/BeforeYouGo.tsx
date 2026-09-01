@@ -86,9 +86,9 @@ export default function BeforeYouGo({
       <div className="byg-inner">
         <div className="byg-head">
           <div className="byg-eyebrow">The things that catch people out</div>
-          <div className="byg-head-note">Three things worth knowing before you book anything</div>
+          <h2 className="byg-title">Before you go</h2>
+          <div className="byg-head-note">Three things worth knowing before you book anything.</div>
         </div>
-        <h2 className="byg-title">Before you go</h2>
 
         <div className="byg-grid">
           <article className="byg-card">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { HubDay } from "@/lib/types";
 import { paceKey } from "@/lib/journey-derivations";
@@ -68,12 +68,16 @@ type FilterId = "all" | "relaxed" | "no-car" | "under-50";
  *  tour prices move it. */
 const CHEAP_DAY_CEILING = 50;
 
-/** How many day cards the homepage shows at once, per the owner's
- *  mockup (30 Aug 2026). The section is a taste of the hub, not a copy
- *  of it: the chips still count the WHOLE matching set, so a chip
- *  reading "Relaxed 9" over three cards is an invitation to the hub
- *  rather than a miscount. "Browse all sixteen" is the way through. */
-const CARDS_SHOWN = 3;
+/** How many day cards are VISIBLE at once. Every matching day is now
+ *  rendered - the row scrolls sideways (31 Aug 2026, Mark's item 2)
+ *  rather than being cut to the first three as it was on 30 Aug.
+ *
+ *  That change is what makes the chips honest. They have always counted
+ *  the whole matching set, so "Relaxed 9" used to sit above three cards
+ *  and quietly rely on "Browse all sixteen" to explain the other six.
+ *  Now the nine are all there and the count is a promise the section
+ *  keeps by itself. The hub link stays for the full view with sorting. */
+const CARDS_VISIBLE = 3;
 
 /** Whether a day can be done without hiring a car.
  *
@@ -193,13 +197,50 @@ export default function HomeDayPlans({ days }: { days: HubDay[] }) {
         : filter === "under-50"
           ? cheap
           : days;
-  const shown = matching.slice(0, CARDS_SHOWN);
+
+
+  /* THE RAIL. Scroll position drives which arrows are live, so an arrow
+     is never offered when there is nothing that way - including the
+     common case where the filtered set is three or fewer and neither
+     arrow applies. */
+  const railRef = useRef<HTMLDivElement>(null);
+  const [canPrev, setCanPrev] = useState(false);
+  const [canNext, setCanNext] = useState(false);
+
+  const updateArrows = useCallback(() => {
+    const el = railRef.current;
+    if (!el) return;
+    // 2px of slack: sub-pixel widths mean scrollLeft rarely lands exactly
+    // on the maximum, which would leave the next arrow enabled forever.
+    setCanPrev(el.scrollLeft > 2);
+    setCanNext(el.scrollLeft < el.scrollWidth - el.clientWidth - 2);
+  }, []);
+
+  // Re-measure when the filter changes the number of cards, and on
+  // resize, since how many fit is a function of width.
+  useEffect(() => {
+    const el = railRef.current;
+    if (el) el.scrollTo({ left: 0 });
+    updateArrows();
+    window.addEventListener("resize", updateArrows);
+    return () => window.removeEventListener("resize", updateArrows);
+  }, [filter, updateArrows]);
+
+  const scrollByCard = useCallback((direction: 1 | -1) => {
+    const el = railRef.current;
+    if (!el) return;
+    // One card plus its gap, measured off the rail rather than assumed,
+    // so this stays correct when the breakpoints change the card width.
+    const first = el.firstElementChild as HTMLElement | null;
+    const step = first ? first.offsetWidth + 16 : el.clientWidth / CARDS_VISIBLE;
+    el.scrollBy({ left: step * direction, behavior: "smooth" });
+  }, []);
 
   if (days.length === 0) return null;
 
-  // Counts are rendered, never typed, and they count the WHOLE matching
-  // set rather than the three cards on screen - see CARDS_SHOWN. A chip
-  // is hidden entirely when it would match nothing.
+  // Counts are rendered, never typed, and they count the whole matching
+  // set - which is now also what the rail holds. A chip is hidden
+  // entirely when it would match nothing.
   const chips: { id: FilterId; label: string; count: number }[] = [
     { id: "all", label: `All ${spellCount(days.length)}`, count: days.length },
     { id: "relaxed", label: "Relaxed", count: relaxed.length },
@@ -214,12 +255,14 @@ export default function HomeDayPlans({ days }: { days: HubDay[] }) {
           <div className="how-eyebrow">Or take one day at a time</div>
           {/* No count here, deliberately - see the file comment. */}
           <h2 className="how-title">Days, ready to drop into a trip</h2>
+          {/* Counted, never typed - publish a seventeenth Day and this
+              says seventeen on the next build. Moved under the title on
+              31 Aug 2026 when the heads centred; it was to the right of
+              the heading, which no longer has a right. */}
+          <Link className="hdp-browse" href="/days">
+            Browse all {spellCount(days.length)} &rarr;
+          </Link>
         </div>
-        {/* Counted, never typed - publish a seventeenth Day and this
-            says seventeen on the next build. */}
-        <Link className="hdp-browse" href="/days">
-          Browse all {spellCount(days.length)} &rarr;
-        </Link>
       </div>
 
       <div className="hdp-filters" role="group" aria-label="Filter days">
@@ -238,10 +281,43 @@ export default function HomeDayPlans({ days }: { days: HubDay[] }) {
           ))}
       </div>
 
-      <div className="hdp-grid">
-        {shown.map((day) => (
-          <DayCard key={day.slug} day={day} />
-        ))}
+      <div className="hdp-rail-wrap">
+        <button
+          type="button"
+          className="hdp-arrow hdp-arrow-prev"
+          onClick={() => scrollByCard(-1)}
+          disabled={!canPrev}
+          aria-label="Show previous days"
+        >
+          <span aria-hidden="true">&#8592;</span>
+        </button>
+
+        {/* tabIndex makes the rail itself keyboard-scrollable, which is
+            the only way to reach the off-screen cards without a mouse -
+            the arrows are buttons, but arrow keys need a focused
+            scroll container. */}
+        <div
+          className="hdp-rail"
+          ref={railRef}
+          onScroll={updateArrows}
+          tabIndex={0}
+          role="group"
+          aria-label={`${matching.length} day plans, scrollable`}
+        >
+          {matching.map((day) => (
+            <DayCard key={day.slug} day={day} />
+          ))}
+        </div>
+
+        <button
+          type="button"
+          className="hdp-arrow hdp-arrow-next"
+          onClick={() => scrollByCard(1)}
+          disabled={!canNext}
+          aria-label="Show more days"
+        >
+          <span aria-hidden="true">&#8594;</span>
+        </button>
       </div>
     </section>
   );

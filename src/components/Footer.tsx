@@ -15,19 +15,31 @@ export default function Footer() {
   const otherLiveRegions = REGIONS.filter((r) => r.live && r.id !== "islay");
 
   return (
-    <footer className="site-footer">
-      <div className="footer-newsletter">
-        <div className="footer-newsletter-title">The DramStory Journal</div>
-        <div className="footer-newsletter-sub">
-          Whisky adventures, distillery stories and craft itineraries — delivered
-          monthly. Where will your next adventure begin?
+    <>
+      {/* The newsletter sits ABOVE the footer since 31 Aug 2026 (Mark's
+          item 8), on its own light band rather than as the first block
+          inside the dark footer. It stays in this component rather than
+          moving to the homepage: Footer renders on every page, so
+          lifting it into page.tsx would have quietly dropped the signup
+          from every page except the homepage. Rendering it as a sibling
+          of <footer> instead moves it everywhere at once. */}
+      <section className="newsletter-band" aria-label="Newsletter signup">
+        <div className="newsletter-card">
+          <div className="newsletter-text">
+            <div className="footer-newsletter-title">The DramStory Journal</div>
+            <div className="footer-newsletter-sub">
+              Whisky adventures, distillery stories and craft itineraries — delivered
+              monthly. Where will your next adventure begin?
+            </div>
+          </div>
+          <div className="footer-newsletter-row">
+            <input className="footer-newsletter-input" type="email" placeholder="your@email.com" />
+            <button className="footer-newsletter-btn">Subscribe</button>
+          </div>
         </div>
-        <div className="footer-newsletter-row">
-          <input className="footer-newsletter-input" type="email" placeholder="your@email.com" />
-          <button className="footer-newsletter-btn">Subscribe</button>
-        </div>
-      </div>
+      </section>
 
+      <footer className="site-footer">
       <div className="footer-grid">
         <div className="footer-brand">
           <div className="footer-logo" style={{ display: "flex", alignItems: "center" }}>
@@ -105,5 +117,6 @@ export default function Footer() {
         </div>
       </div>
     </footer>
+    </>
   );
 }

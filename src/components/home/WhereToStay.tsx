@@ -124,9 +124,7 @@ export default function WhereToStay({ areas, featuredStays }: { areas: Area[]; f
   return (
     <section className="wts-section" id="where-to-stay">
       <div className="cj-head">
-        <div className="cj-head-row">
-          <div className="how-eyebrow">Once you know the shape of the trip</div>
-        </div>
+        <div className="how-eyebrow">Once you know the shape of the trip</div>
         <h2 className="how-title">Where to stay</h2>
       </div>
 

@@ -147,7 +147,7 @@ function JourneyCard({ journey, lead = false }: { journey: Journey; lead?: boole
   // because it carries no name line - it has chips instead, and the
   // count is the thing the chips are a list of.
   const meta = [
-    !lead && journey.regionLabel ? journey.regionLabel : null,
+    !lead && journey.regionLabel ? regionInMeta(journey.regionLabel) : null,
     journey.nights > 0 ? `${journey.nights} ${journey.nights === 1 ? "night" : "nights"}` : null,
     lead && distilleries > 0
       ? `${distilleries} ${distilleries === 1 ? "distillery" : "distilleries"}`
@@ -226,6 +226,25 @@ function JourneyCard({ journey, lead = false }: { journey: Journey; lead?: boole
   );
 }
 
+/** Region Label as it reads inside a meta line: "The West" -> "west".
+ *  
+ *  Added 31 Aug 2026 (Mark's item 3). The Airtable values open with a
+ *  definite article, which is right where the label stands alone as a
+ *  badge over the lead card's photograph, but inside the small cards'
+ *  meta line it was four characters that pushed
+ *  "the peated south · 2 nights · £66.50pp in tours" onto a second line.
+ *  Dropping it fits the line.
+ *
+ *  Display-only, and applied ONLY to the meta line - the Airtable field
+ *  is untouched and the lead card's badge still shows the full label,
+ *  because there it is a title rather than part of a sentence. Falls
+ *  through unchanged for any label that does not start with "the ", so a
+ *  future region worded differently is not silently mangled. */
+function regionInMeta(label: string): string {
+  const stripped = label.replace(/^the\s+/i, "");
+  return stripped.length > 0 ? stripped : label;
+}
+
 export default function ClassicJourneys({ journeys }: { journeys: Journey[] }) {
   if (journeys.length === 0) return null;
 
@@ -242,17 +261,16 @@ export default function ClassicJourneys({ journeys }: { journeys: Journey[] }) {
   return (
     <section className="journeys-section" id="classic-journeys">
       <div className="cj-head">
-        <div className="cj-head-row">
-          <div className="how-eyebrow">If you&rsquo;d rather not build it yourself</div>
-          {/* The mockup's right-aligned note said "Each one drivable
-              exactly as written", which is false of The Kildalton Road
-              sitting directly beneath it selling the opposite. This says
-              the thing that IS true of all four and that nothing else on
-              the page says: every figure on these cards is summed from
-              the tours the days actually book. */}
-          <div className="cj-head-note">Each one costed from the tours it books</div>
-        </div>
+        <div className="how-eyebrow">If you&rsquo;d rather not build it yourself</div>
         <h2 className="how-title">{heading}</h2>
+        {/* The mockup's note said "Each one drivable exactly as
+            written", which is false of The Kildalton Road sitting
+            directly beneath it selling the opposite. This says the thing
+            that IS true of all four and that nothing else on the page
+            says: every figure on these cards is summed from the tours
+            the days actually book. Sits under the title rather than
+            opposite the eyebrow since the head centred (31 Aug 2026). */}
+        <div className="cj-head-note">Each one costed from the tours it books.</div>
       </div>
 
       <div className="cj-layout">
