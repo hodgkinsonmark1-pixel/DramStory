@@ -14,7 +14,10 @@
 .how-title {
   text-align: center;
   font-family: var(--font-display);
-  font-size: clamp(26px, 3vw, 34px);
+  /* 36px at 1360, measured off the design: the section headings render a
+     35px ascender-to-descender band there, which is a ~36px face. The
+     cap was 34px. */
+  font-size: clamp(26px, 3vw, 36px);
   font-weight: 400;
   color: var(--dark);
   margin-bottom: 32px;
@@ -76,7 +79,9 @@
    so .cj-head-row is gone from the markup in every section. */
 .cj-head {
   max-width: 760px;
-  margin: 0 auto 26px;
+  /* 32px below the head before the content starts, measured off the
+     design (34px from the subtitle's baseline band to the lead card). */
+  margin: 0 auto 32px;
   text-align: center;
 }
 .cj-head .how-eyebrow,
@@ -637,8 +642,10 @@
    screens. */
 .cj-head-note {
   display: block;
-  margin-top: 6px;
-  font-size: 13px;
+  /* 20px between the title and its subtitle in the design, and a 14px
+     face rather than 13px. */
+  margin-top: 12px;
+  font-size: 14px;
   color: var(--slate);
 }
 
@@ -841,7 +848,7 @@
    section in the final design except the two centred feature bands. */
 .sec-head {
   max-width: 1120px;
-  margin: 0 auto 28px;
+  margin: 0 auto 32px;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -860,8 +867,8 @@
   margin-bottom: 6px;
 }
 .sec-head-note {
-  margin-top: 6px;
-  font-size: 13px;
+  margin-top: 10px;
+  font-size: 14px;
   color: var(--slate);
 }
 /* On the two navy sections the head has to invert. Scoped to those
