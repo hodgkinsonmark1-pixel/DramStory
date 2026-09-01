@@ -85,6 +85,11 @@ export interface AirtableDistilleryFields {
    *  variant. See Distillery.openToVisitors in types.ts. */
   "Open To Visitors"?: boolean;
   "Homepage Badge"?: string;
+  /** Both added 01 Sep 2026 for the homepage distillery wall. Only ever
+   *  set on a distillery that is not open to visitors - see
+   *  Distillery.wallStatus / wallNote in types.ts. */
+  "Wall Status"?: string;
+  "Wall Note"?: string;
 }
 
 export interface AirtableTourFields {

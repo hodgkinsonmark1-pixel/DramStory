@@ -1263,13 +1263,26 @@ a.hero-dream-card-navy:hover {
 .hdp-browse:hover {
   text-decoration: underline;
 }
+/* The filter bar sits UNDER the carousel now, as one white pill holding
+   the label and the chips - the design's own shape. It was a bare row of
+   chips above the cards. */
 .hdp-filters {
-  max-width: 960px;
-  margin: 0 auto 16px;
+  max-width: 1120px;
+  margin: 22px auto 0;
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  align-items: center;
   gap: 8px;
+  background: var(--white);
+  border: 1px solid var(--stone);
+  border-radius: 999px;
+  padding: 10px 16px;
+}
+@media (max-width: 680px) {
+  .hdp-filters {
+    border-radius: 14px;
+    justify-content: flex-start;
+  }
 }
 .hdp-chip {
   font: inherit;
@@ -1297,55 +1310,138 @@ a.hero-dream-card-navy:hover {
   margin-left: 4px;
   font-weight: 400;
 }
-/* THE DAY RAIL (31 Aug 2026, Mark's item 2). Was a 3-column grid holding
-   the first three matching days; now every matching day is rendered and
-   the row scrolls, with an arrow at each side.
+/* THE DAY CAROUSEL (01 Sep 2026, Mark's final design). One day at a
+   time on a wide navy card, an arrow either side, dots beneath, and the
+   filters below all of it as a shortcut past rather than a gate in
+   front.
 
-   The arrows sit OUTSIDE the scrolling element, in a wrapper that is
-   wider than the 960px content column, so they flank the cards rather
-   than covering the first and last one. Below 1080px there is no room
-   beside the rail, so they are hidden and the rail is swiped or
-   keyboard-scrolled instead - which is why the rail itself is
-   focusable and not solely arrow-driven. */
-.hdp-rail-wrap {
-  position: relative;
-  max-width: 960px;
+   Replaces the three-across rail of 31 Aug, which replaced a sliced grid
+   of three. The point of this shape is that a single day gets room for
+   its price, its transport and a way in - the three things a reader is
+   actually choosing on - instead of a truncated hook.
+
+   On a phone the arrows go and the track is swiped (mobile design,
+   panel 1), which is why the track is a real scroll container with snap
+   points rather than a transform. */
+.hdp-carousel {
+  max-width: 1120px;
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
-.hdp-rail {
+.hdp-track {
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
-  gap: 16px;
+  gap: 20px;
   overflow-x: auto;
-  scroll-snap-type: x proximity;
-  scroll-behavior: smooth;
-  /* Room for the cards' hover lift and shadow, which a plain
-     overflow:auto would clip along the top and bottom edges. */
-  padding: 4px 2px 8px;
+  scroll-snap-type: x mandatory;
   scrollbar-width: none;
+  padding: 2px;
 }
-.hdp-rail::-webkit-scrollbar {
-  display: none;
-}
-.hdp-rail > * {
-  /* Three across, matching the grid this replaced. flex-basis is the
-     card width minus its share of the two visible gaps. */
-  flex: 0 0 calc((100% - 32px) / 3);
+.hdp-track::-webkit-scrollbar { display: none; }
+.hdp-track > * {
+  flex: 0 0 100%;
   scroll-snap-align: start;
 }
+
+.hdp-slide {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 32px;
+  background: var(--navy);
+  color: var(--off-white);
+  border-radius: 14px;
+  padding: 40px 40px 44px;
+  min-height: 260px;
+  align-items: center;
+}
+.hdp-slide-eyebrow {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+.hdp-slide-area {
+  font-size: 13px;
+  color: rgba(245, 241, 232, 0.6);
+}
+.hdp-slide-name {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 2.4vw, 32px);
+  font-weight: 600;
+  color: var(--white);
+  margin: 0 0 10px;
+  line-height: 1.15;
+}
+.hdp-slide-hook {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(245, 241, 232, 0.8);
+  max-width: 60ch;
+}
+/* The right column: what it costs, how you get round, and the way in.
+   Divided by a rule rather than a panel - a panel inside a card reads as
+   a card inside a card. */
+.hdp-slide-aside {
+  border-left: 1px solid rgba(245, 241, 232, 0.18);
+  padding-left: 32px;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+.hdp-slide-money-label {
+  font-size: 12px;
+  color: rgba(245, 241, 232, 0.6);
+}
+.hdp-slide-money-figure {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--white);
+  line-height: 1.1;
+  margin-bottom: 10px;
+}
+.hdp-slide-good {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--pace-relaxed-on-dark, #8CC7A1);
+}
+.hdp-slide-clause {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: rgba(245, 241, 232, 0.6);
+  margin-bottom: 14px;
+}
+.hdp-slide-clause a {
+  color: var(--amber);
+}
+.hdp-slide-cta {
+  display: inline-block;
+  text-align: center;
+  padding: 12px 18px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--amber);
+  color: var(--navy);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.hdp-slide-cta:hover { background: var(--amber-light); }
+
 .hdp-arrow {
   flex: 0 0 auto;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid var(--mist);
   background: var(--white);
   color: var(--navy);
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1;
   cursor: pointer;
   display: flex;
@@ -1353,34 +1449,61 @@ a.hero-dream-card-navy:hover {
   justify-content: center;
   transition: border-color 0.18s var(--ease-out), opacity 0.18s var(--ease-out);
 }
-.hdp-arrow:hover:not(:disabled) {
-  border-color: var(--copper);
-  color: var(--copper);
+.hdp-arrow:hover:not(:disabled) { border-color: var(--copper); color: var(--copper); }
+/* Kept in the layout when unusable so the card does not shift sideways
+   by 60px on reaching either end. */
+.hdp-arrow:disabled { opacity: 0.28; cursor: default; }
+
+.hdp-dots {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  margin: 18px 0 0;
 }
-/* Kept in the layout rather than removed when it cannot be used, so the
-   rail does not jump sideways by 50px on reaching either end. */
-.hdp-arrow:disabled {
-  opacity: 0.3;
-  cursor: default;
+.hdp-dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--mist);
+  cursor: pointer;
+  transition: width 0.18s var(--ease-out), background 0.18s var(--ease-out);
 }
-@media (max-width: 1080px) {
-  .hdp-arrow {
-    display: none;
+.hdp-dot.is-on {
+  width: 22px;
+  background: var(--navy);
+}
+
+.hdp-filters-label {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin-right: 4px;
+  align-self: center;
+}
+.hdp-counter { white-space: nowrap; }
+
+@media (max-width: 900px) {
+  .hdp-slide {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    padding: 28px 24px 30px;
   }
-  .hdp-rail-wrap {
-    gap: 0;
+  .hdp-slide-aside {
+    border-left: 0;
+    border-top: 1px solid rgba(245, 241, 232, 0.18);
+    padding-left: 0;
+    padding-top: 20px;
   }
 }
-@media (max-width: 860px) {
-  .hdp-rail > * {
-    flex-basis: calc((100% - 16px) / 2);
-  }
+/* Phone: swipe, no arrows (mobile design). */
+@media (max-width: 760px) {
+  .hdp-arrow { display: none; }
+  .hdp-carousel { gap: 0; }
 }
-@media (max-width: 560px) {
-  .hdp-rail > * {
-    flex-basis: 86%;
-  }
-}
+
 .hdp-card {
   position: relative;
   display: flex;
@@ -1721,241 +1844,171 @@ a.hero-dream-card-navy:hover {
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   THE DISTILLERIES (30 Aug 2026, Mark's mockup). Three featured cards,
-   then every other distillery as a priced chip, then one journal line.
-   Same left-over-a-rule head as the journeys and stays sections.
+   EVERY DISTILLERY ON ISLAY (01 Sep 2026, Mark's final design). A wall
+   of all thirteen names in five columns on a navy ground, replacing
+   three featured cards plus a row of price chips.
+
+   The whole section is a scanning surface, so the type is small and the
+   rules do the separating. Each entry gets a hairline above it rather
+   than a box around it - thirteen boxes would have read as thirteen
+   cards competing, which is the thing the card layout got wrong.
    ───────────────────────────────────────────────────────────────────── */
 .hd-section {
-  /* Darker beige (31 Aug 2026, item 5), the same tone as the day
-     plans - the page alternates cream and beige rather than stacking
-     three dark sections together. */
-  background: var(--stone);
-  padding: 8px 24px 64px;
+  background: var(--navy);
+  padding: 56px 24px 60px;
 }
-.hd-head-link {
-  color: var(--copper);
-  font-weight: 600;
-  text-decoration: none;
-}
-.hd-head-link:hover {
-  text-decoration: underline;
-}
-.hd-grid {
-  max-width: 960px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-.hd-card {
-  position: relative;
+/* Split head: title left, the way through on the right. Used by every
+   section in the final design except the two centred feature bands. */
+.sec-head {
+  max-width: 1120px;
+  margin: 0 auto 28px;
   display: flex;
-  flex-direction: column;
-  background: white;
-  border-radius: var(--radius);
-  border: 1px solid var(--stone);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out),
-    border-color 0.2s var(--ease-out);
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
 }
-.hd-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-soft);
-  border-color: var(--green-mid);
+.sec-head-text {
+  min-width: 0;
 }
-.hd-media {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 5 / 2;
-  background: var(--stone);
-  flex: 0 0 auto;
+.sec-head .how-eyebrow,
+.sec-head .how-title {
+  text-align: left;
+  margin-bottom: 0;
 }
-/* Navy, not amber: this is an editorial label, not the visitor's own
-   choice the way "Your base" is on a stay card. */
-.hd-badge {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 2;
-  padding: 5px 11px;
-  border-radius: 999px;
-  background: var(--dark);
+.sec-head .how-eyebrow {
+  margin-bottom: 6px;
+}
+.sec-head-note {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--slate);
+}
+/* On the two navy sections the head has to invert. Scoped to those
+   sections rather than put on .sec-head itself, which the four cream and
+   beige sections also use. */
+.hd-section .how-eyebrow,
+.byg-section .how-eyebrow {
+  color: var(--amber);
+}
+.hd-section .how-title,
+.byg-section .how-title {
   color: var(--off-white);
-  font-size: 10px;
+}
+.hd-section .sec-head-note,
+.byg-section .sec-head-note {
+  color: rgba(245, 241, 232, 0.6);
+}
+.sec-head-aside {
+  text-align: right;
+}
+.sec-head-btn {
+  display: inline-block;
+  padding: 11px 20px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--amber);
+  color: var(--navy);
+  font-size: 13.5px;
   font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-}
-.hd-body {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  padding: 14px 16px 16px;
-}
-.hd-where {
-  font-size: 11px;
-  color: var(--slate);
-  margin-bottom: 5px;
-}
-.hd-name {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--dark);
-  margin: 0 0 7px;
-  line-height: 1.2;
-}
-.hd-name a {
-  color: inherit;
   text-decoration: none;
+  white-space: nowrap;
 }
-.hd-name a::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
+.sec-head-btn:hover {
+  background: var(--amber-light);
 }
-.hd-tagline {
-  font-size: 12.5px;
-  color: var(--slate);
-  line-height: 1.5;
-  margin: 0 0 12px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.sec-head-sub {
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(245, 241, 232, 0.55);
 }
-/* The money block, pinned to the bottom so prices line up across a row
-   whose taglines run to different lengths. */
-.hd-money {
-  margin-top: auto;
-  padding-top: 11px;
-  border-top: 1px solid var(--stone);
+
+.hdw-grid {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 1120px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0 28px;
 }
-.hd-price {
-  margin: 0 0 3px;
-  font-size: 12.5px;
-  color: var(--slate);
+.hdw-item {
+  padding: 14px 0 16px;
+  border-top: 1px solid rgba(212, 165, 116, 0.35);
+  min-width: 0;
 }
-.hd-price strong {
+.hdw-name {
+  display: block;
   font-family: var(--font-display);
   font-size: 21px;
-  font-weight: 600;
-  color: var(--dark);
-  margin-right: 5px;
-}
-.hd-range {
-  margin: 0;
-  font-size: 11.5px;
-  color: var(--slate);
-}
-/* The page has stopped quoting a price it can no longer stand behind. */
-.hd-stale {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--peat);
-}
-.hd-link {
-  margin-top: 10px;
-  align-self: flex-start;
-  position: relative;
-  z-index: 2;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--copper);
+  font-weight: 500;
+  color: var(--white);
   text-decoration: none;
+  line-height: 1.2;
 }
-.hd-card:hover .hd-link {
-  text-decoration: underline;
+a.hdw-name:hover {
+  color: var(--amber);
+}
+.hdw-place {
+  margin-top: 5px;
+  font-size: 12.5px;
+  color: var(--amber);
+}
+.hdw-note {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: rgba(245, 241, 232, 0.55);
+}
+/* The three you cannot visit: Jura, which is a different island, and the
+   two on Islay that are built but shut. Dropped back rather than hidden
+   - "thirteen in all" is the point of the eyebrow, and a reader planning
+   a trip is better served knowing they exist and are closed. */
+.hdw-item-shut .hdw-name {
+  color: rgba(245, 241, 232, 0.52);
+}
+.hdw-item-shut .hdw-place {
+  color: rgba(245, 241, 232, 0.45);
 }
 
-/* "And the rest" - every distillery not featured above, with the
-   cheapest tour it actually sells. */
-.hd-rest {
-  max-width: 960px;
-  margin: 20px auto 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-.hd-rest-label {
-  font-size: 12px;
-  color: var(--slate);
-  margin-right: 2px;
-}
-.hd-chip {
-  /* White bubbles (31 Aug 2026, item 5). The section background moved to
-     --stone, which is exactly what this border used to be - so the
-     border was invisible against it and the chips lost their edges. The
-     white fill now does the separating and the border only softens it. */
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 7px 13px;
-  border-radius: 999px;
-  border: 1px solid rgba(26, 58, 74, 0.10);
-  box-shadow: 0 1px 2px rgba(26, 58, 74, 0.06);
-  background: white;
-  font-size: 12px;
-  color: var(--peat);
-  text-decoration: none;
-  transition: border-color 0.2s var(--ease-out);
-}
-.hd-chip:hover {
-  border-color: var(--green-mid);
-}
-.hd-chip-price {
-  font-weight: 600;
-  color: var(--dark);
-}
-
-/* One journal piece, as a single line rather than a card - it is a
-   footnote to the section, not a fourth thing to choose between. */
-.hd-journal {
-  max-width: 960px;
+/* The three computed facts under the wall. */
+.hdw-facts {
+  max-width: 1120px;
   margin: 22px auto 0;
+  padding-top: 18px;
+  border-top: 1px solid rgba(245, 241, 232, 0.18);
   display: flex;
-  align-items: baseline;
-  gap: 14px;
   flex-wrap: wrap;
-  padding: 15px 18px;
-  background: white;
-  border: 1px solid var(--stone);
-  border-radius: var(--radius);
-  text-decoration: none;
+  gap: 8px 40px;
+  font-size: 13px;
 }
-.hd-journal:hover {
-  border-color: var(--green-mid);
+.hdw-fact {
+  display: flex;
+  gap: 6px;
+  color: rgba(245, 241, 232, 0.66);
 }
-.hd-journal-eyebrow {
-  font-size: 10px;
+.hdw-fact dt,
+.hdw-fact dd {
+  margin: 0;
+}
+.hdw-fact dd {
+  color: var(--white);
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--copper);
-  white-space: nowrap;
 }
-.hd-journal-title {
-  flex: 1 1 240px;
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--dark);
-}
-.hd-journal-meta {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--copper);
-  white-space: nowrap;
+
+@media (max-width: 1100px) {
+  .hdw-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) {
-  .hd-grid {
-    grid-template-columns: 1fr;
-  }
+  .hdw-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+/* Two columns on a phone, per the mobile design. */
+@media (max-width: 680px) {
+  .hdw-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; }
+  .sec-head { display: block; }
+  .sec-head-aside { text-align: left; margin-top: 16px; }
+  .sec-head-btn { display: block; text-align: center; }
+  .hdw-facts { flex-direction: column; gap: 6px; }
+}
+
 
 /* ─────────────────────────────────────────────────────────────────────
    WHEN TO GO (30 Aug 2026, Mark's mockup). The year as a bar, the

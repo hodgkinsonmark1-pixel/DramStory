@@ -182,3 +182,28 @@ export function areaMembership(distilleries: Distillery[]): AreaMembership[] {
 
   return result;
 }
+
+/** Which of the four areas a set of distilleries sits in, or undefined
+ *  when they span more than one (or none).
+ *
+ *  Added 01 Sep 2026 for the homepage day carousel, whose card shows the
+ *  day's pace and the part of the island it happens in. A HubDay has no
+ *  area field - it has stops, and each stop has a real Distillery with a
+ *  Region - so the area is derived through the same AREA_REGIONS map the
+ *  four-moods section uses. One definition, so a day and the map can't
+ *  disagree about where the peated south is.
+ *
+ *  Undefined for a day that crosses areas is deliberate: "The peated
+ *  south" on a day that also stops at Bowmore would be wrong, and no
+ *  label is better than a wrong one. */
+export function soleAreaFor(distilleries: { region: string }[]): DreamArea | undefined {
+  const areaIds = new Set<string>();
+  for (const d of distilleries) {
+    for (const [areaId, regions] of Object.entries(AREA_REGIONS)) {
+      if (regions.includes(d.region)) areaIds.add(areaId);
+    }
+  }
+  if (areaIds.size !== 1) return undefined;
+  const only = [...areaIds][0];
+  return DREAM_AREAS.find((a) => a.id === only);
+}
