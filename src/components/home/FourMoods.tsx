@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Distillery, FeaturedStay } from "@/lib/types";
 import { areaMembership } from "@/lib/area-membership";
 import { useTrip, DEFAULT_TRIP_ANSWERS } from "@/lib/trip-context";
+import { AREAS } from "@/lib/areas";
 import {
   ISLAY_OUTLINE_PATH,
   ISLAY_VIEWBOX,
@@ -87,14 +88,25 @@ export default function FourMoods({
   );
   const indexOf = new Map(membership.map((m, i) => [m.area.id, i]));
 
-  /* The visitor's own base, matched by name against the stays this page
-     already has. Same answer the hero writes and Where to stay reads, so
-     the two cannot disagree about where someone is sleeping. */
-  const baseName = trip.answers?.base ?? DEFAULT_TRIP_ANSWERS.base;
-  const base = featuredStays.find(
-    (s) => s.name === baseName && Number.isFinite(s.lat) && Number.isFinite(s.lng),
-  );
-  const basePoint = base ? projectToIslaySvg(base.lng, base.lat) : null;
+  /* The visitor's own base. Same answer the hero writes and Where to
+     stay reads, so the two cannot disagree about where someone sleeps.
+
+     It is a SLUG, not a name, and which table it belongs to depends on
+     baseKind: a FEATURED_STAYS slug for a hotel, an AREAS slug for a
+     village. Matching it against stay NAMES - which is what this did on
+     its first build - resolved nothing at all, so the pin never drew and
+     the eyebrow quietly dropped its "your base marked" claim rather than
+     failing visibly. Both tables are checked now. */
+  const baseSlug = trip.answers?.base ?? DEFAULT_TRIP_ANSWERS.base;
+  const baseKind = trip.answers?.baseKind ?? DEFAULT_TRIP_ANSWERS.baseKind;
+  const basePlace =
+    baseKind === "area"
+      ? AREAS.find((a) => a.slug === baseSlug)
+      : featuredStays.find((s) => s.slug === baseSlug);
+  const basePoint =
+    basePlace && Number.isFinite(basePlace.lat) && Number.isFinite(basePlace.lng)
+      ? projectToIslaySvg(basePlace.lng, basePlace.lat)
+      : null;
 
   /* The eyebrow only claims what the map actually shows. */
   const eyebrow = basePoint
