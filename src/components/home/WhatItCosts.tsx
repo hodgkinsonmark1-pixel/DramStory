@@ -93,8 +93,11 @@ export default function WhatItCosts({
     ? new Date(checked).toLocaleDateString("en-GB", { month: "long", year: "numeric" })
     : undefined;
 
+  /* No <section> of its own since 01 Sep 2026 - this renders INSIDE
+     Before you go, which owns the heading level, the background and the
+     width. It kept its own id so the anchor still resolves. */
   return (
-    <section className="wic-section" id="what-it-costs">
+    <div className="wic-block" id="what-it-costs">
       <div className="wic-inner">
         <div className="cj-head">
           <h2 className="how-title wic-title">What three days on Islay actually costs</h2>
@@ -121,6 +124,6 @@ export default function WhatItCosts({
           <Link href="/about">Who we are &rarr;</Link>
         </p>
       </div>
-    </section>
+    </div>
   );
 }

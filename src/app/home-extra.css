@@ -1540,14 +1540,6 @@ a.hdw-name:hover {
    a checkable claim, and it should look like a statement of fact rather
    than a piece of marketing.
    ───────────────────────────────────────────────────────────────────── */
-.wic-section {
-  /* Tightened 31 Aug 2026 (item 7): 72px of trailing padding under a
-     section that is already the last thing before the newsletter left a
-     visible dead band. Stays cream - Mark's call, against the mockup,
-     which showed it navy. */
-  background: var(--off-white);
-  padding: 8px 24px 44px;
-}
 .wic-inner {
   max-width: 960px;
   margin: 0 auto;
@@ -1626,12 +1618,11 @@ a.hdw-name:hover {
    that looks like what it is.
    ───────────────────────────────────────────────────────────────────── */
 .fm-section {
-  /* Mid-blue (31 Aug 2026, item 4). Everything below is the consequence:
-     a section that was drawn for navy-on-cream had to be inverted, not
-     just repainted. The region fills, the coastline stroke, the markers
-     and all four text colours changed with it. */
-  background: var(--navy-mid);
-  padding: 40px 24px 56px;
+  /* Navy (01 Sep 2026, final design), one step darker than the mid-blue
+     it carried for a day. The four region fills below were tuned for
+     contrast against the mid-blue and are re-checked against this. */
+  background: var(--navy);
+  padding: 52px 24px 60px;
 }
 .fm-section .how-title,
 .fm-section .byg-title {
@@ -1646,12 +1637,41 @@ a.hdw-name:hover {
   color: rgba(245, 241, 232, 0.68);
 }
 .fm-layout {
-  max-width: 960px;
+  max-width: 1120px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(0, 330px) minmax(0, 1fr);
-  gap: 40px;
-  align-items: center;
+  grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
+  gap: 36px;
+  align-items: start;
+}
+
+/* THE MAP CARD. The map sits in a panel of its own rather than loose on
+   the section, so the eyebrow and the attribution have something to sit
+   on and the island is not floating in a field of navy. */
+.fm-map-eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 14px;
+}
+.fm-marker-label {
+  fill: var(--white);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 12px;
+  pointer-events: none;
+}
+/* The visitor's own base. A ring rather than another numbered disc, so
+   it cannot be mistaken for a fifth area. */
+.fm-base-ring {
+  fill: none;
+  stroke: var(--white);
+  stroke-width: 1.6;
+  opacity: 0.9;
+}
+.fm-base-dot {
+  fill: var(--white);
 }
 
 /* THE MAP. The SVG carries its own aspect ratio from the viewBox that
@@ -1659,6 +1679,10 @@ a.hdw-name:hover {
    given a fixed height - a height would stretch the island. */
 .fm-map {
   margin: 0;
+  background: rgba(245, 241, 232, 0.06);
+  border: 1px solid rgba(245, 241, 232, 0.14);
+  border-radius: 14px;
+  padding: 20px 20px 16px;
 }
 .fm-svg {
   width: 100%;
@@ -1672,10 +1696,10 @@ a.hdw-name:hover {
    would imply the south ranks above the north. All four are muted
    enough for the white number to hold its contrast on top. */
 .fm-region-fill {
-  /* The dividing lines between areas are the section colour, so the four
-     regions read as pieces cut out of one island rather than four
+  /* The dividing lines between areas are the card's own ground, so the
+     four regions read as pieces cut out of one island rather than four
      separate shapes laid on it. */
-  stroke: var(--navy-mid);
+  stroke: #1F4457;
   stroke-width: 1;
   transition: opacity 0.18s var(--ease-out);
 }
@@ -1762,12 +1786,25 @@ a.hdw-name:hover {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
+/* Each area in its own panel (01 Sep 2026, final design) rather than a
+   bare list item - it is what lets a hovered area light up as a block
+   instead of just its text changing opacity. */
 .fm-card {
   display: flex;
   gap: 14px;
   align-items: flex-start;
+  background: rgba(245, 241, 232, 0.06);
+  border: 1px solid rgba(245, 241, 232, 0.1);
+  border-radius: 12px;
+  padding: 18px 20px;
+  transition: background 0.18s var(--ease-out), border-color 0.18s var(--ease-out),
+    opacity 0.18s var(--ease-out);
+}
+.fm-card.is-active {
+  background: rgba(245, 241, 232, 0.11);
+  border-color: rgba(212, 165, 116, 0.5);
 }
 .fm-card-num {
   flex: 0 0 auto;
@@ -1812,17 +1849,14 @@ a.hdw-name:hover {
 }
 
 .fm-all {
-  margin: 22px 0 0;
-  padding-top: 16px;
-  border-top: 1px solid rgba(245, 241, 232, 0.18);
+  margin: 16px 0 0;
+  text-align: right;
 }
 .fm-all-link {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
-  color: var(--off-white);
+  color: var(--amber);
   text-decoration: none;
-  border-bottom: 1px solid var(--amber);
-  padding-bottom: 2px;
 }
 .fm-all-link:hover {
   color: var(--amber);
@@ -1831,15 +1865,20 @@ a.hdw-name:hover {
 /* Below 860px the two columns stop fitting: the map shrinks past the
    point where four numbers are legible. It goes above the list instead,
    capped so it doesn't take a whole phone screen on its own. */
-@media (max-width: 860px) {
+@media (max-width: 900px) {
   .fm-layout {
     grid-template-columns: 1fr;
-    gap: 28px;
+    gap: 22px;
   }
   .fm-map {
-    max-width: 280px;
+    max-width: 420px;
     margin: 0 auto;
   }
+  /* On a phone the labels beside each pin have nowhere to go, so the
+     numbers carry it alone and the panels beneath say the names. The
+     mobile design's own eyebrow reads "tap a zone" for the same reason. */
+  .fm-marker-label { display: none; }
+  .fm-all { text-align: left; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -1928,3 +1967,287 @@ a.hdw-name:hover {
     width: 100%;
   }
 }
+
+/* Where to stay's area pills (01 Sep 2026, final design). Were a
+   "Not sure which village yet?" line at the foot of the section - the
+   place a reader looks last for the thing they need first. */
+.wts-areas {
+  max-width: 460px;
+}
+.wts-areas-label {
+  display: block;
+  font-size: 12.5px;
+  color: var(--slate);
+  margin-bottom: 10px;
+}
+.wts-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.wts-pill {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--mist);
+  background: var(--white);
+  color: var(--navy);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.wts-pill:hover {
+  border-color: var(--copper);
+  color: var(--copper);
+}
+@media (max-width: 900px) {
+  .wts-areas { max-width: none; }
+  .wts-pills { justify-content: flex-start; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   WHAT'S ON (01 Sep 2026, final design). Its own section on the darker
+   beige, between When to go and Before you go. It was the right-hand
+   column of When to go, four events stacked in a third of the page
+   beside a month bar.
+
+   As full-width rows it can carry the venue and the ticketing note
+   beside the name, with the dates set right - where someone scanning for
+   "is anything on while I'm there" actually looks.
+   ───────────────────────────────────────────────────────────────────── */
+.won-section {
+  background: var(--stone);
+  padding: 52px 24px 56px;
+}
+.won-all {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--copper);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.won-list {
+  list-style: none;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0;
+}
+.won-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr) auto;
+  align-items: baseline;
+  gap: 24px;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(26, 58, 74, 0.12);
+}
+.won-row:first-child {
+  border-top: 1px solid rgba(26, 58, 74, 0.12);
+}
+.won-name {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--navy);
+  line-height: 1.25;
+}
+.won-name a {
+  color: inherit;
+  text-decoration: none;
+}
+.won-name a:hover {
+  color: var(--copper);
+}
+.won-meta {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--slate);
+}
+/* Mono, because these are data rather than prose, and because a column
+   of dates only lines up if the digits are the same width. */
+.won-date {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+  color: var(--peat);
+  text-align: right;
+  white-space: nowrap;
+}
+.won-date-tbc {
+  color: var(--slate);
+  font-style: italic;
+}
+.won-tbc-note {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 11.5px;
+  font-style: normal;
+  color: var(--slate);
+}
+@media (max-width: 760px) {
+  .won-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .won-date {
+    text-align: left;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   FINAL DESIGN, remaining pieces (01 Sep 2026).
+   ───────────────────────────────────────────────────────────────────── */
+
+/* WHEN TO GO now has one column - What's on left for its own section -
+   so the two-column layout it was built around is gone. */
+.wtg-main-only {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+/* The festival panel: copy on the left, the two things to do on the
+   right. It used to be one CTA under the copy, with the booking notice
+   as a separate strip beneath the panel reading as a second warning. */
+.wtg-feature {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 32px;
+  align-items: center;
+}
+.wtg-feature-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  text-align: center;
+}
+.wtg-feature-cta {
+  display: block;
+  padding: 13px 22px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--navy);
+  color: var(--white);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.wtg-feature-cta:hover { background: var(--navy-mid); }
+.wtg-feature-alt {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--copper);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.wtg-feature-alt:hover { text-decoration: underline; }
+.wtg-notice {
+  margin: 14px 0 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--peat);
+}
+.wtg-notice strong { color: var(--navy); }
+@media (max-width: 760px) {
+  .wtg-feature { grid-template-columns: 1fr; gap: 18px; }
+  .wtg-feature-actions { align-items: flex-start; text-align: left; }
+}
+
+/* BEFORE YOU GO. 01 runs full width and leads with the fact; 02 and 03
+   sit side by side beneath it. It was three equal cards in a row, which
+   gave the ferry closure - the one thing here that can wreck a trip
+   booked on an old assumption - the same weight as car hire. */
+.byg-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.byg-card-lead {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 28px;
+  align-items: center;
+}
+.byg-lead-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.byg-lead-title {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 2.2vw, 30px);
+  font-weight: 600;
+  color: var(--white);
+  margin: 10px 0 10px;
+  line-height: 1.2;
+}
+.byg-lead-cta {
+  padding: 12px 22px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--amber);
+  color: var(--navy);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.byg-lead-cta:hover { background: var(--amber-light); }
+/* 03 is no longer the wide one - the lead card is. */
+.byg-card-wide {
+  grid-column: auto;
+  border-color: rgba(245, 241, 232, 0.14);
+}
+@media (max-width: 860px) {
+  .byg-grid { grid-template-columns: 1fr; }
+  .byg-card-lead { grid-template-columns: 1fr; gap: 18px; }
+  .byg-lead-cta { text-align: center; }
+}
+
+/* THE COST BLOCK, now the last thing inside Before you go rather than a
+   cream section of its own. Everything below re-states for navy what
+   was written for cream. */
+.wic-block {
+  margin-top: 34px;
+  padding-top: 28px;
+  border-top: 1px solid rgba(245, 241, 232, 0.2);
+}
+.wic-block .cj-head {
+  max-width: none;
+  margin: 0 0 4px;
+  text-align: left;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.wic-block .how-title {
+  text-align: left;
+  color: var(--white);
+  font-size: clamp(21px, 2vw, 26px);
+}
+.wic-block .cj-head-note {
+  margin-top: 0;
+  color: rgba(245, 241, 232, 0.55);
+}
+.wic-block .wic-grid {
+  border-bottom: 0;
+  margin-bottom: 14px;
+  padding-bottom: 0;
+}
+.wic-block .wic-figure {
+  color: var(--amber);
+}
+.wic-block .wic-label {
+  color: rgba(245, 241, 232, 0.72);
+}
+.wic-block .wic-sub {
+  color: rgba(245, 241, 232, 0.45);
+}
+.wic-block .wic-trust {
+  color: rgba(245, 241, 232, 0.72);
+}
+.wic-block .wic-trust strong { color: var(--white); }
+.wic-block .wic-trust a { color: var(--amber); }

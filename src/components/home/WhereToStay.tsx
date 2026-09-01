@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Area, FeaturedStay } from "@/lib/types";
 import { useTrip, DEFAULT_TRIP_ANSWERS } from "@/lib/trip-context";
+import { spellCount } from "@/lib/journey-derivations";
 
 /**
  * "Where to stay" - rebuilt 30 Aug 2026 to Mark's mockup, and moved
@@ -123,9 +124,36 @@ export default function WhereToStay({ areas, featuredStays }: { areas: Area[]; f
 
   return (
     <section className="wts-section" id="where-to-stay">
-      <div className="cj-head">
-        <div className="how-eyebrow">Once you know the shape of the trip</div>
-        <h2 className="how-title">Where to stay</h2>
+      <div className="sec-head">
+        <div className="sec-head-text">
+          <div className="how-eyebrow">Once you know the shape of the trip</div>
+          <h2 className="how-title">Where to stay</h2>
+        </div>
+        {/* The village links moved up here as pills (01 Sep 2026, final
+            design). They were a "Not sure which village yet?" line at the
+            foot of the section, which is where a reader looks last and
+            needs it first.
+
+            These are the THREE REAL AREAS with live /areas/[slug] pages,
+            not the four moods - Mark's correction to the design, which
+            showed the four. The moods are an editorial grouping with
+            nothing behind them; these three are real pages. The row
+            counts what exists rather than naming four and dead-linking
+            one. */}
+        {areas.length > 0 && (
+          <div className="sec-head-aside wts-areas">
+            <span className="wts-areas-label">
+              {spellCount(featuredStays.length)} featured hotels &mdash; or pick an area:
+            </span>
+            <span className="wts-pills">
+              {areas.map((a) => (
+                <Link key={a.slug} className="wts-pill" href={`/areas/${a.slug}`}>
+                  {a.name} <span aria-hidden="true">&rarr;</span>
+                </Link>
+              ))}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="wts-grid">
@@ -141,18 +169,6 @@ export default function WhereToStay({ areas, featuredStays }: { areas: Area[]; f
           />
         ))}
       </div>
-
-      {areas.length > 0 && (
-        <p className="wts-villages">
-          <span>Not sure which village yet?</span>{" "}
-          {areas.map((a, i) => (
-            <span key={a.slug}>
-              {i > 0 && <span className="wts-sep"> &middot; </span>}
-              <Link href={`/areas/${a.slug}`}>{a.name}</Link>
-            </span>
-          ))}
-        </p>
-      )}
     </section>
   );
 }
