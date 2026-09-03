@@ -41,6 +41,7 @@ export function HeroSentenceSheets({
   onSelectDreamArea,
   onSelectTodayNear,
   onSelectTodayPoint,
+  onDropPin,
 }: {
   openSheet: HeroSentenceSheetName;
   onClose: () => void;
@@ -52,6 +53,7 @@ export function HeroSentenceSheets({
   onSelectDreamArea: (dreamArea: string) => void;
   onSelectTodayNear: (todayNear: string) => void;
   onSelectTodayPoint: (point: { lat: number; lng: number }) => void;
+  onDropPin: (point: { lat: number; lng: number }) => void;
 }) {
   if (!openSheet) return null;
 
@@ -133,6 +135,7 @@ export function HeroSentenceSheets({
       onClose={onClose}
       onSelectTodayNear={onSelectTodayNear}
       onSelectTodayPoint={onSelectTodayPoint}
+      onDropPin={onDropPin}
     />
   );
 }
@@ -160,12 +163,14 @@ function TodayNearSheet({
   onClose,
   onSelectTodayNear,
   onSelectTodayPoint,
+  onDropPin,
 }: {
   todayNear: string;
   todayPoint?: { lat: number; lng: number };
   onClose: () => void;
   onSelectTodayNear: (todayNear: string) => void;
   onSelectTodayPoint: (point: { lat: number; lng: number }) => void;
+  onDropPin: (point: { lat: number; lng: number }) => void;
 }) {
   const origin = resolveTodayOrigin({ todayNear, todayPoint });
   const [locating, setLocating] = useState(false);
@@ -212,10 +217,14 @@ function TodayNearSheet({
         {/* The pin the sentence promises. Tapping the map sets the exact
             point; tapping a village label sets the slug instead. Both
             answers are reachable without leaving the sheet. */}
+        {/* Tapping the map does NOT close the sheet - the hint invites you
+            to move the pin, and a control that shuts on the first tap
+            cannot be aimed twice. The locate button and the village rows
+            still close, because those are single answers. */}
         <TodayPinMap
           origin={origin}
           isPin={origin.isPin}
-          onPickPoint={onSelectTodayPoint}
+          onPickPoint={onDropPin}
           onPickArea={onSelectTodayNear}
         />
 

@@ -248,6 +248,12 @@ export default function Hero({
     setOpenSheet(null);
   }
 
+  /** Same answer, sheet left open - see the map's own note in
+   *  HeroSentenceSheets. */
+  function dropPin(point: { lat: number; lng: number }) {
+    trip.setAnswersTodayPoint(point);
+  }
+
   function handleShowDays() {
     // §8: mobile keeps the single-question hero and navigates away
     // rather than revealing in place. Originally sent every timeframe
@@ -631,6 +637,7 @@ export default function Hero({
         onSelectDreamArea={selectDreamArea}
         onSelectTodayNear={selectTodayNear}
         onSelectTodayPoint={selectTodayPoint}
+        onDropPin={dropPin}
       />
       <AnswersSheets
         openSheet={answersSheetOpen}
