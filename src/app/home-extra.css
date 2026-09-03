@@ -830,8 +830,65 @@
   }
 }
 @media (max-width: 560px) {
+  /* "Stays get the same swipe-and-dots treatment as the days" (03 Sep
+     2026, mobile design panel 2). One card fills the width and the row
+     becomes a real scroll container; the dots and "1 of 4" below carry
+     position. Same flex / scroll-snap / hidden-scrollbar recipe as the
+     day carousel's own track, so the two horizontal patterns on this
+     page behave identically rather than nearly-identically. */
   .wts-grid {
-    grid-template-columns: 1fr;
+    display: flex;
+    grid-template-columns: none;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .wts-grid::-webkit-scrollbar {
+    display: none;
+  }
+  .wts-grid > * {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+  }
+}
+
+/* The dots and the count exist only where the row is actually a
+   carousel. Above 560px all four cards are on screen and there is
+   nothing to page through, so both are hidden rather than sitting
+   under a static grid claiming "1 of 4". */
+.wts-dots,
+.wts-count {
+  display: none;
+}
+@media (max-width: 560px) {
+  .wts-dots {
+    display: flex;
+    justify-content: center;
+    gap: 7px;
+    margin: 18px 0 0;
+  }
+  .wts-dot {
+    width: 7px;
+    height: 7px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: var(--mist);
+    cursor: pointer;
+    transition: width 0.18s var(--ease-out), background 0.18s var(--ease-out);
+  }
+  .wts-dot.is-on {
+    width: 22px;
+    background: var(--navy);
+  }
+  .wts-count {
+    display: block;
+    margin: 8px 0 0;
+    text-align: center;
+    font-size: 12px;
+    color: var(--slate);
   }
 }
 
