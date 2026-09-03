@@ -52,6 +52,13 @@ interface PlaceLiveDetailsProps {
    *  a dead card would otherwise leave the visitor no way to reach the
    *  venue at all. */
   websiteUrl?: string;
+  /** "panel" (default) is the desktop card floating over the map, with its
+   *  own heading, summary, Add button and close control. "inline" is the
+   *  mobile bottom sheet, which already supplies all of those - so that
+   *  variant renders ONLY Google's block, in normal flow rather than
+   *  absolutely positioned. Added 1 Sep 2026: mobile previously showed a
+   *  venue name and an Add button and nothing else. */
+  variant?: "panel" | "inline";
   onClose: () => void;
 }
 
@@ -69,6 +76,7 @@ export default function PlaceLiveDetails({
   summary,
   onAddToTrip,
   websiteUrl,
+  variant = "panel",
   onClose,
 }: PlaceLiveDetailsProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -186,23 +194,34 @@ export default function PlaceLiveDetails({
 
   if (!hasGoogleMapsBrowserKey()) return null;
 
+  const inline = variant === "inline";
+
   return (
-    <aside className="place-live-panel" aria-label={`Live details for ${name}`}>
-      <div className="place-live-panel-head">
-        <p className="place-live-panel-eyebrow">{categoryLabel}</p>
-        <button type="button" className="place-live-panel-close" onClick={onClose} aria-label={`Close ${name}`}>
-          &times;
+    <aside
+      className={inline ? "place-live-inline" : "place-live-panel"}
+      aria-label={`Live details for ${name}`}
+    >
+      {inline ? null : (
+        <div className="place-live-panel-head">
+          <p className="place-live-panel-eyebrow">{categoryLabel}</p>
+          <button type="button" className="place-live-panel-close" onClick={onClose} aria-label={`Close ${name}`}>
+            &times;
+          </button>
+        </div>
+      )}
+
+      {!inline && summary ? <p className="place-live-panel-summary">{summary}</p> : null}
+
+      {inline ? null : (
+        <button type="button" className="popup-btn popup-btn-primary place-live-panel-add" onClick={onAddToTrip}>
+          + Add to Trip
         </button>
-      </div>
-
-      {summary ? <p className="place-live-panel-summary">{summary}</p> : null}
-
-      <button type="button" className="popup-btn popup-btn-primary place-live-panel-add" onClick={onAddToTrip}>
-        + Add to Trip
-      </button>
+      )}
 
       {/* Visually separates Google's content from ours, which the Places
-          UI Kit attribution guidance explicitly requires. */}
+          UI Kit attribution guidance explicitly requires. Kept in BOTH
+          variants - the mobile sheet supplies its own chrome, but not this
+          boundary, and it is doing compliance work rather than decoration. */}
       <div className="place-live-panel-body" ref={hostRef} />
 
       {state === "loading" ? (
