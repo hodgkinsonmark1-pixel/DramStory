@@ -5,6 +5,8 @@ import { useTrip } from "@/lib/trip-context";
 import Link from "next/link";
 import { stopId, stopName, stopHref } from "@/lib/itinerary-stop";
 import DreamingMap, { type DreamingMapTap } from "./DreamingMap";
+import PlaceLiveDetails from "@/components/journey/PlaceLiveDetails";
+import { hasGoogleMapsBrowserKey } from "@/lib/google-maps-loader";
 import type { Distillery, ItineraryStop, LocalFeature } from "@/lib/types";
 
 /** Categories shown permanently on the dreaming map (11 Aug 2026, Mark's
@@ -42,6 +44,23 @@ const FOOD_CATEGORIES: LocalFeature["category"][] = ["pub", "cafe", "restaurant"
  *  would be the filter, not the map. Distilleries is its own group
  *  because it is the reason anybody is here. */
 type FilterGroupId = "distilleries" | "nature" | "attractions" | "food";
+
+/**
+ * Which stops have a page of their own worth sending someone to.
+ *
+ * Food and drink do NOT, and that is by design rather than a content
+ * gap: hours and ratings for these venues cannot be stored in Airtable
+ * at all - Places ToS 3.2.3(e) - so only the Place ID is kept and the
+ * live detail comes from Google's own UI Kit at render time. An
+ * /explore page for a pub would therefore be a name and nothing else.
+ *
+ * Caught by Mark on the preview after this component started linking
+ * every name: the food pins led to empty pages. Distilleries and every
+ * non-food feature keep their links, which are real.
+ */
+function hasOwnPage(stop: ItineraryStop): boolean {
+  return stop.kind === "distillery" || !FOOD_CATEGORIES.includes(stop.feature.category);
+}
 
 const FILTER_GROUPS: { id: FilterGroupId; label: string; categories: LocalFeature["category"][] }[] = [
   { id: "distilleries", label: "Distilleries", categories: [] },
@@ -181,16 +200,57 @@ export default function DreamingShortlistSection({
             <div className="hero-dream-card-kicker">{tappedPin.kind === "distillery" ? "Distillery" : "Local feature"}</div>
             {/* Reading about a place is the step before deciding to go,
                 and until now there was no route to it from either the pin
-                card or the shortlist. */}
+                card or the shortlist. Food and drink is the exception -
+                see hasOwnPage - and gets Google's live card below
+                instead of a link to a page that would be empty. */}
             <h3 className="hero-dream-card-title" style={{ fontSize: 17 }}>
-              <Link href={stopHref(tappedItem)} className="dsl-item-link">
-                {tappedPin.name}
-              </Link>
+              {hasOwnPage(tappedItem) ? (
+                <Link href={stopHref(tappedItem)} className="dsl-item-link">
+                  {tappedPin.name}
+                </Link>
+              ) : (
+                tappedPin.name
+              )}
             </h3>
           </div>
           <button type="button" className="days-hub-card-action" onClick={() => toggleShortlist(tappedPin)}>
             {shortlistedIds.has(tappedPin.id) ? "✓ Shortlisted · Remove" : "+ Add to shortlist"}
           </button>
+        </div>
+      )}
+
+      {/* Live hours, rating and photo for a food/drink pin, from Google's
+          own UI Kit - the only surface permitted to show Places content
+          beside a non-Google map (Service Specific Terms 15.1). Same
+          inline variant MobilePlannerSheet uses, which renders Google's
+          block alone in normal flow because the card above already
+          carries the name and the action. Falls back to the venue's own
+          site when there is no Place ID or no browser key, so a food pin
+          is never a dead end. */}
+      {tappedPin && tappedItem && !hasOwnPage(tappedItem) && tappedItem.kind === "feature" && (
+        <div style={{ marginTop: 8 }}>
+          {hasGoogleMapsBrowserKey() && tappedItem.feature.googlePlaceId ? (
+            <PlaceLiveDetails
+              key={tappedItem.feature.googlePlaceId}
+              variant="inline"
+              placeId={tappedItem.feature.googlePlaceId}
+              name={tappedItem.feature.name}
+              categoryLabel={tappedItem.feature.category}
+              summary=""
+              onAddToTrip={() => toggleShortlist(tappedPin)}
+              websiteUrl={tappedItem.feature.websiteUrl || undefined}
+              onClose={() => setTappedPin(null)}
+            />
+          ) : tappedItem.feature.websiteUrl ? (
+            <a
+              className="mobile-pin-card-official"
+              href={tappedItem.feature.websiteUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Official site &#8599;
+            </a>
+          ) : null}
         </div>
       )}
 
@@ -216,9 +276,13 @@ export default function DreamingShortlistSection({
                   padding: "10px 12px",
                 }}
               >
-                <Link href={stopHref(item)} className="dsl-item-link" style={{ fontSize: 14, fontWeight: 600 }}>
-                  {stopName(item)}
-                </Link>
+                {hasOwnPage(item) ? (
+                  <Link href={stopHref(item)} className="dsl-item-link" style={{ fontSize: 14, fontWeight: 600 }}>
+                    {stopName(item)}
+                  </Link>
+                ) : (
+                  <span style={{ fontSize: 14, fontWeight: 600, color: "var(--dark)" }}>{stopName(item)}</span>
+                )}
                 <span style={{ display: "flex", gap: 8 }}>
                   <button type="button" className="days-hub-card-action" onClick={() => handleAddToDayClick(item)}>
                     Add to a day
