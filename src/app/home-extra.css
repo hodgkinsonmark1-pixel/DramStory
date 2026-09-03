@@ -2343,3 +2343,757 @@ a.hdw-name:hover {
 }
 .wic-block .wic-trust strong { color: var(--white); }
 .wic-block .wic-trust a { color: var(--amber); }
+
+/* ─────────────────────────────────────────────────────────────────────
+   RESTORED 03 Sep 2026. Both blocks below were deleted by this branch's
+   CSS cleanup while the markup that uses them was left in place, so
+   every picker sheet and the whole /days answers bar rendered unstyled.
+   AnswersSheets.tsx, HeroSentenceSheets.tsx and DaysAnswersBar.tsx are
+   untouched on this branch and still render all fourteen class names;
+   none of them had a rule anywhere in src/app/*.css.
+
+   Same failure as 017ec88 ("Restore .cj-head's width and spacing"),
+   where a regex cleanup ate a shared rule along with the dead ones -
+   worth noting the pattern, since a third occurrence would say the
+   cleanup method is wrong rather than that it slipped twice. Copied
+   verbatim from origin/main rather than rewritten, so this restores
+   exactly what shipped and nothing else.
+   ───────────────────────────────────────────────────────────────────── */
+
+/* ANSWERS SHEETS - base/nights/picks/timeframe/dreamArea/todayNear
+   pickers, shared by the homepage hero's sentence control (Hero.tsx,
+   HeroSentenceSheets.tsx) and the /days answers bar's "Change" control
+   (DaysAnswersBar.tsx). The sentence itself (.hero-sentence and friends)
+   lives in dramstory-legacy.css's HERO section now - the old dark
+   "Answers block" section these sheet styles used to sit under
+   (.answers-section/.answers-inner/.answers-eyebrow/.answers-sentence/
+   .answers-pill/.answers-sub) was removed with AnswersBlock.tsx itself
+   (docs/hero-handoff.md Phase 1 - folded into the hero, see Hero.tsx's
+   header comment). Sheets reuse the existing .tour-picker-backdrop/
+   .tour-picker-modal pattern from journey-extra.css (same on-brand modal
+   already used for the tour picker) instead of inventing a new sheet
+   mechanism. */
+.answers-kicker {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin: 18px 0 8px;
+}
+.answers-kicker:first-child {
+  margin-top: 0;
+}
+.answers-base-row {
+  display: block;
+  width: 100%;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--stone);
+  text-align: left;
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  cursor: pointer;
+  min-height: 44px;
+}
+.answers-base-row:last-child {
+  border-bottom: none;
+}
+.answers-base-row-name {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--dark);
+}
+.answers-base-row-name.selected {
+  color: var(--copper);
+}
+.answers-base-row-note {
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--slate);
+  margin-top: 2px;
+}
+.answers-chip-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.answers-sheet-hint {
+  font-size: 13px;
+  color: var(--slate);
+  margin-bottom: 14px;
+}
+.answers-sheet-done {
+  margin-top: 18px;
+  min-height: 44px;
+}
+/* Distinct from .subcat-chip (journey-extra.css's map-filter chips) even
+   though visually similar - these need the 44px min-height touch target
+   the design doc's accessibility section calls out (§7), and changing
+   the shared .subcat-chip's dimensions would ripple into the map filter
+   UI, which is out of scope for this phase. */
+.answers-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 100px;
+  border: 1.5px solid var(--stone);
+  background: white;
+  color: var(--peat);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.answers-chip:hover {
+  border-color: var(--green-mid);
+}
+.answers-chip.selected {
+  background: var(--green-light);
+  border-color: var(--green-deep);
+  color: var(--green-deep);
+  font-weight: 600;
+}
+
+/* /days ANSWERS BAR (days-trip-flow Phase 1, §3.2) - sticky dark bar atop
+   the existing Pre-Designed Days Hub reading the current TripAnswers, +
+   Change. Same --dark/sticky/z-index treatment as .dist-page-bar
+   (dramstory-legacy.css) - that's the site's existing "sticky dark top
+   bar" precedent, reused rather than reinvented. */
+.days-answers-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--dark);
+  color: white;
+  padding: 14px 24px;
+}
+.days-answers-bar-text {
+  min-width: 0;
+}
+.days-answers-bar-kicker {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 2px;
+}
+.days-answers-bar-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.days-answers-bar-change {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 100px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.days-answers-bar-change:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+/* "Change" opens this small menu first (which of the three answers to
+   edit) rather than guessing which sheet to jump straight to. */
+.days-answers-menu-row {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--stone);
+  text-align: left;
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--dark);
+  cursor: pointer;
+}
+.days-answers-menu-row:last-child {
+  border-bottom: none;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   RESTORED 03 Sep 2026, second pass. A sweep comparing every class
+   RENDERED in src/**/*.tsx against every rule defined in src/app/*.css,
+   on this branch and on origin/main, found 67 more classes styled on
+   main, still rendered here, and with no rule anywhere on this branch:
+
+     hero-days-* / hero-dream-* / hero-today-*  the whole hero state-two
+                                                reflow - all three columns
+     journal-*                                  journal cards and post pages
+     discover-*                                 the discover grid
+     featured-*                                 featured events
+     cj-card-credit, days-hub-card-actions
+
+   None of these components were touched by this branch; only their CSS
+   was deleted. Copied verbatim from origin/main - rules whose selector
+   names one of those classes, and only the matching inner rules from
+   media queries, so nothing else on this branch is overridden.
+
+   THE PATTERN IS THE REAL FINDING. This is the third time the same
+   cleanup has removed a live rule: 017ec88 (.cj-head), the answers
+   sheets restored above, and now this. Two was a slip; three says the
+   method - regex over selector names - cannot tell a dead rule from a
+   live one and should not be used again on this file.
+   ───────────────────────────────────────────────────────────────────── */
+
+.cj-card-credit {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+  max-width: calc(100% - 16px);
+  padding: 3px 7px;
+  border-radius: var(--radius-sm);
+  background: rgba(26, 58, 74, 0.72);
+  color: var(--off-white);
+  font-size: 10px;
+  line-height: 1.3;
+  text-decoration: none;
+}
+a.cj-card-credit:hover {
+  text-decoration: underline;
+}
+.featured-section {
+  background: white;
+  padding: 64px 24px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+.featured-col-title {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin: 32px 0 14px 0;
+}
+.featured-col-title:first-of-type {
+  margin-top: 0;
+}
+.featured-region-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin: 24px 0 8px;
+}
+.discover-section {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 64px 24px;
+}
+.discover-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.discover-view-all {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--green-deep);
+  text-decoration: none;
+}
+.discover-view-all:hover {
+  text-decoration: underline;
+}
+.discover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+.discover-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: white;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: all 0.2s var(--ease-out);
+}
+.discover-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+}
+.discover-card-image {
+  height: 160px;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--stone);
+}
+.discover-card-body {
+  padding: 18px;
+}
+.discover-card-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 8px;
+}
+.discover-card-name {
+  font-family: var(--font-display);
+  font-size: 21px;
+  color: var(--dark);
+  margin-bottom: 8px;
+}
+.discover-card-desc {
+  font-size: 13px;
+  color: var(--peat);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.featured-coming-soon {
+  background: var(--off-white);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  font-size: 13px;
+  color: var(--slate);
+  line-height: 1.6;
+}
+.journal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 28px;
+}
+.journal-card {
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  background: white;
+  display: flex;
+  flex-direction: column;
+}
+.journal-card-image {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  background: var(--stone);
+}
+.journal-card-body {
+  padding: 22px;
+}
+.journal-card-meta {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 8px;
+}
+.journal-card-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  margin-bottom: 10px;
+  line-height: 1.25;
+}
+.journal-card-excerpt {
+  font-size: 14px;
+  color: var(--slate);
+  line-height: 1.55;
+}
+.journal-post-hero {
+  position: relative;
+  width: 100%;
+  height: min(50vh, 440px);
+  background: var(--stone);
+}
+.journal-post-content {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+.journal-post-meta {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 14px;
+}
+.journal-post-title {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 400;
+  color: var(--dark);
+  line-height: 1.2;
+  margin-bottom: 32px;
+}
+.journal-post-body {
+  font-size: 17px;
+  line-height: 1.75;
+  color: var(--peat);
+}
+.journal-post-body h2 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--dark);
+  margin: 40px 0 16px;
+}
+.journal-post-body h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--dark);
+  margin: 32px 0 12px;
+}
+.journal-post-body p {
+  margin-bottom: 20px;
+}
+.journal-post-body a {
+  color: var(--green-deep);
+}
+.journal-post-body img {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+  margin: 12px 0 28px;
+}
+.journal-post-body ul,
+.journal-post-body ol {
+  margin: 0 0 20px 24px;
+}
+.journal-post-body li {
+  margin-bottom: 8px;
+}
+.journal-post-body blockquote {
+  border-left: 3px solid var(--copper);
+  padding-left: 18px;
+  margin: 24px 0;
+  font-style: italic;
+  color: var(--slate);
+}
+.journal-post-back {
+  display: inline-block;
+  margin-top: 32px;
+  color: var(--green-deep);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 14px;
+}
+.journal-post-back:hover {
+  text-decoration: underline;
+}
+.featured-view-all {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--green-deep);
+  text-decoration: none;
+  margin-bottom: 8px;
+}
+.featured-view-all:hover {
+  text-decoration: underline;
+}
+.featured-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.featured-event-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background: var(--off-white);
+  border-radius: var(--radius);
+}
+.featured-event-date {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--copper);
+  font-weight: 500;
+  white-space: nowrap;
+  min-width: 90px;
+}
+.featured-event-body {
+  flex: 1;
+}
+.featured-event-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dark);
+  margin-bottom: 2px;
+}
+.featured-event-meta {
+  font-size: 12px;
+  color: var(--slate);
+}
+.featured-event-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green-deep);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.featured-event-link:hover {
+  text-decoration: underline;
+}
+.hero-days-column {
+  max-width: 640px;
+}
+.hero-days-column .days-hub-card-hook-toggle {
+  display: inline;
+  min-height: auto;
+  margin-top: 0;
+  margin-left: 2px;
+  padding: 2px 0;
+}
+.hero-days-column .days-hub-card-body {
+  padding-bottom: 14px;
+}
+.hero-days-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--navy);
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.hero-days-header-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dark);
+  white-space: nowrap;
+}
+.hero-days-header-total {
+  font-size: 12px;
+  color: var(--slate);
+  white-space: nowrap;
+  text-decoration: none;
+}
+.hero-days-header-total:hover {
+  color: var(--copper);
+  text-decoration: underline;
+}
+.days-hub-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.hero-days-foot {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--copper);
+  text-decoration: none;
+  min-height: 44px;
+  line-height: 44px;
+}
+.hero-days-foot:hover {
+  text-decoration: underline;
+}
+.hero-days-empty {
+  font-size: 14px;
+  color: var(--slate);
+  padding: 24px 0;
+}
+.hero-dream-chip-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 16px;
+}
+.hero-dream-chip-row::-webkit-scrollbar {
+  height: 6px;
+}
+.hero-dream-card {
+  display: block;
+  background: white;
+  border: 1px solid var(--stone);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s;
+}
+a.hero-dream-card:hover {
+  border-color: var(--copper);
+}
+.hero-dream-card-body-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+.hero-dream-card-clickable:has(.hero-dream-card-body-link:hover) {
+  border-color: var(--copper);
+}
+.hero-dream-card-kicker-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.hero-dream-card-kicker {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 4px;
+}
+.hero-dream-card-link {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--copper);
+  white-space: nowrap;
+}
+.hero-dream-card-title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 20px;
+  color: var(--dark);
+  margin: 0 0 4px;
+}
+.hero-dream-card-body {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--peat);
+  margin: 0;
+}
+.hero-dream-card.hero-dream-card-navy {
+  background: var(--dark);
+  border-color: var(--dark);
+}
+.hero-dream-card-navy .hero-dream-card-kicker {
+  color: var(--amber);
+}
+.hero-dream-card-navy .hero-dream-card-title {
+  color: white;
+}
+.hero-dream-card-navy .hero-dream-card-body {
+  color: var(--mist);
+}
+a.hero-dream-card-navy:hover {
+  border-color: var(--amber);
+}
+.hero-today-row {
+  display: flex;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--stone);
+}
+.hero-today-row:last-of-type {
+  border-bottom: none;
+}
+.hero-today-row-time {
+  flex-shrink: 0;
+  width: 64px;
+  text-align: right;
+}
+.hero-today-row-clock {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--dark);
+}
+.hero-today-row-label {
+  font-size: 11px;
+  color: var(--slate);
+  margin-top: 2px;
+}
+.hero-today-row-body {
+  flex: 1;
+  min-width: 0;
+}
+.hero-today-row-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.hero-today-row-name {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 17px;
+  color: var(--dark);
+}
+.hero-today-row-check {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--copper);
+  white-space: nowrap;
+  text-decoration: none;
+}
+.hero-today-row-check:hover {
+  text-decoration: underline;
+}
+.hero-today-row-meta {
+  font-size: 13.5px;
+  color: var(--peat);
+  margin-top: 2px;
+}
+.hero-today-note {
+  background: var(--amber-pale);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin: 16px 0;
+}
+.hero-today-note-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 4px;
+}
+.hero-today-note-body {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--peat);
+  margin: 0;
+}
+.hero-today-locate {
+  margin-top: 12px;
+}
+.hero-today-locate-error {
+  color: var(--amber);
+}
