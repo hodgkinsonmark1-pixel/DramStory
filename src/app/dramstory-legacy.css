@@ -134,22 +134,28 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
 .hero-sentence-clause:hover{color:var(--amber)}
 .hero-sentence-clause::after{content:" \25BE";font-size:0.7em}
 
-/* CLAUSE 1'S THREE OPTIONS, INLINE (03 Sep 2026). Words over the video,
-   not a card floating on it - see Hero.tsx's note. Everything here is
-   type and spacing; there is deliberately no background, border or
-   shadow, because the moment it has those it is the box again. */
-.hero-tf-inline{
-  margin:14px auto 0;
-  max-width:520px;
-  display:flex;flex-direction:column;gap:6px;
-  text-align:left;
+/* CLAUSE 1'S OPTIONS, IN PLACE (03 Sep 2026). Not a panel and not a
+   list under the sentence - both were rejected - but the three choices
+   at the clause's own position, first one on its baseline. See Hero.tsx.
+
+   The slot is inline-block so it can hold a size; while open it keeps
+   the clause's width and the clause keeps its space (visibility, not
+   display), so the sentence around it does not reflow. The options are
+   absolutely positioned inside that slot. No background anywhere: they
+   are the sentence's own words, three of them, where one used to be. */
+.hero-tf-slot{position:relative;display:inline-block}
+.hero-tf-slot.is-open > .hero-sentence-clause{visibility:hidden}
+.hero-tf-opts{
+  position:absolute;top:0;left:0;z-index:3;
+  display:flex;flex-direction:column;align-items:flex-start;gap:4px;
+  white-space:nowrap;
 }
 .hero-tf-opt{
-  display:block;width:100%;
+  display:block;
   padding:0;border:0;background:none;cursor:pointer;text-align:left;
-  font-family:var(--font-display),Georgia,serif;
-  font-size:19px;line-height:1.35;
-  color:rgba(255,255,255,0.9);
+  font:inherit;
+  color:rgba(255,255,255,0.85);
+  line-height:inherit;
   transition:color 0.15s var(--ease-out);
 }
 .hero-tf-opt:hover{color:var(--amber-light)}
@@ -157,7 +163,6 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
   color:var(--amber-light);
   box-shadow:inset 0 -3px 0 var(--copper);
 }
-.hero-tf-opt.is-on::after{content:" \2713"}
 .hero-sentence-cta{margin-top:28px}
 
 /* State two - the planning reflow (docs/hero-handoff.md §2.2/§2.3/§9

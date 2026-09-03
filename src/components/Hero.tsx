@@ -146,7 +146,7 @@ export default function Hero({
   useEffect(() => {
     if (!tfMenuOpen) return;
     const onDown = (e: MouseEvent) => {
-      const inside = (e.target as HTMLElement | null)?.closest(".hero-tf-inline, .hero-sentence-clause");
+      const inside = (e.target as HTMLElement | null)?.closest(".hero-tf-slot");
       if (!inside) setTfMenuOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
@@ -411,16 +411,54 @@ export default function Hero({
                   Timeframe only. The other three clauses keep their sheets
                   on both: base carries a note per hotel and picks is
                   multi-select, neither of which fits a small anchored menu. */}
-              <button
-                type="button"
-                className="hero-sentence-clause"
-                aria-haspopup={isMobileViewport ? "dialog" : "true"}
-                aria-expanded={isMobileViewport ? openSheet === "timeframe" : tfMenuOpen}
-                aria-label={`Change where you are in your story: ${TIMEFRAME_LABEL[timeframe]}`}
-                onClick={() => (isMobileViewport ? setOpenSheet("timeframe") : setTfMenuOpen((v) => !v))}
-              >
-                {TIMEFRAME_LABEL[timeframe]}
-              </button>
+              {/* Clause 1 opens IN PLACE (03 Sep 2026, Mark's third pass
+                  on this control). The three options appear exactly where
+                  the clause sits - first option over the clause itself,
+                  the other two beneath it - rather than in a panel or in
+                  a list under the whole sentence, both of which he
+                  rejected.
+
+                  The anchor keeps the clause's own width and the clause
+                  keeps its space while hidden, so the rest of the
+                  sentence does not reflow when the options appear. The
+                  options are absolutely positioned inside it, which is
+                  what lets option one land on the clause's own baseline.
+                  Nothing is drawn behind them: they are the sentence's
+                  words, three of them, in the sentence's place. */}
+              <span className={tfMenuOpen && !isMobileViewport ? "hero-tf-slot is-open" : "hero-tf-slot"}>
+                <button
+                  type="button"
+                  className="hero-sentence-clause"
+                  aria-haspopup={isMobileViewport ? "dialog" : "true"}
+                  aria-expanded={isMobileViewport ? openSheet === "timeframe" : tfMenuOpen}
+                  aria-label={`Change where you are in your story: ${TIMEFRAME_LABEL[timeframe]}`}
+                  onClick={() => (isMobileViewport ? setOpenSheet("timeframe") : setTfMenuOpen((v) => !v))}
+                >
+                  {TIMEFRAME_LABEL[timeframe]}
+                </button>
+
+                {!isMobileViewport && tfMenuOpen && (
+                  <span className="hero-tf-opts" role="group" aria-label="Where are you in your story?">
+                    {TIMEFRAME_OPTIONS.map((opt) => {
+                      const selected = timeframe === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          aria-pressed={selected}
+                          className={selected ? "hero-tf-opt is-on" : "hero-tf-opt"}
+                          onClick={() => {
+                            trip.setAnswersTimeframe(opt.value);
+                            setTfMenuOpen(false);
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </span>
+                )}
+              </span>
 
               {timeframe === "planning" && (
                 <>
@@ -507,52 +545,6 @@ export default function Hero({
                 </>
               )}
             </p>
-
-            {/* THE THREE OPTIONS, INLINE (03 Sep 2026, Mark's call after
-                seeing the dropdown). No panel, no border, no backdrop -
-                they read as words over the video, the same way the
-                sentence itself does. A white box floating over the hero
-                was the thing he objected to, and it was never in the
-                spec: section 3 asks for a trigger "styled as the
-                sentence's own words", which a card is not.
-
-                In normal flow rather than absolutely positioned, so it
-                pushes the button down instead of covering it - nothing
-                is hidden behind the thing you just opened.
-
-                Desktop only. A phone keeps the sheet: there is no room
-                to expand three options and their notes inside a hero
-                that is already the whole screen. */}
-            {!isMobileViewport && tfMenuOpen && (
-              <div className="hero-tf-inline" role="group" aria-label="Where are you in your story?">
-                {/* The three headline options and nothing else (Mark,
-                    03 Sep 2026). No repeated question line above them -
-                    the clause you just clicked IS the question, and
-                    restating it in the hero read as a second one. No
-                    per-option notes either: the sentence rewrites itself
-                    the moment you choose, which explains each option
-                    better than a line of description could. The question
-                    still heads the sheet on mobile, where there is no
-                    clause left on screen to carry it. */}
-                {TIMEFRAME_OPTIONS.map((opt) => {
-                  const selected = timeframe === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      aria-pressed={selected}
-                      className={selected ? "hero-tf-opt is-on" : "hero-tf-opt"}
-                      onClick={() => {
-                        trip.setAnswersTimeframe(opt.value);
-                        setTfMenuOpen(false);
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
 
             {showReflow ? (
               <>
