@@ -3035,17 +3035,7 @@ a.cj-card-credit:hover {
   color: var(--slate);
   padding: 24px 0;
 }
-.hero-dream-chip-row {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 6px;
-  margin-bottom: 16px;
-}
-.hero-dream-chip-row::-webkit-scrollbar {
-  height: 6px;
-}
+
 .hero-dream-card {
   display: block;
   background: white;

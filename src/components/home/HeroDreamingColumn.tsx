@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { useTrip } from "@/lib/trip-context";
 import { DREAM_AREAS } from "@/lib/dream-areas";
 import { AREAS } from "@/lib/areas";
 import { joinWithAnd } from "@/lib/trip-answers";
@@ -71,7 +70,6 @@ export function HeroDreamingColumn({
    *  visitor's own button press this session. */
   announce?: (text: string) => void;
 }) {
-  const trip = useTrip();
   const announcedRef = useRef(false);
   const area = DREAM_AREAS.find((a) => a.id === dreamAreaId) ?? DREAM_AREAS[0];
 
@@ -121,19 +119,13 @@ export function HeroDreamingColumn({
         <span className="hero-days-header-total">read it, or build it</span>
       </div>
 
-      <div className="hero-dream-chip-row" role="group" aria-label="Which area you're drawn to">
-        {DREAM_AREAS.map((a) => (
-          <button
-            key={a.id}
-            type="button"
-            className={"hero-dream-chip" + (a.id === area.id ? " selected" : "")}
-            aria-pressed={a.id === area.id}
-            onClick={() => trip.setAnswersDreamArea(a.id)}
-          >
-            {a.name}
-          </button>
-        ))}
-      </div>
+      {/* The four-area chip row was here and is gone (03 Sep 2026,
+          Mark's call). It duplicated the sentence's own "I'm drawn to
+          the west" clause a few hundred pixels to its left - the same
+          four choices, the same current selection, two controls for one
+          answer - and cost a row of vertical space in a column whose
+          whole job is to show what that answer returns. The clause
+          remains the way to change it. */}
 
       {post && (
         <Link href={`/journal/${post.slug}`} className="hero-dream-card">
