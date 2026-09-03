@@ -133,6 +133,48 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
 .hero-sentence-clause{display:inline;padding:0 1px;margin:0;border:none;background:none;box-shadow:inset 0 -3px 0 var(--copper);color:var(--amber-light);font:inherit;cursor:pointer;line-height:inherit}
 .hero-sentence-clause:hover{color:var(--amber)}
 .hero-sentence-clause::after{content:" \25BE";font-size:0.7em}
+
+/* CLAUSE 1'S INLINE DESKTOP MENU (03 Sep 2026). Anchored to the word
+   rather than centred over the hero - see Hero.tsx's own note on why
+   the centred sheet stayed on mobile only. The anchor is inline so it
+   does not break the sentence's line wrapping; only the menu itself is
+   taken out of flow.
+   z-index 3 clears .hero-overlay (z-index 1) and the answers panel. */
+.hero-tf-anchor{position:relative;display:inline}
+.hero-tf-menu{
+  position:absolute;top:calc(100% + 10px);left:0;z-index:3;
+  min-width:300px;max-width:min(360px,80vw);
+  padding:6px;
+  background:var(--white);
+  border:1px solid var(--stone);
+  border-radius:var(--radius);
+  box-shadow:0 12px 32px rgba(0,0,0,0.28);
+  text-align:left;
+}
+.hero-tf-item{
+  display:block;width:100%;
+  padding:9px 12px;
+  border:0;border-radius:var(--radius-sm,6px);
+  background:none;cursor:pointer;text-align:left;
+  font-family:var(--font-body),system-ui,sans-serif;
+}
+.hero-tf-item:hover{background:var(--off-white)}
+.hero-tf-item-name{
+  display:block;
+  font-family:var(--font-display),Georgia,serif;
+  font-size:16px;color:var(--navy);line-height:1.25;
+}
+.hero-tf-item.is-on .hero-tf-item-name{color:var(--copper);font-weight:600}
+.hero-tf-item.is-on .hero-tf-item-name::after{content:" \2713"}
+.hero-tf-item-note{
+  display:block;margin-top:1px;
+  font-size:12.5px;color:var(--slate);line-height:1.45;
+}
+/* Below the hero's own reflow breakpoint the sentence is centred and
+   narrow, so a left-anchored menu can overhang the viewport edge. */
+@media(max-width:900px){
+  .hero-tf-menu{left:50%;transform:translateX(-50%);min-width:260px}
+}
 .hero-sentence-cta{margin-top:28px}
 
 /* State two - the planning reflow (docs/hero-handoff.md §2.2/§2.3/§9
