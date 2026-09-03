@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useTrip } from "@/lib/trip-context";
-import { stopId, stopName } from "@/lib/itinerary-stop";
+import Link from "next/link";
+import { stopId, stopName, stopHref } from "@/lib/itinerary-stop";
 import DreamingMap, { type DreamingMapTap } from "./DreamingMap";
 import type { Distillery, ItineraryStop, LocalFeature } from "@/lib/types";
 
@@ -29,20 +30,73 @@ const SHORTLISTABLE_FEATURE_CATEGORIES: LocalFeature["category"][] = [
   "transport",
 ];
 
+/** Food and drink, kept OUT of the list above. Off on the dreaming map
+ *  by Mark's original ask; on for /today/build (03 Sep 2026, his call),
+ *  because somebody standing on Islay at two o'clock wants lunch and a
+ *  daydream does not. Passed in rather than assumed - see the
+ *  includeFoodAndDrink prop. */
+const FOOD_CATEGORIES: LocalFeature["category"][] = ["pub", "cafe", "restaurant"];
+
+/** The filter chips over the map (03 Sep 2026, Mark's ask). Grouped
+ *  rather than one chip per category: thirteen chips over a 320px map
+ *  would be the filter, not the map. Distilleries is its own group
+ *  because it is the reason anybody is here. */
+type FilterGroupId = "distilleries" | "nature" | "attractions" | "food";
+
+const FILTER_GROUPS: { id: FilterGroupId; label: string; categories: LocalFeature["category"][] }[] = [
+  { id: "distilleries", label: "Distilleries", categories: [] },
+  { id: "nature", label: "Natural features", categories: ["beach", "walk", "bike-route"] },
+  {
+    id: "attractions",
+    label: "Local attractions",
+    categories: ["local-gem", "historic-site", "attraction-gem", "golf", "spa", "transport"],
+  },
+  { id: "food", label: "Places to eat", categories: FOOD_CATEGORIES },
+];
+
 export default function DreamingShortlistSection({
   distilleries,
   localFeatures,
   center,
+  includeFoodAndDrink = false,
 }: {
   distilleries: Distillery[];
   localFeatures: LocalFeature[];
   center: { lat: number; lng: number };
+  /** /today/build passes true - see FOOD_CATEGORIES. */
+  includeFoodAndDrink?: boolean;
 }) {
   const trip = useTrip();
   const [tappedPin, setTappedPin] = useState<DreamingMapTap | null>(null);
   const [dayPickerFor, setDayPickerFor] = useState<ItineraryStop | null>(null);
 
-  const visibleFeatures = localFeatures.filter((f) => SHORTLISTABLE_FEATURE_CATEGORIES.includes(f.category));
+  const groups = FILTER_GROUPS.filter((g) => g.id !== "food" || includeFoodAndDrink);
+  // Everything on by default: the filters are for narrowing a busy map,
+  // not a gate to get through before seeing anything.
+  const [active, setActive] = useState<Set<FilterGroupId>>(() => new Set(groups.map((g) => g.id)));
+
+  const allowedCategories = new Set(
+    groups.filter((g) => active.has(g.id)).flatMap((g) => g.categories)
+  );
+  const shortlistableCategories = includeFoodAndDrink
+    ? [...SHORTLISTABLE_FEATURE_CATEGORIES, ...FOOD_CATEGORIES]
+    : SHORTLISTABLE_FEATURE_CATEGORIES;
+
+  // Two different lists on purpose: the map draws only what passes the
+  // filters, while shortlist lookups must still resolve an item the
+  // visitor shortlisted before turning its category off.
+  const visibleFeatures = localFeatures.filter((f) => shortlistableCategories.includes(f.category));
+  const mappedFeatures = visibleFeatures.filter((f) => allowedCategories.has(f.category));
+  const mappedDistilleries = active.has("distilleries") ? distilleries : [];
+
+  function toggleGroup(id: FilterGroupId) {
+    setActive((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
   const shortlist = trip.shortlist;
   const shortlistedIds = new Set(shortlist.map((s) => stopId(s)));
 
@@ -96,9 +150,26 @@ export default function DreamingShortlistSection({
 
   return (
     <div style={{ marginTop: 8 }}>
+      <div className="dsl-filters" role="group" aria-label="Filter what shows on the map">
+        {groups.map((g) => {
+          const on = active.has(g.id);
+          return (
+            <button
+              key={g.id}
+              type="button"
+              className={on ? "dsl-filter is-on" : "dsl-filter"}
+              aria-pressed={on}
+              onClick={() => toggleGroup(g.id)}
+            >
+              {g.label}
+            </button>
+          );
+        })}
+      </div>
+
       <DreamingMap
-        distilleries={distilleries}
-        localFeatures={visibleFeatures}
+        distilleries={mappedDistilleries}
+        localFeatures={mappedFeatures}
         center={center}
         shortlistedIds={shortlistedIds}
         onTap={setTappedPin}
@@ -108,8 +179,13 @@ export default function DreamingShortlistSection({
         <div className="hero-dream-card" style={{ marginTop: 10, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <div>
             <div className="hero-dream-card-kicker">{tappedPin.kind === "distillery" ? "Distillery" : "Local feature"}</div>
+            {/* Reading about a place is the step before deciding to go,
+                and until now there was no route to it from either the pin
+                card or the shortlist. */}
             <h3 className="hero-dream-card-title" style={{ fontSize: 17 }}>
-              {tappedPin.name}
+              <Link href={stopHref(tappedItem)} className="dsl-item-link">
+                {tappedPin.name}
+              </Link>
             </h3>
           </div>
           <button type="button" className="days-hub-card-action" onClick={() => toggleShortlist(tappedPin)}>
@@ -140,7 +216,9 @@ export default function DreamingShortlistSection({
                   padding: "10px 12px",
                 }}
               >
-                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--dark)" }}>{stopName(item)}</span>
+                <Link href={stopHref(item)} className="dsl-item-link" style={{ fontSize: 14, fontWeight: 600 }}>
+                  {stopName(item)}
+                </Link>
                 <span style={{ display: "flex", gap: 8 }}>
                   <button type="button" className="days-hub-card-action" onClick={() => handleAddToDayClick(item)}>
                     Add to a day

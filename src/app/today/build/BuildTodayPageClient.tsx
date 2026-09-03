@@ -63,7 +63,12 @@ export default function BuildTodayPageClient({
         Tap a distillery or local spot to shortlist it, then add each one to a day when you&apos;re ready.
       </p>
 
-      <DreamingShortlistSection distilleries={distilleries} localFeatures={localFeatures} center={village} />
+      <DreamingShortlistSection
+        distilleries={distilleries}
+        localFeatures={localFeatures}
+        center={village}
+        includeFoodAndDrink
+      />
     </div>
   );
 }

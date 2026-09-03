@@ -2384,6 +2384,45 @@ a.hdw-name:hover {
 .answers-kicker:first-child {
   margin-top: 0;
 }
+/* Map filters and item links on the dreaming / today-build screens
+   (03 Sep 2026). Chips reuse the day-plan filter shape rather than a
+   third pill style - .hdp-chip is the site's existing "narrow this list"
+   control and this is the same job over a map. */
+.dsl-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.dsl-filter {
+  padding: 6px 12px;
+  border: 1px solid var(--stone);
+  border-radius: 100px;
+  background: var(--white);
+  color: var(--peat);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out),
+    border-color 0.15s var(--ease-out);
+}
+.dsl-filter:hover {
+  border-color: var(--copper);
+  color: var(--copper);
+}
+.dsl-filter.is-on {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: var(--white);
+}
+.dsl-item-link {
+  color: var(--dark);
+  text-decoration: none;
+}
+.dsl-item-link:hover {
+  color: var(--copper);
+  text-decoration: underline;
+}
+
 /* The three ways to answer, named under the sheet heading. */
 .answers-sheet-ways {
   margin: -2px 2px 10px;
