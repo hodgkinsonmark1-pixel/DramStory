@@ -1,7 +1,9 @@
 "use client";
 
 import type { Timeframe } from "@/lib/trip-context";
+import { useState } from "react";
 import { AREAS } from "@/lib/areas";
+import { locateNearestArea } from "@/lib/nearest-area";
 import { DREAM_AREAS } from "@/lib/dream-areas";
 
 export type HeroSentenceSheetName = "timeframe" | "dreamArea" | "todayNear" | null;
@@ -113,6 +115,57 @@ export function HeroSentenceSheets({
   }
 
   // openSheet === "todayNear"
+  return <TodayNearSheet todayNear={todayNear} onClose={onClose} onSelectTodayNear={onSelectTodayNear} />;
+}
+
+/**
+ * "Where on Islay are you?" - split into its own component 03 Sep 2026
+ * because it now holds state (the geolocation attempt) and the parent is
+ * a pure switch over openSheet.
+ *
+ * THE LOCATION OPTION IS NEW HERE, and this is the fix Mark asked for:
+ * desktop had "Use my location instead" under the today note, inside the
+ * state-two reflow, which is gated on !isMobileViewport - so a phone,
+ * the device someone is actually holding while standing on Islay, had no
+ * location control anywhere. This sheet is the ONLY way todayNear is
+ * ever set (HeroTodayColumn has no in-place village control, and /today
+ * links back here), so putting it here reaches both platforms at once.
+ *
+ * Same contract as every other geolocation call on this site: a
+ * convenience ABOVE the list, never a replacement for it, and every
+ * failure falls back to the list rather than to an error screen.
+ */
+function TodayNearSheet({
+  todayNear,
+  onClose,
+  onSelectTodayNear,
+}: {
+  todayNear: string;
+  onClose: () => void;
+  onSelectTodayNear: (todayNear: string) => void;
+}) {
+  const [locating, setLocating] = useState(false);
+  const [locateError, setLocateError] = useState<string | null>(null);
+
+  function useMyLocation() {
+    setLocating(true);
+    setLocateError(null);
+    locateNearestArea(
+      (slug) => {
+        setLocating(false);
+        onSelectTodayNear(slug);
+      },
+      (reason) => {
+        setLocating(false);
+        setLocateError(
+          reason === "unsupported"
+            ? "Location isn't available in this browser — pick from the list instead."
+            : "Couldn't get your location — pick from the list instead."
+        );
+      }
+    );
+  }
+
   return (
     <div className="tour-picker-backdrop" onClick={onClose}>
       <div
@@ -125,6 +178,13 @@ export function HeroSentenceSheets({
           &times;
         </button>
         <div className="tour-picker-heading">Where on Islay are you?</div>
+
+        <button type="button" className="answers-locate-row" onClick={useMyLocation} disabled={locating}>
+          <span className="answers-locate-name">{locating ? "Finding you…" : "📍 Use my location"}</span>
+          <span className="answers-locate-note">We&rsquo;ll pick the nearest village.</span>
+        </button>
+        {locateError && <p className="answers-locate-error">{locateError}</p>}
+
         {AREAS.map((area) => {
           const selected = todayNear === area.slug;
           return (

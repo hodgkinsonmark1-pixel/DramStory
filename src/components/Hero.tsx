@@ -20,6 +20,7 @@ import { HeroDreamingColumn } from "@/components/home/HeroDreamingColumn";
 import { HeroTodayColumn } from "@/components/home/HeroTodayColumn";
 import { buildTodaySchedule, formatClockTime } from "@/lib/today-schedule";
 import { AREAS } from "@/lib/areas";
+import { locateNearestArea } from "@/lib/nearest-area";
 import { DREAM_AREAS } from "@/lib/dream-areas";
 import type { Distillery, HubDay, JournalPost, LocalFeature } from "@/lib/types";
 
@@ -310,32 +311,21 @@ export default function Hero({
    *  on top of the sheet, never the only way to answer, same reasoning
    *  as that other component's own version. */
   function handleUseMyLocation() {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setLocationError("Location isn't available in this browser — pick from the list instead.");
-      return;
-    }
     setLocating(true);
     setLocationError(null);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        let nearest = AREAS[0];
-        let nearestDistSq = Infinity;
-        for (const a of AREAS) {
-          const distSq = (a.lat - latitude) ** 2 + (a.lng - longitude) ** 2;
-          if (distSq < nearestDistSq) {
-            nearestDistSq = distSq;
-            nearest = a;
-          }
-        }
+    locateNearestArea(
+      (slug) => {
         setLocating(false);
-        trip.setAnswersTodayNear(nearest.slug);
+        trip.setAnswersTodayNear(slug);
       },
-      () => {
+      (reason) => {
         setLocating(false);
-        setLocationError("Couldn't get your location — pick from the list instead.");
-      },
-      { timeout: 8000 }
+        setLocationError(
+          reason === "unsupported"
+            ? "Location isn't available in this browser — pick from the list instead."
+            : "Couldn't get your location — pick from the list instead."
+        );
+      }
     );
   }
 
