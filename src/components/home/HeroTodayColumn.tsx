@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Distillery, LocalFeature } from "@/lib/types";
-import { AREAS } from "@/lib/areas";
 import { useTrip } from "@/lib/trip-context";
 import { buildTodaySchedule, formatClockTime, type TodayStop } from "@/lib/today-schedule";
 
@@ -22,11 +21,14 @@ const MOBILE_BREAKPOINT = 768;
  * column doesn't silently go stale on a tab left open.
  */
 export function HeroTodayColumn({
-  todayNear,
+  origin,
   distilleries,
   localFeatures,
 }: {
-  todayNear: string;
+  /** Where today is measured from - resolveTodayOrigin()'s output, so a
+   *  dropped pin and a picked village arrive here as the same shape and
+   *  this component never has to know which it got. */
+  origin: { lat: number; lng: number };
   distilleries: Distillery[];
   localFeatures: LocalFeature[];
 }) {
@@ -51,8 +53,7 @@ export function HeroTodayColumn({
 
   if (!now) return null; // client-only clock - nothing honest to show before mount
 
-  const village = AREAS.find((a) => a.slug === todayNear) ?? AREAS[0];
-  const schedule = buildTodaySchedule({ now, village, distilleries, localFeatures });
+  const schedule = buildTodaySchedule({ now, village: origin, distilleries, localFeatures });
   const distilleryStopCount = schedule.stops.filter((s) => s.kind === "distillery").length;
 
   const headerTitle =
@@ -120,7 +121,7 @@ export function HeroTodayColumn({
           className="hero-days-foot"
           onClick={(e) => {
             e.preventDefault();
-            trip.setMapView({ lat: village.lat, lng: village.lng, zoom: 14 });
+            trip.setMapView({ lat: origin.lat, lng: origin.lng, zoom: 14 });
             router.push("/journey?showAll=1&walkthrough=skip");
           }}
         >

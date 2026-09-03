@@ -220,6 +220,8 @@ async function fetchDistilleriesFromAirtable(): Promise<Distillery[]> {
         // "unknown, assume yes".
         openToVisitors: f["Open To Visitors"] === true,
         homepageBadge: f["Homepage Badge"] || undefined,
+        wallStatus: f["Wall Status"] || undefined,
+        wallNote: f["Wall Note"] || undefined,
         source: "airtable" as const,
       };
     });

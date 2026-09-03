@@ -1,259 +1,219 @@
 import Link from "next/link";
-import Image from "next/image";
-import type { Distillery, JournalPost, Tour } from "@/lib/types";
+import type { Distillery, Tour } from "@/lib/types";
 import { isPublishableTour, formatPrice } from "@/lib/pricing";
 import { spellCount } from "@/lib/journey-derivations";
 
 /**
- * "The distilleries" - the homepage's distillery section, rebuilt 30 Aug
- * 2026 to Mark's mockup and moved below Where to stay.
+ * "Every distillery on Islay" - rebuilt 01 Sep 2026 to Mark's final
+ * design (desktop page 5, mobile panel 3).
  *
- * WHAT IT REPLACES: the distillery half of FeaturedContent, whose three
- * featured slugs AND their descriptions lived in an EDITORIAL object
- * typed into that component. Changing which distilleries the homepage
- * featured, or what they said about them, needed a code deploy. Both now
- * come off the record: Homepage Badge picks the three, Tagline describes
- * them.
+ * WHAT IT REPLACES: three featured cards picked by an Airtable badge,
+ * with the other eight as a row of price chips beneath. That showed
+ * eleven of the island's thirteen distilleries and ranked three of them
+ * above the rest. The design's answer is better and simpler: show all
+ * thirteen, at the same size, and let the reader scan.
  *
- * EVERY NUMBER HERE IS COMPUTED. The eyebrow counts the distilleries
- * actually passed in; the headline price, tour count and price range come
- * from each distillery's own publishable Tours; the chips at the foot
- * carry the cheapest real tour at every distillery not featured above.
+ * IT NEEDS EVERY RECORD, NOT THE VISITABLE ONES. This is the only
+ * section on the homepage passed getDistilleries() rather than
+ * getVisitableDistilleries(). Laggan Bay and Portintruan are not open to
+ * visitors and would be filtered out, but "thirteen in all" is the whole
+ * point of the eyebrow - and a reader planning a trip is better served
+ * knowing the two that exist and are shut than being shown eleven and
+ * told it is everything.
  *
- * DELIBERATELY NOT the Distilleries table's own `Price From` column. It
- * disagrees with the Tours table on every single distillery - it says £10
- * for Lagavulin, Bowmore, Bruichladdich, Bunnahabhain and Caol Ila, whose
- * cheapest actual tours are £20, £25, £25, £20 and £21. Tours is the
- * sourced table, it is what every other price on this site reads, and a
- * price is the one thing on this page a visitor might budget against.
+ * EVERY FIGURE IS COMPUTED. Both counts in the eyebrow, every price,
+ * and all three facts in the summary line at the foot. Nothing here is
+ * typed except the section's own words.
  */
 
-/** The cheapest tour a visitor can actually book here, ignoring
- *  placeholder rows and anything with no price on it. Undefined when the
- *  distillery sells nothing bookable, in which case the card and the chip
- *  both say so rather than printing a zero. */
-function cheapestTour(d: Distillery): Tour | undefined {
+/** The cheapest tour a visitor can actually book, ignoring placeholder
+ *  rows and anything unpriced. Undefined where a distillery sells
+ *  nothing bookable - the three at the foot of the wall, and any
+ *  distillery whose tours are suspended - in which case no price is
+ *  printed rather than a zero. */
+export function cheapestTour(d: Distillery): Tour | undefined {
   return d.tours
     .filter((t) => isPublishableTour(t) && t.price > 0)
     .sort((a, b) => a.price - b.price)[0];
 }
 
-/** spellCount returns lower case, which is right mid-sentence and wrong
- *  at the start of one. */
-function sentenceCase(word: string): string {
-  return word.charAt(0).toUpperCase() + word.slice(1);
-}
-
-function bookableTours(d: Distillery): Tour[] {
-  return d.tours.filter((t) => isPublishableTour(t) && t.price > 0);
-}
-
-/** Six months. A tour whose price was last checked longer ago than this
- *  stops being quoted as fact and starts pointing at the distillery's own
- *  page instead.
+/** "South Islay" -> "South". The wall gives a region two words of space
+ *  beside a price, and "Islay" is the one word every row would repeat on
+ *  a page whose heading already says Islay twice.
  *
- *  The site owner's call (30 Aug 2026), and the honest version of the
- *  mockup's "we last checked prices in April - they've moved since": a
- *  price with a date on it is either current or it is a guess, and this
- *  is the line between them. Quiet for most of the year - every tour on
- *  the site was verified within the last six weeks as of today - which is
- *  the point. It exists for the month nobody looks. */
-const STALE_AFTER_MONTHS = 6;
-
-/** The order the three featured cards appear in, which is editorial and
- *  not Airtable's record order - the pick leads, the discovery sits in
- *  the middle, the oddity closes. Without this the row came out
- *  Kilchoman, Ardnahoe, Ardbeg, which is just the order those rows
- *  happen to sit in the table.
- *
- *  MUST STAY IN STEP WITH the Homepage Badge choices in Airtable. The
- *  sort below is indexOf-based, and indexOf returns -1 for a value not
- *  listed here - which sorts that card to the FRONT of the row rather
- *  than failing. So a badge renamed in Airtable and not renamed here
- *  silently reorders the section instead of breaking visibly.
- *
- *  "Newest Opening" became "Highest Distillery" on 31 Aug 2026 (Mark's
- *  call): Ardnahoe wore the newest badge and had not been Islay's newest
- *  since Laggan Bay began producing in April 2026. Highest is checked
- *  rather than repeated - Ardnahoe's own site claims it nowhere, so it
- *  was verified against terrain data instead, and three independent
- *  elevation models agree by a wide margin (EU-DEM 25m 60 m, Mapzen
- *  56 m, ASTER 30m 44 m, against a next-highest of 18 m at Kilchoman).
- *  The gap is large enough that disagreement between the models cannot
- *  touch the ranking. */
-const BADGE_ORDER = ["Editor's Pick", "Hidden Gem", "Highest Distillery"];
-
-function pricesAreStale(d: Distillery, now: Date): boolean {
-  const tours = bookableTours(d);
-  if (tours.length === 0) return false;
-  const dates = tours.map((t) => t.lastVerified).filter((v): v is string => !!v);
-  // No date at all is not the same as an old one: an unverified row is a
-  // sourcing gap, flagged elsewhere, not a staleness signal here.
-  if (dates.length === 0) return false;
-  const newest = dates.sort().at(-1) as string;
-  const cutoff = new Date(now);
-  cutoff.setMonth(cutoff.getMonth() - STALE_AFTER_MONTHS);
-  return new Date(newest) < cutoff;
+ *  Port Ellen keeps its full name - it is a village, not a compass
+ *  point, and "Port" would be nonsense. Anything unrecognised falls
+ *  through unchanged rather than being truncated blindly. */
+export function shortRegion(region: string): string {
+  const trimmed = region.replace(/\s+Islay$/i, "").trim();
+  return trimmed.length > 0 ? trimmed : region;
 }
 
-/** "café on site" and friends - the facilities worth naming on a card
- *  this small. Read off the Facilities multi-select, matched loosely
- *  because the table uses both "Café" and "Farm Café". */
-function cafeNote(d: Distillery): string | undefined {
-  return d.facilities.some((f) => /caf[eé]/i.test(f)) ? "café on site" : undefined;
+/** Airtable's Style choices, as they read in a sentence.
+ *
+ *  "Unpeated / Heavily Peated" is the one that cannot just be
+ *  lower-cased: it means a distillery making both, and the slash reads
+ *  as an either/or. Bruichladdich and Isle of Jura both carry it. */
+export function peatLabel(style: string): string {
+  if (!style) return "";
+  if (/^unpeated\s*\/\s*heavily peated$/i.test(style)) return "Unpeated to heavily peated";
+  return style.charAt(0).toUpperCase() + style.slice(1).toLowerCase();
 }
 
-function DistilleryCard({ distillery: d, stale }: { distillery: Distillery; stale: boolean }) {
-  const cheapest = cheapestTour(d);
-  const tours = bookableTours(d);
-  const dearest = tours.length > 1 ? tours[tours.length - 1] : undefined;
-  const cafe = cafeNote(d);
+/** Whether this distillery has somewhere to eat on site.
+ *
+ *  NOT `facilities.includes("Café")`. The Facilities field has two
+ *  separate café choices - "Café" and "Farm Café" - and Kilchoman
+ *  carries the second one. An exact match drops it, and the summary line
+ *  at the foot of this section names the cafés, so it would have been
+ *  wrong in a place a reader could check. */
+export function hasCafe(d: Distillery): boolean {
+  return d.facilities.some((f) => /caf[eé]/i.test(f));
+}
+
+/** Jura is a different island. It is shown in the wall because a visitor
+ *  planning Islay will be offered it, but it is not counted among the
+ *  island's own and it shows its position rather than a region. */
+export function isJura(d: Distillery): boolean {
+  return /jura/i.test(d.region);
+}
+
+/** Open to visitors AND on Islay - the "ten you can visit today" of the
+ *  eyebrow, and the ten that appear in full colour above the fold of the
+ *  wall. */
+export function isOpenOnIslay(d: Distillery): boolean {
+  return d.openToVisitors && !isJura(d);
+}
+
+function DistilleryEntry({ d }: { d: Distillery }) {
+  const open = isOpenOnIslay(d);
+  const tour = cheapestTour(d);
+
+  /* Line one: where it is, and what it costs to get in.
+     A distillery that is not open shows why instead of a price - the
+     Wall Status field on its record ("not yet open", "in progress"),
+     which is the one thing a reader needs in order to stop looking for
+     a tour that does not exist. Jura shows its position instead. */
+  const place = isJura(d) ? "Across the sound" : shortRegion(d.region);
+  const trailing = open
+    ? tour
+      ? `from ${formatPrice(tour.price)}`
+      : null
+    : d.wallStatus || null;
+
+  /* Line two: what the whisky is like, and whether there is a café.
+     For a distillery with no Style set - the two that have not started
+     bottling - the record's Wall Note carries a short factual line
+     instead, and nothing renders when it is empty. Never a placeholder. */
+  const peat = peatLabel(d.style);
+  const secondLine = peat
+    ? [peat, hasCafe(d) ? "café" : null].filter(Boolean).join(" · ")
+    : d.wallNote || "";
 
   return (
-    <article className="hd-card">
-      {d.image && (
-        <div className="hd-media">
-          <Image
-            src={d.image}
-            alt={d.name}
-            fill
-            unoptimized
-            sizes="(max-width: 900px) 100vw, 300px"
-            style={{ objectFit: "cover" }}
-          />
-          {d.homepageBadge && <span className="hd-badge">{d.homepageBadge}</span>}
-        </div>
-      )}
-      <div className="hd-body">
-        <div className="hd-where">
-          {d.region}
-          {d.founded > 0 && <> &middot; est. {d.founded}</>}
-        </div>
-        <h3 className="hd-name">
-          <Link href={`/distilleries/${d.slug}`}>{d.name}</Link>
-        </h3>
-        {d.tagline && <p className="hd-tagline">{d.tagline}</p>}
-
-        <div className="hd-money">
-          {stale ? (
-            /* The price is older than this page is willing to stand
-               behind, so the page stops quoting it. Saying when we last
-               looked is the honest half; sending them to the distillery
-               is the useful half. */
-            <p className="hd-stale">
-              We last checked these prices some time ago &mdash; they may have moved since.
-            </p>
-          ) : cheapest ? (
-            <>
-              <p className="hd-price">
-                <strong>{formatPrice(cheapest.price)}</strong>{" "}
-                <span>
-                  {cheapest.name}
-                  {cheapest.duration ? ` · ${cheapest.duration}` : ""}
-                </span>
-              </p>
-              <p className="hd-range">
-                {tours.length === 1
-                  ? "One tour"
-                  : `${sentenceCase(spellCount(tours.length))} tours, ${formatPrice(
-                      cheapest.price
-                    )} – ${formatPrice(dearest!.price)}`}
-                {cafe ? ` · ${cafe}` : ""}
-              </p>
-            </>
-          ) : (
-            <p className="hd-range">No tour bookable here today{cafe ? ` · ${cafe}` : ""}</p>
-          )}
-        </div>
-
-        <Link className="hd-link" href={`/distilleries/${d.slug}`}>
-          {stale
-            ? "Current times & prices"
-            : tours.length === 2
-              ? "See both and book"
-              : tours.length > 2
-                ? `See all ${spellCount(tours.length)} and book`
-                : "Times & prices"}{" "}
-          &rarr;
+    <li className={open ? "hdw-item" : "hdw-item hdw-item-shut"}>
+      {open ? (
+        <Link href={`/distilleries/${d.slug}`} className="hdw-name">
+          {d.name}
         </Link>
+      ) : (
+        /* Not a link when there is nothing to visit. The three at the
+           foot still have pages, but a name styled as a link on a page
+           selling visits reads as "you can go here". */
+        <span className="hdw-name">{d.name}</span>
+      )}
+      <div className="hdw-place">
+        {place}
+        {trailing ? <span className="hdw-sep"> · {trailing}</span> : null}
       </div>
-    </article>
+      {secondLine ? <div className="hdw-note">{secondLine}</div> : null}
+    </li>
   );
 }
 
-export default function HomeDistilleries({
-  distilleries,
-  journalPosts,
-}: {
-  distilleries: Distillery[];
-  journalPosts: JournalPost[];
-}) {
+export default function HomeDistilleries({ distilleries }: { distilleries: Distillery[] }) {
   if (distilleries.length === 0) return null;
 
-  // Featured = whichever carry a badge, in Airtable's own order, capped
-  // at three. "the rest" is genuinely everything else, so a distillery
-  // can never fall out of this section entirely by losing its badge.
-  const featured = distilleries
-    .filter((d) => d.homepageBadge)
-    .sort((a, b) => BADGE_ORDER.indexOf(a.homepageBadge!) - BADGE_ORDER.indexOf(b.homepageBadge!))
-    .slice(0, 3);
-  const featuredSlugs = new Set(featured.map((d) => d.slug));
-  const rest = distilleries.filter((d) => !featuredSlugs.has(d.slug));
+  /* Alphabetical within two groups: the ones you can visit today, then
+     the ones you cannot. That is the design's own order, and it means a
+     reader scanning for a name finds it without knowing its status,
+     while the wall still says plainly where the island stops. */
+  const byName = (a: Distillery, b: Distillery) => a.name.localeCompare(b.name);
+  const open = distilleries.filter(isOpenOnIslay).sort(byName);
+  const shut = distilleries.filter((d) => !isOpenOnIslay(d)).sort(byName);
+  const ordered = [...open, ...shut];
 
-  // The eyebrow, counted rather than typed. Jura is a distillery you can
-  // visit but it is not on Islay, which is the whole reason it gets its
-  // own clause instead of being folded into the number.
-  const acrossTheSound = distilleries.filter((d) => /jura/i.test(d.region));
-  const onIslay = distilleries.length - acrossTheSound.length;
-  const eyebrow =
-    acrossTheSound.length > 0
-      ? `${spellCount(onIslay)} on Islay you can visit, and one across the sound`
-      : `${spellCount(onIslay)} you can visit`;
+  /* THE SUMMARY LINE. Three facts a reader would otherwise have to
+     assemble by reading all thirteen entries. Each is computed, and each
+     is dropped entirely rather than printed empty when the data cannot
+     support it. */
 
-  const now = new Date();
-  const journalPost = journalPosts[0];
+  // Cheapest way through any door, among the ten that are open.
+  const cheapest = open
+    .map((d) => ({ d, tour: cheapestTour(d) }))
+    .filter((x): x is { d: Distillery; tour: Tour } => Boolean(x.tour))
+    .sort((a, b) => a.tour.price - b.tour.price)[0];
+
+  /* Exactly "Unpeated", not "starts with unpeated". Bruichladdich and
+     Isle of Jura are both "Unpeated / Heavily Peated", and a prefix test
+     would have made the line read "Only unpeated: Bruichladdich,
+     Bunnahabhain, Isle of Jura" - which says the opposite of what it
+     means. */
+  const unpeated = open.filter((d) => /^unpeated$/i.test(d.style.trim()));
+  const cafes = open.filter(hasCafe);
+
+  const facts: { label: string; value: string }[] = [];
+  if (cheapest) {
+    facts.push({
+      label: "Cheapest door in",
+      value: `${cheapest.d.name}, ${formatPrice(cheapest.tour.price)}`,
+    });
+  }
+  if (unpeated.length > 0) {
+    facts.push({
+      label: unpeated.length === 1 ? "Only unpeated" : "Unpeated",
+      value: unpeated.map((d) => d.name).join(", "),
+    });
+  }
+  if (cafes.length > 0) {
+    facts.push({ label: "Cafés on site", value: cafes.map((d) => d.name).join(", ") });
+  }
 
   return (
     <section className="hd-section" id="distilleries">
-      <div className="cj-head">
-        <div className="how-eyebrow">{eyebrow}</div>
-        <h2 className="how-title">The distilleries</h2>
-        <Link className="cj-head-note hd-head-link" href="/distilleries">
-          All of them, with tour times &amp; prices &rarr;
-        </Link>
-      </div>
-
-      <div className="hd-grid">
-        {featured.map((d) => (
-          <DistilleryCard key={d.slug} distillery={d} stale={pricesAreStale(d, now)} />
-        ))}
-      </div>
-
-      {rest.length > 0 && (
-        <div className="hd-rest">
-          <span className="hd-rest-label">And the rest:</span>
-          {rest.map((d) => {
-            const cheapest = cheapestTour(d);
-            return (
-              <Link className="hd-chip" key={d.slug} href={`/distilleries/${d.slug}`}>
-                {d.name}
-                {/* A distillery with nothing bookable says nothing about
-                    money, rather than a zero or a stale Price From. */}
-                {cheapest && <span className="hd-chip-price">{formatPrice(cheapest.price)}</span>}
-              </Link>
-            );
-          })}
+      <div className="sec-head">
+        <div className="sec-head-text">
+          {/* Both numbers counted, never typed. "Ten you can visit
+              today" excludes Jura, which is a different island, and the
+              two on Islay that are built but shut. */}
+          <div className="how-eyebrow">
+            {spellCount(open.length)} you can visit today &middot; {spellCount(distilleries.length)}{" "}
+            in all
+          </div>
+          <h2 className="how-title">Every distillery on Islay</h2>
         </div>
-      )}
+        <div className="sec-head-aside">
+          <Link className="sec-head-btn" href="/distilleries">
+            See all distilleries &rarr;
+          </Link>
+          <div className="sec-head-sub">Filter by region, peat level or tour price</div>
+        </div>
+      </div>
 
-      {journalPost && (
-        <Link className="hd-journal" href={`/journal/${journalPost.slug}`}>
-          <span className="hd-journal-eyebrow">From the blog</span>
-          <span className="hd-journal-title">{journalPost.title}</span>
-          {/* No reading time on JournalPost, and the homepage is not the
-              place to start estimating one from the body text. */}
-          <span className="hd-journal-meta">Read it &rarr;</span>
-        </Link>
+      <ul className="hdw-grid">
+        {ordered.map((d) => (
+          <DistilleryEntry key={d.slug} d={d} />
+        ))}
+      </ul>
+
+      {facts.length > 0 && (
+        <dl className="hdw-facts">
+          {facts.map((f) => (
+            <div className="hdw-fact" key={f.label}>
+              <dt>{f.label}:</dt> <dd>{f.value}</dd>
+            </div>
+          ))}
+        </dl>
       )}
     </section>
   );

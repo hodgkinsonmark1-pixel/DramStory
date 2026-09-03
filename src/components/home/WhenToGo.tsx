@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { JournalPost, LocalEvent, MonthBand, Season } from "@/lib/types";
+import type { LocalEvent, MonthBand, Season } from "@/lib/types";
 
 /**
  * "When to go" - built 30 Aug 2026 to Mark's mockup, below the
@@ -30,126 +30,55 @@ const BUSYNESS_CLASS: Record<number, string> = {
   4: "wtg-b4",
 };
 
-/** The date block, as two lines. Which two depends on whether the event
- *  crosses a month boundary, because one shape cannot carry both:
- *    13 SEPT        a single day
- *    11–13 SEPT     inside one month
- *    28 MAY / – 6 JUN   across two
+
+
+/** Spelled out rather than numeric: this sits inside a sentence that
+ *  already carries a year, and two numerals in one line read as a
+ *  table. */
+const SPELLED = [
+  "", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven",
+];
+
+/** "nine months away" / "three weeks away" - how far off the festival is,
+ *  in the terms someone planning actually thinks in.
  *
- *  The first build appended the end day to the start day and then printed
- *  the start month after it, which rendered Fèis Ìle as "28– 6 JUNMAY".
- *  Confirmed events only - a provisional row has no day worth printing. */
-function dateLines(event: LocalEvent): { top: string; bottom: string } {
-  const d = new Date(event.date);
-  const mon = (x: Date) => x.toLocaleDateString("en-GB", { month: "short" }).toUpperCase();
-  const startMonth = mon(d);
-  if (!event.endDate || event.endDate === event.date) {
-    return { top: String(d.getDate()), bottom: startMonth };
-  }
-  const e = new Date(event.endDate);
-  const endMonth = mon(e);
-  if (endMonth === startMonth) {
-    return { top: `${d.getDate()}–${e.getDate()}`, bottom: startMonth };
-  }
-  return { top: `${d.getDate()} ${startMonth}`, bottom: `– ${e.getDate()} ${endMonth}` };
-}
-
-/** "Tomorrow" / "In two weeks" / "In nine months" - how far off this is,
- *  in the terms someone planning actually thinks in. Undefined for
- *  provisional events, whose whole point is that we do not know.
+ *  Self-contained since 01 Sep 2026. It used to phrase the output of a
+ *  shared relativeWhen(), which moved out with the What's on column when
+ *  that became its own section - and What's on no longer needs it, since
+ *  its rows show real dates rather than a countdown. Rather than keep a
+ *  helper alive in another file for one caller, the arithmetic lives
+ *  here, where the only sentence that uses it is.
  *
- *  Spelled out rather than numeric because these sit under a date that
- *  is already a numeral, and two numbers in two lines read as a table. */
-const SPELLED = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven"];
-
-function relativeWhen(event: LocalEvent, today: Date): string | undefined {
-  if (!event.datesConfirmed) return undefined;
-  const start = new Date(event.date);
-  const days = Math.round((start.getTime() - today.getTime()) / 86_400_000);
-  if (days < 0) return "On now";
-  if (days === 0) return "Today";
-  if (days === 1) return "Tomorrow";
-  if (days < 14) return `In ${SPELLED[days] ?? days} days`;
-  const weeks = Math.round(days / 7);
-  if (weeks < 9) return `In ${SPELLED[weeks] ?? weeks} weeks`;
-  const months = Math.round(days / 30);
-  return `In ${SPELLED[months] ?? months} months`;
-}
-
-/** "nine months away" / "three weeks away" - the same arithmetic as
- *  relativeWhen, phrased to sit inside a sentence rather than stand as a
- *  label. */
+ *  Undefined for anything already started, or for a provisional event
+ *  whose whole point is that nobody has announced a date. */
 function awayPhrase(event: LocalEvent, today: Date): string | undefined {
-  const label = relativeWhen(event, today);
-  if (!label || !label.startsWith("In ")) return undefined;
-  return `${label.slice(3)} away`;
+  if (!event.datesConfirmed) return undefined;
+  const days = Math.round((new Date(event.date).getTime() - today.getTime()) / 86_400_000);
+  if (days < 1) return undefined;
+  if (days === 1) return "a day away";
+  if (days < 14) return `${SPELLED[days] ?? days} days away`;
+  const weeks = Math.round(days / 7);
+  if (weeks < 9) return `${SPELLED[weeks] ?? weeks} weeks away`;
+  const months = Math.round(days / 30);
+  return `${SPELLED[months] ?? months} months away`;
 }
 
-/** An event name without its parenthetical subtitle: "Fèis Íle 2027
- *  (Islay Festival of Music & Malt)" reads fine as a listing but not
+/** An event name without its parenthetical subtitle: "Fèis Ìle 2027
+ *  (Islay Festival of Music & Malt)" reads fine as a listing row but not
  *  mid-sentence. */
 function shortEventName(name: string): string {
   return name.replace(/\s*\([^)]*\)\s*$/, "").trim();
 }
 
-function EventRow({ event, today }: { event: LocalEvent; today: Date }) {
-  const when = relativeWhen(event, today);
-  return (
-    <li className="wtg-event">
-      <div className="wtg-event-date">
-        {event.datesConfirmed ? (
-          (() => {
-            const { top, bottom } = dateLines(event);
-            return (
-              <>
-                <span className="wtg-event-day">{top}</span>
-                <span className="wtg-event-month">{bottom}</span>
-              </>
-            );
-          })()
-        ) : (
-          /* No day, because nobody has announced one. The month and year
-             are as far as this can honestly go. */
-          <span className="wtg-event-tbc">
-            {new Date(event.date).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}
-          </span>
-        )}
-      </div>
-      <div className="wtg-event-body">
-        <div className="wtg-event-name">
-          {event.link ? (
-            <a href={event.link} target="_blank" rel="noopener noreferrer">
-              {event.name}
-            </a>
-          ) : (
-            event.name
-          )}
-        </div>
-        <div className="wtg-event-meta">
-          {event.location}
-          {event.datesConfirmed && event.price ? ` · ${event.price}` : ""}
-        </div>
-        {when && <div className="wtg-event-when">{when}</div>}
-        {!event.datesConfirmed && (
-          <div className="wtg-event-tbc-note">
-            {event.provisionalTiming ?? "dates"} &mdash; not yet announced
-          </div>
-        )}
-      </div>
-    </li>
-  );
-}
 
 export default function WhenToGo({
   seasons,
   months,
   localEvents,
-  journalPosts,
 }: {
   seasons: Season[];
   months: MonthBand[];
   localEvents: LocalEvent[];
-  journalPosts: JournalPost[];
 }) {
   if (seasons.length === 0 && months.length === 0) return null;
 
@@ -184,17 +113,18 @@ export default function WhenToGo({
   );
   const featureAway = featureEvent ? awayPhrase(featureEvent, today) : undefined;
 
-  const journalPost = journalPosts[0];
 
   return (
     <section className="wtg-section" id="when-to-go">
-      <div className="cj-head">
-        <div className="how-eyebrow">The decision that comes before all the others</div>
-        <h2 className="how-title">When to go</h2>
-        <div className="cj-head-note">Islay&rsquo;s year, in one line.</div>
+      <div className="sec-head">
+        <div className="sec-head-text">
+          <div className="how-eyebrow">The decision that comes before all the others</div>
+          <h2 className="how-title">When to go</h2>
+          <div className="sec-head-note">Islay&rsquo;s year, in one line.</div>
+        </div>
       </div>
 
-      <div className="wtg-layout">
+      <div className="wtg-main-only">
         <div className="wtg-main">
           {months.length > 0 && (
             <div className="wtg-bar" role="img" aria-label="How busy Islay is through the year">
@@ -217,50 +147,10 @@ export default function WhenToGo({
             </div>
           )}
 
-          {feature && (
-            <div className="wtg-feature">
-              <div className="wtg-feature-when">
-                <span className="wtg-feature-month">{featureMonth?.name ?? ""}</span>
-                {feature.monthNote && (
-                  <span className="wtg-feature-sub">{feature.monthNote}</span>
-                )}
-              </div>
-              <div className="wtg-feature-body">
-                <h3 className="wtg-feature-title">{feature.eyebrow}</h3>
-                <p className="wtg-feature-copy">{feature.copy}</p>
-              </div>
-              {/* Goes to the day plans rather than the festival's own
-                  site: "plan for" is the thing this site does, and
-                  feisile.co.uk is already linked from the event row two
-                  columns over. */}
-              <Link className="wtg-feature-cta" href="/days">
-                Plan for {feature.name} &rarr;
-              </Link>
-            </div>
-          )}
-
-          {featureEvent && featureAway && (
-            /* The one booking consequence on this whole section, and it
-               is only shown when there is a real dated event to hang it
-               on - the countdown is computed from that event's own date,
-               so it cannot go stale or need editing each year.
-               "Where's still free" in the mockup promised live
-               availability, which this site does not have and cannot
-               honestly claim; it points at the stays section instead. */
-            <p className="wtg-notice">
-              <span>
-                <strong>
-                  {shortEventName(featureEvent.name)} is {featureAway} and Islay is already filling
-                  up.
-                </strong>{" "}
-                If that&rsquo;s your week, book the bed before anything else.
-              </span>
-              <Link className="wtg-notice-link" href="#where-to-stay">
-                Where to stay &rarr;
-              </Link>
-            </p>
-          )}
-
+          {/* The three bands first, then the festival. The design's own
+              order, and the right one: the shape of the year is the
+              general answer, and the one week that sells out is the
+              exception to it. */}
           {cards.length > 0 && (
             <div className="wtg-cards">
               {cards.map((s) => (
@@ -271,35 +161,58 @@ export default function WhenToGo({
               ))}
             </div>
           )}
+
+          {feature && (
+            <div className="wtg-feature">
+              <div className="wtg-feature-body">
+                <div className="wtg-feature-when">
+                  <span className="wtg-feature-month">{featureMonth?.name ?? ""}</span>
+                  {feature.monthNote && (
+                    <span className="wtg-feature-sub">{feature.monthNote}</span>
+                  )}
+                </div>
+                <h3 className="wtg-feature-title">{feature.eyebrow}</h3>
+                <p className="wtg-feature-copy">{feature.copy}</p>
+
+                {featureEvent && featureAway && (
+                  /* The one booking consequence on this whole section,
+                     and only shown when there is a real dated event to
+                     hang it on - the countdown is computed from that
+                     event's own date, so it cannot go stale or need
+                     editing each year. Folded inside the panel on
+                     01 Sep 2026 (final design); it was a separate strip
+                     beneath, which read as a second, unrelated warning. */
+                  <p className="wtg-notice">
+                    <strong>
+                      {shortEventName(featureEvent.name)} is {featureAway} and Islay is already
+                      filling up.
+                    </strong>{" "}
+                    If that&rsquo;s your week, book the bed before anything else.
+                  </p>
+                )}
+              </div>
+
+              <div className="wtg-feature-actions">
+                {/* The bed is the first thing to go and the only thing
+                    with a deadline, so it is the filled button. "Where's
+                    still free" in an earlier mockup promised live
+                    availability this site does not have; this points at
+                    the stays section instead, which is honest. */}
+                <Link className="wtg-feature-cta" href="#where-to-stay">
+                  Book the bed first &rarr;
+                </Link>
+                {/* Goes to the day plans rather than the festival's own
+                    site: "plan for" is the thing this site does, and
+                    feisile.co.uk is already linked from the event row in
+                    What's on below. */}
+                <Link className="wtg-feature-alt" href="/days">
+                  Plan for {feature.name} &rarr;
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
 
-        <aside className="wtg-side">
-          <div className="wtg-side-head">
-            <span className="wtg-side-title">What&rsquo;s on</span>
-            <Link className="wtg-side-link" href="/local-features">
-              All year &rarr;
-            </Link>
-          </div>
-          {upcoming.length > 0 ? (
-            <ul className="wtg-events">
-              {upcoming.slice(0, 4).map((e) => (
-                <EventRow key={e.id} event={e} today={today} />
-              ))}
-            </ul>
-          ) : (
-            <p className="wtg-events-empty">
-              Nothing in the diary between now and the spring &mdash; which is rather the point of a
-              winter trip.
-            </p>
-          )}
-
-          {journalPost && (
-            <Link className="wtg-journal" href={`/journal/${journalPost.slug}`}>
-              <span className="wtg-journal-eyebrow">Blog</span>
-              <span className="wtg-journal-title">{journalPost.title}</span>
-            </Link>
-          )}
-        </aside>
       </div>
     </section>
   );

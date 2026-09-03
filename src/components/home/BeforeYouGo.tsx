@@ -1,5 +1,6 @@
 import Link from "next/link";
-import type { HubDay, JournalPost, Practicality } from "@/lib/types";
+import type { CostLine, Distillery, HubDay, JournalPost, Journey, Practicality } from "@/lib/types";
+import WhatItCosts from "./WhatItCosts";
 import { spellCount } from "@/lib/journey-derivations";
 
 /**
@@ -66,10 +67,16 @@ export default function BeforeYouGo({
   practicalities,
   days,
   journalPosts,
+  costLines,
+  distilleries,
+  journeys,
 }: {
   practicalities: Practicality[];
   days: HubDay[];
   journalPosts: JournalPost[];
+  costLines: CostLine[];
+  distilleries: Distillery[];
+  journeys: Journey[];
 }) {
   const islayHire = practicalities.filter((p) => p.category === "Car hire on Islay");
   const mainlandHire = practicalities.filter((p) => p.category === "Car hire mainland");
@@ -91,17 +98,28 @@ export default function BeforeYouGo({
         </div>
 
         <div className="byg-grid">
-          <article className="byg-card">
-            <div className="byg-num">01</div>
-            <h3 className="byg-card-title">Getting here</h3>
-            <p className="byg-card-copy">
-              Port Ellen&rsquo;s ferry terminal is closed until 2029 &mdash; that changes more than
-              people expect, and car spaces go months ahead.
-            </p>
+          {/* 01 runs the full width and leads with the fact rather than
+              the topic (01 Sep 2026, final design). The closure is the
+              single thing on this page most likely to wreck a trip
+              planned on an out-of-date assumption, so it is a headline,
+              not the third line of a card the same size as car hire. */}
+          <article className="byg-card byg-card-lead">
+            <div className="byg-lead-body">
+              <div className="byg-card-head">
+                <span className="byg-num">01</span>
+                <span className="byg-lead-eyebrow">Getting here &mdash; read this one first</span>
+              </div>
+              <h3 className="byg-lead-title">
+                Port Ellen&rsquo;s ferry terminal is closed until 2029.
+              </h3>
+              <p className="byg-card-copy">
+                That changes more than people expect &mdash; everything sails to Port Askaig
+                instead, at the other end of the island, and car spaces go months ahead.
+              </p>
+            </div>
             {gettingHerePost && (
-              <Link className="byg-card-foot" href={`/journal/${gettingHerePost.slug}`}>
-                <span className="byg-foot-eyebrow">From the blog</span>
-                <span className="byg-foot-link">{gettingHerePost.title} &rarr;</span>
+              <Link className="byg-lead-cta" href={`/journal/${gettingHerePost.slug}`}>
+                What you really need to know &rarr;
               </Link>
             )}
           </article>
@@ -184,6 +202,14 @@ export default function BeforeYouGo({
             </div>
           </article>
         </div>
+
+        {/* THE COST STRIP, folded in (01 Sep 2026, final design). It was
+            a section of its own between here and the newsletter, on
+            cream. It belongs here: every figure on it is one of the
+            things that catches people out, and standing alone it read as
+            a price list rather than a warning. Renders nothing at all
+            when there are no cost lines. */}
+        <WhatItCosts costLines={costLines} distilleries={distilleries} journeys={journeys} />
       </div>
     </section>
   );

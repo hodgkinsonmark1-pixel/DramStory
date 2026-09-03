@@ -874,6 +874,20 @@ export interface Distillery {
    *  description now comes from Tagline, which every distillery already
    *  has. */
   homepageBadge?: string;
+  /** For the homepage distillery wall, on a distillery that is NOT open
+   *  to visitors: the short reason, shown where an open distillery shows
+   *  its cheapest tour price ("not yet open", "in progress").
+   *
+   *  Deliberately a field rather than derived from openToVisitors, which
+   *  can only say no: Laggan Bay is producing but has no visitor centre,
+   *  Portintruan is still being built, and a reader planning a trip is
+   *  told different things by those two. Empty renders nothing. */
+  wallStatus?: string;
+  /** The wall's second line for a distillery with no Style set - the
+   *  ones not yet bottling, where "Heavily peated · café" cannot be
+   *  written because nobody knows yet. One short sourced fact instead.
+   *  Empty renders nothing rather than a placeholder. */
+  wallNote?: string;
   source: DataSource;
 }
 

@@ -146,13 +146,14 @@ function JourneyCard({ journey, lead = false }: { journey: Journey; lead?: boole
   // names directly beneath it already say. The lead card keeps it
   // because it carries no name line - it has chips instead, and the
   // count is the thing the chips are a list of.
+  /* The row's numbers. The lead card no longer uses this - it sets its
+     three figures out as a labelled row of its own - so this is the
+     rows' line only: nights and the tour subtotal, with the region
+     lifted out to its own eyebrow above the name (01 Sep 2026, final
+     design). Either part drops rather than printing a zero. */
   const meta = [
-    !lead && journey.regionLabel ? regionInMeta(journey.regionLabel) : null,
     journey.nights > 0 ? `${journey.nights} ${journey.nights === 1 ? "night" : "nights"}` : null,
-    lead && distilleries > 0
-      ? `${distilleries} ${distilleries === 1 ? "distillery" : "distilleries"}`
-      : null,
-    tourTotal > 0 ? `${formatTourPrice(tourTotal)}pp in tours` : null,
+    tourTotal > 0 ? `${formatTourPrice(tourTotal)}pp` : null,
   ].filter((bit): bit is string => bit !== null);
 
   // The CTA names what it opens. On the three smaller cards that is a
@@ -166,10 +167,41 @@ function JourneyCard({ journey, lead = false }: { journey: Journey; lead?: boole
     ? "See the itinerary"
     : `See the ${spellCount(dayCount)} ${dayCount === 1 ? "day" : "days"}`;
 
+  if (!lead) {
+    /* THE THREE ROWS (01 Sep 2026, final design). The other journeys are
+       no longer cards: they are rows, because a card promises a
+       photograph and a decision, and these three are a shortlist you
+       scan. Region, name, hook, distilleries, then the numbers and the
+       way in - left to right, in the order a reader asks for them. */
+    return (
+      <li className="cj-row">
+        <div className="cj-row-id">
+          {journey.regionLabel && (
+            <div className="cj-row-region">{regionInMeta(journey.regionLabel)}</div>
+          )}
+          <h3 className="cj-row-name">
+            <Link href={`/journeys/${journey.slug}`}>{journey.name}</Link>
+          </h3>
+        </div>
+        {journey.cardDescription && <p className="cj-row-hook">{journey.cardDescription}</p>}
+        {names.length > 0 && <p className="cj-row-names">{names.join(" · ")}</p>}
+        <div className="cj-row-aside">
+          {meta.length > 0 && <div className="cj-row-meta">{meta.join(" · ")}</div>}
+          <span className="cj-row-cta" aria-hidden="true">
+            {cta} &rarr;
+          </span>
+        </div>
+      </li>
+    );
+  }
+
+  /* THE LEAD. A wide navy panel with the photograph bleeding off its
+     right-hand end, the distilleries as chips, and the three numbers a
+     reader compares journeys on set out as a row above the button. */
   return (
-    <article className={lead ? "cj-card cj-card-lead" : "cj-card"}>
+    <article className="cj-lead">
       {journey.heroImage && (
-        <div className="cj-card-media">
+        <div className="cj-lead-media">
           {/* `unoptimized`, non-negotiably: this src is /api/attachment
               with a query string, and a local src carrying one is only a
               legal input to next/image's optimiser if it's declared in
@@ -180,47 +212,61 @@ function JourneyCard({ journey, lead = false }: { journey: Journey; lead?: boole
               the Hero Images first landed. */}
           <Image
             src={journey.heroImage}
-            alt={journey.name}
+            alt=""
             fill
             unoptimized
-            sizes={lead ? "(max-width: 760px) 100vw, 480px" : "(max-width: 760px) 100vw, 320px"}
+            sizes="(max-width: 900px) 100vw, 620px"
             style={{ objectFit: "cover" }}
           />
-          {lead && journey.regionLabel && (
-            <span className="cj-card-badge">{journey.regionLabel}</span>
-          )}
           {journey.heroImageCredit && <PhotoCredit credit={journey.heroImageCredit} />}
         </div>
       )}
-      <div className="cj-card-body">
-        {meta.length > 0 && <div className="cj-card-meta">{meta.join(" · ")}</div>}
-        {/* The link is on the title, and its ::after covers the whole
-            card - so the card is clickable everywhere without wrapping
-            the photo credit's own link in a second anchor. The CTA below
-            is therefore a visual affordance, not a second tab stop:
-            aria-hidden keeps a keyboard or screen-reader user from being
-            offered the same destination twice on one card. */}
-        <h3 className="cj-card-name">
+      <div className="cj-lead-body">
+        {journey.regionLabel && <div className="cj-lead-eyebrow">{journey.regionLabel}</div>}
+        <h3 className="cj-lead-name">
           <Link href={`/journeys/${journey.slug}`}>{journey.name}</Link>
         </h3>
-        {journey.cardDescription && <p className="cj-card-desc">{journey.cardDescription}</p>}
+        {journey.cardDescription && <p className="cj-lead-desc">{journey.cardDescription}</p>}
 
-        {names.length > 0 &&
-          (lead ? (
-            <ul className="cj-chips">
-              {names.map((name) => (
-                <li key={name} className="cj-chip">
-                  {name}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="cj-card-names">{names.join(" · ")}</p>
-          ))}
+        {names.length > 0 && (
+          <ul className="cj-chips">
+            {names.map((name) => (
+              <li key={name} className="cj-chip">
+                {name}
+              </li>
+            ))}
+          </ul>
+        )}
 
-        <span className={lead ? "cj-cta cj-cta-lead" : "cj-cta"} aria-hidden="true">
-          {cta} &rarr;
-        </span>
+        <div className="cj-lead-foot">
+          {/* The three numbers as labelled figures rather than a run-on
+              meta line. Each is dropped rather than zeroed when the data
+              cannot support it - a journey nobody has priced shows two
+              figures, not a £0. */}
+          <dl className="cj-stats">
+            {journey.nights > 0 && (
+              <div className="cj-stat">
+                <dt>Nights</dt>
+                <dd>{journey.nights}</dd>
+              </div>
+            )}
+            {distilleries > 0 && (
+              <div className="cj-stat">
+                <dt>Distilleries</dt>
+                <dd>{distilleries}</dd>
+              </div>
+            )}
+            {tourTotal > 0 && (
+              <div className="cj-stat">
+                <dt>Tours, per person</dt>
+                <dd>{formatTourPrice(tourTotal)}</dd>
+              </div>
+            )}
+          </dl>
+          <Link className="cj-lead-cta" href={`/journeys/${journey.slug}`}>
+            {cta} &rarr;
+          </Link>
+        </div>
       </div>
     </article>
   );
@@ -276,11 +322,11 @@ export default function ClassicJourneys({ journeys }: { journeys: Journey[] }) {
       <div className="cj-layout">
         <JourneyCard journey={lead} lead />
         {rest.length > 0 && (
-          <div className="cj-row">
+          <ul className="cj-rows">
             {rest.map((journey) => (
               <JourneyCard key={journey.slug} journey={journey} />
             ))}
-          </div>
+          </ul>
         )}
       </div>
     </section>

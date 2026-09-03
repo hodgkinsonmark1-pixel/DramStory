@@ -14,7 +14,10 @@
 .how-title {
   text-align: center;
   font-family: var(--font-display);
-  font-size: clamp(26px, 3vw, 34px);
+  /* 36px at 1360, measured off the design: the section headings render a
+     35px ascender-to-descender band there, which is a ~36px face. The
+     cap was 34px. */
+  font-size: clamp(26px, 3vw, 36px);
   font-weight: 400;
   color: var(--dark);
   margin-bottom: 32px;
@@ -74,1164 +77,257 @@
    The note now sits UNDER the title as a subtitle rather than opposite
    the eyebrow - a centred head has no right-hand side to hang it on -
    so .cj-head-row is gone from the markup in every section. */
-.cj-head,
-.hdp-head-text {
-  max-width: 720px;
-  margin: 0 auto 22px;
+.cj-head {
+  max-width: 760px;
+  /* 32px below the head before the content starts, measured off the
+     design (34px from the subtitle's baseline band to the lead card). */
+  margin: 0 auto 32px;
   text-align: center;
-  min-width: 0;
 }
 .cj-head .how-eyebrow,
 .cj-head .how-title,
-.cj-head .cj-head-note,
-.hdp-head-text .how-eyebrow,
-.hdp-head-text .how-title {
+.cj-head .cj-head-note {
   text-align: center;
 }
-.cj-head .how-eyebrow,
-.hdp-head-text .how-eyebrow {
+.cj-head .how-eyebrow {
   margin-bottom: 6px;
 }
-.cj-head .how-title,
-.hdp-head-text .how-title {
+.cj-head .how-title {
   margin-bottom: 0;
 }
 
-/* CLASSIC JOURNEYS (rebuilt 17 Aug 2026, the site owner's own layout):
-   the lead journey full-width across the top, the other three in a row
-   beneath it, everything in one column below 760px. Replaces the old
-   .journeys-grid/.journey-card auto-fit grid of three equal text-only
-   tiles, which nothing else on the site used - the two comments in
-   journey-extra.css that mention "the homepage's .journey-card look" are
-   describing it, not reusing the classes. All colour/radii/shadow from
-   the :root tokens in dramstory-legacy.css. */
+/* CLASSIC JOURNEYS (01 Sep 2026, Mark's final design). One wide navy
+   lead panel with its photograph bleeding off the right-hand end, then
+   the other three as rows rather than cards.
+
+   WHY ROWS. Three cards asked the reader to compare three photographs
+   and three blocks of prose side by side, which is the same job the lead
+   panel is already doing better. As rows they are a shortlist: region,
+   name, hook, distilleries, numbers, way in - scanned down a column in
+   the order a reader asks for them.
+   ───────────────────────────────────────────────────────────────────── */
 .cj-layout {
-  max-width: 960px;
+  max-width: 1120px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
-.cj-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-.cj-card {
-  /* The title's link stretches over the card via ::after below, so the
-     card needs to be the positioned ancestor for it. */
+
+.cj-lead {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  background: white;
-  border-radius: var(--radius);
-  border: 1px solid var(--stone);
-  box-shadow: var(--shadow-card);
+  border-radius: 14px;
   overflow: hidden;
-  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out),
-    border-color 0.2s var(--ease-out);
-}
-.cj-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-soft);
-  border-color: var(--green-mid);
-}
-.cj-card-media {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 10;
-  background: var(--stone);
-  flex: 0 0 auto;
-}
-/* Sits above the title link's card-wide ::after so the credit stays
-   independently clickable - it is a licence condition, not decoration. */
-.cj-card-credit {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  z-index: 2;
-  max-width: calc(100% - 16px);
-  padding: 3px 7px;
-  border-radius: var(--radius-sm);
-  background: rgba(26, 58, 74, 0.72);
+  background: var(--navy);
   color: var(--off-white);
-  font-size: 10px;
-  line-height: 1.3;
-  text-decoration: none;
+  min-height: 380px;
+  display: flex;
+  align-items: stretch;
 }
-a.cj-card-credit:hover {
-  text-decoration: underline;
+/* The photograph is the whole panel; the navy is a gradient over it, so
+   the type at the left stays legible whatever the image does at that
+   end. A solid half-panel would have cropped every hero to a hard edge
+   down the middle. */
+.cj-lead-media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
 }
-.cj-card-body {
-  flex: 1 1 auto;
-  padding: 20px 22px 22px;
-}
-.cj-card-kicker {
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--copper);
-  margin-bottom: 8px;
-}
-.cj-card-name {
-  font-family: var(--font-display);
-  font-size: 21px;
-  font-weight: 400;
-  color: var(--dark);
-  margin: 0 0 8px;
-  line-height: 1.2;
-}
-.cj-card-name a {
-  color: inherit;
-  text-decoration: none;
-}
-/* Makes the whole card the link target without nesting the photo
-   credit's anchor inside this one. */
-.cj-card-name a::after {
+.cj-lead-media::after {
   content: "";
   position: absolute;
   inset: 0;
+  background: linear-gradient(
+    100deg,
+    rgba(20, 44, 56, 0.97) 0%,
+    rgba(20, 44, 56, 0.95) 38%,
+    rgba(20, 44, 56, 0.55) 62%,
+    rgba(20, 44, 56, 0.25) 100%
+  );
+}
+.cj-lead-body {
+  position: relative;
   z-index: 1;
+  padding: 40px 44px 38px;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
-.cj-card-desc {
-  font-size: 13px;
-  color: var(--slate);
-  line-height: 1.55;
-  margin: 0 0 14px;
-}
-.cj-card-meta {
-  font-size: 12px;
+.cj-lead-eyebrow {
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--peat);
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 10px;
 }
-/* The lead card: photo beside the copy on a wide screen, stacked like
-   every other card below the breakpoint. */
-@media (min-width: 761px) {
-  .cj-card-lead {
-    flex-direction: row;
-    align-items: stretch;
-  }
-  .cj-card-lead .cj-card-media {
-    flex: 0 0 46%;
-    aspect-ratio: auto;
-    min-height: 280px;
-  }
-  .cj-card-lead .cj-card-body {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 32px 34px;
-  }
-  .cj-card-lead .cj-card-name {
-    font-size: 30px;
-  }
-  .cj-card-lead .cj-card-desc {
-    font-size: 15px;
-    max-width: 44ch;
-  }
+.cj-lead-name {
+  font-family: var(--font-display);
+  font-size: clamp(30px, 3.4vw, 42px);
+  font-weight: 600;
+  line-height: 1.1;
+  margin: 0 0 10px;
 }
-@media (max-width: 760px) {
-  .cj-row {
-    grid-template-columns: 1fr;
-  }
+.cj-lead-name a {
+  color: var(--white);
+  text-decoration: none;
 }
-/* CARD ADDITIONS (30 Aug 2026, to the owner's mockup). The meta line
-   moved ABOVE the title in the markup - it is the scannable half ("5
-   nights · 9 distilleries · £277.50pp in tours") and the mockup leads
-   with it, so it needs the gap the title used to own. */
-.cj-card-meta {
-  margin-bottom: 8px;
+.cj-lead-name a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
 }
-
-/* Distillery chips: LEAD CARD ONLY, per the owner's call. A plain list,
-   reset out of its bullets - it is a list of real places and reads as
-   one to a screen reader, which a div of spans would not. */
+.cj-lead-desc {
+  margin: 0 0 16px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(245, 241, 232, 0.86);
+  max-width: 46ch;
+}
 .cj-chips {
   list-style: none;
-  margin: 0 0 16px;
+  margin: 0 0 22px;
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 7px;
 }
 .cj-chip {
-  font-size: 11px;
-  line-height: 1.3;
-  padding: 5px 10px;
+  padding: 5px 12px;
   border-radius: 999px;
-  background: var(--off-white);
-  border: 1px solid var(--stone);
-  color: var(--peat);
-  white-space: nowrap;
-}
-
-/* The three smaller cards say the same thing as a quiet line rather than
-   as chips - same information, a third of the visual weight. */
-.cj-card-names {
+  border: 1px solid rgba(245, 241, 232, 0.28);
   font-size: 12px;
-  color: var(--slate);
-  line-height: 1.5;
-  margin: 0 0 14px;
+  color: rgba(245, 241, 232, 0.9);
 }
-
-/* Not a button and not an anchor: the title's ::after already covers the
-   whole card, so this is the visual affordance for a link that exists
-   elsewhere in the markup. aria-hidden in the component keeps it out of
-   the accessibility tree entirely rather than announcing a second,
-   identical destination. */
-.cj-cta {
-  display: inline-block;
-  margin-top: auto;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--copper);
-  letter-spacing: 0.01em;
-}
-.cj-card:hover .cj-cta {
-  text-decoration: underline;
-}
-/* The lead card's is the one real button in the section - it carries the
-   flagship journey, and the mockup gives it the weight. */
-.cj-cta-lead {
-  align-self: flex-start;
-  margin-top: 4px;
-  padding: 11px 20px;
-  border-radius: var(--radius-sm);
-  background: var(--dark);
-  color: var(--off-white);
-  font-size: 13px;
-}
-.cj-card:hover .cj-cta-lead {
-  text-decoration: none;
-  background: var(--peat);
-}
-
-@media (max-width: 760px) {
-  /* Stacked, the lead card's chip row is the first thing to overflow -
-     let it wrap tighter rather than pushing the CTA off the fold. */
-  .cj-chip {
-    font-size: 10px;
-    padding: 4px 8px;
-  }
-}
-
-
-/* TIGHTENING PASS (30 Aug 2026), measured off the owner's mockup rather
-   than eyeballed. Four changes, all geometry:
-     - lead photo 46% -> 40% of the card, which is where the mockup puts
-       the split and gives the copy the room it was short of;
-     - small-card photos were 16/10 and are much shorter in the mockup,
-       roughly 8/3 - they are a band above the text, not a picture in
-       their own right;
-     - body padding down a few pixels throughout;
-     - the region badge, which is why the lead card's body starts at the
-       meta line now instead of a kicker. */
-.cj-card-badge {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 2;
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-  background: var(--dark);
-  color: var(--off-white);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.cj-row .cj-card-media {
-  aspect-ratio: 8 / 3;
-}
-.cj-row .cj-card-body {
-  padding: 14px 18px 18px;
-}
-/* Region now rides in the meta line on the small cards, so it carries
-   the mockup's quieter treatment rather than the copper kicker's. */
-.cj-row .cj-card-meta {
-  text-transform: lowercase;
-  font-weight: 500;
-  color: var(--slate);
-}
-.cj-row .cj-card-desc {
-  margin-bottom: 10px;
-}
-.cj-card-names {
-  margin-bottom: 12px;
-}
-@media (min-width: 761px) {
-  .cj-card-lead .cj-card-media {
-    flex: 0 0 40%;
-    min-height: 268px;
-  }
-  .cj-card-lead .cj-card-body {
-    padding: 26px 30px;
-  }
-  .cj-chips {
-    margin-bottom: 14px;
-  }
-}
-
-.featured-section {
-  background: white;
-  padding: 64px 24px;
-  max-width: 960px;
-  margin: 0 auto;
-}
-.featured-col-title {
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--slate);
-  margin: 32px 0 14px 0;
-}
-.featured-col-title:first-of-type {
-  margin-top: 0;
-}
-.featured-region-tabs {
+.cj-lead-foot {
+  border-top: 1px solid rgba(245, 241, 232, 0.2);
+  padding-top: 18px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-  margin: 24px 0 8px;
-}
-.featured-region-tab {
-  padding: 8px 18px;
-  font-size: 13px;
-}
-/* Overrides the generic .q-card.selected (green border+fill) with a gold
-   underline instead - this section's own selection convention, distinct
-   from Q2's solid-fill selected card style. */
-.featured-region-tab.selected {
-  border-color: var(--stone);
-  background: white;
-  color: var(--peat);
-  font-weight: 500;
-  border-bottom: 2px solid var(--amber);
-}
-.discover-section {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 64px 24px;
-}
-.discover-header {
-  display: flex;
-  align-items: baseline;
+  align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: 32px;
+  gap: 24px;
   flex-wrap: wrap;
-  gap: 12px;
 }
-.discover-view-all {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--green-deep);
-  text-decoration: none;
-}
-.discover-view-all:hover {
-  text-decoration: underline;
-}
-.discover-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
-}
-.discover-group-label {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--copper);
-  margin: 32px 0 16px;
-}
-.discover-group-label:first-of-type {
-  margin-top: 0;
-}
-.discover-card {
-  display: block;
-  text-decoration: none;
-  color: inherit;
-  background: white;
-  border-radius: var(--radius);
-  overflow: hidden;
-  box-shadow: var(--shadow-card);
-  transition: all 0.2s var(--ease-out);
-}
-.discover-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-soft);
-}
-.discover-card-image {
-  height: 160px;
-  background-size: cover;
-  background-position: center;
-  background-color: var(--stone);
-}
-.discover-card-body {
-  padding: 18px;
-}
-.discover-card-tag {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--copper);
-  margin-bottom: 8px;
-}
-.discover-card-name {
-  font-family: var(--font-display);
-  font-size: 21px;
-  color: var(--dark);
-  margin-bottom: 8px;
-}
-.discover-card-desc {
-  font-size: 13px;
-  color: var(--peat);
-  line-height: 1.5;
-  margin-bottom: 16px;
-}
-.discover-card-footer {
+.cj-stats {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  gap: 34px;
+  margin: 0;
 }
-.discover-card-meta {
-  font-size: 11px;
-  color: var(--slate);
+.cj-stat dt {
+  font-size: 11.5px;
+  color: rgba(245, 241, 232, 0.62);
+  margin-bottom: 3px;
 }
-.discover-card-link {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--copper);
-}
-
-.featured-coming-soon {
-  background: var(--off-white);
-  border-radius: var(--radius);
-  padding: 20px 24px;
-  font-size: 13px;
-  color: var(--slate);
-  line-height: 1.6;
-}
-.featured-coming-soon-link {
-  display: inline-block;
-  margin-top: 8px;
-  color: var(--green-deep);
-  font-weight: 500;
-  text-decoration: none;
-}
-.featured-coming-soon-link:hover {
-  text-decoration: underline;
-}
-
-/* Journal index page */
-.journal-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 28px;
-}
-.journal-card {
-  text-decoration: none;
-  color: inherit;
-  border-radius: var(--radius);
-  overflow: hidden;
-  box-shadow: var(--shadow-card);
-  background: white;
-  display: flex;
-  flex-direction: column;
-}
-.journal-card-image {
-  position: relative;
-  width: 100%;
-  height: 200px;
-  background: var(--stone);
-}
-.journal-card-body {
-  padding: 22px;
-}
-.journal-card-meta {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--copper);
-  margin-bottom: 8px;
-}
-.journal-card-title {
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 500;
-  margin-bottom: 10px;
-  line-height: 1.25;
-}
-.journal-card-excerpt {
-  font-size: 14px;
-  color: var(--slate);
-  line-height: 1.55;
-}
-
-/* Journal post detail page */
-.journal-post-hero {
-  position: relative;
-  width: 100%;
-  height: min(50vh, 440px);
-  background: var(--stone);
-}
-.journal-post-content {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 40px 24px 80px;
-}
-.journal-post-meta {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--copper);
-  margin-bottom: 14px;
-}
-.journal-post-title {
-  font-family: var(--font-display);
-  font-size: clamp(28px, 4vw, 42px);
-  font-weight: 400;
-  color: var(--dark);
-  line-height: 1.2;
-  margin-bottom: 32px;
-}
-.journal-post-body {
-  font-size: 17px;
-  line-height: 1.75;
-  color: var(--peat);
-}
-.journal-post-body h2 {
+.cj-stat dd {
+  margin: 0;
   font-family: var(--font-display);
   font-size: 26px;
-  font-weight: 500;
-  color: var(--dark);
-  margin: 40px 0 16px;
+  font-weight: 600;
+  color: var(--white);
+  line-height: 1;
 }
-.journal-post-body h3 {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 500;
-  color: var(--dark);
-  margin: 32px 0 12px;
-}
-.journal-post-body p {
-  margin-bottom: 20px;
-}
-.journal-post-body a {
-  color: var(--green-deep);
-}
-.journal-post-body img {
-  width: 100%;
-  height: auto;
-  border-radius: var(--radius);
-  margin: 12px 0 28px;
-}
-.journal-post-body ul,
-.journal-post-body ol {
-  margin: 0 0 20px 24px;
-}
-.journal-post-body li {
-  margin-bottom: 8px;
-}
-.journal-post-body blockquote {
-  border-left: 3px solid var(--copper);
-  padding-left: 18px;
-  margin: 24px 0;
-  font-style: italic;
-  color: var(--slate);
-}
-.journal-post-back {
-  display: inline-block;
-  margin-top: 32px;
-  color: var(--green-deep);
+/* z-index above the title's full-panel ::after, so the button is a real
+   second target rather than being covered by the card-wide link. */
+.cj-lead-cta {
+  position: relative;
+  z-index: 3;
+  padding: 12px 22px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--amber);
+  color: var(--navy);
+  font-size: 14px;
   font-weight: 600;
   text-decoration: none;
-  font-size: 14px;
+  white-space: nowrap;
 }
-.journal-post-back:hover {
-  text-decoration: underline;
-}
+.cj-lead-cta:hover { background: var(--amber-light); }
 
-/* FeaturedContent's two real columns (Distilleries / Events & Experiences) */
-.featured-compact-grid {
-  margin-bottom: 12px;
-}
-.featured-view-all {
-  display: inline-block;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--green-deep);
-  text-decoration: none;
-  margin-bottom: 8px;
-}
-.featured-view-all:hover {
-  text-decoration: underline;
-}
-.featured-events-list {
+/* THE THREE ROWS */
+.cj-rows {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-.featured-event-card {
-  display: flex;
+.cj-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(190px, 1.1fr) minmax(0, 2fr) minmax(0, 1.2fr) auto;
   align-items: center;
-  gap: 16px;
-  padding: 14px 18px;
-  background: var(--off-white);
-  border-radius: var(--radius);
-}
-.featured-event-date {
-  font-family: var(--font-display);
-  font-size: 15px;
-  color: var(--copper);
-  font-weight: 500;
-  white-space: nowrap;
-  min-width: 90px;
-}
-.featured-event-body {
-  flex: 1;
-}
-.featured-event-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--dark);
-  margin-bottom: 2px;
-}
-.featured-event-meta {
-  font-size: 12px;
-  color: var(--slate);
-}
-.featured-event-link {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--green-deep);
-  text-decoration: none;
-  white-space: nowrap;
-}
-.featured-event-link:hover {
-  text-decoration: underline;
-}
-
-/* ANSWERS SHEETS - base/nights/picks/timeframe/dreamArea/todayNear
-   pickers, shared by the homepage hero's sentence control (Hero.tsx,
-   HeroSentenceSheets.tsx) and the /days answers bar's "Change" control
-   (DaysAnswersBar.tsx). The sentence itself (.hero-sentence and friends)
-   lives in dramstory-legacy.css's HERO section now - the old dark
-   "Answers block" section these sheet styles used to sit under
-   (.answers-section/.answers-inner/.answers-eyebrow/.answers-sentence/
-   .answers-pill/.answers-sub) was removed with AnswersBlock.tsx itself
-   (docs/hero-handoff.md Phase 1 - folded into the hero, see Hero.tsx's
-   header comment). Sheets reuse the existing .tour-picker-backdrop/
-   .tour-picker-modal pattern from journey-extra.css (same on-brand modal
-   already used for the tour picker) instead of inventing a new sheet
-   mechanism. */
-.answers-kicker {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--slate);
-  margin: 18px 0 8px;
-}
-.answers-kicker:first-child {
-  margin-top: 0;
-}
-.answers-base-row {
-  display: block;
-  width: 100%;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--stone);
-  text-align: left;
-  background: none;
-  border-left: none;
-  border-right: none;
-  border-top: none;
-  cursor: pointer;
-  min-height: 44px;
-}
-.answers-base-row:last-child {
-  border-bottom: none;
-}
-.answers-base-row-name {
-  display: block;
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--dark);
-}
-.answers-base-row-name.selected {
-  color: var(--copper);
-}
-.answers-base-row-note {
-  display: block;
-  font-size: 12.5px;
-  line-height: 1.4;
-  color: var(--slate);
-  margin-top: 2px;
-}
-.answers-chip-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.answers-sheet-hint {
-  font-size: 13px;
-  color: var(--slate);
-  margin-bottom: 14px;
-}
-.answers-sheet-done {
-  margin-top: 18px;
-  min-height: 44px;
-}
-/* Distinct from .subcat-chip (journey-extra.css's map-filter chips) even
-   though visually similar - these need the 44px min-height touch target
-   the design doc's accessibility section calls out (§7), and changing
-   the shared .subcat-chip's dimensions would ripple into the map filter
-   UI, which is out of scope for this phase. */
-.answers-chip {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 8px 16px;
-  border-radius: 100px;
-  border: 1.5px solid var(--stone);
-  background: white;
-  color: var(--peat);
-  font-family: var(--font-body);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.answers-chip:hover {
-  border-color: var(--green-mid);
-}
-.answers-chip.selected {
-  background: var(--green-light);
-  border-color: var(--green-deep);
-  color: var(--green-deep);
-  font-weight: 600;
-}
-
-/* Hero state-two planning column (docs/hero-handoff.md §4.1) - header +
-   cards + foot link. Cards themselves reuse days-hub.css's
-   .days-hub-card family verbatim (same component, more room, not a
-   second implementation - see HeroDaysColumn.tsx's header comment),
-   including the add-to-trip action button (added here 11 Aug 2026, per
-   Mark's request - the reference screenshots didn't show it on this
-   compact preview card, but he wants the trip process startable from
-   the hero directly rather than only once a visitor reaches /days). */
-.hero-days-column {
-  max-width: 640px;
-}
-/* Two hero-only overrides on top of the shared .days-hub-card-* rules
-   above (both scoped to .hero-days-column so /days's own grid, which
-   uses the identical classes, is untouched):
-   - "Read more" moves inline at the end of the teaser paragraph instead
-     of sitting on its own line below it (11 Aug 2026, Mark's request) -
-     dropping the shared class's 44px touch-target min-height here since
-     a same-line text link doesn't want to force the whole line that
-     tall; still comfortably tappable at this font-size/padding.
-   - Card body's bottom padding trimmed slightly, since the hook block
-     already ends in a tight inline "Read more"/action button rather
-     than open whitespace. */
-.hero-days-column .days-hub-card-hook-toggle {
-  display: inline;
-  min-height: auto;
-  margin-top: 0;
-  margin-left: 2px;
-  padding: 2px 0;
-}
-.hero-days-column .days-hub-card-body {
-  padding-bottom: 14px;
-}
-.hero-days-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid var(--navy);
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-.hero-days-header-title {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--dark);
-  white-space: nowrap;
-}
-.hero-days-header-total {
-  font-size: 12px;
-  color: var(--slate);
-  white-space: nowrap;
-  text-decoration: none;
-}
-.hero-days-header-total:hover {
-  color: var(--copper);
-  text-decoration: underline;
-}
-/* Two actions once a day's in the trip (11 Aug 2026, Mark's request) -
-   remove stays the primary/green .in-trip button, "View trip so far"
-   reuses the plain (non-in-trip) .days-hub-card-action look as a
-   visually secondary action beside it. */
-.days-hub-card-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.hero-days-foot {
-  display: inline-block;
-  margin-top: 8px;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--copper);
-  text-decoration: none;
-  min-height: 44px;
-  line-height: 44px;
-}
-.hero-days-foot:hover {
-  text-decoration: underline;
-}
-.hero-days-empty {
-  font-size: 14px;
-  color: var(--slate);
-  padding: 24px 0;
-}
-
-/* Cards enter with a short stagger once the right column first appears
-   (§2.3: "Cards enter AFTER the left settles, ~40ms stagger") -
-   animation-delay set per-card via inline style (index * 40ms), see
-   HeroDaysColumn.tsx. Re-sorting afterwards is handled separately, by
-   FLIP (measured transforms in JS), not this entrance keyframe. */
-@keyframes hero-days-card-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-.hero-days-card-enter {
-  animation: hero-days-card-in 0.4s var(--ease-out) both;
-}
-@media (prefers-reduced-motion: reduce) {
-  .hero-days-card-enter {
-    animation: none;
-  }
-}
-
-/* Hero state-two dreaming column (docs/hero-handoff.md §4.3, Phase 3) -
-   shares .hero-days-header (same header shape as the planning column,
-   §4.1) but its own card family below, since these are plain
-   kicker/title/body link-cards, not day cards with a pace tag/route
-   line/hit banner. */
-.hero-dream-chip-row {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 6px;
-  margin-bottom: 16px;
-}
-.hero-dream-chip-row::-webkit-scrollbar {
-  height: 6px;
-}
-.hero-dream-chip {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 8px 18px;
-  border-radius: 100px;
-  border: 1.5px solid var(--stone);
-  background: white;
-  color: var(--peat);
-  font-family: var(--font-body);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s;
-}
-.hero-dream-chip:hover {
-  border-color: var(--copper);
-}
-.hero-dream-chip.selected {
-  background: var(--dark);
-  border-color: var(--dark);
-  color: white;
-}
-
-.hero-dream-card {
-  display: block;
-  background: white;
+  gap: 26px;
+  background: var(--white);
   border: 1px solid var(--stone);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-card);
-  padding: 18px 20px;
-  margin-bottom: 14px;
-  text-decoration: none;
-  color: inherit;
-  transition: border-color 0.15s;
+  border-radius: 12px;
+  padding: 18px 24px;
+  transition: border-color 0.18s var(--ease-out), transform 0.18s var(--ease-out);
 }
-a.hero-dream-card:hover {
-  border-color: var(--copper);
+.cj-row:hover {
+  border-color: var(--green-mid);
+  transform: translateY(-1px);
 }
-/* Distillery card's own link (11 Aug 2026, Mark's fix request) - the
-   outer .hero-dream-card is a plain div here, not an <a>, since it holds
-   TWO separate links (the card body -> the featured distillery, "All N"
-   -> /distilleries) and can't itself be one without illegally nesting
-   <a> inside <a>. .hero-dream-card-clickable:has(...) reproduces the
-   same copper-border hover the other, single-link cards get above, just
-   triggered by the INNER link instead of the outer element itself. */
-.hero-dream-card-body-link {
-  display: block;
-  color: inherit;
-  text-decoration: none;
-}
-.hero-dream-card-clickable:has(.hero-dream-card-body-link:hover) {
-  border-color: var(--copper);
-}
-.hero-dream-card-kicker-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 4px;
-}
-.hero-dream-card-kicker {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--copper);
-  margin-bottom: 4px;
-}
-.hero-dream-card-link {
-  font-size: 12.5px;
+.cj-row-region {
+  font-size: 10.5px;
   font-weight: 600;
-  color: var(--copper);
-  white-space: nowrap;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: #3f6b52;
+  margin-bottom: 3px;
 }
-.hero-dream-card-title {
+.cj-row-name {
   font-family: var(--font-display);
-  font-weight: 500;
   font-size: 20px;
-  color: var(--dark);
-  margin: 0 0 4px;
-}
-.hero-dream-card-body {
-  font-size: 14px;
-  line-height: 1.55;
-  color: var(--peat);
-  margin: 0;
-}
-/* "Or start from nothing / Build it on the map" - the one navy card,
-   §4.3 item 6. Same --dark/--off-white pairing already used for
-   .dist-page-bar and every other dark band on the site. */
-.hero-dream-card.hero-dream-card-navy {
-  background: var(--dark);
-  border-color: var(--dark);
-}
-.hero-dream-card-navy .hero-dream-card-kicker {
-  color: var(--amber);
-}
-.hero-dream-card-navy .hero-dream-card-title {
-  color: white;
-}
-.hero-dream-card-navy .hero-dream-card-body {
-  color: var(--mist);
-}
-a.hero-dream-card-navy:hover {
-  border-color: var(--amber);
-}
-
-/* Hero state-two today column (docs/hero-handoff.md §4.2, Phase 4) -
-   reuses .hero-days-column/.hero-days-header/.hero-days-empty/
-   .hero-days-foot verbatim (same header/foot shape as planning's
-   column, §4.1/§4.2 share that chrome) - only the stop rows and the
-   amber advisory note below are new to this column. */
-.hero-today-row {
-  display: flex;
-  gap: 16px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--stone);
-}
-.hero-today-row:last-of-type {
-  border-bottom: none;
-}
-.hero-today-row-time {
-  flex-shrink: 0;
-  width: 64px;
-  text-align: right;
-}
-.hero-today-row-clock {
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 500;
-  color: var(--dark);
-}
-.hero-today-row-label {
-  font-size: 11px;
-  color: var(--slate);
-  margin-top: 2px;
-}
-.hero-today-row-body {
-  flex: 1;
-  min-width: 0;
-}
-.hero-today-row-top {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.hero-today-row-name {
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: 17px;
-  color: var(--dark);
-}
-.hero-today-row-check {
-  font-size: 12.5px;
   font-weight: 600;
-  color: var(--copper);
-  white-space: nowrap;
+  margin: 0;
+  line-height: 1.15;
+}
+.cj-row-name a {
+  color: var(--navy);
   text-decoration: none;
 }
-.hero-today-row-check:hover {
-  text-decoration: underline;
+.cj-row-name a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
 }
-.hero-today-row-meta {
-  font-size: 13.5px;
-  color: var(--peat);
-  margin-top: 2px;
-}
-
-/* Advisory note, §11 copy deck verbatim - amber (--amber-light/--amber
-   already used for callouts elsewhere) rather than the navy dream card,
-   since this is a caution, not a destination link. */
-.hero-today-note {
-  background: var(--amber-pale);
-  border: 1px solid var(--amber);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  margin: 16px 0;
-}
-.hero-today-note-kicker {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--copper);
-  margin-bottom: 4px;
-}
-.hero-today-note-body {
+.cj-row-hook {
+  margin: 0;
   font-size: 13.5px;
   line-height: 1.5;
   color: var(--peat);
+}
+.cj-row-names {
   margin: 0;
+  font-size: 12.5px;
+  color: var(--slate);
 }
-
-/* "Use my location instead" - lives in the hero's left column note area,
-   so it reuses .hero-action-btn/.hero-action-secondary (the existing
-   frosted-glass button already used for the hero's other secondary
-   actions) rather than a new button style; .hero-today-locate only adds
-   the top margin needed since it sits below the sentence, not beside a
-   sibling button. */
-.hero-today-locate {
-  margin-top: 12px;
-}
-.hero-today-locate-error {
-  color: var(--amber);
-}
-
-/* /days ANSWERS BAR (days-trip-flow Phase 1, §3.2) - sticky dark bar atop
-   the existing Pre-Designed Days Hub reading the current TripAnswers, +
-   Change. Same --dark/sticky/z-index treatment as .dist-page-bar
-   (dramstory-legacy.css) - that's the site's existing "sticky dark top
-   bar" precedent, reused rather than reinvented. */
-.days-answers-bar {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  background: var(--dark);
-  color: white;
-  padding: 14px 24px;
-}
-.days-answers-bar-text {
-  min-width: 0;
-}
-.days-answers-bar-kicker {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--amber);
-  margin-bottom: 2px;
-}
-.days-answers-bar-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: white;
+.cj-row-aside {
+  text-align: right;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-.days-answers-bar-change {
-  flex-shrink: 0;
-  min-height: 44px;
-  padding: 8px 16px;
-  border-radius: 100px;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.08);
-  color: white;
-  font-family: var(--font-body);
+.cj-row-meta {
+  font-size: 12.5px;
+  color: var(--slate);
+  margin-bottom: 3px;
+}
+.cj-row-cta {
   font-size: 13px;
   font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
+  color: var(--copper);
 }
-.days-answers-bar-change:hover {
-  background: rgba(255, 255, 255, 0.18);
-}
-/* "Change" opens this small menu first (which of the three answers to
-   edit) rather than guessing which sheet to jump straight to. */
-.days-answers-menu-row {
-  display: block;
-  width: 100%;
-  min-height: 44px;
-  padding: 13px 0;
-  border-bottom: 1px solid var(--stone);
-  text-align: left;
-  background: none;
-  border-left: none;
-  border-right: none;
-  border-top: none;
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--dark);
-  cursor: pointer;
-}
-.days-answers-menu-row:last-child {
-  border-bottom: none;
+
+@media (max-width: 900px) {
+  .cj-lead-body { max-width: none; padding: 30px 26px 28px; }
+  .cj-lead-media::after {
+    background: linear-gradient(180deg, rgba(20,44,56,0.72) 0%, rgba(20,44,56,0.96) 55%);
+  }
+  .cj-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    text-align: left;
+  }
+  .cj-row-aside { text-align: left; }
+  .cj-stats { gap: 22px; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -1245,7 +341,11 @@ a.hero-dream-card-navy:hover {
   /* Darker beige (31 Aug 2026, item 1) so the day plans read as
      their own band rather than running into the journeys above. */
   background: var(--stone);
-  padding: 8px 24px 64px;
+  /* 8px top was correct under the OLD head, which carried its own top
+     margin; .sec-head does not, so the eyebrow sat almost on the band
+     edge. 64px matches .journeys-section, the section 3654417 measured
+     against the design. */
+  padding: 64px 24px;
 }
 .hdp-head {
   max-width: 960px;
@@ -1263,13 +363,26 @@ a.hero-dream-card-navy:hover {
 .hdp-browse:hover {
   text-decoration: underline;
 }
+/* The filter bar sits UNDER the carousel now, as one white pill holding
+   the label and the chips - the design's own shape. It was a bare row of
+   chips above the cards. */
 .hdp-filters {
-  max-width: 960px;
-  margin: 0 auto 16px;
+  max-width: 1120px;
+  margin: 22px auto 0;
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  align-items: center;
   gap: 8px;
+  background: var(--white);
+  border: 1px solid var(--stone);
+  border-radius: 999px;
+  padding: 10px 16px;
+}
+@media (max-width: 680px) {
+  .hdp-filters {
+    border-radius: 14px;
+    justify-content: flex-start;
+  }
 }
 .hdp-chip {
   font: inherit;
@@ -1297,55 +410,138 @@ a.hero-dream-card-navy:hover {
   margin-left: 4px;
   font-weight: 400;
 }
-/* THE DAY RAIL (31 Aug 2026, Mark's item 2). Was a 3-column grid holding
-   the first three matching days; now every matching day is rendered and
-   the row scrolls, with an arrow at each side.
+/* THE DAY CAROUSEL (01 Sep 2026, Mark's final design). One day at a
+   time on a wide navy card, an arrow either side, dots beneath, and the
+   filters below all of it as a shortcut past rather than a gate in
+   front.
 
-   The arrows sit OUTSIDE the scrolling element, in a wrapper that is
-   wider than the 960px content column, so they flank the cards rather
-   than covering the first and last one. Below 1080px there is no room
-   beside the rail, so they are hidden and the rail is swiped or
-   keyboard-scrolled instead - which is why the rail itself is
-   focusable and not solely arrow-driven. */
-.hdp-rail-wrap {
-  position: relative;
-  max-width: 960px;
+   Replaces the three-across rail of 31 Aug, which replaced a sliced grid
+   of three. The point of this shape is that a single day gets room for
+   its price, its transport and a way in - the three things a reader is
+   actually choosing on - instead of a truncated hook.
+
+   On a phone the arrows go and the track is swiped (mobile design,
+   panel 1), which is why the track is a real scroll container with snap
+   points rather than a transform. */
+.hdp-carousel {
+  max-width: 1120px;
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
-.hdp-rail {
+.hdp-track {
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
-  gap: 16px;
+  gap: 20px;
   overflow-x: auto;
-  scroll-snap-type: x proximity;
-  scroll-behavior: smooth;
-  /* Room for the cards' hover lift and shadow, which a plain
-     overflow:auto would clip along the top and bottom edges. */
-  padding: 4px 2px 8px;
+  scroll-snap-type: x mandatory;
   scrollbar-width: none;
+  padding: 2px;
 }
-.hdp-rail::-webkit-scrollbar {
-  display: none;
-}
-.hdp-rail > * {
-  /* Three across, matching the grid this replaced. flex-basis is the
-     card width minus its share of the two visible gaps. */
-  flex: 0 0 calc((100% - 32px) / 3);
+.hdp-track::-webkit-scrollbar { display: none; }
+.hdp-track > * {
+  flex: 0 0 100%;
   scroll-snap-align: start;
 }
+
+.hdp-slide {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 32px;
+  background: var(--navy);
+  color: var(--off-white);
+  border-radius: 14px;
+  padding: 40px 40px 44px;
+  min-height: 260px;
+  align-items: center;
+}
+.hdp-slide-eyebrow {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+.hdp-slide-area {
+  font-size: 13px;
+  color: rgba(245, 241, 232, 0.6);
+}
+.hdp-slide-name {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 2.4vw, 32px);
+  font-weight: 600;
+  color: var(--white);
+  margin: 0 0 10px;
+  line-height: 1.15;
+}
+.hdp-slide-hook {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(245, 241, 232, 0.8);
+  max-width: 60ch;
+}
+/* The right column: what it costs, how you get round, and the way in.
+   Divided by a rule rather than a panel - a panel inside a card reads as
+   a card inside a card. */
+.hdp-slide-aside {
+  border-left: 1px solid rgba(245, 241, 232, 0.18);
+  padding-left: 32px;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+.hdp-slide-money-label {
+  font-size: 12px;
+  color: rgba(245, 241, 232, 0.6);
+}
+.hdp-slide-money-figure {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--white);
+  line-height: 1.1;
+  margin-bottom: 10px;
+}
+.hdp-slide-good {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--pace-relaxed-on-dark, #8CC7A1);
+}
+.hdp-slide-clause {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: rgba(245, 241, 232, 0.6);
+  margin-bottom: 14px;
+}
+.hdp-slide-clause a {
+  color: var(--amber);
+}
+.hdp-slide-cta {
+  display: inline-block;
+  text-align: center;
+  padding: 12px 18px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--amber);
+  color: var(--navy);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.hdp-slide-cta:hover { background: var(--amber-light); }
+
 .hdp-arrow {
   flex: 0 0 auto;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid var(--mist);
   background: var(--white);
   color: var(--navy);
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1;
   cursor: pointer;
   display: flex;
@@ -1353,57 +549,61 @@ a.hero-dream-card-navy:hover {
   justify-content: center;
   transition: border-color 0.18s var(--ease-out), opacity 0.18s var(--ease-out);
 }
-.hdp-arrow:hover:not(:disabled) {
-  border-color: var(--copper);
-  color: var(--copper);
-}
-/* Kept in the layout rather than removed when it cannot be used, so the
-   rail does not jump sideways by 50px on reaching either end. */
-.hdp-arrow:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
-@media (max-width: 1080px) {
-  .hdp-arrow {
-    display: none;
-  }
-  .hdp-rail-wrap {
-    gap: 0;
-  }
-}
-@media (max-width: 860px) {
-  .hdp-rail > * {
-    flex-basis: calc((100% - 16px) / 2);
-  }
-}
-@media (max-width: 560px) {
-  .hdp-rail > * {
-    flex-basis: 86%;
-  }
-}
-.hdp-card {
-  position: relative;
+.hdp-arrow:hover:not(:disabled) { border-color: var(--copper); color: var(--copper); }
+/* Kept in the layout when unusable so the card does not shift sideways
+   by 60px on reaching either end. */
+.hdp-arrow:disabled { opacity: 0.28; cursor: default; }
+
+.hdp-dots {
   display: flex;
-  flex-direction: column;
-  background: white;
-  border-radius: var(--radius);
-  border: 1px solid var(--stone);
-  box-shadow: var(--shadow-card);
-  padding: 18px 20px 20px;
-  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out),
-    border-color 0.2s var(--ease-out);
+  justify-content: center;
+  gap: 7px;
+  margin: 18px 0 0;
 }
-.hdp-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-soft);
-  border-color: var(--green-mid);
+.hdp-dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--mist);
+  cursor: pointer;
+  transition: width 0.18s var(--ease-out), background 0.18s var(--ease-out);
 }
-.hdp-card-top {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 10px;
+.hdp-dot.is-on {
+  width: 22px;
+  background: var(--navy);
 }
+
+.hdp-filters-label {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin-right: 4px;
+  align-self: center;
+}
+.hdp-counter { white-space: nowrap; }
+
+@media (max-width: 900px) {
+  .hdp-slide {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    padding: 28px 24px 30px;
+  }
+  .hdp-slide-aside {
+    border-left: 0;
+    border-top: 1px solid rgba(245, 241, 232, 0.18);
+    padding-left: 0;
+    padding-top: 20px;
+  }
+}
+/* Phone: swipe, no arrows (mobile design). */
+@media (max-width: 760px) {
+  .hdp-arrow { display: none; }
+  .hdp-carousel { gap: 0; }
+}
+
 /* The pacing word, not a pill (30 Aug 2026, the owner's mockup). Colour
    from paceTone so it cannot drift from PacingTag or the journey
    spine; the pill treatment in this card belongs to the transport row
@@ -1414,87 +614,14 @@ a.hero-dream-card-navy:hover {
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
-.hdp-price {
-  font-size: 12px;
-  color: var(--slate);
-  white-space: nowrap;
-}
-.hdp-name {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 400;
-  color: var(--dark);
-  margin: 0 0 8px;
-  line-height: 1.2;
-}
-.hdp-name a {
-  color: inherit;
-  text-decoration: none;
-}
 /* Whole card clickable, same technique the journey cards use - the
    timetable link stays independently reachable because the pill row
    sits above this in the stacking order. */
-.hdp-name a::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-}
-.hdp-hook {
-  font-size: 13px;
-  color: var(--slate);
-  line-height: 1.55;
-  margin: 0 0 14px;
-}
 /* The rule above the transport row, per the mockup. margin-top:auto
    pins the whole footer to the bottom so the rules line up across a row
    of cards whose hooks are different lengths. */
-.hdp-pills {
-  position: relative;
-  z-index: 2;
-  margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid var(--stone);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.hdp-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 11px;
-  border-radius: 999px;
-  border: 1px solid var(--stone);
-  background: var(--off-white);
-  font-size: 11px;
-  line-height: 1.3;
-  color: var(--peat);
-}
 /* The one claim in this section worth colouring: you can do this day
    without hiring a car. */
-.hdp-pill-good {
-  background: var(--green-light);
-  border-color: transparent;
-  color: var(--green-deep);
-  font-weight: 600;
-}
-.hdp-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: currentColor;
-  flex: 0 0 auto;
-}
-.hdp-pill a {
-  color: var(--copper);
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-}
-.hdp-pill a:hover {
-  text-decoration: underline;
-}
 
 /* ─────────────────────────────────────────────────────────────────────
    WEIGHT AND COLOUR PASS (30 Aug 2026, against the owner's mockup).
@@ -1507,14 +634,11 @@ a.hero-dream-card-navy:hover {
 /* Cormorant Garamond loads 300/400/500/600 (layout.tsx), so 600 is a
    real cut rather than a synthetic bold. */
 .cj-head .how-title,
-.hdp-head-text .how-title,
+.sec-head .how-title,
 .byg-title {
   font-weight: 600;
 }
-.cj-card-name,
-.hdp-name {
-  font-weight: 600;
-}
+
 
 /* The subtitle under the title. NOT white-space:nowrap any more - it sat
    on one line beside the eyebrow before and now runs full width under a
@@ -1522,8 +646,10 @@ a.hero-dream-card-navy:hover {
    screens. */
 .cj-head-note {
   display: block;
-  margin-top: 6px;
-  font-size: 13px;
+  /* 20px between the title and its subtitle in the design, and a 14px
+     face rather than 13px. */
+  margin-top: 12px;
+  font-size: 14px;
   color: var(--slate);
 }
 
@@ -1531,12 +657,6 @@ a.hero-dream-card-navy:hover {
    mockup's two, which is what made the day cards look loose - and
    because the pill row is pinned to the bottom of the card, a long hook
    pushed the whole card taller rather than just its own paragraph. */
-.hdp-hook {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
 
 /* PACE, from the SAME scale the journey day spine uses (30 Aug 2026,
    the owner's call) - not paceTone, whose Relaxed pair resolves to the
@@ -1558,12 +678,6 @@ a.hero-dream-card-navy:hover {
    green. Was --green-light on --green-deep, which resolves to navy type
    on a beige ground - indistinguishable from every other pill on the
    card. */
-.hdp-pill-good {
-  background: var(--pace-relaxed-pale);
-  border-color: transparent;
-  color: var(--pace-relaxed-ink);
-  font-weight: 600;
-}
 
 /* ─────────────────────────────────────────────────────────────────────
    WHERE TO STAY (rebuilt 30 Aug 2026, Mark's mockup). Four stays in a
@@ -1573,7 +687,8 @@ a.hero-dream-card-navy:hover {
    ───────────────────────────────────────────────────────────────────── */
 .wts-section {
   background: var(--off-white);
-  padding: 8px 24px 64px;
+  /* See .hdp-section - same 8px leftover, same fix. */
+  padding: 64px 24px;
 }
 .wts-grid {
   max-width: 960px;
@@ -1715,247 +830,234 @@ a.hero-dream-card-navy:hover {
   }
 }
 @media (max-width: 560px) {
+  /* "Stays get the same swipe-and-dots treatment as the days" (03 Sep
+     2026, mobile design panel 2). One card fills the width and the row
+     becomes a real scroll container; the dots and "1 of 4" below carry
+     position. Same flex / scroll-snap / hidden-scrollbar recipe as the
+     day carousel's own track, so the two horizontal patterns on this
+     page behave identically rather than nearly-identically. */
   .wts-grid {
-    grid-template-columns: 1fr;
+    display: flex;
+    grid-template-columns: none;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .wts-grid::-webkit-scrollbar {
+    display: none;
+  }
+  .wts-grid > * {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+  }
+}
+
+/* The dots and the count exist only where the row is actually a
+   carousel. Above 560px all four cards are on screen and there is
+   nothing to page through, so both are hidden rather than sitting
+   under a static grid claiming "1 of 4". */
+.wts-dots,
+.wts-count {
+  display: none;
+}
+@media (max-width: 560px) {
+  .wts-dots {
+    display: flex;
+    justify-content: center;
+    gap: 7px;
+    margin: 18px 0 0;
+  }
+  .wts-dot {
+    width: 7px;
+    height: 7px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: var(--mist);
+    cursor: pointer;
+    transition: width 0.18s var(--ease-out), background 0.18s var(--ease-out);
+  }
+  .wts-dot.is-on {
+    width: 22px;
+    background: var(--navy);
+  }
+  .wts-count {
+    display: block;
+    margin: 8px 0 0;
+    text-align: center;
+    font-size: 12px;
+    color: var(--slate);
   }
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   THE DISTILLERIES (30 Aug 2026, Mark's mockup). Three featured cards,
-   then every other distillery as a priced chip, then one journal line.
-   Same left-over-a-rule head as the journeys and stays sections.
+   EVERY DISTILLERY ON ISLAY (01 Sep 2026, Mark's final design). A wall
+   of all thirteen names in five columns on a navy ground, replacing
+   three featured cards plus a row of price chips.
+
+   The whole section is a scanning surface, so the type is small and the
+   rules do the separating. Each entry gets a hairline above it rather
+   than a box around it - thirteen boxes would have read as thirteen
+   cards competing, which is the thing the card layout got wrong.
    ───────────────────────────────────────────────────────────────────── */
 .hd-section {
-  /* Darker beige (31 Aug 2026, item 5), the same tone as the day
-     plans - the page alternates cream and beige rather than stacking
-     three dark sections together. */
-  background: var(--stone);
-  padding: 8px 24px 64px;
+  background: var(--navy);
+  padding: 56px 24px 60px;
 }
-.hd-head-link {
-  color: var(--copper);
-  font-weight: 600;
-  text-decoration: none;
-}
-.hd-head-link:hover {
-  text-decoration: underline;
-}
-.hd-grid {
-  max-width: 960px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-.hd-card {
-  position: relative;
+/* Split head: title left, the way through on the right. Used by every
+   section in the final design except the two centred feature bands. */
+.sec-head {
+  max-width: 1120px;
+  margin: 0 auto 32px;
   display: flex;
-  flex-direction: column;
-  background: white;
-  border-radius: var(--radius);
-  border: 1px solid var(--stone);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out),
-    border-color 0.2s var(--ease-out);
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
 }
-.hd-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-soft);
-  border-color: var(--green-mid);
+.sec-head-text {
+  min-width: 0;
 }
-.hd-media {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 5 / 2;
-  background: var(--stone);
-  flex: 0 0 auto;
+.sec-head .how-eyebrow,
+.sec-head .how-title {
+  text-align: left;
+  margin-bottom: 0;
 }
-/* Navy, not amber: this is an editorial label, not the visitor's own
-   choice the way "Your base" is on a stay card. */
-.hd-badge {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 2;
-  padding: 5px 11px;
-  border-radius: 999px;
-  background: var(--dark);
+.sec-head .how-eyebrow {
+  margin-bottom: 6px;
+}
+.sec-head-note {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--slate);
+}
+/* On the two navy sections the head has to invert. Scoped to those
+   sections rather than put on .sec-head itself, which the four cream and
+   beige sections also use. */
+.hd-section .how-eyebrow,
+.byg-section .how-eyebrow {
+  color: var(--amber);
+}
+.hd-section .how-title,
+.byg-section .how-title {
   color: var(--off-white);
-  font-size: 10px;
+}
+.hd-section .sec-head-note,
+.byg-section .sec-head-note {
+  color: rgba(245, 241, 232, 0.6);
+}
+.sec-head-aside {
+  text-align: right;
+}
+.sec-head-btn {
+  display: inline-block;
+  padding: 11px 20px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--amber);
+  color: var(--navy);
+  font-size: 13.5px;
   font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-}
-.hd-body {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  padding: 14px 16px 16px;
-}
-.hd-where {
-  font-size: 11px;
-  color: var(--slate);
-  margin-bottom: 5px;
-}
-.hd-name {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--dark);
-  margin: 0 0 7px;
-  line-height: 1.2;
-}
-.hd-name a {
-  color: inherit;
   text-decoration: none;
+  white-space: nowrap;
 }
-.hd-name a::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
+.sec-head-btn:hover {
+  background: var(--amber-light);
 }
-.hd-tagline {
-  font-size: 12.5px;
-  color: var(--slate);
-  line-height: 1.5;
-  margin: 0 0 12px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.sec-head-sub {
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(245, 241, 232, 0.55);
 }
-/* The money block, pinned to the bottom so prices line up across a row
-   whose taglines run to different lengths. */
-.hd-money {
-  margin-top: auto;
-  padding-top: 11px;
-  border-top: 1px solid var(--stone);
+
+.hdw-grid {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 1120px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0 28px;
 }
-.hd-price {
-  margin: 0 0 3px;
-  font-size: 12.5px;
-  color: var(--slate);
+.hdw-item {
+  padding: 14px 0 16px;
+  border-top: 1px solid rgba(212, 165, 116, 0.35);
+  min-width: 0;
 }
-.hd-price strong {
+.hdw-name {
+  display: block;
   font-family: var(--font-display);
   font-size: 21px;
-  font-weight: 600;
-  color: var(--dark);
-  margin-right: 5px;
-}
-.hd-range {
-  margin: 0;
-  font-size: 11.5px;
-  color: var(--slate);
-}
-/* The page has stopped quoting a price it can no longer stand behind. */
-.hd-stale {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--peat);
-}
-.hd-link {
-  margin-top: 10px;
-  align-self: flex-start;
-  position: relative;
-  z-index: 2;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--copper);
+  font-weight: 500;
+  color: var(--white);
   text-decoration: none;
+  line-height: 1.2;
 }
-.hd-card:hover .hd-link {
-  text-decoration: underline;
+a.hdw-name:hover {
+  color: var(--amber);
+}
+.hdw-place {
+  margin-top: 5px;
+  font-size: 12.5px;
+  color: var(--amber);
+}
+.hdw-note {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: rgba(245, 241, 232, 0.55);
+}
+/* The three you cannot visit: Jura, which is a different island, and the
+   two on Islay that are built but shut. Dropped back rather than hidden
+   - "thirteen in all" is the point of the eyebrow, and a reader planning
+   a trip is better served knowing they exist and are closed. */
+.hdw-item-shut .hdw-name {
+  color: rgba(245, 241, 232, 0.52);
+}
+.hdw-item-shut .hdw-place {
+  color: rgba(245, 241, 232, 0.45);
 }
 
-/* "And the rest" - every distillery not featured above, with the
-   cheapest tour it actually sells. */
-.hd-rest {
-  max-width: 960px;
-  margin: 20px auto 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-.hd-rest-label {
-  font-size: 12px;
-  color: var(--slate);
-  margin-right: 2px;
-}
-.hd-chip {
-  /* White bubbles (31 Aug 2026, item 5). The section background moved to
-     --stone, which is exactly what this border used to be - so the
-     border was invisible against it and the chips lost their edges. The
-     white fill now does the separating and the border only softens it. */
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 7px 13px;
-  border-radius: 999px;
-  border: 1px solid rgba(26, 58, 74, 0.10);
-  box-shadow: 0 1px 2px rgba(26, 58, 74, 0.06);
-  background: white;
-  font-size: 12px;
-  color: var(--peat);
-  text-decoration: none;
-  transition: border-color 0.2s var(--ease-out);
-}
-.hd-chip:hover {
-  border-color: var(--green-mid);
-}
-.hd-chip-price {
-  font-weight: 600;
-  color: var(--dark);
-}
-
-/* One journal piece, as a single line rather than a card - it is a
-   footnote to the section, not a fourth thing to choose between. */
-.hd-journal {
-  max-width: 960px;
+/* The three computed facts under the wall. */
+.hdw-facts {
+  max-width: 1120px;
   margin: 22px auto 0;
+  padding-top: 18px;
+  border-top: 1px solid rgba(245, 241, 232, 0.18);
   display: flex;
-  align-items: baseline;
-  gap: 14px;
   flex-wrap: wrap;
-  padding: 15px 18px;
-  background: white;
-  border: 1px solid var(--stone);
-  border-radius: var(--radius);
-  text-decoration: none;
+  gap: 8px 40px;
+  font-size: 13px;
 }
-.hd-journal:hover {
-  border-color: var(--green-mid);
+.hdw-fact {
+  display: flex;
+  gap: 6px;
+  color: rgba(245, 241, 232, 0.66);
 }
-.hd-journal-eyebrow {
-  font-size: 10px;
+.hdw-fact dt,
+.hdw-fact dd {
+  margin: 0;
+}
+.hdw-fact dd {
+  color: var(--white);
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--copper);
-  white-space: nowrap;
 }
-.hd-journal-title {
-  flex: 1 1 240px;
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--dark);
-}
-.hd-journal-meta {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--copper);
-  white-space: nowrap;
+
+@media (max-width: 1100px) {
+  .hdw-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) {
-  .hd-grid {
-    grid-template-columns: 1fr;
-  }
+  .hdw-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+/* Two columns on a phone, per the mobile design. */
+@media (max-width: 680px) {
+  .hdw-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; }
+  .sec-head { display: block; }
+  .sec-head-aside { text-align: left; margin-top: 16px; }
+  .sec-head-btn { display: block; text-align: center; }
+  .hdw-facts { flex-direction: column; gap: 6px; }
+}
+
 
 /* ─────────────────────────────────────────────────────────────────────
    WHEN TO GO (30 Aug 2026, Mark's mockup). The year as a bar, the
@@ -1963,7 +1065,8 @@ a.hero-dream-card-navy:hover {
    ───────────────────────────────────────────────────────────────────── */
 .wtg-section {
   background: var(--off-white);
-  padding: 8px 24px 64px;
+  /* See .hdp-section - same 8px leftover, same fix. */
+  padding: 64px 24px;
 }
 .wtg-layout {
   max-width: 960px;
@@ -2302,7 +1405,10 @@ a.hero-dream-card-navy:hover {
      colour, so it loses its own background below and the section
      carries it instead. */
   background: var(--navy);
-  padding: 8px 24px 64px;
+  /* See .hdp-section - same 8px leftover. Not one of the three Mark
+     named, but the identical bug in the only content section left
+     carrying it, and conspicuous once its neighbours are fixed. */
+  padding: 64px 24px;
 }
 .byg-inner {
   max-width: 960px;
@@ -2511,14 +1617,6 @@ a.hero-dream-card-navy:hover {
    a checkable claim, and it should look like a statement of fact rather
    than a piece of marketing.
    ───────────────────────────────────────────────────────────────────── */
-.wic-section {
-  /* Tightened 31 Aug 2026 (item 7): 72px of trailing padding under a
-     section that is already the last thing before the newsletter left a
-     visible dead band. Stays cream - Mark's call, against the mockup,
-     which showed it navy. */
-  background: var(--off-white);
-  padding: 8px 24px 44px;
-}
 .wic-inner {
   max-width: 960px;
   margin: 0 auto;
@@ -2597,12 +1695,11 @@ a.hero-dream-card-navy:hover {
    that looks like what it is.
    ───────────────────────────────────────────────────────────────────── */
 .fm-section {
-  /* Mid-blue (31 Aug 2026, item 4). Everything below is the consequence:
-     a section that was drawn for navy-on-cream had to be inverted, not
-     just repainted. The region fills, the coastline stroke, the markers
-     and all four text colours changed with it. */
-  background: var(--navy-mid);
-  padding: 40px 24px 56px;
+  /* Navy (01 Sep 2026, final design), one step darker than the mid-blue
+     it carried for a day. The four region fills below were tuned for
+     contrast against the mid-blue and are re-checked against this. */
+  background: var(--navy);
+  padding: 52px 24px 60px;
 }
 .fm-section .how-title,
 .fm-section .byg-title {
@@ -2617,12 +1714,41 @@ a.hero-dream-card-navy:hover {
   color: rgba(245, 241, 232, 0.68);
 }
 .fm-layout {
-  max-width: 960px;
+  max-width: 1120px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(0, 330px) minmax(0, 1fr);
-  gap: 40px;
-  align-items: center;
+  grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
+  gap: 36px;
+  align-items: start;
+}
+
+/* THE MAP CARD. The map sits in a panel of its own rather than loose on
+   the section, so the eyebrow and the attribution have something to sit
+   on and the island is not floating in a field of navy. */
+.fm-map-eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 14px;
+}
+.fm-marker-label {
+  fill: var(--white);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 12px;
+  pointer-events: none;
+}
+/* The visitor's own base. A ring rather than another numbered disc, so
+   it cannot be mistaken for a fifth area. */
+.fm-base-ring {
+  fill: none;
+  stroke: var(--white);
+  stroke-width: 1.6;
+  opacity: 0.9;
+}
+.fm-base-dot {
+  fill: var(--white);
 }
 
 /* THE MAP. The SVG carries its own aspect ratio from the viewBox that
@@ -2630,6 +1756,10 @@ a.hero-dream-card-navy:hover {
    given a fixed height - a height would stretch the island. */
 .fm-map {
   margin: 0;
+  background: rgba(245, 241, 232, 0.06);
+  border: 1px solid rgba(245, 241, 232, 0.14);
+  border-radius: 14px;
+  padding: 20px 20px 16px;
 }
 .fm-svg {
   width: 100%;
@@ -2643,10 +1773,10 @@ a.hero-dream-card-navy:hover {
    would imply the south ranks above the north. All four are muted
    enough for the white number to hold its contrast on top. */
 .fm-region-fill {
-  /* The dividing lines between areas are the section colour, so the four
-     regions read as pieces cut out of one island rather than four
+  /* The dividing lines between areas are the card's own ground, so the
+     four regions read as pieces cut out of one island rather than four
      separate shapes laid on it. */
-  stroke: var(--navy-mid);
+  stroke: #1F4457;
   stroke-width: 1;
   transition: opacity 0.18s var(--ease-out);
 }
@@ -2733,12 +1863,25 @@ a.hero-dream-card-navy:hover {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
+/* Each area in its own panel (01 Sep 2026, final design) rather than a
+   bare list item - it is what lets a hovered area light up as a block
+   instead of just its text changing opacity. */
 .fm-card {
   display: flex;
   gap: 14px;
   align-items: flex-start;
+  background: rgba(245, 241, 232, 0.06);
+  border: 1px solid rgba(245, 241, 232, 0.1);
+  border-radius: 12px;
+  padding: 18px 20px;
+  transition: background 0.18s var(--ease-out), border-color 0.18s var(--ease-out),
+    opacity 0.18s var(--ease-out);
+}
+.fm-card.is-active {
+  background: rgba(245, 241, 232, 0.11);
+  border-color: rgba(212, 165, 116, 0.5);
 }
 .fm-card-num {
   flex: 0 0 auto;
@@ -2783,17 +1926,14 @@ a.hero-dream-card-navy:hover {
 }
 
 .fm-all {
-  margin: 22px 0 0;
-  padding-top: 16px;
-  border-top: 1px solid rgba(245, 241, 232, 0.18);
+  margin: 16px 0 0;
+  text-align: right;
 }
 .fm-all-link {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
-  color: var(--off-white);
+  color: var(--amber);
   text-decoration: none;
-  border-bottom: 1px solid var(--amber);
-  padding-bottom: 2px;
 }
 .fm-all-link:hover {
   color: var(--amber);
@@ -2802,15 +1942,20 @@ a.hero-dream-card-navy:hover {
 /* Below 860px the two columns stop fitting: the map shrinks past the
    point where four numbers are legible. It goes above the list instead,
    capped so it doesn't take a whole phone screen on its own. */
-@media (max-width: 860px) {
+@media (max-width: 900px) {
   .fm-layout {
     grid-template-columns: 1fr;
-    gap: 28px;
+    gap: 22px;
   }
   .fm-map {
-    max-width: 280px;
+    max-width: 420px;
     margin: 0 auto;
   }
+  /* On a phone the labels beside each pin have nowhere to go, so the
+     numbers carry it alone and the panels beneath say the names. The
+     mobile design's own eyebrow reads "tap a zone" for the same reason. */
+  .fm-marker-label { display: none; }
+  .fm-all { text-align: left; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -2825,7 +1970,12 @@ a.hero-dream-card-navy:hover {
    ───────────────────────────────────────────────────────────────────── */
 .newsletter-band {
   background: var(--off-white);
-  padding: 8px 24px 56px;
+  /* 64px top to match every other band (03 Sep 2026, Mark's call on
+     review). Kept at 8px in the first pass on the reasoning that this
+     band has no head to push off the edge - but it does carry a panel,
+     and 8px sat it hard against the section above. Bottom stays 56px:
+     the footer's own top padding follows it. */
+  padding: 64px 24px 56px;
 }
 .newsletter-card {
   max-width: 960px;
@@ -2898,4 +2048,1150 @@ a.hero-dream-card-navy:hover {
   .newsletter-card .footer-newsletter-row {
     width: 100%;
   }
+}
+
+/* Where to stay's area pills (01 Sep 2026, final design). Were a
+   "Not sure which village yet?" line at the foot of the section - the
+   place a reader looks last for the thing they need first. */
+.wts-areas {
+  max-width: 460px;
+}
+.wts-areas-label {
+  display: block;
+  font-size: 12.5px;
+  color: var(--slate);
+  margin-bottom: 10px;
+}
+.wts-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.wts-pill {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--mist);
+  background: var(--white);
+  color: var(--navy);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.wts-pill:hover {
+  border-color: var(--copper);
+  color: var(--copper);
+}
+@media (max-width: 900px) {
+  .wts-areas { max-width: none; }
+  .wts-pills { justify-content: flex-start; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   WHAT'S ON (01 Sep 2026, final design). Its own section on the darker
+   beige, between When to go and Before you go. It was the right-hand
+   column of When to go, four events stacked in a third of the page
+   beside a month bar.
+
+   As full-width rows it can carry the venue and the ticketing note
+   beside the name, with the dates set right - where someone scanning for
+   "is anything on while I'm there" actually looks.
+   ───────────────────────────────────────────────────────────────────── */
+.won-section {
+  background: var(--stone);
+  padding: 52px 24px 56px;
+}
+.won-all {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--copper);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.won-list {
+  list-style: none;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0;
+}
+.won-row {
+  display: grid;
+  /* The date track is FIXED, not auto (03 Sep 2026 fix). Each row is its
+     own grid, so an `auto` third track sized to that row's own content -
+     and the provisional rows carry an extra "usually mid-August - not
+     yet announced" line, which made their date column ~239px against
+     ~74px on a confirmed row. That pushed the two fr tracks to different
+     widths on every row, so the location column started at a different
+     x six times down the list. A fixed track resolves the fr tracks
+     identically on every row, which is the only way the columns line
+     up without subgrid. 160px holds "28 MAY - 6 JUN" on one line and
+     wraps the provisional note to two. */
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr) 160px;
+  align-items: baseline;
+  gap: 24px;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(26, 58, 74, 0.12);
+}
+.won-row:first-child {
+  border-top: 1px solid rgba(26, 58, 74, 0.12);
+}
+.won-name {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--navy);
+  line-height: 1.25;
+}
+.won-name a {
+  color: inherit;
+  text-decoration: none;
+}
+.won-name a:hover {
+  color: var(--copper);
+}
+.won-meta {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--slate);
+}
+/* Mono, because these are data rather than prose, and because a column
+   of dates only lines up if the digits are the same width. */
+.won-date {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+  color: var(--peat);
+  text-align: right;
+  white-space: nowrap;
+}
+.won-date-tbc {
+  color: var(--slate);
+  font-style: italic;
+}
+.won-tbc-note {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 11.5px;
+  font-style: normal;
+  color: var(--slate);
+}
+@media (max-width: 760px) {
+  .won-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .won-date {
+    text-align: left;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   FINAL DESIGN, remaining pieces (01 Sep 2026).
+   ───────────────────────────────────────────────────────────────────── */
+
+/* WHEN TO GO now has one column - What's on left for its own section -
+   so the two-column layout it was built around is gone. */
+.wtg-main-only {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+/* The festival panel: copy on the left, the two things to do on the
+   right. It used to be one CTA under the copy, with the booking notice
+   as a separate strip beneath the panel reading as a second warning. */
+.wtg-feature {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 32px;
+  align-items: center;
+}
+.wtg-feature-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  text-align: center;
+}
+.wtg-feature-cta {
+  display: block;
+  padding: 13px 22px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--navy);
+  color: var(--white);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.wtg-feature-cta:hover { background: var(--navy-mid); }
+.wtg-feature-alt {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--copper);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.wtg-feature-alt:hover { text-decoration: underline; }
+.wtg-notice {
+  margin: 14px 0 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--peat);
+}
+.wtg-notice strong { color: var(--navy); }
+@media (max-width: 760px) {
+  .wtg-feature { grid-template-columns: 1fr; gap: 18px; }
+  .wtg-feature-actions { align-items: flex-start; text-align: left; }
+}
+
+/* BEFORE YOU GO. 01 runs full width and leads with the fact; 02 and 03
+   sit side by side beneath it. It was three equal cards in a row, which
+   gave the ferry closure - the one thing here that can wreck a trip
+   booked on an old assumption - the same weight as car hire. */
+.byg-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.byg-card-lead {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 28px;
+  align-items: center;
+}
+.byg-lead-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.byg-lead-title {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 2.2vw, 30px);
+  font-weight: 600;
+  color: var(--white);
+  margin: 10px 0 10px;
+  line-height: 1.2;
+}
+.byg-lead-cta {
+  padding: 12px 22px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--amber);
+  color: var(--navy);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.byg-lead-cta:hover { background: var(--amber-light); }
+/* 03 is no longer the wide one - the lead card is. */
+.byg-card-wide {
+  grid-column: auto;
+  border-color: rgba(245, 241, 232, 0.14);
+}
+@media (max-width: 860px) {
+  .byg-grid { grid-template-columns: 1fr; }
+  .byg-card-lead { grid-template-columns: 1fr; gap: 18px; }
+  .byg-lead-cta { text-align: center; }
+}
+
+/* THE COST BLOCK, now the last thing inside Before you go rather than a
+   cream section of its own. Everything below re-states for navy what
+   was written for cream. */
+.wic-block {
+  margin-top: 34px;
+  padding-top: 28px;
+  border-top: 1px solid rgba(245, 241, 232, 0.2);
+}
+.wic-block .cj-head {
+  max-width: none;
+  margin: 0 0 4px;
+  text-align: left;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.wic-block .how-title {
+  text-align: left;
+  color: var(--white);
+  font-size: clamp(21px, 2vw, 26px);
+}
+.wic-block .cj-head-note {
+  margin-top: 0;
+  color: rgba(245, 241, 232, 0.55);
+}
+.wic-block .wic-grid {
+  border-bottom: 0;
+  margin-bottom: 14px;
+  padding-bottom: 0;
+}
+.wic-block .wic-figure {
+  color: var(--amber);
+}
+.wic-block .wic-label {
+  color: rgba(245, 241, 232, 0.72);
+}
+.wic-block .wic-sub {
+  color: rgba(245, 241, 232, 0.45);
+}
+.wic-block .wic-trust {
+  color: rgba(245, 241, 232, 0.72);
+}
+.wic-block .wic-trust strong { color: var(--white); }
+.wic-block .wic-trust a { color: var(--amber); }
+
+/* ─────────────────────────────────────────────────────────────────────
+   RESTORED 03 Sep 2026. Both blocks below were deleted by this branch's
+   CSS cleanup while the markup that uses them was left in place, so
+   every picker sheet and the whole /days answers bar rendered unstyled.
+   AnswersSheets.tsx, HeroSentenceSheets.tsx and DaysAnswersBar.tsx are
+   untouched on this branch and still render all fourteen class names;
+   none of them had a rule anywhere in src/app/*.css.
+
+   Same failure as 017ec88 ("Restore .cj-head's width and spacing"),
+   where a regex cleanup ate a shared rule along with the dead ones -
+   worth noting the pattern, since a third occurrence would say the
+   cleanup method is wrong rather than that it slipped twice. Copied
+   verbatim from origin/main rather than rewritten, so this restores
+   exactly what shipped and nothing else.
+   ───────────────────────────────────────────────────────────────────── */
+
+/* ANSWERS SHEETS - base/nights/picks/timeframe/dreamArea/todayNear
+   pickers, shared by the homepage hero's sentence control (Hero.tsx,
+   HeroSentenceSheets.tsx) and the /days answers bar's "Change" control
+   (DaysAnswersBar.tsx). The sentence itself (.hero-sentence and friends)
+   lives in dramstory-legacy.css's HERO section now - the old dark
+   "Answers block" section these sheet styles used to sit under
+   (.answers-section/.answers-inner/.answers-eyebrow/.answers-sentence/
+   .answers-pill/.answers-sub) was removed with AnswersBlock.tsx itself
+   (docs/hero-handoff.md Phase 1 - folded into the hero, see Hero.tsx's
+   header comment). Sheets reuse the existing .tour-picker-backdrop/
+   .tour-picker-modal pattern from journey-extra.css (same on-brand modal
+   already used for the tour picker) instead of inventing a new sheet
+   mechanism. */
+.answers-kicker {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin: 18px 0 8px;
+}
+.answers-kicker:first-child {
+  margin-top: 0;
+}
+/* Map filters and item links on the dreaming / today-build screens
+   (03 Sep 2026). Chips reuse the day-plan filter shape rather than a
+   third pill style - .hdp-chip is the site's existing "narrow this list"
+   control and this is the same job over a map. */
+.dsl-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.dsl-filter {
+  padding: 6px 12px;
+  border: 1px solid var(--stone);
+  border-radius: 100px;
+  background: var(--white);
+  color: var(--peat);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out),
+    border-color 0.15s var(--ease-out);
+}
+.dsl-filter:hover {
+  border-color: var(--copper);
+  color: var(--copper);
+}
+.dsl-filter.is-on {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: var(--white);
+}
+.dsl-item-link {
+  color: var(--dark);
+  text-decoration: none;
+}
+.dsl-item-link:hover {
+  color: var(--copper);
+  text-decoration: underline;
+}
+
+/* The three ways to answer, named under the sheet heading. */
+.answers-sheet-ways {
+  margin: -2px 2px 10px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--slate);
+}
+
+/* The tappable pin map inside "Where on Islay are you?" (03 Sep 2026).
+   Sits between the location shortcut and the village list: the shortcut
+   is fastest, the map is exact, the list is the fallback. 240px is
+   enough to see Islay whole at zoom 11 without the sheet outgrowing a
+   phone screen. */
+.today-pin-map {
+  margin: 10px 0 6px;
+}
+.today-pin-map-canvas {
+  width: 100%;
+  height: 240px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--stone);
+}
+.today-pin-map-hint {
+  margin: 6px 2px 0;
+  font-size: 12px;
+  color: var(--slate);
+}
+
+/* "Use my location" inside the "Where on Islay are you?" sheet (03 Sep
+   2026). Sits above the village list as a convenience, never instead of
+   it - see TodayNearSheet. Deliberately shaped like .answers-base-row so
+   it reads as the first option rather than as chrome, with a rule under
+   it separating the shortcut from the real list. */
+.answers-locate-row {
+  display: block;
+  width: 100%;
+  padding: 12px 4px 13px;
+  margin-bottom: 4px;
+  border: 0;
+  border-bottom: 1px solid var(--stone);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.answers-locate-row:hover:not(:disabled) {
+  background: var(--off-white);
+}
+.answers-locate-row:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.answers-locate-name {
+  display: block;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 16px;
+  color: var(--copper);
+}
+.answers-locate-note {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--slate);
+}
+.answers-locate-error {
+  margin: 6px 4px 2px;
+  font-size: 12.5px;
+  color: var(--copper);
+}
+.answers-base-row {
+  display: block;
+  width: 100%;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--stone);
+  text-align: left;
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  cursor: pointer;
+  min-height: 44px;
+}
+.answers-base-row:last-child {
+  border-bottom: none;
+}
+.answers-base-row-name {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--dark);
+}
+.answers-base-row-name.selected {
+  color: var(--copper);
+}
+.answers-base-row-note {
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--slate);
+  margin-top: 2px;
+}
+.answers-chip-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.answers-sheet-hint {
+  font-size: 13px;
+  color: var(--slate);
+  margin-bottom: 14px;
+}
+.answers-sheet-done {
+  margin-top: 18px;
+  min-height: 44px;
+}
+/* Distinct from .subcat-chip (journey-extra.css's map-filter chips) even
+   though visually similar - these need the 44px min-height touch target
+   the design doc's accessibility section calls out (§7), and changing
+   the shared .subcat-chip's dimensions would ripple into the map filter
+   UI, which is out of scope for this phase. */
+.answers-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 100px;
+  border: 1.5px solid var(--stone);
+  background: white;
+  color: var(--peat);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.answers-chip:hover {
+  border-color: var(--green-mid);
+}
+.answers-chip.selected {
+  background: var(--green-light);
+  border-color: var(--green-deep);
+  color: var(--green-deep);
+  font-weight: 600;
+}
+
+/* /days ANSWERS BAR (days-trip-flow Phase 1, §3.2) - sticky dark bar atop
+   the existing Pre-Designed Days Hub reading the current TripAnswers, +
+   Change. Same --dark/sticky/z-index treatment as .dist-page-bar
+   (dramstory-legacy.css) - that's the site's existing "sticky dark top
+   bar" precedent, reused rather than reinvented. */
+.days-answers-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--dark);
+  color: white;
+  padding: 14px 24px;
+}
+.days-answers-bar-text {
+  min-width: 0;
+}
+.days-answers-bar-kicker {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 2px;
+}
+.days-answers-bar-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.days-answers-bar-change {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 100px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.days-answers-bar-change:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+/* "Change" opens this small menu first (which of the three answers to
+   edit) rather than guessing which sheet to jump straight to. */
+.days-answers-menu-row {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--stone);
+  text-align: left;
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--dark);
+  cursor: pointer;
+}
+.days-answers-menu-row:last-child {
+  border-bottom: none;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   RESTORED 03 Sep 2026, second pass. A sweep comparing every class
+   RENDERED in src/**/*.tsx against every rule defined in src/app/*.css,
+   on this branch and on origin/main, found 67 more classes styled on
+   main, still rendered here, and with no rule anywhere on this branch:
+
+     hero-days-* / hero-dream-* / hero-today-*  the whole hero state-two
+                                                reflow - all three columns
+     journal-*                                  journal cards and post pages
+     discover-*                                 the discover grid
+     featured-*                                 featured events
+     cj-card-credit, days-hub-card-actions
+
+   None of these components were touched by this branch; only their CSS
+   was deleted. Copied verbatim from origin/main - rules whose selector
+   names one of those classes, and only the matching inner rules from
+   media queries, so nothing else on this branch is overridden.
+
+   THE PATTERN IS THE REAL FINDING. This is the third time the same
+   cleanup has removed a live rule: 017ec88 (.cj-head), the answers
+   sheets restored above, and now this. Two was a slip; three says the
+   method - regex over selector names - cannot tell a dead rule from a
+   live one and should not be used again on this file.
+   ───────────────────────────────────────────────────────────────────── */
+
+.cj-card-credit {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+  max-width: calc(100% - 16px);
+  padding: 3px 7px;
+  border-radius: var(--radius-sm);
+  background: rgba(26, 58, 74, 0.72);
+  color: var(--off-white);
+  font-size: 10px;
+  line-height: 1.3;
+  text-decoration: none;
+}
+a.cj-card-credit:hover {
+  text-decoration: underline;
+}
+.featured-section {
+  background: white;
+  padding: 64px 24px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+.featured-col-title {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin: 32px 0 14px 0;
+}
+.featured-col-title:first-of-type {
+  margin-top: 0;
+}
+.featured-region-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin: 24px 0 8px;
+}
+.discover-section {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 64px 24px;
+}
+.discover-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.discover-view-all {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--green-deep);
+  text-decoration: none;
+}
+.discover-view-all:hover {
+  text-decoration: underline;
+}
+.discover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+.discover-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: white;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: all 0.2s var(--ease-out);
+}
+.discover-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+}
+.discover-card-image {
+  height: 160px;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--stone);
+}
+.discover-card-body {
+  padding: 18px;
+}
+.discover-card-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 8px;
+}
+.discover-card-name {
+  font-family: var(--font-display);
+  font-size: 21px;
+  color: var(--dark);
+  margin-bottom: 8px;
+}
+.discover-card-desc {
+  font-size: 13px;
+  color: var(--peat);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.featured-coming-soon {
+  background: var(--off-white);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  font-size: 13px;
+  color: var(--slate);
+  line-height: 1.6;
+}
+.journal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 28px;
+}
+.journal-card {
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  background: white;
+  display: flex;
+  flex-direction: column;
+}
+.journal-card-image {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  background: var(--stone);
+}
+.journal-card-body {
+  padding: 22px;
+}
+.journal-card-meta {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 8px;
+}
+.journal-card-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  margin-bottom: 10px;
+  line-height: 1.25;
+}
+.journal-card-excerpt {
+  font-size: 14px;
+  color: var(--slate);
+  line-height: 1.55;
+}
+.journal-post-hero {
+  position: relative;
+  width: 100%;
+  height: min(50vh, 440px);
+  background: var(--stone);
+}
+.journal-post-content {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+.journal-post-meta {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 14px;
+}
+.journal-post-title {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 400;
+  color: var(--dark);
+  line-height: 1.2;
+  margin-bottom: 32px;
+}
+.journal-post-body {
+  font-size: 17px;
+  line-height: 1.75;
+  color: var(--peat);
+}
+.journal-post-body h2 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--dark);
+  margin: 40px 0 16px;
+}
+.journal-post-body h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--dark);
+  margin: 32px 0 12px;
+}
+.journal-post-body p {
+  margin-bottom: 20px;
+}
+.journal-post-body a {
+  color: var(--green-deep);
+}
+.journal-post-body img {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+  margin: 12px 0 28px;
+}
+.journal-post-body ul,
+.journal-post-body ol {
+  margin: 0 0 20px 24px;
+}
+.journal-post-body li {
+  margin-bottom: 8px;
+}
+.journal-post-body blockquote {
+  border-left: 3px solid var(--copper);
+  padding-left: 18px;
+  margin: 24px 0;
+  font-style: italic;
+  color: var(--slate);
+}
+.journal-post-back {
+  display: inline-block;
+  margin-top: 32px;
+  color: var(--green-deep);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 14px;
+}
+.journal-post-back:hover {
+  text-decoration: underline;
+}
+.featured-view-all {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--green-deep);
+  text-decoration: none;
+  margin-bottom: 8px;
+}
+.featured-view-all:hover {
+  text-decoration: underline;
+}
+.featured-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.featured-event-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background: var(--off-white);
+  border-radius: var(--radius);
+}
+.featured-event-date {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--copper);
+  font-weight: 500;
+  white-space: nowrap;
+  min-width: 90px;
+}
+.featured-event-body {
+  flex: 1;
+}
+.featured-event-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dark);
+  margin-bottom: 2px;
+}
+.featured-event-meta {
+  font-size: 12px;
+  color: var(--slate);
+}
+.featured-event-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green-deep);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.featured-event-link:hover {
+  text-decoration: underline;
+}
+.hero-days-column {
+  max-width: 640px;
+}
+.hero-days-column .days-hub-card-hook-toggle {
+  display: inline;
+  min-height: auto;
+  margin-top: 0;
+  margin-left: 2px;
+  padding: 2px 0;
+}
+.hero-days-column .days-hub-card-body {
+  padding-bottom: 14px;
+}
+.hero-days-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--navy);
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.hero-days-header-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dark);
+  white-space: nowrap;
+}
+.hero-days-header-total {
+  font-size: 12px;
+  color: var(--slate);
+  white-space: nowrap;
+  text-decoration: none;
+}
+.hero-days-header-total:hover {
+  color: var(--copper);
+  text-decoration: underline;
+}
+.days-hub-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.hero-days-foot {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--copper);
+  text-decoration: none;
+  min-height: 44px;
+  line-height: 44px;
+}
+.hero-days-foot:hover {
+  text-decoration: underline;
+}
+.hero-days-empty {
+  font-size: 14px;
+  color: var(--slate);
+  padding: 24px 0;
+}
+
+.hero-dream-card {
+  display: block;
+  background: white;
+  border: 1px solid var(--stone);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s;
+}
+a.hero-dream-card:hover {
+  border-color: var(--copper);
+}
+.hero-dream-card-body-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+.hero-dream-card-clickable:has(.hero-dream-card-body-link:hover) {
+  border-color: var(--copper);
+}
+.hero-dream-card-kicker-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.hero-dream-card-kicker {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 4px;
+}
+.hero-dream-card-link {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--copper);
+  white-space: nowrap;
+}
+.hero-dream-card-title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 20px;
+  color: var(--dark);
+  margin: 0 0 4px;
+}
+.hero-dream-card-body {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--peat);
+  margin: 0;
+}
+.hero-dream-card.hero-dream-card-navy {
+  background: var(--dark);
+  border-color: var(--dark);
+}
+.hero-dream-card-navy .hero-dream-card-kicker {
+  color: var(--amber);
+}
+.hero-dream-card-navy .hero-dream-card-title {
+  color: white;
+}
+.hero-dream-card-navy .hero-dream-card-body {
+  color: var(--mist);
+}
+a.hero-dream-card-navy:hover {
+  border-color: var(--amber);
+}
+.hero-today-row {
+  display: flex;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--stone);
+}
+.hero-today-row:last-of-type {
+  border-bottom: none;
+}
+.hero-today-row-time {
+  flex-shrink: 0;
+  width: 64px;
+  text-align: right;
+}
+.hero-today-row-clock {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--dark);
+}
+.hero-today-row-label {
+  font-size: 11px;
+  color: var(--slate);
+  margin-top: 2px;
+}
+.hero-today-row-body {
+  flex: 1;
+  min-width: 0;
+}
+.hero-today-row-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.hero-today-row-name {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 17px;
+  color: var(--dark);
+}
+.hero-today-row-check {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--copper);
+  white-space: nowrap;
+  text-decoration: none;
+}
+.hero-today-row-check:hover {
+  text-decoration: underline;
+}
+.hero-today-row-meta {
+  font-size: 13.5px;
+  color: var(--peat);
+  margin-top: 2px;
+}
+.hero-today-note {
+  background: var(--amber-pale);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin: 16px 0;
+}
+.hero-today-note-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 4px;
+}
+.hero-today-note-body {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--peat);
+  margin: 0;
+}
+.hero-today-locate {
+  margin-top: 12px;
+}
+.hero-today-locate-error {
+  color: var(--amber);
 }

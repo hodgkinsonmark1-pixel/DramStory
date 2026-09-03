@@ -2,68 +2,56 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import type { Distillery } from "@/lib/types";
+import type { Distillery, FeaturedStay } from "@/lib/types";
 import { areaMembership } from "@/lib/area-membership";
+import { useTrip, DEFAULT_TRIP_ANSWERS } from "@/lib/trip-context";
+import { AREAS } from "@/lib/areas";
 import {
   ISLAY_OUTLINE_PATH,
   ISLAY_VIEWBOX,
+  ISLAY_VIEWBOX_WIDTH,
   ISLAY_OUTLINE_ATTRIBUTION,
   partitionIslay,
+  projectToIslaySvg,
 } from "@/lib/islay-outline";
 
 /**
- * "Islay has four moods" - built 31 Aug 2026, revised the same day to
- * Mark's notes: real areas on the map rather than dots, prominent
- * numbers, hover linking the map to the writing, distillery information
- * that updates as more open, and a way through to all of them.
+ * "Islay has four moods" - rebuilt 01 Sep 2026 to Mark's final design
+ * (desktop page 4, mobile panel 2). Navy rather than the mid-blue of
+ * 31 Aug, the map inside its own card, and the four areas as panels.
  *
  * THE FOUR AREAS ARE NOT NEW. DREAM_AREAS in lib/dream-areas.ts already
  * defined these four groupings and drives the hero's "drawn to"
- * question, trip-context's default answer and the /dreaming pages. This
- * section reads that same array rather than restating it.
+ * question, trip-context's default answer and the /dreaming pages.
  *
- * WHAT IS COMPUTED AND WHAT IS WRITTEN. Everything factual on this
- * section is derived at render time from the Distilleries table:
- * which distilleries are in each area, how many, where each area's
- * centre is, and therefore the shape of each area on the map. The only
- * hand-written things are the area names and the one-line descriptions
- * below, which are voice - a new distillery opening in the west does not
- * change what the west is like. That split is the point of Mark's
- * "dynamic as more open" note: MOOD_COPY deliberately names no
- * distilleries and counts nothing, so it cannot go stale. The names and
- * the count live in the row beneath it, and come from the data.
- *
- * Portintruan and Laggan Bay are already in the table, unopened. The day
- * their records become visitable they appear in their areas, the counts
- * move, the centres shift and the map redraws itself - with no code
- * change and nothing to remember.
+ * WHAT IS COMPUTED AND WHAT IS WRITTEN. Which distilleries are in each
+ * area, how many, where each area's centre is, and therefore the shape
+ * of each area on the map, are all derived at render time from the
+ * Distilleries table. Only the area names and the four one-line
+ * descriptions are written, and those name no distillery and count
+ * nothing, so they cannot go stale as the island changes.
  *
  * ABOUT THE MAP. The four regions are a Voronoi partition of the real
- * coastline: every point on the island is coloured for whichever area's
- * distilleries are nearest to it. This matters - the shapes are a
- * consequence of where the distilleries are, not lines someone drew.
- * See partitionIslay in lib/islay-outline.ts.
+ * coastline: every point is coloured for whichever area's distilleries
+ * are nearest to it. The card's eyebrow says "real coastline, four
+ * zones" and that is exactly what it is - the shapes are a consequence
+ * of where the distilleries are, not lines someone drew. See
+ * partitionIslay in lib/islay-outline.ts.
  *
- * STILL NOT HERE: the "N min away" drive time from the original mockup.
- * It needs twenty routed journey times we don't hold - Stay Distillery
- * Distances has four rows in the whole table - and straight-line
- * distance is not a stand-in on an island where the road to Bunnahabhain
- * is a single-track switchback. Same call, and the same reason, as the
- * drive times WhereToStay.tsx declines to show.
+ * YOUR BASE MARKED. The eyebrow promises it, so the map has to deliver
+ * it: the visitor's chosen base is read from the same trip answers the
+ * hero writes and Where to stay reads, and pinned at its real
+ * coordinates. If the base cannot be resolved to a stay with
+ * coordinates, the marker is dropped AND the eyebrow stops claiming it -
+ * see baseEyebrow below. A promise in a label is still a promise.
  */
 
 /** The line under each area name, keyed by DREAM_AREAS id.
  *
  *  Written to survive the island changing: no distillery is named and no
- *  count appears in any of these four sentences, because both of those
- *  now render from the data directly beneath. The one number-like claim
- *  is "the island's oldest", which a distillery opening in future cannot
- *  falsify.
- *
- *  Hardcoded here rather than in Airtable, the same split BeforeYouGo
- *  uses: this is written voice that doesn't go stale, and there is no
- *  Areas record for any of these four to hold it - they are groupings,
- *  not the three real /areas pages. */
+ *  count appears, because both render from the data beneath. The one
+ *  number-like claim is "the island's oldest", which a distillery
+ *  opening in future cannot falsify. */
 const MOOD_COPY: Record<string, string> = {
   "peated-south":
     "The smokiest corner of the island, its distilleries strung close together along one shore road above the Kildalton coast.",
@@ -75,23 +63,21 @@ const MOOD_COPY: Record<string, string> = {
     "The far shore, above the Sound of Islay, with the Paps of Jura filling the window opposite.",
 };
 
-/** "4 distilleries" / "1 distillery" / "none open to visitors yet". Used
- *  by the map's tooltip and its description, both of which read the
- *  count aloud and so cannot say "1 distilleries". */
 function countPhrase(n: number): string {
   if (n === 0) return "none open to visitors yet";
   return `${n} ${n === 1 ? "distillery" : "distilleries"}`;
 }
 
-export default function FourMoods({ distilleries }: { distilleries: Distillery[] }) {
-  /** Which area the visitor is pointing at, or null. Drives the
-   *  highlight in both directions: hovering a card lights its region on
-   *  the map, and hovering a region lights its card. */
+export default function FourMoods({
+  distilleries,
+  featuredStays,
+}: {
+  distilleries: Distillery[];
+  featuredStays: FeaturedStay[];
+}) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const trip = useTrip();
 
-  /* Both of these walk every distillery, so they are memoised against
-     the prop rather than recomputed on every hover - and hover changes
-     state on this component several times a second. */
   const membership = useMemo(() => areaMembership(distilleries), [distilleries]);
   const regions = useMemo(
     () =>
@@ -100,11 +86,32 @@ export default function FourMoods({ distilleries }: { distilleries: Distillery[]
       ),
     [membership],
   );
-
-  /** Map an area id to its position in the list, which is what the
-   *  numbering and the colour classes key off. Built from `membership`
-   *  so the number on a region always matches the number on its card. */
   const indexOf = new Map(membership.map((m, i) => [m.area.id, i]));
+
+  /* The visitor's own base. Same answer the hero writes and Where to
+     stay reads, so the two cannot disagree about where someone sleeps.
+
+     It is a SLUG, not a name, and which table it belongs to depends on
+     baseKind: a FEATURED_STAYS slug for a hotel, an AREAS slug for a
+     village. Matching it against stay NAMES - which is what this did on
+     its first build - resolved nothing at all, so the pin never drew and
+     the eyebrow quietly dropped its "your base marked" claim rather than
+     failing visibly. Both tables are checked now. */
+  const baseSlug = trip.answers?.base ?? DEFAULT_TRIP_ANSWERS.base;
+  const baseKind = trip.answers?.baseKind ?? DEFAULT_TRIP_ANSWERS.baseKind;
+  const basePlace =
+    baseKind === "area"
+      ? AREAS.find((a) => a.slug === baseSlug)
+      : featuredStays.find((s) => s.slug === baseSlug);
+  const basePoint =
+    basePlace && Number.isFinite(basePlace.lat) && Number.isFinite(basePlace.lng)
+      ? projectToIslaySvg(basePlace.lng, basePlace.lat)
+      : null;
+
+  /* The eyebrow only claims what the map actually shows. */
+  const eyebrow = basePoint
+    ? "Real coastline · four zones · your base marked"
+    : "Real coastline · four zones";
 
   return (
     <section className="fm-section" id="four-moods">
@@ -121,6 +128,7 @@ export default function FourMoods({ distilleries }: { distilleries: Distillery[]
 
       <div className="fm-layout">
         <figure className="fm-map">
+          <div className="fm-map-eyebrow">{eyebrow}</div>
           <svg
             viewBox={ISLAY_VIEWBOX}
             className="fm-svg"
@@ -142,23 +150,32 @@ export default function FourMoods({ distilleries }: { distilleries: Distillery[]
                   onMouseEnter={() => setActiveId(r.site.id)}
                   onMouseLeave={() => setActiveId(null)}
                 >
-                  {/* Named for anyone reading the SVG with a pointer or
-                      assistive tech; the region is decorative on its own
-                      because every word of it is repeated in the card. */}
                   <title>{`The ${m.area.name} — ${countPhrase(m.distilleries.length)}`}</title>
                   <path d={r.path} className="fm-region-fill" />
                 </g>
               );
             })}
 
-            {/* The coastline is drawn last and unfilled, so it sits as
-                one continuous line over the four region edges rather
-                than being broken up by them. */}
+            {/* Drawn last and unfilled, so the coastline reads as one
+                continuous line over the four region edges. */}
             <path d={ISLAY_OUTLINE_PATH} className="fm-island-edge" />
+
+            {basePoint && (
+              <g className="fm-base" aria-hidden="true">
+                <circle cx={basePoint.x} cy={basePoint.y} r={9} className="fm-base-ring" />
+                <circle cx={basePoint.x} cy={basePoint.y} r={3.5} className="fm-base-dot" />
+              </g>
+            )}
 
             {regions.map((r) => {
               const i = indexOf.get(r.site.id) ?? 0;
+              const m = membership[i];
               const dim = activeId !== null && activeId !== r.site.id;
+              /* Labels sit outside the pin, on whichever side has room:
+                 to the right in the left half of the map, to the left in
+                 the right half. Without the flip the two eastern areas
+                 ran their names off the edge of the viewBox. */
+              const toRight = r.labelAt.x < ISLAY_VIEWBOX_WIDTH * 0.55;
               return (
                 <g
                   key={`n-${r.site.id}`}
@@ -168,9 +185,17 @@ export default function FourMoods({ distilleries }: { distilleries: Distillery[]
                   onMouseEnter={() => setActiveId(r.site.id)}
                   onMouseLeave={() => setActiveId(null)}
                 >
-                  <circle cx={r.labelAt.x} cy={r.labelAt.y} r={19} className="fm-marker-disc" />
-                  <text x={r.labelAt.x} y={r.labelAt.y + 7} className="fm-marker-num">
+                  <circle cx={r.labelAt.x} cy={r.labelAt.y} r={15} className="fm-marker-disc" />
+                  <text x={r.labelAt.x} y={r.labelAt.y + 5.5} className="fm-marker-num">
                     {i + 1}
+                  </text>
+                  <text
+                    x={r.labelAt.x + (toRight ? 22 : -22)}
+                    y={r.labelAt.y + 4.5}
+                    textAnchor={toRight ? "start" : "end"}
+                    className="fm-marker-label"
+                  >
+                    the {m.area.name}
                   </text>
                 </g>
               );
@@ -198,9 +223,8 @@ export default function FourMoods({ distilleries }: { distilleries: Distillery[]
                   <div className="fm-card-body">
                     <h3 className="fm-card-name">The {m.area.name}</h3>
                     <p className="fm-card-copy">{MOOD_COPY[m.area.id]}</p>
-                    {/* The one line on this section that is pure data.
-                        An area with nothing open to visitors says so
-                        rather than rendering an empty line. */}
+                    {/* The one line here that is pure data. An area with
+                        nothing open says so rather than rendering blank. */}
                     <p className="fm-card-meta">
                       {m.distilleries.length === 0
                         ? "None open to visitors yet"
@@ -213,14 +237,13 @@ export default function FourMoods({ distilleries }: { distilleries: Distillery[]
           </ol>
 
           {/* Deliberately carries no count. This section counts what is
-              open to visitors and groups it into the four Islay areas;
-              /distilleries lists every record in the table, including
-              Jura and the two distilleries not yet open. Any number here
-              would contradict the page it lands on. */}
+              open and grouped into the four Islay areas; /distilleries
+              lists every record including Jura and the two not yet open,
+              so a number here would contradict where it lands. */}
           <p className="fm-all">
             <Link href="/distilleries" className="fm-all-link">
               Browse every distillery
-              <span aria-hidden="true"> →</span>
+              <span aria-hidden="true"> &rarr;</span>
             </Link>
           </p>
         </div>

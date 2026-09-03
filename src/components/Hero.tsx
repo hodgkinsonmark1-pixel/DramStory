@@ -10,7 +10,7 @@ import {
   basePreposition,
   describePicks,
   dreamAreaDisplayName,
-  villageDisplayName,
+  resolveTodayOrigin,
   findBaseAccommodation,
 } from "@/lib/trip-answers";
 import { AnswersSheets, type AnswersSheetName } from "@/components/home/AnswersSheets";
@@ -20,6 +20,7 @@ import { HeroDreamingColumn } from "@/components/home/HeroDreamingColumn";
 import { HeroTodayColumn } from "@/components/home/HeroTodayColumn";
 import { buildTodaySchedule, formatClockTime } from "@/lib/today-schedule";
 import { AREAS } from "@/lib/areas";
+import { locateNearestArea } from "@/lib/nearest-area";
 import { DREAM_AREAS } from "@/lib/dream-areas";
 import type { Distillery, HubDay, JournalPost, LocalFeature } from "@/lib/types";
 
@@ -32,6 +33,7 @@ const TIMEFRAME_LABEL: Record<Timeframe, string> = {
   today: "I'm on Islay today",
   dreaming: "I'm just dreaming",
 };
+
 
 /**
  * The desktop homepage hero (docs/hero-handoff.md, §9's phase order,
@@ -109,6 +111,7 @@ export default function Hero({
     return () => mq.removeEventListener("change", update);
   }, []);
 
+
   const timeframe = trip.answers?.timeframe ?? DEFAULT_TRIP_ANSWERS.timeframe;
   const base = trip.answers?.base ?? DEFAULT_TRIP_ANSWERS.base;
   const baseKind = trip.answers?.baseKind ?? DEFAULT_TRIP_ANSWERS.baseKind;
@@ -149,7 +152,11 @@ export default function Hero({
   const baseName = baseDisplayName(base, baseKind);
   const picksLabel = describePicks(picks, distilleries);
   const dreamAreaName = dreamAreaDisplayName(dreamArea);
-  const villageName = villageDisplayName(todayNear);
+  /* One resolution for the whole component: a dropped pin if there is
+     one, the picked village otherwise. The sentence reads its label and
+     the schedule reads its coordinates, so the two can never disagree
+     about where "today" is being measured from. */
+  const todayOrigin = resolveTodayOrigin(trip.answers ?? {});
 
   const answersSheetOpen: AnswersSheetName =
     openSheet === "base" || openSheet === "nights" || openSheet === "picks" ? openSheet : null;
@@ -186,6 +193,17 @@ export default function Hero({
   function selectTodayNear(next: string) {
     trip.setAnswersTodayNear(next);
     setOpenSheet(null);
+  }
+
+  function selectTodayPoint(point: { lat: number; lng: number }) {
+    trip.setAnswersTodayPoint(point, "device");
+    setOpenSheet(null);
+  }
+
+  /** Same answer, sheet left open - see the map's own note in
+   *  HeroSentenceSheets. */
+  function dropPin(point: { lat: number; lng: number }) {
+    trip.setAnswersTodayPoint(point, "pin");
   }
 
   function handleShowDays() {
@@ -241,7 +259,7 @@ export default function Hero({
     todayNow != null
       ? buildTodaySchedule({
           now: todayNow,
-          village: AREAS.find((a) => a.slug === todayNear) ?? AREAS[0],
+          village: todayOrigin,
           distilleries,
           localFeatures,
         })
@@ -260,32 +278,21 @@ export default function Hero({
    *  on top of the sheet, never the only way to answer, same reasoning
    *  as that other component's own version. */
   function handleUseMyLocation() {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setLocationError("Location isn't available in this browser — pick from the list instead.");
-      return;
-    }
     setLocating(true);
     setLocationError(null);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        let nearest = AREAS[0];
-        let nearestDistSq = Infinity;
-        for (const a of AREAS) {
-          const distSq = (a.lat - latitude) ** 2 + (a.lng - longitude) ** 2;
-          if (distSq < nearestDistSq) {
-            nearestDistSq = distSq;
-            nearest = a;
-          }
-        }
+    locateNearestArea(
+      (point) => {
         setLocating(false);
-        trip.setAnswersTodayNear(nearest.slug);
+        trip.setAnswersTodayPoint(point, "device");
       },
-      () => {
+      (reason) => {
         setLocating(false);
-        setLocationError("Couldn't get your location — pick from the list instead.");
-      },
-      { timeout: 8000 }
+        setLocationError(
+          reason === "unsupported"
+            ? "Location isn't available in this browser — pick from the list instead."
+            : "Couldn't get your location — pick from the list instead."
+        );
+      }
     );
   }
 
@@ -343,6 +350,29 @@ export default function Hero({
           <div className={"hero-sentence-block" + (sentVis ? " visible" : "")}>
             <div className="hero-kicker">{showReflow ? "Your answers" : "Plan your trip"}</div>
             <p className="hero-sentence">
+              {/* Clause 1 opens an INLINE DROPDOWN on desktop and keeps the
+                  centred sheet on mobile (03 Sep 2026, Mark's call).
+                  §3 of the handoff always specified "an inline dropdown
+                  trigger styled as the sentence's own words"; the centred
+                  .tour-picker-modal was a Phase 1 shortcut, reused from the
+                  tour picker rather than built. A backdrop that greys the
+                  whole hero to change one word is too heavy for a screen
+                  with room to show the menu beside the word - which a phone
+                  does not have, so mobile keeps the sheet.
+
+                  Timeframe only. The other three clauses keep their sheets
+                  on both: base carries a note per hotel and picks is
+                  multi-select, neither of which fits a small anchored menu. */}
+              {/* One control on both platforms: the shared
+                  .tour-picker-modal sheet in HeroSentenceSheets. Three
+                  desktop-only alternatives were tried on 03 Sep 2026 - a
+                  panel under the clause, a list under the sentence, and
+                  the options in the clause's own position - and each was
+                  worse than the sheet in its own way; the last broke
+                  outright once an option was selected. Mark's call to go
+                  back, and it is the right one: the sheet already worked,
+                  and desktop and mobile now behave identically rather
+                  than needing two explanations. */}
               <button
                 type="button"
                 className="hero-sentence-clause"
@@ -395,16 +425,22 @@ export default function Hero({
 
               {timeframe === "today" && (
                 <>
-                  {", near "}
+                  {/* "and I've dropped a pin" when the visitor used their
+                      location, ", near Bowmore" when they picked from the
+                      list (03 Sep 2026, Mark's wording). The clause is the
+                      same control either way - it still opens the same
+                      sheet - so a pin can be swapped back for a village
+                      without hunting for a different affordance. */}
+                  {todayOrigin.connector}
                   <button
                     type="button"
                     className="hero-sentence-clause"
                     aria-haspopup="dialog"
                     aria-expanded={openSheet === "todayNear"}
-                    aria-label={`Change where on Islay: ${villageName}`}
+                    aria-label={`Change where on Islay: ${todayOrigin.label}`}
                     onClick={() => setOpenSheet("todayNear")}
                   >
-                    {villageName}
+                    {todayOrigin.label}
                   </button>
                   .
                 </>
@@ -504,7 +540,7 @@ export default function Hero({
             />
           )}
           {timeframe === "today" && (
-            <HeroTodayColumn todayNear={todayNear} distilleries={distilleries} localFeatures={localFeatures} />
+            <HeroTodayColumn origin={todayOrigin} distilleries={distilleries} localFeatures={localFeatures} />
           )}
         </div>
       )}
@@ -519,9 +555,12 @@ export default function Hero({
         timeframe={timeframe}
         dreamArea={dreamArea}
         todayNear={todayNear}
+        todayPoint={trip.answers?.todayPoint}
         onSelectTimeframe={selectTimeframe}
         onSelectDreamArea={selectDreamArea}
         onSelectTodayNear={selectTodayNear}
+        onSelectTodayPoint={selectTodayPoint}
+        onDropPin={dropPin}
       />
       <AnswersSheets
         openSheet={answersSheetOpen}

@@ -7,6 +7,8 @@ import { stopCoords, stopId, stopName } from "@/lib/itinerary-stop";
 import { nearbyFeaturesForDay } from "@/lib/day-derivations";
 import { useTrip } from "@/lib/trip-context";
 import MapCanvas from "./MapCanvas";
+import PlaceLiveDetails from "./PlaceLiveDetails";
+import { hasGoogleMapsBrowserKey } from "@/lib/google-maps-loader";
 
 /**
  * Mobile planner bottom sheet (Days/Trip flow Phase 6, docs/days-trip-
@@ -65,6 +67,24 @@ type SheetStage = "peek" | "half" | "full";
 
 const SHEET_HEIGHTS: Record<SheetStage, number> = { peek: 150, half: 420, full: 640 };
 const PIN_CARD_HEIGHT = 220;
+/** A food or drink pin with a write-up and an official-site link, but no
+ *  Google card to scroll through. */
+const PIN_CARD_FOOD_HEIGHT = 320;
+
+/** Same guard MapCanvas applies to the popup's Official site link: rejects
+ *  a javascript: value, and turns a scheme-less Airtable entry such as
+ *  "peatzeria.co.uk" into an absolute URL rather than a relative path that
+ *  would 404 on dramstory.com. */
+function safeExternalUrl(raw: string | undefined): string | null {
+  if (!raw?.trim()) return null;
+  const withScheme = /^https?:\/\//i.test(raw.trim()) ? raw.trim() : `https://${raw.trim()}`;
+  try {
+    const url = new URL(withScheme);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
 
 interface SelectedPin {
   kind: "distillery" | "feature";
@@ -131,7 +151,33 @@ export default function MobilePlannerSheet({
   const [ghost, setGhost] = useState<GhostDrop | null>(null);
   const ghostTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const sheetHeight = selectedPin ? PIN_CARD_HEIGHT : SHEET_HEIGHTS[stage];
+  // The tapped pin's full record, so a food or drink pin can show what the
+  // desktop popup shows (1 Sep 2026). SelectedPin carries only name and
+  // coordinates - enough for the drive-time line, not enough to describe
+  // the place. Distillery pins keep the existing card untouched.
+  const selectedFeature =
+    selectedPin?.kind === "feature" ? localFeatures.find((f) => f.id === selectedPin.id) : undefined;
+  const selectedIsFoodDrink =
+    selectedFeature?.category === "pub" ||
+    selectedFeature?.category === "cafe" ||
+    selectedFeature?.category === "restaurant";
+  const selectedSummary = selectedIsFoodDrink
+    ? selectedFeature?.pinSummary || selectedFeature?.whyVisit || selectedFeature?.description || ""
+    : "";
+  const selectedWebsite = selectedIsFoodDrink ? safeExternalUrl(selectedFeature?.websiteUrl) : null;
+  const selectedPlaceId = selectedIsFoodDrink ? selectedFeature?.googlePlaceId : undefined;
+  const showsGoogleCard = Boolean(selectedPlaceId) && hasGoogleMapsBrowserKey();
+
+  // A pin card carrying a Google card needs far more room than the 220px
+  // one that holds a name and a button, so it takes the full-sheet height
+  // and scrolls. A food pin with only a write-up sits between the two.
+  const sheetHeight = selectedPin
+    ? showsGoogleCard
+      ? SHEET_HEIGHTS.full
+      : selectedIsFoodDrink
+        ? PIN_CARD_FOOD_HEIGHT
+        : PIN_CARD_HEIGHT
+    : SHEET_HEIGHTS[stage];
 
   function cycleSheet() {
     setSelectedPin(null);
@@ -315,6 +361,30 @@ export default function MobilePlannerSheet({
                     {afterName ? `+ Add after ${afterName}` : "+ Add to your day"}
                   </button>
                 )}
+
+                {/* Everything below is food and drink only. Until 1 Sep 2026
+                    a mobile visitor tapping a pub got its name, a drive time
+                    and an Add button - nothing about the place itself, no
+                    link, and none of the live Google detail desktop had. */}
+                {selectedSummary ? <p className="mobile-pin-card-summary">{selectedSummary}</p> : null}
+
+                {showsGoogleCard && selectedPlaceId ? (
+                  <PlaceLiveDetails
+                    key={selectedPlaceId}
+                    variant="inline"
+                    placeId={selectedPlaceId}
+                    name={selectedPin.name}
+                    categoryLabel={selectedFeature?.category ?? ""}
+                    summary=""
+                    onAddToTrip={handlePinAdd}
+                    websiteUrl={selectedWebsite ?? undefined}
+                    onClose={() => setSelectedPin(null)}
+                  />
+                ) : selectedWebsite ? (
+                  <a className="mobile-pin-card-official" href={selectedWebsite} target="_blank" rel="noreferrer">
+                    Official site &#8599;
+                  </a>
+                ) : null}
               </div>
             ) : (
               <>

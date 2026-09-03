@@ -118,3 +118,53 @@ export function dreamAreaDisplayName(dreamArea: string): string {
 export function villageDisplayName(todayNear: string): string {
   return AREAS.find((a) => a.slug === todayNear)?.name ?? todayNear;
 }
+
+export interface TodayOrigin {
+  lat: number;
+  lng: number;
+  /** Which of the three ways the visitor answered: picked a village, let
+   *  the device find them, or tapped the map. */
+  kind: "village" | "device" | "pin";
+  /** What the sentence and the answers bars say. */
+  label: string;
+  /** The words joining the clause to it - ", near Bowmore" against
+   *  " and I'm using my location". */
+  connector: string;
+}
+
+/**
+ * Where "today" is measured from - the ONE place todayPoint and
+ * todayNear are reconciled (03 Sep 2026).
+ *
+ * A dropped pin wins: it is the visitor's real position, and every
+ * consumer here (buildTodaySchedule's drive times, the map centre on
+ * /journey and /today/build) wants a point, not a village. The village
+ * slug is the fallback for everyone who picked from the list, and for
+ * every visitor who has never touched the control.
+ *
+ * Call this rather than testing for answers.todayPoint at a call site -
+ * six components read this answer, and the rule about which field wins
+ * should live once.
+ */
+export function resolveTodayOrigin(answers: {
+  todayNear?: string;
+  todayPoint?: { lat: number; lng: number };
+  todayPointSource?: "device" | "pin";
+}): TodayOrigin {
+  const point = answers.todayPoint;
+  if (point) {
+    // A point set before todayPointSource existed, or by any caller that
+    // forgets to say which, is described as a pin - the weaker claim of
+    // the two, since it does not assert we located anybody.
+    const fromDevice = answers.todayPointSource === "device";
+    return {
+      lat: point.lat,
+      lng: point.lng,
+      kind: fromDevice ? "device" : "pin",
+      label: fromDevice ? "I\u2019m using my location" : "I\u2019ve dropped a pin",
+      connector: " and ",
+    };
+  }
+  const village = AREAS.find((a) => a.slug === answers.todayNear) ?? AREAS[0];
+  return { lat: village.lat, lng: village.lng, kind: "village", label: village.name, connector: ", near " };
+}

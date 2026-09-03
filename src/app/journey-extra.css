@@ -3023,6 +3023,37 @@ select.location-inline-input {
   text-decoration: underline;
 }
 
+/* Mobile bottom-sheet variant of the live-details card. No absolute
+   positioning, no chrome of its own — the sheet supplies the name, the
+   drive time, the Add button and the close control, so this renders only
+   Google's block and the boundary around it. */
+.place-live-inline {
+  display: block;
+  margin-top: 12px;
+}
+.place-live-inline .place-live-panel-body gmp-place-details {
+  width: 100%;
+}
+
+/* Our own line about a food or drink venue, in the mobile pin card. */
+.mobile-pin-card-summary {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--peat);
+}
+.mobile-pin-card-official {
+  display: inline-block;
+  margin-top: 10px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--copper);
+  text-decoration: none;
+}
+.mobile-pin-card-official:hover {
+  text-decoration: underline;
+}
+
 .place-live-panel {
   position: absolute;
   top: 16px;

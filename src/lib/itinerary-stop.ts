@@ -27,6 +27,13 @@ export function stopCoords(stop: ItineraryStop): { lat: number; lng: number } {
     : { lat: stop.feature.lat, lng: stop.feature.lng };
 }
 
+/** Where this stop's own page lives. Features live under /explore, not
+ *  /local-features - that is the hub, the slug route is /explore/[slug],
+ *  matching every other feature link on the site. */
+export function stopHref(stop: ItineraryStop): string {
+  return stop.kind === "distillery" ? `/distilleries/${stop.distillery.slug}` : `/explore/${stop.feature.slug}`;
+}
+
 export function stopName(stop: ItineraryStop): string {
   return stop.kind === "distillery" ? stop.distillery.name : stop.feature.name;
 }

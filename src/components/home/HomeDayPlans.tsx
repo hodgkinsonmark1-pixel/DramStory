@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { HubDay } from "@/lib/types";
 import { paceKey } from "@/lib/journey-derivations";
+import { soleAreaFor } from "@/lib/area-membership";
 import { dayTourTotal, formatTourPrice, spellCount } from "@/lib/journey-derivations";
 
 /**
@@ -77,7 +78,10 @@ const CHEAP_DAY_CEILING = 50;
  *  and quietly rely on "Browse all sixteen" to explain the other six.
  *  Now the nine are all there and the count is a promise the section
  *  keeps by itself. The hub link stays for the full view with sorting. */
-const CARDS_VISIBLE = 3;
+/** The gap between slides, in px - must match .hdp-track's gap in
+ *  home-extra.css. Used to turn a scroll offset back into a slide index
+ *  when the track is swiped rather than driven by the arrows. */
+const CAROUSEL_GAP = 20;
 
 /** Whether a day can be done without hiring a car.
  *
@@ -102,73 +106,60 @@ function isCarFree(day: HubDay): boolean {
   return !clause.startsWith("car");
 }
 
-/** The transport pills that close a card, above the rule - the owner's
- *  mockup treatment (30 Aug 2026). Two at most, and only ever what a
- *  record says:
- *    - a green "Nobody has to drive" pill when the clause offers a way
- *      without a car, which is the one claim in this section worth
- *      colouring;
- *    - the Transport Clause itself, verbatim, in a quiet pill.
- *  Where the clause leans on a bus the pill carries the timetable link.
- *  Never a route number and never a departure - see BUS_TIMETABLE_URL. */
-function TransportPills({ day }: { day: HubDay }) {
-  const clause = day.transportClause?.trim();
-  if (!clause) return null;
-  const carFree = isCarFree(day);
-  const mentionsBus = /\bbus(es)?\b/i.test(clause);
-  return (
-    <div className="hdp-pills">
-      {carFree && (
-        <span className="hdp-pill hdp-pill-good">
-          <span className="hdp-dot" aria-hidden="true" />
-          Nobody has to drive
-        </span>
-      )}
-      <span className="hdp-pill">
-        {clause}
-        {mentionsBus && (
-          <>
-            {" "}
-            <a href={BUS_TIMETABLE_URL} target="_blank" rel="noopener noreferrer">
-              timetable &rarr;
-            </a>
-          </>
-        )}
-      </span>
-    </div>
-  );
-}
 
-function DayCard({ day }: { day: HubDay }) {
+/** One slide of the carousel. The whole card is a link to the day - the
+ *  design's own "+ Add to your trip" button became "See the day" on
+ *  Mark's call (01 Sep 2026): nothing on the homepage can add to a trip
+ *  yet, and a button that says it does and doesn't is worse than one
+ *  that says where it goes. */
+function DaySlide({ day, area }: { day: HubDay; area?: string }) {
   const total = dayTourTotal(day);
-  // paceKey, not paceTone: paceTone's Relaxed pair resolves to the navy
-  // (--green-deep is not green - see the token block in
-  // dramstory-legacy.css), which is why Relaxed and Packed did not read
-  // as opposite ends of anything. The three colours are declared against
-  // this class in home-extra.css instead, and Relaxed is the real green.
-  // NOTE this makes the homepage's Relaxed differ from /days and the
-  // journey spine, which still read paceTone. Flagged to the owner.
   const pace = paceKey(day.pacing);
+  const carFree = isCarFree(day);
+  const clause = day.transportClause?.trim();
+  const mentionsBus = clause ? /\bbus(es)?\b/i.test(clause) : false;
+
   return (
-    <article className="hdp-card">
-      {/* Pacing as a coloured WORD beside the price rather than a filled
-          pill, per the mockup - the pills at the foot of the card are
-          the pill treatment, and two pill styles in one card fought each
-          other. Colour still comes from paceTone, the same source
-          PacingTag and the journey spine read, so the three cannot
-          drift. PacingTag itself is untouched: it is shared with the
-          hero column and the days hub. */}
-      <div className="hdp-card-top">
-        <span className={`hdp-pace hdp-pace-${pace}`}>{day.pacing}</span>
-        {/* Same rule as the journey cards: a day nobody has priced says
-            nothing about money rather than printing a zero. */}
-        {total > 0 && <span className="hdp-price">{formatTourPrice(total)}pp in tours</span>}
+    <article className="hdp-slide" aria-roledescription="slide">
+      <div className="hdp-slide-main">
+        <div className="hdp-slide-eyebrow">
+          <span className={`hdp-pace hdp-pace-${pace}`}>{day.pacing}</span>
+          {/* Derived from the day's own distilleries, not typed - and
+              absent entirely on a day that crosses two areas rather than
+              picking one of them. See soleAreaFor. */}
+          {area && <span className="hdp-slide-area">{area}</span>}
+        </div>
+        <h3 className="hdp-slide-name">{day.name}</h3>
+        {day.hook && <p className="hdp-slide-hook">{day.hook}</p>}
       </div>
-      <h3 className="hdp-name">
-        <Link href={`/days/${day.slug}`}>{day.name}</Link>
-      </h3>
-      {day.hook && <p className="hdp-hook">{day.hook}</p>}
-      <TransportPills day={day} />
+
+      <div className="hdp-slide-aside">
+        {/* A day nobody has priced says nothing about money rather than
+            printing a zero. */}
+        {total > 0 && (
+          <div className="hdp-slide-money">
+            <div className="hdp-slide-money-label">Tours, per person</div>
+            <div className="hdp-slide-money-figure">{formatTourPrice(total)}</div>
+          </div>
+        )}
+        {carFree && <div className="hdp-slide-good">Nobody has to drive</div>}
+        {clause && (
+          <div className="hdp-slide-clause">
+            {clause}
+            {mentionsBus && (
+              <>
+                {" "}
+                <a href={BUS_TIMETABLE_URL} target="_blank" rel="noopener noreferrer">
+                  timetable &rarr;
+                </a>
+              </>
+            )}
+          </div>
+        )}
+        <Link className="hdp-slide-cta" href={`/days/${day.slug}`}>
+          See the day &rarr;
+        </Link>
+      </div>
     </article>
   );
 }
@@ -199,41 +190,47 @@ export default function HomeDayPlans({ days }: { days: HubDay[] }) {
           : days;
 
 
-  /* THE RAIL. Scroll position drives which arrows are live, so an arrow
-     is never offered when there is nothing that way - including the
-     common case where the filtered set is three or fewer and neither
-     arrow applies. */
-  const railRef = useRef<HTMLDivElement>(null);
-  const [canPrev, setCanPrev] = useState(false);
-  const [canNext, setCanNext] = useState(false);
+  /* THE CAROUSEL. One day at a time, with the index held in state
+     rather than read off scroll position: the design's dots need to know
+     which day is showing, and a scroll-derived index on a snap container
+     is fragile mid-swipe.
 
-  const updateArrows = useCallback(() => {
-    const el = railRef.current;
+     On a phone the arrows are hidden and the track is swiped instead
+     (mobile design, panel 1), so the track is a real scroll container
+     and the index follows it via onScroll. Arrows and swipe therefore
+     drive the same state rather than two competing ones. */
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [index, setIndex] = useState(0);
+
+  const goTo = useCallback((next: number) => {
+    const el = trackRef.current;
     if (!el) return;
-    // 2px of slack: sub-pixel widths mean scrollLeft rarely lands exactly
-    // on the maximum, which would leave the next arrow enabled forever.
-    setCanPrev(el.scrollLeft > 2);
-    setCanNext(el.scrollLeft < el.scrollWidth - el.clientWidth - 2);
+    const clamped = Math.max(0, Math.min(next, el.children.length - 1));
+    const slide = el.children[clamped] as HTMLElement | undefined;
+    if (slide) el.scrollTo({ left: slide.offsetLeft - el.offsetLeft, behavior: "smooth" });
+    setIndex(clamped);
   }, []);
 
-  // Re-measure when the filter changes the number of cards, and on
-  // resize, since how many fit is a function of width.
-  useEffect(() => {
-    const el = railRef.current;
-    if (el) el.scrollTo({ left: 0 });
-    updateArrows();
-    window.addEventListener("resize", updateArrows);
-    return () => window.removeEventListener("resize", updateArrows);
-  }, [filter, updateArrows]);
+  /* Swipe keeps the index honest. Rounded to the nearest slide so a
+     half-swipe that springs back does not leave the dots one ahead. */
+  const onTrackScroll = useCallback(() => {
+    const el = trackRef.current;
+    if (!el || el.clientWidth === 0) return;
+    const first = el.children[0] as HTMLElement | undefined;
+    const step = first ? first.offsetWidth + CAROUSEL_GAP : el.clientWidth;
+    setIndex(Math.round(el.scrollLeft / step));
+  }, []);
 
-  const scrollByCard = useCallback((direction: 1 | -1) => {
-    const el = railRef.current;
-    if (!el) return;
-    // One card plus its gap, measured off the rail rather than assumed,
-    // so this stays correct when the breakpoints change the card width.
-    const first = el.firstElementChild as HTMLElement | null;
-    const step = first ? first.offsetWidth + 16 : el.clientWidth / CARDS_VISIBLE;
-    el.scrollBy({ left: step * direction, behavior: "smooth" });
+  /* Changing the filter changes the set, so the carousel has to go back
+     to the start or the index can point past the end of the new list.
+     Done in the click handler rather than an effect on `filter`: this is
+     a user action with a known outcome, and resetting from an effect
+     would run a second render every time and trip
+     react-hooks/set-state-in-effect. */
+  const chooseFilter = useCallback((id: FilterId) => {
+    setFilter(id);
+    setIndex(0);
+    trackRef.current?.scrollTo({ left: 0 });
   }, []);
 
   if (days.length === 0) return null;
@@ -250,22 +247,91 @@ export default function HomeDayPlans({ days }: { days: HubDay[] }) {
 
   return (
     <section className="hdp-section" id="day-plans">
-      <div className="hdp-head">
-        <div className="hdp-head-text">
+      <div className="sec-head">
+        <div className="sec-head-text">
           <div className="how-eyebrow">Or take one day at a time</div>
           {/* No count here, deliberately - see the file comment. */}
           <h2 className="how-title">Days, ready to drop into a trip</h2>
+          <div className="sec-head-note">
+            Built from what you said upstairs. Flick through, or open the full list.
+          </div>
+        </div>
+        <div className="sec-head-aside">
           {/* Counted, never typed - publish a seventeenth Day and this
-              says seventeen on the next build. Moved under the title on
-              31 Aug 2026 when the heads centred; it was to the right of
-              the heading, which no longer has a right. */}
+              says seventeen on the next build. */}
           <Link className="hdp-browse" href="/days">
-            Browse all {spellCount(days.length)} &rarr;
+            Browse and filter all {spellCount(days.length)} &rarr;
           </Link>
+          {/* Reads the live carousel position, and counts the FILTERED
+              set - "Day 3 of 9" while Relaxed is on, not "of 16". */}
+          <div className="sec-head-sub hdp-counter">
+            Day {Math.min(index + 1, matching.length)} of {matching.length}
+          </div>
         </div>
       </div>
 
+      <div className="hdp-carousel">
+        <button
+          type="button"
+          className="hdp-arrow"
+          onClick={() => goTo(index - 1)}
+          disabled={index <= 0}
+          aria-label="Previous day"
+        >
+          <span aria-hidden="true">&#8592;</span>
+        </button>
+
+        <div
+          className="hdp-track"
+          ref={trackRef}
+          onScroll={onTrackScroll}
+          tabIndex={0}
+          role="group"
+          aria-label={`${matching.length} day plans`}
+        >
+          {matching.map((day) => (
+            <DaySlide
+              key={day.slug}
+              day={day}
+              area={soleAreaFor(day.stops.map((s) => s.distillery))?.name}
+            />
+          ))}
+        </div>
+
+        <button
+          type="button"
+          className="hdp-arrow"
+          onClick={() => goTo(index + 1)}
+          disabled={index >= matching.length - 1}
+          aria-label="Next day"
+        >
+          <span aria-hidden="true">&#8594;</span>
+        </button>
+      </div>
+
+      {/* Dots, one per day in the filtered set. Buttons rather than
+          decoration so the carousel can be driven without a swipe or a
+          reachable arrow. */}
+      {matching.length > 1 && (
+        <div className="hdp-dots" role="tablist" aria-label="Choose a day">
+          {matching.map((day, i) => (
+            <button
+              key={day.slug}
+              type="button"
+              role="tab"
+              aria-selected={i === index}
+              aria-label={day.name}
+              className={i === index ? "hdp-dot is-on" : "hdp-dot"}
+              onClick={() => goTo(i)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* The filters sit BELOW the carousel in the final design, as a
+          shortcut past it rather than a gate in front of it. */}
       <div className="hdp-filters" role="group" aria-label="Filter days">
+        <span className="hdp-filters-label">Or straight to</span>
         {chips
           .filter((chip) => chip.count > 0)
           .map((chip) => (
@@ -274,50 +340,11 @@ export default function HomeDayPlans({ days }: { days: HubDay[] }) {
               type="button"
               className={filter === chip.id ? "hdp-chip hdp-chip-on" : "hdp-chip"}
               aria-pressed={filter === chip.id}
-              onClick={() => setFilter(chip.id)}
+              onClick={() => chooseFilter(chip.id)}
             >
               {chip.label} <span className="hdp-chip-count">{chip.count}</span>
             </button>
           ))}
-      </div>
-
-      <div className="hdp-rail-wrap">
-        <button
-          type="button"
-          className="hdp-arrow hdp-arrow-prev"
-          onClick={() => scrollByCard(-1)}
-          disabled={!canPrev}
-          aria-label="Show previous days"
-        >
-          <span aria-hidden="true">&#8592;</span>
-        </button>
-
-        {/* tabIndex makes the rail itself keyboard-scrollable, which is
-            the only way to reach the off-screen cards without a mouse -
-            the arrows are buttons, but arrow keys need a focused
-            scroll container. */}
-        <div
-          className="hdp-rail"
-          ref={railRef}
-          onScroll={updateArrows}
-          tabIndex={0}
-          role="group"
-          aria-label={`${matching.length} day plans, scrollable`}
-        >
-          {matching.map((day) => (
-            <DayCard key={day.slug} day={day} />
-          ))}
-        </div>
-
-        <button
-          type="button"
-          className="hdp-arrow hdp-arrow-next"
-          onClick={() => scrollByCard(1)}
-          disabled={!canNext}
-          aria-label="Show more days"
-        >
-          <span aria-hidden="true">&#8594;</span>
-        </button>
       </div>
     </section>
   );

@@ -1,9 +1,15 @@
 "use client";
 
+import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Area, FeaturedStay } from "@/lib/types";
 import { useTrip, DEFAULT_TRIP_ANSWERS } from "@/lib/trip-context";
+import { spellCount } from "@/lib/journey-derivations";
+
+/** Matches .wts-grid's own column gap - the carousel step is one card
+ *  plus one gap, and reading it from a constant keeps the two in step. */
+const STAYS_GAP = 16;
 
 /**
  * "Where to stay" - rebuilt 30 Aug 2026 to Mark's mockup, and moved
@@ -119,17 +125,94 @@ export default function WhereToStay({ areas, featuredStays }: { areas: Area[]; f
   const base = trip.answers?.base ?? DEFAULT_TRIP_ANSWERS.base;
   const baseKind = trip.answers?.baseKind ?? DEFAULT_TRIP_ANSWERS.baseKind;
 
+  /* THE STAYS CAROUSEL (03 Sep 2026, mobile design panel 2: "Stays get
+     the same swipe-and-dots treatment as the days - two horizontal
+     patterns doing the same job differently would be the thing that
+     reads as sloppy"). Same shape as HomeDayPlans' carousel on purpose:
+     index in state, swipe keeps it honest via onScroll, dots drive it.
+     No arrows here - four cards is a short enough row that the dots
+     carry it, and the section head already has the area pills competing
+     for that corner.
+
+     Four across on desktop is untouched: .wts-grid only becomes a
+     scroll container below the mobile breakpoint, so on desktop the
+     ref, the index and the scroll handler simply never do anything. */
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [index, setIndex] = useState(0);
+
+  const goTo = useCallback((next: number) => {
+    const el = trackRef.current;
+    if (!el) return;
+    const clamped = Math.max(0, Math.min(next, el.children.length - 1));
+    const slide = el.children[clamped] as HTMLElement | undefined;
+    if (slide) el.scrollTo({ left: slide.offsetLeft - el.offsetLeft, behavior: "smooth" });
+    setIndex(clamped);
+  }, []);
+
+  const onTrackScroll = useCallback(() => {
+    const el = trackRef.current;
+    if (!el || el.clientWidth === 0) return;
+    const first = el.children[0] as HTMLElement | undefined;
+    const step = first ? first.offsetWidth + STAYS_GAP : el.clientWidth;
+    setIndex(Math.round(el.scrollLeft / step));
+  }, []);
+
   if (featuredStays.length === 0) return null;
+
+  /* "1 of 4 - your base first" (mobile design panel 2). The base card is
+     ORDERED first, not merely badged: on a one-card-wide swipe the
+     difference is between seeing your own hotel immediately and swiping
+     past three others to find it. A visitor who answered with a village,
+     or who has not answered at all, gets Airtable's own order untouched. */
+  const isBaseStay = (stay: FeaturedStay) => baseKind === "hotel" && stay.slug === base;
+  const hasBase = featuredStays.some(isBaseStay);
+  const orderedStays = hasBase
+    ? [...featuredStays].sort((a, b) => Number(isBaseStay(b)) - Number(isBaseStay(a)))
+    : featuredStays;
 
   return (
     <section className="wts-section" id="where-to-stay">
-      <div className="cj-head">
-        <div className="how-eyebrow">Once you know the shape of the trip</div>
-        <h2 className="how-title">Where to stay</h2>
+      <div className="sec-head">
+        <div className="sec-head-text">
+          <div className="how-eyebrow">Once you know the shape of the trip</div>
+          <h2 className="how-title">Where to stay</h2>
+        </div>
+        {/* The village links moved up here as pills (01 Sep 2026, final
+            design). They were a "Not sure which village yet?" line at the
+            foot of the section, which is where a reader looks last and
+            needs it first.
+
+            These are the THREE REAL AREAS with live /areas/[slug] pages,
+            not the four moods - Mark's correction to the design, which
+            showed the four. The moods are an editorial grouping with
+            nothing behind them; these three are real pages. The row
+            counts what exists rather than naming four and dead-linking
+            one. */}
+        {areas.length > 0 && (
+          <div className="sec-head-aside wts-areas">
+            <span className="wts-areas-label">
+              {/* Explicit {" "} rather than a literal space. The source had
+                  one on the same line and the build dropped it anyway -
+                  the rendered DOM was `four<!-- -->featured hotels`, the
+                  comment marker React emits between two adjacent text
+                  nodes, with the whitespace gone. Caught on the preview,
+                  not in the source. */}
+              {spellCount(featuredStays.length)}{" "}
+              featured hotels &mdash; or pick an area:
+            </span>
+            <span className="wts-pills">
+              {areas.map((a) => (
+                <Link key={a.slug} className="wts-pill" href={`/areas/${a.slug}`}>
+                  {a.name} <span aria-hidden="true">&rarr;</span>
+                </Link>
+              ))}
+            </span>
+          </div>
+        )}
       </div>
 
-      <div className="wts-grid">
-        {featuredStays.map((stay) => (
+      <div className="wts-grid" ref={trackRef} onScroll={onTrackScroll}>
+        {orderedStays.map((stay) => (
           <StayCard
             key={stay.slug}
             stay={stay}
@@ -137,20 +220,34 @@ export default function WhereToStay({ areas, featuredStays }: { areas: Area[]; f
             // Only a hotel answer can mark a hotel. A visitor who
             // answered with a village has told us the area, not the bed,
             // and no card here is their base.
-            isBase={baseKind === "hotel" && stay.slug === base}
+            isBase={isBaseStay(stay)}
           />
         ))}
       </div>
 
-      {areas.length > 0 && (
-        <p className="wts-villages">
-          <span>Not sure which village yet?</span>{" "}
-          {areas.map((a, i) => (
-            <span key={a.slug}>
-              {i > 0 && <span className="wts-sep"> &middot; </span>}
-              <Link href={`/areas/${a.slug}`}>{a.name}</Link>
-            </span>
+      {/* Real buttons, not decoration - the carousel must be drivable
+          without a swipe. Mirrors .hdp-dots' own tablist. Hidden above
+          the mobile breakpoint, where all four cards are already on
+          screen and there is nothing to page through. */}
+      {orderedStays.length > 1 && (
+        <div className="wts-dots" role="tablist" aria-label="Choose a place to stay">
+          {orderedStays.map((stay, i) => (
+            <button
+              key={stay.slug}
+              type="button"
+              role="tab"
+              aria-selected={i === index}
+              aria-label={stay.name}
+              className={i === index ? "wts-dot is-on" : "wts-dot"}
+              onClick={() => goTo(i)}
+            />
           ))}
+        </div>
+      )}
+      {orderedStays.length > 1 && (
+        <p className="wts-count">
+          {index + 1} of {orderedStays.length}
+          {hasBase ? " \u00b7 your base first" : ""}
         </p>
       )}
     </section>

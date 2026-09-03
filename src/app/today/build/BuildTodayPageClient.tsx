@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { villageDisplayName } from "@/lib/trip-answers";
-import { AREAS } from "@/lib/areas";
+import { resolveTodayOrigin } from "@/lib/trip-answers";
 import { useTrip } from "@/lib/trip-context";
 import DreamingShortlistSection from "@/components/home/DreamingShortlistSection";
 import type { Distillery, LocalFeature } from "@/lib/types";
@@ -18,7 +17,7 @@ import type { Distillery, LocalFeature } from "@/lib/types";
  * Unlike dreaming (which has no dates and genuinely no plan yet), today
  * already has a live schedule on HeroTodayColumn itself - this page is
  * deliberately just the free-browse map+shortlist companion to that, not
- * a replacement for it. villageDisplayName/AREAS are the same lookup
+ * a replacement for it. resolveTodayOrigin/AREAS are the same lookup
  * TodayPageClient and HeroTodayColumn already use for todayNear -> real
  * village name/coords, no new data needed.
  */
@@ -30,16 +29,18 @@ export default function BuildTodayPageClient({
   localFeatures: LocalFeature[];
 }) {
   const trip = useTrip();
-  const todayNear = trip.answers?.todayNear ?? AREAS[0].slug;
-  const village = AREAS.find((a) => a.slug === todayNear) ?? AREAS[0];
-  const villageName = villageDisplayName(todayNear);
+  /* Same resolution as the homepage and /today - so a dropped pin
+     centres this map on the visitor rather than on a village up to ten
+     miles away. */
+  const todayOrigin = resolveTodayOrigin(trip.answers ?? {});
+  const village = todayOrigin;
 
   return (
     <div style={{ maxWidth: 640, margin: "0 auto", padding: "24px 20px 80px" }}>
       <div className="days-answers-bar">
         <div className="days-answers-bar-text">
-          <div className="days-answers-bar-kicker">Near</div>
-          <div className="days-answers-bar-value">{villageName}</div>
+          <div className="days-answers-bar-kicker">{todayOrigin.kind === "village" ? "Near" : "Your location"}</div>
+          <div className="days-answers-bar-value">{todayOrigin.label}</div>
         </div>
         <Link href="/today" className="days-answers-bar-change">
           Back
@@ -52,17 +53,25 @@ export default function BuildTodayPageClient({
           fontWeight: 300,
           fontSize: "clamp(26px, 6vw, 34px)",
           color: "var(--dark)",
-          margin: "20px 0 6px",
+          margin: "20px 0 16px",
           letterSpacing: "-0.01em",
         }}
       >
         See what&apos;s <em style={{ fontStyle: "italic", color: "var(--amber)" }}>nearby</em>
       </h1>
-      <p style={{ fontSize: 14, color: "var(--peat)", marginBottom: 18 }}>
-        Tap a distillery or local spot to shortlist it, then add each one to a day when you&apos;re ready.
-      </p>
+      {/* The standfirst that /dreaming/build and /areas/[slug]/build both
+          carry is dropped HERE ONLY (03 Sep 2026, Mark's call): the
+          filter chips now sit directly under the heading and need the
+          room, and this is the one of the three screens a visitor
+          reaches while standing on the island with a phone. The other
+          two keep it - they are planning screens with space to spare. */}
 
-      <DreamingShortlistSection distilleries={distilleries} localFeatures={localFeatures} center={village} />
+      <DreamingShortlistSection
+        distilleries={distilleries}
+        localFeatures={localFeatures}
+        center={village}
+        includeFoodAndDrink
+      />
     </div>
   );
 }

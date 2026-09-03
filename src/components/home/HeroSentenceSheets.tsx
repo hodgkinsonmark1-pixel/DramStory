@@ -1,8 +1,17 @@
 "use client";
 
 import type { Timeframe } from "@/lib/trip-context";
+import { useState } from "react";
 import { AREAS } from "@/lib/areas";
+import { locateNearestArea } from "@/lib/nearest-area";
+import { resolveTodayOrigin } from "@/lib/trip-answers";
+import dynamic from "next/dynamic";
 import { DREAM_AREAS } from "@/lib/dream-areas";
+
+/* Leaflet is client-only and ~40kb; the sheet it lives in is opened by
+   a minority of visitors, so it is loaded when that sheet opens rather
+   than on every homepage render. */
+const TodayPinMap = dynamic(() => import("@/components/home/TodayPinMap"), { ssr: false });
 
 export type HeroSentenceSheetName = "timeframe" | "dreamArea" | "todayNear" | null;
 
@@ -27,18 +36,24 @@ export function HeroSentenceSheets({
   timeframe,
   dreamArea,
   todayNear,
+  todayPoint,
   onSelectTimeframe,
   onSelectDreamArea,
   onSelectTodayNear,
+  onSelectTodayPoint,
+  onDropPin,
 }: {
   openSheet: HeroSentenceSheetName;
   onClose: () => void;
   timeframe: Timeframe;
   dreamArea: string;
   todayNear: string;
+  todayPoint?: { lat: number; lng: number };
   onSelectTimeframe: (timeframe: Timeframe) => void;
   onSelectDreamArea: (dreamArea: string) => void;
   onSelectTodayNear: (todayNear: string) => void;
+  onSelectTodayPoint: (point: { lat: number; lng: number }) => void;
+  onDropPin: (point: { lat: number; lng: number }) => void;
 }) {
   if (!openSheet) return null;
 
@@ -114,6 +129,73 @@ export function HeroSentenceSheets({
 
   // openSheet === "todayNear"
   return (
+    <TodayNearSheet
+      todayNear={todayNear}
+      todayPoint={todayPoint}
+      onClose={onClose}
+      onSelectTodayNear={onSelectTodayNear}
+      onSelectTodayPoint={onSelectTodayPoint}
+      onDropPin={onDropPin}
+    />
+  );
+}
+
+/**
+ * "Where on Islay are you?" - split into its own component 03 Sep 2026
+ * because it now holds state (the geolocation attempt) and the parent is
+ * a pure switch over openSheet.
+ *
+ * THE LOCATION OPTION IS NEW HERE, and this is the fix Mark asked for:
+ * desktop had "Use my location instead" under the today note, inside the
+ * state-two reflow, which is gated on !isMobileViewport - so a phone,
+ * the device someone is actually holding while standing on Islay, had no
+ * location control anywhere. This sheet is the ONLY way todayNear is
+ * ever set (HeroTodayColumn has no in-place village control, and /today
+ * links back here), so putting it here reaches both platforms at once.
+ *
+ * Same contract as every other geolocation call on this site: a
+ * convenience ABOVE the list, never a replacement for it, and every
+ * failure falls back to the list rather than to an error screen.
+ */
+function TodayNearSheet({
+  todayNear,
+  todayPoint,
+  onClose,
+  onSelectTodayNear,
+  onSelectTodayPoint,
+  onDropPin,
+}: {
+  todayNear: string;
+  todayPoint?: { lat: number; lng: number };
+  onClose: () => void;
+  onSelectTodayNear: (todayNear: string) => void;
+  onSelectTodayPoint: (point: { lat: number; lng: number }) => void;
+  onDropPin: (point: { lat: number; lng: number }) => void;
+}) {
+  const origin = resolveTodayOrigin({ todayNear, todayPoint });
+  const [locating, setLocating] = useState(false);
+  const [locateError, setLocateError] = useState<string | null>(null);
+
+  function useMyLocation() {
+    setLocating(true);
+    setLocateError(null);
+    locateNearestArea(
+      (point) => {
+        setLocating(false);
+        onSelectTodayPoint(point);
+      },
+      (reason) => {
+        setLocating(false);
+        setLocateError(
+          reason === "unsupported"
+            ? "Location isn't available in this browser — pick from the list instead."
+            : "Couldn't get your location — pick from the list instead."
+        );
+      }
+    );
+  }
+
+  return (
     <div className="tour-picker-backdrop" onClick={onClose}>
       <div
         className="tour-picker-modal"
@@ -125,6 +207,34 @@ export function HeroSentenceSheets({
           &times;
         </button>
         <div className="tour-picker-heading">Where on Islay are you?</div>
+        {/* Names all three ways to answer up front (03 Sep 2026, Mark's
+            ask). They are not equivalent and the order is the order of
+            effort: the device is fastest, the map is exact, a village is
+            the answer that needs no permission and no aim. */}
+        <p className="answers-sheet-ways">
+          Use your location, drop a pin on the map, or pick a village.
+        </p>
+
+        <button type="button" className="answers-locate-row" onClick={useMyLocation} disabled={locating}>
+          <span className="answers-locate-name">{locating ? "Finding you…" : "📍 Use my location"}</span>
+          <span className="answers-locate-note">Fastest &mdash; times measured from exactly where you are.</span>
+        </button>
+        {locateError && <p className="answers-locate-error">{locateError}</p>}
+
+        {/* The pin the sentence promises. Tapping the map sets the exact
+            point; tapping a village label sets the slug instead. Both
+            answers are reachable without leaving the sheet. */}
+        {/* Tapping the map does NOT close the sheet - the hint invites you
+            to move the pin, and a control that shuts on the first tap
+            cannot be aimed twice. The locate button and the village rows
+            still close, because those are single answers. */}
+        <TodayPinMap
+          origin={origin}
+          isPin={origin.kind !== "village"}
+          onPickPoint={onDropPin}
+          onPickArea={onSelectTodayNear}
+        />
+
         {AREAS.map((area) => {
           const selected = todayNear === area.slug;
           return (
