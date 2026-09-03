@@ -626,6 +626,7 @@ export default function Hero({
         timeframe={timeframe}
         dreamArea={dreamArea}
         todayNear={todayNear}
+        todayPoint={trip.answers?.todayPoint}
         onSelectTimeframe={selectTimeframe}
         onSelectDreamArea={selectDreamArea}
         onSelectTodayNear={selectTodayNear}

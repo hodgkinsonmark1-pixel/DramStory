@@ -4,7 +4,14 @@ import type { Timeframe } from "@/lib/trip-context";
 import { useState } from "react";
 import { AREAS } from "@/lib/areas";
 import { locateNearestArea } from "@/lib/nearest-area";
+import { resolveTodayOrigin } from "@/lib/trip-answers";
+import dynamic from "next/dynamic";
 import { DREAM_AREAS } from "@/lib/dream-areas";
+
+/* Leaflet is client-only and ~40kb; the sheet it lives in is opened by
+   a minority of visitors, so it is loaded when that sheet opens rather
+   than on every homepage render. */
+const TodayPinMap = dynamic(() => import("@/components/home/TodayPinMap"), { ssr: false });
 
 export type HeroSentenceSheetName = "timeframe" | "dreamArea" | "todayNear" | null;
 
@@ -29,6 +36,7 @@ export function HeroSentenceSheets({
   timeframe,
   dreamArea,
   todayNear,
+  todayPoint,
   onSelectTimeframe,
   onSelectDreamArea,
   onSelectTodayNear,
@@ -39,6 +47,7 @@ export function HeroSentenceSheets({
   timeframe: Timeframe;
   dreamArea: string;
   todayNear: string;
+  todayPoint?: { lat: number; lng: number };
   onSelectTimeframe: (timeframe: Timeframe) => void;
   onSelectDreamArea: (dreamArea: string) => void;
   onSelectTodayNear: (todayNear: string) => void;
@@ -120,6 +129,7 @@ export function HeroSentenceSheets({
   return (
     <TodayNearSheet
       todayNear={todayNear}
+      todayPoint={todayPoint}
       onClose={onClose}
       onSelectTodayNear={onSelectTodayNear}
       onSelectTodayPoint={onSelectTodayPoint}
@@ -146,15 +156,18 @@ export function HeroSentenceSheets({
  */
 function TodayNearSheet({
   todayNear,
+  todayPoint,
   onClose,
   onSelectTodayNear,
   onSelectTodayPoint,
 }: {
   todayNear: string;
+  todayPoint?: { lat: number; lng: number };
   onClose: () => void;
   onSelectTodayNear: (todayNear: string) => void;
   onSelectTodayPoint: (point: { lat: number; lng: number }) => void;
 }) {
+  const origin = resolveTodayOrigin({ todayNear, todayPoint });
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
 
@@ -195,6 +208,16 @@ function TodayNearSheet({
           <span className="answers-locate-note">Times measured from exactly where you are.</span>
         </button>
         {locateError && <p className="answers-locate-error">{locateError}</p>}
+
+        {/* The pin the sentence promises. Tapping the map sets the exact
+            point; tapping a village label sets the slug instead. Both
+            answers are reachable without leaving the sheet. */}
+        <TodayPinMap
+          origin={origin}
+          isPin={origin.isPin}
+          onPickPoint={onSelectTodayPoint}
+          onPickArea={onSelectTodayNear}
+        />
 
         {AREAS.map((area) => {
           const selected = todayNear === area.slug;
