@@ -53,15 +53,18 @@ export default function BuildTodayPageClient({
           fontWeight: 300,
           fontSize: "clamp(26px, 6vw, 34px)",
           color: "var(--dark)",
-          margin: "20px 0 6px",
+          margin: "20px 0 16px",
           letterSpacing: "-0.01em",
         }}
       >
         See what&apos;s <em style={{ fontStyle: "italic", color: "var(--amber)" }}>nearby</em>
       </h1>
-      <p style={{ fontSize: 14, color: "var(--peat)", marginBottom: 18 }}>
-        Tap a distillery or local spot to shortlist it, then add each one to a day when you&apos;re ready.
-      </p>
+      {/* The standfirst that /dreaming/build and /areas/[slug]/build both
+          carry is dropped HERE ONLY (03 Sep 2026, Mark's call): the
+          filter chips now sit directly under the heading and need the
+          room, and this is the one of the three screens a visitor
+          reaches while standing on the island with a phone. The other
+          two keep it - they are planning screens with space to spare. */}
 
       <DreamingShortlistSection
         distilleries={distilleries}
