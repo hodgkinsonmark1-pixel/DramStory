@@ -34,18 +34,6 @@ const TIMEFRAME_LABEL: Record<Timeframe, string> = {
   dreaming: "I'm just dreaming",
 };
 
-/* The desktop menu's own rows. Label and note deliberately match
-   HeroSentenceSheets' TIMEFRAME_OPTIONS word for word - the same three
-   choices with the same descriptions, so desktop and mobile are one
-   control in two shapes rather than two controls that have drifted.
-   Not imported from there because that module does not export it, and
-   exporting it would make a component's internal list part of its API
-   for the sake of three lines. */
-const TIMEFRAME_OPTIONS: { value: Timeframe; label: string; note: string }[] = [
-  { value: "planning", label: "I'm planning a trip", note: "Base, days and picks - the full sentence." },
-  { value: "today", label: "I'm on Islay today", note: "We read the clock and show you what fits." },
-  { value: "dreaming", label: "I'm just dreaming", note: "No dates - just somewhere to start." },
-];
 
 /**
  * The desktop homepage hero (docs/hero-handoff.md, §9's phase order,
@@ -100,11 +88,6 @@ export default function Hero({
   const [chevVis, setChevVis] = useState(false);
   const [sentVis, setSentVis] = useState(false);
   const [openSheet, setOpenSheet] = useState<SheetName>(null);
-  /* Desktop's inline timeframe menu (see clause 1 below). Separate from
-     openSheet on purpose: openSheet drives the modal sheets, and folding
-     this in would mean every sheet consumer having to know that one of
-     them renders somewhere else entirely. */
-  const [tfMenuOpen, setTfMenuOpen] = useState(false);
   // Gates the §6 live-region announcement to only the visitor's own
   // button press this session - never the hydration-driven reveal a
   // returning visitor gets, which isn't a reflow they need told about.
@@ -122,43 +105,12 @@ export default function Hero({
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
-    const update = () => {
-      setIsMobileViewport(mq.matches);
-      /* Crossing into mobile hands clause 1 back to the sheet, so a menu
-         left open would be unreachable. Closed here, in the matchMedia
-         callback, rather than in an effect keyed on isMobileViewport -
-         that is a setState in an effect body, which cascades a render
-         and trips react-hooks/set-state-in-effect. A subscription
-         callback is exactly where React wants this. */
-      if (mq.matches) setTfMenuOpen(false);
-    };
+    const update = () => setIsMobileViewport(mq.matches);
     update();
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
   }, []);
 
-  /* Outside click and Escape close the inline menu - the two things a
-     backdrop gave the sheet for free and an anchored menu has to do for
-     itself. Listener only while it is open, and mousedown rather than
-     click so the menu closes on press like every other menu on the web.
-     Also closed whenever the viewport crosses into mobile, where the
-     sheet takes over and a stray open menu would be unreachable. */
-  useEffect(() => {
-    if (!tfMenuOpen) return;
-    const onDown = (e: MouseEvent) => {
-      const inside = (e.target as HTMLElement | null)?.closest(".hero-tf-slot");
-      if (!inside) setTfMenuOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setTfMenuOpen(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [tfMenuOpen]);
 
   const timeframe = trip.answers?.timeframe ?? DEFAULT_TRIP_ANSWERS.timeframe;
   const base = trip.answers?.base ?? DEFAULT_TRIP_ANSWERS.base;
@@ -397,7 +349,7 @@ export default function Hero({
 
           <div className={"hero-sentence-block" + (sentVis ? " visible" : "")}>
             <div className="hero-kicker">{showReflow ? "Your answers" : "Plan your trip"}</div>
-            <p className={"hero-sentence" + (tfMenuOpen && !isMobileViewport ? " is-choosing" : "")}>
+            <p className="hero-sentence">
               {/* Clause 1 opens an INLINE DROPDOWN on desktop and keeps the
                   centred sheet on mobile (03 Sep 2026, Mark's call).
                   §3 of the handoff always specified "an inline dropdown
@@ -411,54 +363,26 @@ export default function Hero({
                   Timeframe only. The other three clauses keep their sheets
                   on both: base carries a note per hotel and picks is
                   multi-select, neither of which fits a small anchored menu. */}
-              {/* Clause 1 opens IN PLACE (03 Sep 2026, Mark's third pass
-                  on this control). The three options appear exactly where
-                  the clause sits - first option over the clause itself,
-                  the other two beneath it - rather than in a panel or in
-                  a list under the whole sentence, both of which he
-                  rejected.
-
-                  The anchor keeps the clause's own width and the clause
-                  keeps its space while hidden, so the rest of the
-                  sentence does not reflow when the options appear. The
-                  options are absolutely positioned inside it, which is
-                  what lets option one land on the clause's own baseline.
-                  Nothing is drawn behind them: they are the sentence's
-                  words, three of them, in the sentence's place. */}
-              <span className={tfMenuOpen && !isMobileViewport ? "hero-tf-slot is-open" : "hero-tf-slot"}>
-                <button
-                  type="button"
-                  className="hero-sentence-clause"
-                  aria-haspopup={isMobileViewport ? "dialog" : "true"}
-                  aria-expanded={isMobileViewport ? openSheet === "timeframe" : tfMenuOpen}
-                  aria-label={`Change where you are in your story: ${TIMEFRAME_LABEL[timeframe]}`}
-                  onClick={() => (isMobileViewport ? setOpenSheet("timeframe") : setTfMenuOpen((v) => !v))}
-                >
-                  {TIMEFRAME_LABEL[timeframe]}
-                </button>
-
-                {!isMobileViewport && tfMenuOpen && (
-                  <span className="hero-tf-opts" role="group" aria-label="Where are you in your story?">
-                    {TIMEFRAME_OPTIONS.map((opt) => {
-                      const selected = timeframe === opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          aria-pressed={selected}
-                          className={selected ? "hero-tf-opt is-on" : "hero-tf-opt"}
-                          onClick={() => {
-                            trip.setAnswersTimeframe(opt.value);
-                            setTfMenuOpen(false);
-                          }}
-                        >
-                          {opt.label}
-                        </button>
-                      );
-                    })}
-                  </span>
-                )}
-              </span>
+              {/* One control on both platforms: the shared
+                  .tour-picker-modal sheet in HeroSentenceSheets. Three
+                  desktop-only alternatives were tried on 03 Sep 2026 - a
+                  panel under the clause, a list under the sentence, and
+                  the options in the clause's own position - and each was
+                  worse than the sheet in its own way; the last broke
+                  outright once an option was selected. Mark's call to go
+                  back, and it is the right one: the sheet already worked,
+                  and desktop and mobile now behave identically rather
+                  than needing two explanations. */}
+              <button
+                type="button"
+                className="hero-sentence-clause"
+                aria-haspopup="dialog"
+                aria-expanded={openSheet === "timeframe"}
+                aria-label={`Change where you are in your story: ${TIMEFRAME_LABEL[timeframe]}`}
+                onClick={() => setOpenSheet("timeframe")}
+              >
+                {TIMEFRAME_LABEL[timeframe]}
+              </button>
 
               {timeframe === "planning" && (
                 <>
