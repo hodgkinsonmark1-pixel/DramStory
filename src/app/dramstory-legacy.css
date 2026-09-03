@@ -695,7 +695,11 @@ a.stay-gh-name:hover{color:var(--copper);text-decoration:underline}
 }
 
 @media(max-width:768px){
-  .footer-grid{grid-template-columns:1fr 1fr}
+  /* One stack, not two columns (03 Sep 2026, A2 mobile p11: "the
+     four-column footer collapses to a single stack"). At 375px the
+     two-column form left the Journal and Company lists about 99px
+     wide, wrapping most link labels onto a second line. */
+  .footer-grid{grid-template-columns:1fr;gap:32px}
   .blog-featured{grid-template-columns:1fr}
   .blog-card-featured .bc-img{height:220px}
   .blog-nav{padding:16px 20px}
