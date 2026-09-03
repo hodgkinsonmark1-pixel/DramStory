@@ -146,8 +146,8 @@ export default function Hero({
   useEffect(() => {
     if (!tfMenuOpen) return;
     const onDown = (e: MouseEvent) => {
-      const anchor = (e.target as HTMLElement | null)?.closest(".hero-tf-anchor");
-      if (!anchor) setTfMenuOpen(false);
+      const inside = (e.target as HTMLElement | null)?.closest(".hero-tf-inline, .hero-sentence-clause");
+      if (!inside) setTfMenuOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setTfMenuOpen(false);
@@ -411,51 +411,16 @@ export default function Hero({
                   Timeframe only. The other three clauses keep their sheets
                   on both: base carries a note per hotel and picks is
                   multi-select, neither of which fits a small anchored menu. */}
-              <span className="hero-tf-anchor">
-                <button
-                  type="button"
-                  className="hero-sentence-clause"
-                  aria-haspopup={isMobileViewport ? "dialog" : "menu"}
-                  aria-expanded={isMobileViewport ? openSheet === "timeframe" : tfMenuOpen}
-                  aria-label={`Change where you are in your story: ${TIMEFRAME_LABEL[timeframe]}`}
-                  onClick={() => (isMobileViewport ? setOpenSheet("timeframe") : setTfMenuOpen((v) => !v))}
-                >
-                  {TIMEFRAME_LABEL[timeframe]}
-                </button>
-
-                {!isMobileViewport && tfMenuOpen && (
-                  <div className="hero-tf-menu" role="menu" aria-label="Where are you in your story?">
-                    {/* THE QUESTION, not just the options. It was the heading
-                        of the sheet this replaced, and before Phase 1 it was
-                        the hero's own <p className="hero-question"> above
-                        three inline buttons - "Where are you in your story?"
-                        has been on screen at this moment in every version of
-                        this control. The first cut of this menu dropped it
-                        and listed the options bare, which is what Mark
-                        caught: the options were there, the question was not. */}
-                    <div className="hero-tf-menu-question">Where are you in your story?</div>
-                    {TIMEFRAME_OPTIONS.map((opt) => {
-                      const selected = timeframe === opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          role="menuitemradio"
-                          aria-checked={selected}
-                          className={selected ? "hero-tf-item is-on" : "hero-tf-item"}
-                          onClick={() => {
-                            trip.setAnswersTimeframe(opt.value);
-                            setTfMenuOpen(false);
-                          }}
-                        >
-                          <span className="hero-tf-item-name">{opt.label}</span>
-                          <span className="hero-tf-item-note">{opt.note}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </span>
+              <button
+                type="button"
+                className="hero-sentence-clause"
+                aria-haspopup={isMobileViewport ? "dialog" : "true"}
+                aria-expanded={isMobileViewport ? openSheet === "timeframe" : tfMenuOpen}
+                aria-label={`Change where you are in your story: ${TIMEFRAME_LABEL[timeframe]}`}
+                onClick={() => (isMobileViewport ? setOpenSheet("timeframe") : setTfMenuOpen((v) => !v))}
+              >
+                {TIMEFRAME_LABEL[timeframe]}
+              </button>
 
               {timeframe === "planning" && (
                 <>
@@ -542,6 +507,45 @@ export default function Hero({
                 </>
               )}
             </p>
+
+            {/* THE THREE OPTIONS, INLINE (03 Sep 2026, Mark's call after
+                seeing the dropdown). No panel, no border, no backdrop -
+                they read as words over the video, the same way the
+                sentence itself does. A white box floating over the hero
+                was the thing he objected to, and it was never in the
+                spec: section 3 asks for a trigger "styled as the
+                sentence's own words", which a card is not.
+
+                In normal flow rather than absolutely positioned, so it
+                pushes the button down instead of covering it - nothing
+                is hidden behind the thing you just opened.
+
+                Desktop only. A phone keeps the sheet: there is no room
+                to expand three options and their notes inside a hero
+                that is already the whole screen. */}
+            {!isMobileViewport && tfMenuOpen && (
+              <div className="hero-tf-inline" role="group" aria-label="Where are you in your story?">
+                <div className="hero-tf-inline-question">Where are you in your story?</div>
+                {TIMEFRAME_OPTIONS.map((opt) => {
+                  const selected = timeframe === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      aria-pressed={selected}
+                      className={selected ? "hero-tf-opt is-on" : "hero-tf-opt"}
+                      onClick={() => {
+                        trip.setAnswersTimeframe(opt.value);
+                        setTfMenuOpen(false);
+                      }}
+                    >
+                      <span className="hero-tf-opt-name">{opt.label}</span>
+                      <span className="hero-tf-opt-note">{opt.note}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {showReflow ? (
               <>

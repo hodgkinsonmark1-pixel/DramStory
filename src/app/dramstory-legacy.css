@@ -134,52 +134,44 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
 .hero-sentence-clause:hover{color:var(--amber)}
 .hero-sentence-clause::after{content:" \25BE";font-size:0.7em}
 
-/* CLAUSE 1'S INLINE DESKTOP MENU (03 Sep 2026). Anchored to the word
-   rather than centred over the hero - see Hero.tsx's own note on why
-   the centred sheet stayed on mobile only. The anchor is inline so it
-   does not break the sentence's line wrapping; only the menu itself is
-   taken out of flow.
-   z-index 3 clears .hero-overlay (z-index 1) and the answers panel. */
-.hero-tf-anchor{position:relative;display:inline}
-.hero-tf-menu{
-  position:absolute;top:calc(100% + 10px);left:0;z-index:3;
-  min-width:300px;max-width:min(360px,80vw);
-  padding:6px;
-  background:var(--white);
-  border:1px solid var(--stone);
-  border-radius:var(--radius);
-  box-shadow:0 12px 32px rgba(0,0,0,0.28);
+/* CLAUSE 1'S THREE OPTIONS, INLINE (03 Sep 2026). Words over the video,
+   not a card floating on it - see Hero.tsx's note. Everything here is
+   type and spacing; there is deliberately no background, border or
+   shadow, because the moment it has those it is the box again. */
+.hero-tf-inline{
+  margin:14px auto 0;
+  max-width:520px;
+  display:flex;flex-direction:column;gap:10px;
   text-align:left;
 }
-.hero-tf-menu-question{
-  padding:8px 12px 9px;margin-bottom:2px;
-  border-bottom:1px solid var(--stone);
+.hero-tf-inline-question{
   font-family:var(--font-display),Georgia,serif;
-  font-size:15px;color:var(--navy);line-height:1.25;
+  font-size:15px;
+  color:rgba(255,255,255,0.72);
 }
-.hero-tf-item{
+.hero-tf-opt{
   display:block;width:100%;
-  padding:9px 12px;
-  border:0;border-radius:var(--radius-sm,6px);
-  background:none;cursor:pointer;text-align:left;
-  font-family:var(--font-body),system-ui,sans-serif;
+  padding:0;border:0;background:none;cursor:pointer;text-align:left;
+  font-family:inherit;
 }
-.hero-tf-item:hover{background:var(--off-white)}
-.hero-tf-item-name{
+.hero-tf-opt-name{
   display:block;
   font-family:var(--font-display),Georgia,serif;
-  font-size:16px;color:var(--navy);line-height:1.25;
+  font-size:19px;line-height:1.2;
+  color:rgba(255,255,255,0.9);
+  transition:color 0.15s var(--ease-out);
 }
-.hero-tf-item.is-on .hero-tf-item-name{color:var(--copper);font-weight:600}
-.hero-tf-item.is-on .hero-tf-item-name::after{content:" \2713"}
-.hero-tf-item-note{
+.hero-tf-opt:hover .hero-tf-opt-name{color:var(--amber-light)}
+.hero-tf-opt.is-on .hero-tf-opt-name{
+  color:var(--amber-light);
+  box-shadow:inset 0 -3px 0 var(--copper);
+}
+.hero-tf-opt.is-on .hero-tf-opt-name::after{content:" \2713"}
+.hero-tf-opt-note{
   display:block;margin-top:1px;
-  font-size:12.5px;color:var(--slate);line-height:1.45;
-}
-/* Below the hero's own reflow breakpoint the sentence is centred and
-   narrow, so a left-anchored menu can overhang the viewport edge. */
-@media(max-width:900px){
-  .hero-tf-menu{left:50%;transform:translateX(-50%);min-width:260px}
+  font-family:var(--font-body),system-ui,sans-serif;
+  font-size:13px;line-height:1.45;
+  color:rgba(255,255,255,0.62);
 }
 .hero-sentence-cta{margin-top:28px}
 
