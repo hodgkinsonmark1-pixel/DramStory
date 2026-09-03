@@ -141,38 +141,23 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
 .hero-tf-inline{
   margin:14px auto 0;
   max-width:520px;
-  display:flex;flex-direction:column;gap:10px;
+  display:flex;flex-direction:column;gap:6px;
   text-align:left;
-}
-.hero-tf-inline-question{
-  font-family:var(--font-display),Georgia,serif;
-  font-size:15px;
-  color:rgba(255,255,255,0.72);
 }
 .hero-tf-opt{
   display:block;width:100%;
   padding:0;border:0;background:none;cursor:pointer;text-align:left;
-  font-family:inherit;
-}
-.hero-tf-opt-name{
-  display:block;
   font-family:var(--font-display),Georgia,serif;
-  font-size:19px;line-height:1.2;
+  font-size:19px;line-height:1.35;
   color:rgba(255,255,255,0.9);
   transition:color 0.15s var(--ease-out);
 }
-.hero-tf-opt:hover .hero-tf-opt-name{color:var(--amber-light)}
-.hero-tf-opt.is-on .hero-tf-opt-name{
+.hero-tf-opt:hover{color:var(--amber-light)}
+.hero-tf-opt.is-on{
   color:var(--amber-light);
   box-shadow:inset 0 -3px 0 var(--copper);
 }
-.hero-tf-opt.is-on .hero-tf-opt-name::after{content:" \2713"}
-.hero-tf-opt-note{
-  display:block;margin-top:1px;
-  font-family:var(--font-body),system-ui,sans-serif;
-  font-size:13px;line-height:1.45;
-  color:rgba(255,255,255,0.62);
-}
+.hero-tf-opt.is-on::after{content:" \2713"}
 .hero-sentence-cta{margin-top:28px}
 
 /* State two - the planning reflow (docs/hero-handoff.md §2.2/§2.3/§9

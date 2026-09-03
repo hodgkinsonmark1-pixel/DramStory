@@ -525,7 +525,15 @@ export default function Hero({
                 that is already the whole screen. */}
             {!isMobileViewport && tfMenuOpen && (
               <div className="hero-tf-inline" role="group" aria-label="Where are you in your story?">
-                <div className="hero-tf-inline-question">Where are you in your story?</div>
+                {/* The three headline options and nothing else (Mark,
+                    03 Sep 2026). No repeated question line above them -
+                    the clause you just clicked IS the question, and
+                    restating it in the hero read as a second one. No
+                    per-option notes either: the sentence rewrites itself
+                    the moment you choose, which explains each option
+                    better than a line of description could. The question
+                    still heads the sheet on mobile, where there is no
+                    clause left on screen to carry it. */}
                 {TIMEFRAME_OPTIONS.map((opt) => {
                   const selected = timeframe === opt.value;
                   return (
@@ -539,8 +547,7 @@ export default function Hero({
                         setTfMenuOpen(false);
                       }}
                     >
-                      <span className="hero-tf-opt-name">{opt.label}</span>
-                      <span className="hero-tf-opt-note">{opt.note}</span>
+                      {opt.label}
                     </button>
                   );
                 })}
