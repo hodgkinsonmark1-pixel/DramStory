@@ -397,7 +397,7 @@ export default function Hero({
 
           <div className={"hero-sentence-block" + (sentVis ? " visible" : "")}>
             <div className="hero-kicker">{showReflow ? "Your answers" : "Plan your trip"}</div>
-            <p className="hero-sentence">
+            <p className={"hero-sentence" + (tfMenuOpen && !isMobileViewport ? " is-choosing" : "")}>
               {/* Clause 1 opens an INLINE DROPDOWN on desktop and keeps the
                   centred sheet on mobile (03 Sep 2026, Mark's call).
                   §3 of the handoff always specified "an inline dropdown

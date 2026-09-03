@@ -143,6 +143,25 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
    display), so the sentence around it does not reflow. The options are
    absolutely positioned inside that slot. No background anywhere: they
    are the sentence's own words, three of them, where one used to be. */
+/* While clause 1 is open its options overlay the sentence's own second
+   line - unavoidable once they sit at the clause's position and the
+   sentence wraps. So the sentence recedes while you choose: it is not
+   the question being asked at that moment, and dimming it costs nothing
+   because it rewrites itself the instant you answer.
+
+   Done with COLOUR, not opacity: opacity on the paragraph would take
+   the options down with it, since they are inside it. */
+.hero-sentence.is-choosing{color:rgba(255,255,255,0.16)}
+.hero-sentence.is-choosing .hero-sentence-clause{
+  color:rgba(232,201,154,0.22);
+  box-shadow:inset 0 -3px 0 rgba(184,125,75,0.25);
+}
+.hero-sentence.is-choosing .hero-tf-opt{color:rgba(255,255,255,0.88)}
+.hero-sentence.is-choosing .hero-tf-opt:hover{color:var(--amber-light)}
+.hero-sentence.is-choosing .hero-tf-opt.is-on{
+  color:var(--amber-light);
+  box-shadow:inset 0 -3px 0 var(--copper);
+}
 .hero-tf-slot{position:relative;display:inline-block}
 .hero-tf-slot.is-open > .hero-sentence-clause{visibility:hidden}
 .hero-tf-opts{
