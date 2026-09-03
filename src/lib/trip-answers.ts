@@ -118,3 +118,38 @@ export function dreamAreaDisplayName(dreamArea: string): string {
 export function villageDisplayName(todayNear: string): string {
   return AREAS.find((a) => a.slug === todayNear)?.name ?? todayNear;
 }
+
+export interface TodayOrigin {
+  lat: number;
+  lng: number;
+  /** True when this came from the device rather than a village pick. */
+  isPin: boolean;
+  /** What the sentence and the answers bars say. */
+  label: string;
+}
+
+/**
+ * Where "today" is measured from - the ONE place todayPoint and
+ * todayNear are reconciled (03 Sep 2026).
+ *
+ * A dropped pin wins: it is the visitor's real position, and every
+ * consumer here (buildTodaySchedule's drive times, the map centre on
+ * /journey and /today/build) wants a point, not a village. The village
+ * slug is the fallback for everyone who picked from the list, and for
+ * every visitor who has never touched the control.
+ *
+ * Call this rather than testing for answers.todayPoint at a call site -
+ * six components read this answer, and the rule about which field wins
+ * should live once.
+ */
+export function resolveTodayOrigin(answers: {
+  todayNear?: string;
+  todayPoint?: { lat: number; lng: number };
+}): TodayOrigin {
+  const point = answers.todayPoint;
+  if (point) {
+    return { lat: point.lat, lng: point.lng, isPin: true, label: "I\u2019ve dropped a pin" };
+  }
+  const village = AREAS.find((a) => a.slug === answers.todayNear) ?? AREAS[0];
+  return { lat: village.lat, lng: village.lng, isPin: false, label: village.name };
+}

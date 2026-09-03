@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { useTrip } from "@/lib/trip-context";
-import { villageDisplayName } from "@/lib/trip-answers";
+import { resolveTodayOrigin } from "@/lib/trip-answers";
 import { HeroTodayColumn } from "@/components/home/HeroTodayColumn";
-import { AREAS } from "@/lib/areas";
 import type { Distillery, LocalFeature } from "@/lib/types";
 
 /**
@@ -28,22 +27,24 @@ export default function TodayPageClient({
   localFeatures: LocalFeature[];
 }) {
   const trip = useTrip();
-  const todayNear = trip.answers?.todayNear ?? AREAS[0].slug;
-  const villageName = villageDisplayName(todayNear);
+  const todayOrigin = resolveTodayOrigin(trip.answers ?? {});
 
   return (
     <div style={{ maxWidth: 640, margin: "0 auto", padding: "24px 20px 80px" }}>
       <div className="days-answers-bar">
         <div className="days-answers-bar-text">
           <div className="days-answers-bar-kicker">Your answer</div>
-          <div className="days-answers-bar-value">I&apos;m on Islay today, near {villageName}</div>
+          <div className="days-answers-bar-value">
+              I&apos;m on Islay today{todayOrigin.isPin ? " and " : ", near "}
+              {todayOrigin.label}
+            </div>
         </div>
         <Link href="/" className="days-answers-bar-change">
           Change
         </Link>
       </div>
 
-      <HeroTodayColumn todayNear={todayNear} distilleries={distilleries} localFeatures={localFeatures} />
+      <HeroTodayColumn origin={todayOrigin} distilleries={distilleries} localFeatures={localFeatures} />
     </div>
   );
 }

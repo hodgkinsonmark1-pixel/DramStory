@@ -36,7 +36,12 @@ export function nearestAreaSlug(lat: number, lng: number): string {
 export type LocateFailure = "unsupported" | "failed";
 
 /**
- * Ask the browser where we are and hand back the nearest area's slug.
+ * Ask the browser where we are and hand back the REAL point.
+ *
+ * Returns coordinates rather than the nearest area's slug (changed
+ * 03 Sep 2026): buildTodaySchedule only ever wanted { lat, lng }, and
+ * bucketing a genuine fix to one of three villages on a 25-mile island
+ * threw away most of its accuracy. See TripAnswers.todayPoint.
  *
  * Never the only way to answer - every caller shows the village list
  * too, and every failure path here is silent and non-blocking, the same
@@ -45,7 +50,7 @@ export type LocateFailure = "unsupported" | "failed";
  * error state.
  */
 export function locateNearestArea(
-  onFound: (slug: string) => void,
+  onFound: (point: { lat: number; lng: number }) => void,
   onFail: (reason: LocateFailure) => void
 ): void {
   if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -53,7 +58,7 @@ export function locateNearestArea(
     return;
   }
   navigator.geolocation.getCurrentPosition(
-    (position) => onFound(nearestAreaSlug(position.coords.latitude, position.coords.longitude)),
+    (position) => onFound({ lat: position.coords.latitude, lng: position.coords.longitude }),
     () => onFail("failed"),
     { timeout: 8000 }
   );

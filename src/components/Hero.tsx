@@ -10,7 +10,7 @@ import {
   basePreposition,
   describePicks,
   dreamAreaDisplayName,
-  villageDisplayName,
+  resolveTodayOrigin,
   findBaseAccommodation,
 } from "@/lib/trip-answers";
 import { AnswersSheets, type AnswersSheetName } from "@/components/home/AnswersSheets";
@@ -200,7 +200,11 @@ export default function Hero({
   const baseName = baseDisplayName(base, baseKind);
   const picksLabel = describePicks(picks, distilleries);
   const dreamAreaName = dreamAreaDisplayName(dreamArea);
-  const villageName = villageDisplayName(todayNear);
+  /* One resolution for the whole component: a dropped pin if there is
+     one, the picked village otherwise. The sentence reads its label and
+     the schedule reads its coordinates, so the two can never disagree
+     about where "today" is being measured from. */
+  const todayOrigin = resolveTodayOrigin(trip.answers ?? {});
 
   const answersSheetOpen: AnswersSheetName =
     openSheet === "base" || openSheet === "nights" || openSheet === "picks" ? openSheet : null;
@@ -236,6 +240,11 @@ export default function Hero({
 
   function selectTodayNear(next: string) {
     trip.setAnswersTodayNear(next);
+    setOpenSheet(null);
+  }
+
+  function selectTodayPoint(point: { lat: number; lng: number }) {
+    trip.setAnswersTodayPoint(point);
     setOpenSheet(null);
   }
 
@@ -292,7 +301,7 @@ export default function Hero({
     todayNow != null
       ? buildTodaySchedule({
           now: todayNow,
-          village: AREAS.find((a) => a.slug === todayNear) ?? AREAS[0],
+          village: todayOrigin,
           distilleries,
           localFeatures,
         })
@@ -314,9 +323,9 @@ export default function Hero({
     setLocating(true);
     setLocationError(null);
     locateNearestArea(
-      (slug) => {
+      (point) => {
         setLocating(false);
-        trip.setAnswersTodayNear(slug);
+        trip.setAnswersTodayPoint(point);
       },
       (reason) => {
         setLocating(false);
@@ -483,16 +492,26 @@ export default function Hero({
 
               {timeframe === "today" && (
                 <>
-                  {", near "}
+                  {/* "and I've dropped a pin" when the visitor used their
+                      location, ", near Bowmore" when they picked from the
+                      list (03 Sep 2026, Mark's wording). The clause is the
+                      same control either way - it still opens the same
+                      sheet - so a pin can be swapped back for a village
+                      without hunting for a different affordance. */}
+                  {todayOrigin.isPin ? " and " : ", near "}
                   <button
                     type="button"
                     className="hero-sentence-clause"
                     aria-haspopup="dialog"
                     aria-expanded={openSheet === "todayNear"}
-                    aria-label={`Change where on Islay: ${villageName}`}
+                    aria-label={
+                      todayOrigin.isPin
+                        ? "Change your location: you've dropped a pin"
+                        : `Change where on Islay: ${todayOrigin.label}`
+                    }
                     onClick={() => setOpenSheet("todayNear")}
                   >
-                    {villageName}
+                    {todayOrigin.label}
                   </button>
                   .
                 </>
@@ -592,7 +611,7 @@ export default function Hero({
             />
           )}
           {timeframe === "today" && (
-            <HeroTodayColumn todayNear={todayNear} distilleries={distilleries} localFeatures={localFeatures} />
+            <HeroTodayColumn origin={todayOrigin} distilleries={distilleries} localFeatures={localFeatures} />
           )}
         </div>
       )}
@@ -610,6 +629,7 @@ export default function Hero({
         onSelectTimeframe={selectTimeframe}
         onSelectDreamArea={selectDreamArea}
         onSelectTodayNear={selectTodayNear}
+        onSelectTodayPoint={selectTodayPoint}
       />
       <AnswersSheets
         openSheet={answersSheetOpen}

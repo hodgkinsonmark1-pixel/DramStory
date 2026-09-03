@@ -32,6 +32,7 @@ export function HeroSentenceSheets({
   onSelectTimeframe,
   onSelectDreamArea,
   onSelectTodayNear,
+  onSelectTodayPoint,
 }: {
   openSheet: HeroSentenceSheetName;
   onClose: () => void;
@@ -41,6 +42,7 @@ export function HeroSentenceSheets({
   onSelectTimeframe: (timeframe: Timeframe) => void;
   onSelectDreamArea: (dreamArea: string) => void;
   onSelectTodayNear: (todayNear: string) => void;
+  onSelectTodayPoint: (point: { lat: number; lng: number }) => void;
 }) {
   if (!openSheet) return null;
 
@@ -115,7 +117,14 @@ export function HeroSentenceSheets({
   }
 
   // openSheet === "todayNear"
-  return <TodayNearSheet todayNear={todayNear} onClose={onClose} onSelectTodayNear={onSelectTodayNear} />;
+  return (
+    <TodayNearSheet
+      todayNear={todayNear}
+      onClose={onClose}
+      onSelectTodayNear={onSelectTodayNear}
+      onSelectTodayPoint={onSelectTodayPoint}
+    />
+  );
 }
 
 /**
@@ -139,10 +148,12 @@ function TodayNearSheet({
   todayNear,
   onClose,
   onSelectTodayNear,
+  onSelectTodayPoint,
 }: {
   todayNear: string;
   onClose: () => void;
   onSelectTodayNear: (todayNear: string) => void;
+  onSelectTodayPoint: (point: { lat: number; lng: number }) => void;
 }) {
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
@@ -151,9 +162,9 @@ function TodayNearSheet({
     setLocating(true);
     setLocateError(null);
     locateNearestArea(
-      (slug) => {
+      (point) => {
         setLocating(false);
-        onSelectTodayNear(slug);
+        onSelectTodayPoint(point);
       },
       (reason) => {
         setLocating(false);
@@ -181,7 +192,7 @@ function TodayNearSheet({
 
         <button type="button" className="answers-locate-row" onClick={useMyLocation} disabled={locating}>
           <span className="answers-locate-name">{locating ? "Finding you…" : "📍 Use my location"}</span>
-          <span className="answers-locate-note">We&rsquo;ll pick the nearest village.</span>
+          <span className="answers-locate-note">Times measured from exactly where you are.</span>
         </button>
         {locateError && <p className="answers-locate-error">{locateError}</p>}
 
