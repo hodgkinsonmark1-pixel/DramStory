@@ -122,9 +122,9 @@ export function villageDisplayName(todayNear: string): string {
 export interface TodayOrigin {
   lat: number;
   lng: number;
-  /** Which of the three ways the visitor answered: picked a town, let
+  /** Which of the three ways the visitor answered: picked a village, let
    *  the device find them, or tapped the map. */
-  kind: "town" | "device" | "pin";
+  kind: "village" | "device" | "pin";
   /** What the sentence and the answers bars say. */
   label: string;
   /** The words joining the clause to it - ", near Bowmore" against
@@ -166,5 +166,5 @@ export function resolveTodayOrigin(answers: {
     };
   }
   const village = AREAS.find((a) => a.slug === answers.todayNear) ?? AREAS[0];
-  return { lat: village.lat, lng: village.lng, kind: "town", label: village.name, connector: ", near " };
+  return { lat: village.lat, lng: village.lng, kind: "village", label: village.name, connector: ", near " };
 }

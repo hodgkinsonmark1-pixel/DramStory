@@ -209,10 +209,10 @@ function TodayNearSheet({
         <div className="tour-picker-heading">Where on Islay are you?</div>
         {/* Names all three ways to answer up front (03 Sep 2026, Mark's
             ask). They are not equivalent and the order is the order of
-            effort: the device is fastest, the map is exact, a town is
+            effort: the device is fastest, the map is exact, a village is
             the answer that needs no permission and no aim. */}
         <p className="answers-sheet-ways">
-          Use your location, drop a pin on the map, or pick a town.
+          Use your location, drop a pin on the map, or pick a village.
         </p>
 
         <button type="button" className="answers-locate-row" onClick={useMyLocation} disabled={locating}>
@@ -230,7 +230,7 @@ function TodayNearSheet({
             still close, because those are single answers. */}
         <TodayPinMap
           origin={origin}
-          isPin={origin.kind !== "town"}
+          isPin={origin.kind !== "village"}
           onPickPoint={onDropPin}
           onPickArea={onSelectTodayNear}
         />
