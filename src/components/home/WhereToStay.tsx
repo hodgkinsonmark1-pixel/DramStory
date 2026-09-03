@@ -143,7 +143,14 @@ export default function WhereToStay({ areas, featuredStays }: { areas: Area[]; f
         {areas.length > 0 && (
           <div className="sec-head-aside wts-areas">
             <span className="wts-areas-label">
-              {spellCount(featuredStays.length)} featured hotels &mdash; or pick an area:
+              {/* Explicit {" "} rather than a literal space. The source had
+                  one on the same line and the build dropped it anyway -
+                  the rendered DOM was `four<!-- -->featured hotels`, the
+                  comment marker React emits between two adjacent text
+                  nodes, with the whitespace gone. Caught on the preview,
+                  not in the source. */}
+              {spellCount(featuredStays.length)}{" "}
+              featured hotels &mdash; or pick an area:
             </span>
             <span className="wts-pills">
               {areas.map((a) => (
