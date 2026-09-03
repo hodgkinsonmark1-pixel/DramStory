@@ -2384,6 +2384,14 @@ a.hdw-name:hover {
 .answers-kicker:first-child {
   margin-top: 0;
 }
+/* The three ways to answer, named under the sheet heading. */
+.answers-sheet-ways {
+  margin: -2px 2px 10px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--slate);
+}
+
 /* The tappable pin map inside "Where on Islay are you?" (03 Sep 2026).
    Sits between the location shortcut and the village list: the shortcut
    is fastest, the map is exact, the list is the fallback. 240px is

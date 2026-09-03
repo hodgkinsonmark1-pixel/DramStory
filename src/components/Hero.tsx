@@ -244,14 +244,14 @@ export default function Hero({
   }
 
   function selectTodayPoint(point: { lat: number; lng: number }) {
-    trip.setAnswersTodayPoint(point);
+    trip.setAnswersTodayPoint(point, "device");
     setOpenSheet(null);
   }
 
   /** Same answer, sheet left open - see the map's own note in
    *  HeroSentenceSheets. */
   function dropPin(point: { lat: number; lng: number }) {
-    trip.setAnswersTodayPoint(point);
+    trip.setAnswersTodayPoint(point, "pin");
   }
 
   function handleShowDays() {
@@ -331,7 +331,7 @@ export default function Hero({
     locateNearestArea(
       (point) => {
         setLocating(false);
-        trip.setAnswersTodayPoint(point);
+        trip.setAnswersTodayPoint(point, "device");
       },
       (reason) => {
         setLocating(false);
@@ -504,17 +504,13 @@ export default function Hero({
                       same control either way - it still opens the same
                       sheet - so a pin can be swapped back for a village
                       without hunting for a different affordance. */}
-                  {todayOrigin.isPin ? " and " : ", near "}
+                  {todayOrigin.connector}
                   <button
                     type="button"
                     className="hero-sentence-clause"
                     aria-haspopup="dialog"
                     aria-expanded={openSheet === "todayNear"}
-                    aria-label={
-                      todayOrigin.isPin
-                        ? "Change your location: you've dropped a pin"
-                        : `Change where on Islay: ${todayOrigin.label}`
-                    }
+                    aria-label={`Change where on Islay: ${todayOrigin.label}`}
                     onClick={() => setOpenSheet("todayNear")}
                   >
                     {todayOrigin.label}

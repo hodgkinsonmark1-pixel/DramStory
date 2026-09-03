@@ -39,7 +39,7 @@ export default function BuildTodayPageClient({
     <div style={{ maxWidth: 640, margin: "0 auto", padding: "24px 20px 80px" }}>
       <div className="days-answers-bar">
         <div className="days-answers-bar-text">
-          <div className="days-answers-bar-kicker">{todayOrigin.isPin ? "Your pin" : "Near"}</div>
+          <div className="days-answers-bar-kicker">{todayOrigin.kind === "town" ? "Near" : "Your location"}</div>
           <div className="days-answers-bar-value">{todayOrigin.label}</div>
         </div>
         <Link href="/today" className="days-answers-bar-change">

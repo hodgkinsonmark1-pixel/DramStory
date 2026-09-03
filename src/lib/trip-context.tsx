@@ -83,6 +83,12 @@ export interface TripAnswers {
    *  one. Read them through resolveTodayOrigin() rather than testing
    *  for this field at a call site. */
   todayPoint?: { lat: number; lng: number };
+  /** HOW that point was set - the device found it, or the visitor tapped
+   *  the map. Kept because the sentence says different things about the
+   *  two ("I'm using my location" against "I've dropped a pin") and
+   *  coordinates alone cannot tell them apart. Undefined whenever
+   *  todayPoint is. */
+  todayPointSource?: "device" | "pin";
 }
 
 /** What the homepage block and the /days answers bar show before a
@@ -282,7 +288,7 @@ interface TripContextValue {
   setAnswersDreamArea: (dreamArea: string) => void;
   /** Sets the today clause's village (an areas.ts slug). */
   setAnswersTodayNear: (todayNear: string) => void;
-  setAnswersTodayPoint: (todayPoint: { lat: number; lng: number }) => void;
+  setAnswersTodayPoint: (todayPoint: { lat: number; lng: number }, source: "device" | "pin") => void;
   /** See StoredTrip.heroRevealed - whether the planning hero has ever
    *  reflowed into state two for this visitor. Write-only in the sense
    *  that nothing currently sets it back to false except resetTrip. */
@@ -671,6 +677,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         dreamArea: prev?.dreamArea ?? DEFAULT_TRIP_ANSWERS.dreamArea,
         todayNear: prev?.todayNear ?? DEFAULT_TRIP_ANSWERS.todayNear,
       todayPoint: prev?.todayPoint,
+      todayPointSource: prev?.todayPointSource,
       }));
       // Keeps the stated answer and the actual itinerary in sync (per
       // the design doc's §2.2) - a no-op if day 0 doesn't exist yet
@@ -691,6 +698,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
       dreamArea: prev?.dreamArea ?? DEFAULT_TRIP_ANSWERS.dreamArea,
       todayNear: prev?.todayNear ?? DEFAULT_TRIP_ANSWERS.todayNear,
       todayPoint: prev?.todayPoint,
+      todayPointSource: prev?.todayPointSource,
     }));
   }, []);
 
@@ -704,6 +712,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
       dreamArea: prev?.dreamArea ?? DEFAULT_TRIP_ANSWERS.dreamArea,
       todayNear: prev?.todayNear ?? DEFAULT_TRIP_ANSWERS.todayNear,
       todayPoint: prev?.todayPoint,
+      todayPointSource: prev?.todayPointSource,
     }));
   }, []);
 
@@ -717,6 +726,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
       dreamArea: prev?.dreamArea ?? DEFAULT_TRIP_ANSWERS.dreamArea,
       todayNear: prev?.todayNear ?? DEFAULT_TRIP_ANSWERS.todayNear,
       todayPoint: prev?.todayPoint,
+      todayPointSource: prev?.todayPointSource,
     }));
   }, []);
 
@@ -730,6 +740,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
       dreamArea,
       todayNear: prev?.todayNear ?? DEFAULT_TRIP_ANSWERS.todayNear,
       todayPoint: prev?.todayPoint,
+      todayPointSource: prev?.todayPointSource,
     }));
   }, []);
 
@@ -745,10 +756,11 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
       // Picking a village is an explicit answer, so it replaces a pin
       // rather than sitting behind one. The two are mutually exclusive.
       todayPoint: undefined,
+      todayPointSource: undefined,
     }));
   }, []);
 
-  const setAnswersTodayPoint = useCallback((todayPoint: { lat: number; lng: number }) => {
+  const setAnswersTodayPoint = useCallback((todayPoint: { lat: number; lng: number }, source: "device" | "pin") => {
     setAnswers((prev) => ({
       timeframe: prev?.timeframe ?? DEFAULT_TRIP_ANSWERS.timeframe,
       base: prev?.base ?? DEFAULT_TRIP_ANSWERS.base,
@@ -758,6 +770,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
       dreamArea: prev?.dreamArea ?? DEFAULT_TRIP_ANSWERS.dreamArea,
       todayNear: prev?.todayNear ?? DEFAULT_TRIP_ANSWERS.todayNear,
       todayPoint,
+      todayPointSource: source,
     }));
   }, []);
 

@@ -122,10 +122,14 @@ export function villageDisplayName(todayNear: string): string {
 export interface TodayOrigin {
   lat: number;
   lng: number;
-  /** True when this came from the device rather than a village pick. */
-  isPin: boolean;
+  /** Which of the three ways the visitor answered: picked a town, let
+   *  the device find them, or tapped the map. */
+  kind: "town" | "device" | "pin";
   /** What the sentence and the answers bars say. */
   label: string;
+  /** The words joining the clause to it - ", near Bowmore" against
+   *  " and I'm using my location". */
+  connector: string;
 }
 
 /**
@@ -145,11 +149,22 @@ export interface TodayOrigin {
 export function resolveTodayOrigin(answers: {
   todayNear?: string;
   todayPoint?: { lat: number; lng: number };
+  todayPointSource?: "device" | "pin";
 }): TodayOrigin {
   const point = answers.todayPoint;
   if (point) {
-    return { lat: point.lat, lng: point.lng, isPin: true, label: "I\u2019ve dropped a pin" };
+    // A point set before todayPointSource existed, or by any caller that
+    // forgets to say which, is described as a pin - the weaker claim of
+    // the two, since it does not assert we located anybody.
+    const fromDevice = answers.todayPointSource === "device";
+    return {
+      lat: point.lat,
+      lng: point.lng,
+      kind: fromDevice ? "device" : "pin",
+      label: fromDevice ? "I\u2019m using my location" : "I\u2019ve dropped a pin",
+      connector: " and ",
+    };
   }
   const village = AREAS.find((a) => a.slug === answers.todayNear) ?? AREAS[0];
-  return { lat: village.lat, lng: village.lng, isPin: false, label: village.name };
+  return { lat: village.lat, lng: village.lng, kind: "town", label: village.name, connector: ", near " };
 }

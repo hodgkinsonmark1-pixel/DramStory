@@ -35,7 +35,7 @@ export default function TodayPageClient({
         <div className="days-answers-bar-text">
           <div className="days-answers-bar-kicker">Your answer</div>
           <div className="days-answers-bar-value">
-              I&apos;m on Islay today{todayOrigin.isPin ? " and " : ", near "}
+              I&apos;m on Islay today{todayOrigin.connector}
               {todayOrigin.label}
             </div>
         </div>
