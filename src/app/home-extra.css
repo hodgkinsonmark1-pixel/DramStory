@@ -341,7 +341,11 @@
   /* Darker beige (31 Aug 2026, item 1) so the day plans read as
      their own band rather than running into the journeys above. */
   background: var(--stone);
-  padding: 8px 24px 64px;
+  /* 8px top was correct under the OLD head, which carried its own top
+     margin; .sec-head does not, so the eyebrow sat almost on the band
+     edge. 64px matches .journeys-section, the section 3654417 measured
+     against the design. */
+  padding: 64px 24px;
 }
 .hdp-head {
   max-width: 960px;
@@ -683,7 +687,8 @@
    ───────────────────────────────────────────────────────────────────── */
 .wts-section {
   background: var(--off-white);
-  padding: 8px 24px 64px;
+  /* See .hdp-section - same 8px leftover, same fix. */
+  padding: 64px 24px;
 }
 .wts-grid {
   max-width: 960px;
@@ -1003,7 +1008,8 @@ a.hdw-name:hover {
    ───────────────────────────────────────────────────────────────────── */
 .wtg-section {
   background: var(--off-white);
-  padding: 8px 24px 64px;
+  /* See .hdp-section - same 8px leftover, same fix. */
+  padding: 64px 24px;
 }
 .wtg-layout {
   max-width: 960px;
@@ -1342,7 +1348,10 @@ a.hdw-name:hover {
      colour, so it loses its own background below and the section
      carries it instead. */
   background: var(--navy);
-  padding: 8px 24px 64px;
+  /* See .hdp-section - same 8px leftover. Not one of the three Mark
+     named, but the identical bug in the only content section left
+     carrying it, and conspicuous once its neighbours are fixed. */
+  padding: 64px 24px;
 }
 .byg-inner {
   max-width: 960px;
@@ -2046,7 +2055,17 @@ a.hdw-name:hover {
 }
 .won-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr) auto;
+  /* The date track is FIXED, not auto (03 Sep 2026 fix). Each row is its
+     own grid, so an `auto` third track sized to that row's own content -
+     and the provisional rows carry an extra "usually mid-August - not
+     yet announced" line, which made their date column ~239px against
+     ~74px on a confirmed row. That pushed the two fr tracks to different
+     widths on every row, so the location column started at a different
+     x six times down the list. A fixed track resolves the fr tracks
+     identically on every row, which is the only way the columns line
+     up without subgrid. 160px holds "28 MAY - 6 JUN" on one line and
+     wraps the provisional note to two. */
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr) 160px;
   align-items: baseline;
   gap: 24px;
   padding: 16px 0;
