@@ -33,6 +33,14 @@ const MAP_BOUNDS: [[number, number], [number, number]] = [
   [56.02, -5.62],
 ];
 
+/** Islay alone - the pannable bounds above include Jura, which is not
+ *  somewhere this control can answer for (todayNear is an Islay village
+ *  or a point on Islay). Used for the opening view only. */
+const ISLAY_BOUNDS: [[number, number], [number, number]] = [
+  [55.55, -6.55],
+  [55.96, -6.02],
+];
+
 export default function TodayPinMap({
   origin,
   isPin,
@@ -68,7 +76,7 @@ export default function TodayPinMap({
 
       const map = L.map(containerRef.current, {
         center: [centerRef.current.lat, centerRef.current.lng],
-        zoom: 11,
+        zoom: 10,
         maxBounds: MAP_BOUNDS,
         maxBoundsViscosity: 0.9,
         minZoom: 9,
@@ -82,6 +90,14 @@ export default function TodayPinMap({
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       }).addTo(map);
+
+      /* Open on the whole island, not on the current answer. A 240px
+         box at zoom 11 showed a few miles around Port Ellen, which is
+         useless for aiming: you cannot tap where you are if where you
+         are is off-screen. fitBounds on Islay's own extent keeps the
+         island whole at any container size, and the pin sits inside it
+         wherever it is. */
+      map.fitBounds(ISLAY_BOUNDS, { padding: [8, 8] });
 
       map.on("click", (e: Leaflet.LeafletMouseEvent) => {
         onPickPointRef.current({ lat: e.latlng.lat, lng: e.latlng.lng });
