@@ -151,6 +151,12 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
   box-shadow:0 12px 32px rgba(0,0,0,0.28);
   text-align:left;
 }
+.hero-tf-menu-question{
+  padding:8px 12px 9px;margin-bottom:2px;
+  border-bottom:1px solid var(--stone);
+  font-family:var(--font-display),Georgia,serif;
+  font-size:15px;color:var(--navy);line-height:1.25;
+}
 .hero-tf-item{
   display:block;width:100%;
   padding:9px 12px;

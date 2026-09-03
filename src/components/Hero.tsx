@@ -420,6 +420,15 @@ export default function Hero({
 
                 {!isMobileViewport && tfMenuOpen && (
                   <div className="hero-tf-menu" role="menu" aria-label="Where are you in your story?">
+                    {/* THE QUESTION, not just the options. It was the heading
+                        of the sheet this replaced, and before Phase 1 it was
+                        the hero's own <p className="hero-question"> above
+                        three inline buttons - "Where are you in your story?"
+                        has been on screen at this moment in every version of
+                        this control. The first cut of this menu dropped it
+                        and listed the options bare, which is what Mark
+                        caught: the options were there, the question was not. */}
+                    <div className="hero-tf-menu-question">Where are you in your story?</div>
                     {TIMEFRAME_OPTIONS.map((opt) => {
                       const selected = timeframe === opt.value;
                       return (
