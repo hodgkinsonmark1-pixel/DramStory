@@ -1913,7 +1913,12 @@ a.hdw-name:hover {
    ───────────────────────────────────────────────────────────────────── */
 .newsletter-band {
   background: var(--off-white);
-  padding: 8px 24px 56px;
+  /* 64px top to match every other band (03 Sep 2026, Mark's call on
+     review). Kept at 8px in the first pass on the reasoning that this
+     band has no head to push off the edge - but it does carry a panel,
+     and 8px sat it hard against the section above. Bottom stays 56px:
+     the footer's own top padding follows it. */
+  padding: 64px 24px 56px;
 }
 .newsletter-card {
   max-width: 960px;
