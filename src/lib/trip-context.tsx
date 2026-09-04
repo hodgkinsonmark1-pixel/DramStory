@@ -165,6 +165,18 @@ interface TripContextValue {
   /** True once the saved trip has been read from localStorage - avoids a
    *  flash of "no days yet" before hydration catches up. */
   ready: boolean;
+  /** The whole trip as one serialisable object - the same shape written
+   *  to localStorage. Added 4 Sep 2026 for account sync: TripSync reads
+   *  this to push a signed-in visitor's trip to Supabase, rather than
+   *  reassembling the eight pieces of state at a call site and drifting
+   *  from what localStorage stores. */
+  snapshot: StoredTrip;
+  /** Replace the whole trip at once. Used when a signed-in visitor's
+   *  account trip is loaded and should win over whatever this browser
+   *  had. Deliberately blunt, same as the cross-tab sync: this app has
+   *  one tab actively editing at a time and does not attempt to merge
+   *  concurrent edits. */
+  replaceTrip: (stored: StoredTrip) => void;
   initDays: (count: number) => void;
   /** Grows the day list to match a target count if it's currently
    *  shorter, preserving every existing day and its stops - used when the
@@ -821,6 +833,8 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         setAnswersDreamArea,
         setAnswersTodayNear,
         setAnswersTodayPoint,
+        snapshot: { days, intake, currentDayIndex, mapView, tripDates, answers, heroRevealed, shortlist },
+        replaceTrip: applyStoredTrip,
         heroRevealed,
         setHeroRevealed,
       }}

@@ -4,6 +4,7 @@ import { Cormorant_Garamond, Inter, Spectral, Instrument_Sans } from "next/font/
 import { TripProvider } from "@/lib/trip-context";
 import { BackgroundVideoProvider } from "@/lib/background-video-context";
 import SiteBackgroundVideo from "@/components/SiteBackgroundVideo";
+import TripSync from "@/components/TripSync";
 import "./globals.css";
 
 // Brand typography, locked in the brand sheet:
@@ -77,7 +78,13 @@ export default function RootLayout({
       <body>
         <BackgroundVideoProvider>
           <SiteBackgroundVideo />
-          <TripProvider>{children}</TripProvider>
+          <TripProvider>
+            {/* Renders nothing. Keeps a signed-in visitor's trip in their
+                account, and does nothing at all when signed out - see
+                TripSync. Inside TripProvider because it reads the trip. */}
+            <TripSync />
+            {children}
+          </TripProvider>
         </BackgroundVideoProvider>
 
         {/* PLAUSIBLE (4 Sep 2026). Cookieless, aggregate-only, EU-hosted -
