@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LEGAL_READY } from "@/lib/legal-details";
 import Logo from "./Logo";
 import { REGIONS } from "@/lib/journey-options";
 
@@ -100,8 +101,27 @@ export default function Footer() {
         <div className="footer-legal">
           © {year} DramStory Ltd. All rights reserved.
           <br />
-          <a href="#">Privacy Policy</a> &nbsp;·&nbsp; <a href="#">Terms of Use</a> &nbsp;·&nbsp;{" "}
-          <a href="#">Cookie Policy</a> &nbsp;·&nbsp; <a href="#">Affiliate Disclosure</a>
+          {/* Real routes from 4 Sep 2026, but only linked once the pages
+              are finished: LEGAL_READY gates this, and flipping that one
+              flag also removes their noindex and their draft banner. A
+              dead href="#" is bad; a live link to an unreviewed privacy
+              policy is worse, because that is a representation to the
+              visitor about what we do with their data. Until then the
+              labels stay, unlinked, so the footer does not silently lose
+              a row. */}
+          {LEGAL_READY ? (
+            <>
+              <Link href="/privacy">Privacy Policy</Link> &nbsp;·&nbsp;{" "}
+              <Link href="/terms">Terms of Use</Link> &nbsp;·&nbsp;{" "}
+              <Link href="/cookies">Cookie Policy</Link> &nbsp;·&nbsp;{" "}
+              <Link href="/affiliate-disclosure">Affiliate Disclosure</Link>
+            </>
+          ) : (
+            <>
+              Privacy Policy &nbsp;·&nbsp; Terms of Use &nbsp;·&nbsp; Cookie
+              Policy &nbsp;·&nbsp; Affiliate Disclosure
+            </>
+          )}
           <br />
           DramStory Ltd is not affiliated with any distillery unless stated. Drink
           responsibly. For information and support visit{" "}

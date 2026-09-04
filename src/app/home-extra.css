@@ -3195,3 +3195,111 @@ a.hero-dream-card-navy:hover {
 .hero-today-locate-error {
   color: var(--amber);
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   LEGAL PAGES (4 Sep 2026) - privacy, terms, cookies, affiliate
+   disclosure. One treatment for all four: they are read as a set, by
+   someone deciding whether this site is trustworthy, and four slightly
+   different layouts would answer that badly. Deliberately plain - a
+   legal page that tries to be designed reads as though it is selling
+   something.
+   ───────────────────────────────────────────────────────────────────── */
+.legal-draft-banner {
+  background: var(--amber-pale);
+  border-bottom: 2px solid var(--amber);
+  color: var(--peat);
+  font-size: 13.5px;
+  line-height: 1.6;
+  padding: 12px 24px;
+  text-align: center;
+}
+.legal-draft-banner code {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12.5px;
+}
+.legal-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 56px 24px 80px;
+  background: var(--off-white);
+}
+.legal-title {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 38px;
+  font-weight: 500;
+  color: var(--navy);
+  margin: 0 0 12px;
+  line-height: 1.15;
+}
+.legal-intro {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--peat);
+  margin: 0 0 8px;
+}
+.legal-updated {
+  font-size: 12.5px;
+  color: var(--slate);
+  margin: 0 0 32px;
+}
+.legal-body {
+  font-size: 15.5px;
+  line-height: 1.75;
+  color: var(--peat);
+}
+.legal-body h2 {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 23px;
+  font-weight: 600;
+  color: var(--navy);
+  margin: 36px 0 10px;
+  line-height: 1.25;
+}
+.legal-body h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--navy);
+  margin: 24px 0 6px;
+}
+.legal-body p {
+  margin: 0 0 14px;
+}
+.legal-body ul {
+  margin: 0 0 16px;
+  padding-left: 22px;
+}
+.legal-body li {
+  margin-bottom: 7px;
+}
+.legal-body a {
+  color: var(--copper);
+}
+/* Long tables on a phone scroll rather than squeezing to unreadable. */
+.legal-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 20px;
+  font-size: 14px;
+  display: block;
+  overflow-x: auto;
+}
+.legal-table th,
+.legal-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 9px 12px 9px 0;
+  border-bottom: 1px solid var(--stone);
+}
+.legal-table th {
+  font-weight: 600;
+  color: var(--navy);
+  white-space: nowrap;
+}
+/* An unfilled company number must look unfilled, not like prose. */
+.legal-todo {
+  background: var(--amber-pale);
+  border-bottom: 1px dashed var(--amber);
+  color: var(--copper);
+  font-size: 0.92em;
+  padding: 0 3px;
+}
