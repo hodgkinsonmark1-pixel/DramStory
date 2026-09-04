@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Cormorant_Garamond, Inter, Spectral, Instrument_Sans } from "next/font/google";
 import { TripProvider } from "@/lib/trip-context";
 import { BackgroundVideoProvider } from "@/lib/background-video-context";
@@ -78,6 +79,32 @@ export default function RootLayout({
           <SiteBackgroundVideo />
           <TripProvider>{children}</TripProvider>
         </BackgroundVideoProvider>
+
+        {/* PLAUSIBLE (4 Sep 2026). Cookieless, aggregate-only, EU-hosted -
+            which is the whole reason this site carries no consent banner.
+            The no-banner position rests on the ICO's statistical purposes
+            exception and its conditions are recorded in
+            docs/legal/cookie-policy.md. Do not swap this for Google
+            Analytics, and do not use it for advertising or retargeting,
+            without reading that first: either would require consent and a
+            banner.
+
+            Optional measurements - outbound link clicks especially, which
+            is how referral traffic to featured hotels is counted - are
+            toggled in Plausible's own site settings on this new script
+            format, NOT here. The snippet never needs changing for them.
+
+            next/script rather than raw tags, per Next 16's scripts guide.
+            Default afterInteractive strategy: analytics has no reason to
+            block hydration. The inline init carries an id because Next
+            requires one to track inline scripts. */}
+        <Script
+          src="https://plausible.io/js/pa-wEu2-1-tGCpWAwg564JiQ.js"
+          strategy="afterInteractive"
+        />
+        <Script id="plausible-init" strategy="afterInteractive">
+          {`window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()`}
+        </Script>
       </body>
     </html>
   );
