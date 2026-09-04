@@ -3303,3 +3303,108 @@ a.hero-dream-card-navy:hover {
   font-size: 0.92em;
   padding: 0 3px;
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   SIGN IN (4 Sep 2026). Replaces the coming-soon placeholder at /login.
+   Deliberately quiet: this page asks for something, so it should look
+   like a form rather than a pitch.
+   ───────────────────────────────────────────────────────────────────── */
+.login-page {
+  min-height: 60vh;
+  background: var(--off-white);
+  padding: 64px 24px 88px;
+}
+.login-panel {
+  max-width: 460px;
+  margin: 0 auto;
+}
+.login-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 12px;
+}
+.login-title {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 34px;
+  font-weight: 500;
+  color: var(--navy);
+  line-height: 1.15;
+  margin: 0 0 16px;
+}
+.login-lede {
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: var(--peat);
+  margin: 0 0 12px;
+}
+.login-form {
+  margin-top: 24px;
+}
+.login-label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 6px;
+}
+.login-input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 16px; /* 16px stops iOS zooming the page on focus */
+  font-family: var(--font-body), system-ui, sans-serif;
+  color: var(--dark);
+  background: var(--white);
+  border: 1px solid var(--mist);
+  border-radius: var(--radius-sm, 6px);
+}
+.login-input:focus {
+  outline: none;
+  border-color: var(--copper);
+  box-shadow: 0 0 0 3px var(--amber-pale);
+}
+.login-input:disabled {
+  opacity: 0.6;
+}
+.login-submit {
+  margin-top: 14px;
+  width: 100%;
+}
+.login-note {
+  margin-top: 14px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--slate);
+}
+.login-error {
+  margin: 10px 0 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--copper);
+}
+.login-sent-title {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--navy);
+  margin: 0 0 10px;
+}
+.login-sent p {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--peat);
+  margin: 0 0 10px;
+}
+/* A "try again" that is a button, because it changes state rather than
+   navigating - but it should read as the link it looks like. */
+.login-link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--copper);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
