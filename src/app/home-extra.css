@@ -3514,3 +3514,65 @@ a.hero-dream-card-navy:hover {
   border-color: var(--copper);
   color: var(--copper);
 }
+
+/* Named trips library controls (5 Sep 2026). */
+.account-trip-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+/* Open is a button now rather than a link - it records which trip this
+   browser is editing before navigating - so it needs the anchor's look
+   back. */
+button.account-trip-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-body), system-ui, sans-serif;
+  cursor: pointer;
+}
+.account-trip-action {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 12.5px;
+  color: var(--slate);
+  cursor: pointer;
+}
+.account-trip-action:hover:not(:disabled) {
+  color: var(--copper);
+  text-decoration: underline;
+}
+.account-trip-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+/* Destructive, so it reads as destructive on hover and nowhere else -
+   a permanently red button invites misclicks more than it warns. */
+.account-trip-delete:hover:not(:disabled) {
+  color: #a32d2d;
+}
+.account-rename-input {
+  width: 100%;
+  padding: 4px 8px;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 18px;
+  color: var(--navy);
+  background: var(--white);
+  border: 1px solid var(--copper);
+  border-radius: var(--radius-sm, 6px);
+}
+.account-new-trip {
+  margin-top: 16px;
+  display: inline-block;
+}
+@media (max-width: 560px) {
+  /* Three actions plus a name will not sit on one line on a phone. */
+  .account-trip {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}

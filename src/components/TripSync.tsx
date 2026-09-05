@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useTrip } from "@/lib/trip-context";
+import { useTrip, ACTIVE_TRIP_KEY } from "@/lib/trip-context";
 
 /**
  * Keeps a signed-in visitor's trip in their account (4 Sep 2026).
@@ -81,14 +81,30 @@ export default function TripSync() {
     let cancelled = false;
 
     (async () => {
-      const { data, error } = await supabase
+      /* Which trip? The one this browser last opened from the account
+         page, if it is still there; otherwise the most recently saved.
+         Reading the whole list rather than filtering server-side keeps
+         one round trip and lets the fallback work without a second
+         query when the remembered id has been deleted elsewhere. */
+      let activeId: string | null = null;
+      try {
+        activeId = window.localStorage.getItem(ACTIVE_TRIP_KEY);
+      } catch {
+        // Storage unavailable - fall through to most-recent.
+      }
+
+      const { data: allTrips, error } = await supabase
         .from("trips")
-        .select("id, payload")
-        .eq("user_id", userId)
-        .order("updated_at", { ascending: false })
-        .limit(1);
+        .select("id, payload, updated_at")
+        .order("updated_at", { ascending: false });
 
       if (cancelled) return;
+
+      const data = allTrips
+        ? activeId
+          ? allTrips.filter((t) => t.id === activeId).concat(allTrips).slice(0, 1)
+          : allTrips.slice(0, 1)
+        : null;
 
       if (error) {
         // Offline, or RLS refused. Leave the trip exactly as it is and
@@ -99,6 +115,12 @@ export default function TripSync() {
 
       if (data && data.length > 0) {
         tripRowId.current = data[0].id;
+        try {
+          window.localStorage.setItem(ACTIVE_TRIP_KEY, data[0].id);
+        } catch {
+          // Not remembering it is survivable; it just defaults to most
+          // recent next time.
+        }
         const payload = data[0].payload as Record<string, unknown> | null;
         // An empty payload is not a trip. Adopting it would wipe the
         // browser's work on the strength of an empty row.
@@ -114,7 +136,14 @@ export default function TripSync() {
           .insert({ user_id: userId, payload: trip.snapshot })
           .select("id")
           .single();
-        if (!cancelled && !insertError && created) tripRowId.current = created.id;
+        if (!cancelled && !insertError && created) {
+          tripRowId.current = created.id;
+          try {
+            window.localStorage.setItem(ACTIVE_TRIP_KEY, created.id);
+          } catch {
+            // As above.
+          }
+        }
       }
 
       if (!cancelled) loaded.current = true;

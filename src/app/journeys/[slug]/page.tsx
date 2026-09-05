@@ -520,7 +520,7 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
             { href: "/days", label: "Day plans" },
             { href: "/distilleries", label: "Distilleries" },
             { href: "/journal", label: "Journal" },
-            { href: "/login", label: "Login" },
+            { href: "/login", label: "Account" },
           ]}
         />
         <div className="jr-hero-inner">

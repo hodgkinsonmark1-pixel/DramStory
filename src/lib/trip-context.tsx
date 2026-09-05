@@ -9,6 +9,12 @@ import { DREAM_AREAS } from "@/lib/dream-areas";
 
 const STORAGE_KEY = "dramstory-trip-v2";
 
+/** Which saved trip this browser is editing (5 Sep 2026, named trips).
+ *  Deliberately per-browser rather than per-account: someone with the
+ *  site open on a laptop and a phone should be able to work on different
+ *  trips on each. Shared by TripSync and the account page's list. */
+export const ACTIVE_TRIP_KEY = "dramstory-active-trip";
+
 /** Untouched default - "confirmed: false" keeps anything date-dependent
  *  (weather popup, calendar-date day labels, Local Events pins) hidden
  *  until the visitor actually interacts with the header date control.

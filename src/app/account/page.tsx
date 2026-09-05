@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import Footer from "@/components/Footer";
 import { createClient } from "@/lib/supabase/server";
+import TripsList, { type AccountTrip } from "./TripsList";
 
 export const metadata: Metadata = {
   title: "Your trips — DramStory",
@@ -69,36 +70,21 @@ export default async function AccountPage() {
           )}
 
           {!error && trips && trips.length > 0 && (
-            <ul className="account-trips">
-              {trips.map((t) => {
+            <TripsList
+              trips={trips.map((t): AccountTrip => {
                 /* payload is jsonb, so nothing about its shape is
-                   guaranteed. Counted defensively rather than trusted -
-                   a trip saved by an older version of the site should
-                   still list, not crash the page. */
+                   guaranteed. Counted defensively - a trip saved by an
+                   older version of the site should still list, not break
+                   the page. */
                 const payload = (t.payload ?? {}) as { days?: unknown[] };
-                const dayCount = Array.isArray(payload.days) ? payload.days.length : 0;
-                return (
-                  <li key={t.id} className="account-trip">
-                    <div className="account-trip-main">
-                      <span className="account-trip-name">{t.name}</span>
-                      <span className="account-trip-meta">
-                        {dayCount === 0
-                          ? "No days yet"
-                          : `${dayCount} ${dayCount === 1 ? "day" : "days"}`}
-                        {" · saved "}
-                        {new Date(t.updated_at).toLocaleDateString("en-GB", {
-                          day: "numeric",
-                          month: "long",
-                        })}
-                      </span>
-                    </div>
-                    <Link href="/trip" className="account-trip-link">
-                      Open &rarr;
-                    </Link>
-                  </li>
-                );
+                return {
+                  id: t.id,
+                  name: t.name,
+                  dayCount: Array.isArray(payload.days) ? payload.days.length : 0,
+                  updatedAt: t.updated_at,
+                };
               })}
-            </ul>
+            />
           )}
 
           <form action="/auth/sign-out" method="post" className="account-signout">
