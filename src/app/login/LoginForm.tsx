@@ -50,7 +50,27 @@ export default function LoginForm({ next }: { next: string }) {
 
     if (error) {
       setState("error");
-      setMessage("We couldn't send that just now. Try again in a moment.");
+      /* Say which failure it is. "We couldn't send that just now" sent
+         Mark looking for a bug on 5 Sep 2026 when the real cause was
+         Supabase's built-in mailer refusing a third message in an hour -
+         knowable from the response, and not something "try again in a
+         moment" describes. Rate limiting is a wait; an unauthorised
+         address is a dead end until custom SMTP exists. Both are worth
+         saying plainly. */
+      const status = (error as { status?: number }).status;
+      const code = (error as { code?: string }).code ?? "";
+
+      if (status === 429 || code.includes("rate_limit")) {
+        setMessage(
+          "Too many sign-in emails in a short time. Wait an hour and try again — or use a link already in your inbox, if one hasn't expired."
+        );
+      } else if (error.message.toLowerCase().includes("not authorized")) {
+        setMessage(
+          "This address isn't authorised to receive sign-in emails yet. That's a setup limit on our side, not a problem with your address."
+        );
+      } else {
+        setMessage("We couldn't send that just now. Try again in a moment.");
+      }
       return;
     }
 
