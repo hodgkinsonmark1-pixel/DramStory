@@ -7,13 +7,24 @@ import { FEATURED_STAYS } from "@/lib/featured-stays";
 import { AREAS } from "@/lib/areas";
 import { DREAM_AREAS } from "@/lib/dream-areas";
 
-const STORAGE_KEY = "dramstory-trip-v2";
+/* Exported (5 Sep 2026) so sign-out can clear the local trip once it is
+   safely in the account - see SignOutButton. */
+export const STORAGE_KEY = "dramstory-trip-v2";
 
 /** Which saved trip this browser is editing (5 Sep 2026, named trips).
  *  Deliberately per-browser rather than per-account: someone with the
  *  site open on a laptop and a phone should be able to work on different
  *  trips on each. Shared by TripSync and the account page's list. */
 export const ACTIVE_TRIP_KEY = "dramstory-active-trip";
+
+/** Set only while the local trip is known to match what is in the
+ *  account (5 Sep 2026). TripSync REMOVES it the instant the trip
+ *  changes and re-adds it when a write succeeds, so its presence means
+ *  "nothing unsaved", not merely "saved at some point". That distinction
+ *  is the whole point: sign-out clears the local trip only when this is
+ *  present, and a stale marker would throw away exactly the unsynced
+ *  work it exists to protect. */
+export const TRIP_SYNCED_KEY = "dramstory-trip-synced";
 
 /** Untouched default - "confirmed: false" keeps anything date-dependent
  *  (weather popup, calendar-date day labels, Local Events pins) hidden

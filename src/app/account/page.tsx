@@ -5,6 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import Footer from "@/components/Footer";
 import { createClient } from "@/lib/supabase/server";
 import TripsList, { type AccountTrip } from "./TripsList";
+import SignOutButton from "@/components/SignOutButton";
 
 export const metadata: Metadata = {
   title: "Your trips — DramStory",
@@ -96,11 +97,7 @@ export default async function AccountPage() {
             />
           )}
 
-          <form action="/auth/sign-out" method="post" className="account-signout">
-            <button type="submit" className="account-signout-btn">
-              Sign out
-            </button>
-          </form>
+          <SignOutButton />
         </div>
       </main>
       <Footer />

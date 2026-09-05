@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useTrip, ACTIVE_TRIP_KEY } from "@/lib/trip-context";
+import { useTrip, ACTIVE_TRIP_KEY, TRIP_SYNCED_KEY } from "@/lib/trip-context";
 
 /**
  * Keeps a signed-in visitor's trip in their account (4 Sep 2026).
@@ -31,6 +31,32 @@ import { useTrip, ACTIVE_TRIP_KEY } from "@/lib/trip-context";
  */
 
 const SAVE_DEBOUNCE_MS = 1500;
+
+/* The synced marker (5 Sep 2026). Its only consumer is SignOutButton,
+   which clears the browser's trip on sign-out - but only when this says
+   the account already has it.
+   
+   The asymmetry is deliberate and is the whole design: markUnsynced runs
+   the instant anything changes, markSynced only after a write comes back
+   clean. Failing to set it costs a stale local trip, which is invisible.
+   Setting it wrongly destroys work. So every uncertain path leaves it
+   unset. */
+function markSynced() {
+  try {
+    window.localStorage.setItem(TRIP_SYNCED_KEY, "1");
+  } catch {
+    // Storage unavailable. Sign-out will keep the local trip, which is
+    // the safe direction to fail in.
+  }
+}
+
+function markUnsynced() {
+  try {
+    window.localStorage.removeItem(TRIP_SYNCED_KEY);
+  } catch {
+    // Nothing to remove.
+  }
+}
 
 export default function TripSync() {
   const trip = useTrip();
@@ -64,6 +90,11 @@ export default function TripSync() {
         if (prev !== nextId) {
           loaded.current = false;
           tripRowId.current = null;
+          if (!nextId) {
+            // Signed out. Nothing is syncing any more, so the marker
+            // must not linger and claim otherwise.
+            markUnsynced();
+          }
         }
         return nextId;
       });
@@ -129,6 +160,20 @@ export default function TripSync() {
           // genuinely untyped, and replaceTrip already defaults every
           // missing field rather than trusting the shape.
           trip.replaceTrip(payload as unknown as Parameters<typeof trip.replaceTrip>[0]);
+          // Local is now a copy of the account's trip, so it is safe to
+          // discard on sign-out.
+          markSynced();
+        } else {
+          /* The row exists but is empty, so the browser's trip is the
+             real one and has never reached the account. Push it up now
+             rather than waiting for the next edit - otherwise somebody
+             who signs in and straight back out would be relying on a
+             save that was never scheduled. */
+          const { error: seedError } = await supabase
+            .from("trips")
+            .update({ payload: trip.snapshot })
+            .eq("id", data[0].id);
+          if (!cancelled && !seedError) markSynced();
         }
       } else {
         const { data: created, error: insertError } = await supabase
@@ -138,6 +183,9 @@ export default function TripSync() {
           .single();
         if (!cancelled && !insertError && created) {
           tripRowId.current = created.id;
+          // The insert carried trip.snapshot with it, so the account
+          // already holds exactly what the browser holds.
+          markSynced();
           try {
             window.localStorage.setItem(ACTIVE_TRIP_KEY, created.id);
           } catch {
@@ -162,16 +210,27 @@ export default function TripSync() {
   useEffect(() => {
     if (!userId || !loaded.current || !tripRowId.current) return;
 
+    /* Mark the trip unsynced the MOMENT it changes, before the debounce
+       even starts. Anything else leaves a window where the marker says
+       "saved" and the newest edit is not, which is precisely when
+       sign-out would throw it away. */
+    markUnsynced();
+
     if (saveTimer.current) clearTimeout(saveTimer.current);
+    const rowId = tripRowId.current;
     saveTimer.current = setTimeout(() => {
       supabase
         .from("trips")
         .update({ payload: trip.snapshot })
-        .eq("id", tripRowId.current)
-        .then(() => {
-          // Failures are deliberately silent. localStorage still holds
-          // the trip, so nothing is lost, and an error toast for a
-          // background save would be noise the visitor cannot act on.
+        .eq("id", rowId)
+        .then(({ error }) => {
+          // Failures are deliberately silent in the UI - localStorage
+          // still holds the trip, so nothing is lost, and a toast for a
+          // background save is noise nobody can act on. But the marker
+          // must NOT be set, or sign-out would discard the local copy of
+          // something that never reached the account.
+          if (error) return;
+          markSynced();
         });
     }, SAVE_DEBOUNCE_MS);
 
