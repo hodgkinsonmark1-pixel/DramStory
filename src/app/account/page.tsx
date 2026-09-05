@@ -39,6 +39,15 @@ export default async function AccountPage() {
     .select("id, name, payload, updated_at")
     .order("updated_at", { ascending: false });
 
+  /* Logged, not swallowed. This page said "We couldn't load your trips
+     just now" for a table that had never been granted to the Data API,
+     and the message gave Mark nothing to act on - he reasonably guessed
+     it was a session problem across two windows. A vague error in the UI
+     is fine; a vague error in the logs is not. */
+  if (error) {
+    console.error("[account] could not load trips:", error.message, error.code ?? "");
+  }
+
   return (
     <>
       <PageHeader />
