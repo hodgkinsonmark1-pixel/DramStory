@@ -696,7 +696,7 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
           <PutInPlannerButton
             journey={journey}
             note="Free, and you can edit it after."
-            deviceNote="It is kept on this device for now — accounts are the next thing we are building."
+            deviceNote="Right now it is kept in this browser."
           />
           {/* Two equal buttons forced a choice before anyone knew what
               either did. These are the same two routes, demoted to text. */}

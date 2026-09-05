@@ -3149,3 +3149,15 @@ select.location-inline-input {
   line-height: 1.5;
   color: var(--slate);
 }
+
+/* Sign-in offer under "Put this trip in my planner" (5 Sep 2026). Sits
+   inside .jr-ask-device, which is on the navy block, so it needs the
+   light-on-dark treatment rather than the site's copper link colour. */
+.jr-ask-signin {
+  color: var(--amber-light);
+  text-decoration: underline;
+  white-space: nowrap;
+}
+.jr-ask-signin:hover {
+  color: var(--white);
+}

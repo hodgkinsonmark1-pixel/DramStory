@@ -1,6 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { useTrip } from "@/lib/trip-context";
 import type { Journey } from "@/lib/types";
 
@@ -9,7 +12,27 @@ import type { Journey } from "@/lib/types";
  * (18 Aug 2026), replacing the two equal buttons that used to force a
  * choice before anyone knew what either did.
  *
- * IT IS A PLACEHOLDER, deliberately and visibly. The trip lives in this
+ * NO LONGER A PLACEHOLDER (5 Sep 2026). Accounts shipped, and this
+ * component's own note below predicted exactly what would change:
+ * `save()` and `deviceNote`. It was half right. `save()` needed nothing
+ * at all - seeding TripContext is still the whole of "putting it in the
+ * planner", and TripSync pushes it to the account by itself for anyone
+ * signed in. Only the sentence was wrong, and it was wrong in the worst
+ * direction: it told a signed-in visitor their trip was kept on this
+ * device when it was already on their account.
+ *
+ * Mark found it by following the path a real visitor would - homepage,
+ * classic tours, Islay Grand Tour, put this in my planner - and getting
+ * no acknowledgement that he had an account at all.
+ *
+ * DELIBERATELY NOT A LOGIN POP-UP. That was the expectation, and it is
+ * the wrong answer: an interruption at the moment somebody commits to a
+ * five-day journey is a toll booth on the two-minute booking objective.
+ * Same treatment as /trip's TripSaveState - state the truth inline, and
+ * offer.
+ *
+ * ORIGINAL NOTE, kept because it explains the shape:
+ * It was a placeholder, deliberately and visibly. The trip lives in this
  * browser's localStorage today (see trip-context.tsx); visitor accounts
  * are the next thing to be built. So the sub-line says where the trip is
  * actually kept rather than implying it is saved anywhere the visitor
@@ -47,6 +70,26 @@ export default function PutInPlannerButton({
 }) {
   const trip = useTrip();
   const router = useRouter();
+  const pathname = usePathname();
+  const [supabase] = useState(() => createClient());
+  const [email, setEmail] = useState<string | null>(null);
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getUser().then(({ data }) => {
+      if (cancelled) return;
+      setEmail(data.user?.email ?? null);
+      setChecked(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setEmail(session?.user?.email ?? null);
+    });
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   if (!journey.days || journey.days.length === 0) return null;
 
@@ -73,7 +116,19 @@ export default function PutInPlannerButton({
         Put this trip in my planner &rarr;
       </button>
       <p className="jr-ask-note">{note}</p>
-      <p className="jr-ask-device">{deviceNote}</p>
+      {/* Nothing until the session is known - a wrong answer about where
+          someone's trip is kept is worse than a beat of silence. */}
+      {checked &&
+        (email ? (
+          <p className="jr-ask-device">Saved to your account, on every device you sign in to.</p>
+        ) : (
+          <p className="jr-ask-device">
+            {deviceNote}{" "}
+            <Link href={`/login?next=${encodeURIComponent(pathname || "/")}`} className="jr-ask-signin">
+              Keep it on your account &rarr;
+            </Link>
+          </p>
+        ))}
     </div>
   );
 }
