@@ -2683,7 +2683,7 @@ select.location-inline-input {
 }
 /* Where the trip is ACTUALLY kept, today. Not a footnote - it is the
    sentence that makes the line above it honest, and it goes the day
-   visitor accounts land. See PutInPlannerButton. */
+   visitor accounts land. See AddJourneyToTrips. */
 .jr-ask-device {
   margin: 3px 0 0;
   font-family: var(--jr-sans);
@@ -3160,4 +3160,83 @@ select.location-inline-input {
 }
 .jr-ask-signin:hover {
   color: var(--white);
+}
+
+/* "Add to my trips" confirmation and the signed-out collision (5 Sep
+   2026) - see AddJourneyToTrips. All on the navy .jr-ask block, so
+   light-on-dark throughout rather than the site's usual ink/copper. */
+.jr-ask-added {
+  margin: 0 0 14px;
+  font-family: var(--jr-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--white);
+  max-width: 52ch;
+}
+.jr-ask-added-tick {
+  color: var(--jr-accent);
+  font-weight: 700;
+}
+/* The confirmation's "View trip" is a link, not a button, but it is the
+   same action in the same place - so it takes the button's appearance
+   rather than inventing a third treatment. inline-block because an
+   anchor will not honour the padding otherwise. */
+.jr-ask-button-link {
+  display: inline-block;
+  text-decoration: none;
+}
+.jr-ask-button:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+.jr-ask-error {
+  margin: 10px 0 0;
+  font-family: var(--jr-sans);
+  font-size: 13px;
+  color: var(--amber-light);
+  max-width: 52ch;
+}
+.jr-ask-collision-title {
+  margin: 0 0 6px;
+  font-family: var(--jr-sans);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--white);
+}
+.jr-ask-collision-body {
+  margin: 0 0 14px;
+  font-family: var(--jr-sans);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.82);
+  max-width: 52ch;
+}
+/* Deliberately a quiet text button, not a second filled one. It destroys
+   work, so it has to be readable and reachable without being the thing
+   the eye lands on first. */
+.jr-ask-collision-replace,
+.jr-ask-collision-cancel {
+  display: block;
+  margin-top: 12px;
+  padding: 0;
+  font-family: var(--jr-sans);
+  font-size: 13px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+.jr-ask-collision-replace {
+  color: rgba(255, 255, 255, 0.72);
+  text-decoration: underline;
+}
+.jr-ask-collision-replace:hover {
+  color: var(--white);
+}
+.jr-ask-collision-cancel {
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.5);
+}
+.jr-ask-collision-cancel:hover {
+  color: rgba(255, 255, 255, 0.8);
 }

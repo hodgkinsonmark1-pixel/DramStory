@@ -67,7 +67,7 @@ import {
  *      it that sells the opposite.
  *   3. The secondary "Start it as your own trip" action beside the
  *      primary CTA. /journeys/[slug] deliberately collapsed exactly this
- *      pair into one ask on 18 Aug 2026 - see PutInPlannerButton's own
+ *      pair into one ask on 18 Aug 2026 - see AddJourneyToTrips's own
  *      comment: "replacing the two equal buttons that used to force a
  *      choice before anyone knew what either did". Reinstating the pair
  *      on a homepage card, where the visitor has read even less, would

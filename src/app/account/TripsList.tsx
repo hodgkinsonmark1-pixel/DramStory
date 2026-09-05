@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { ACTIVE_TRIP_KEY } from "@/lib/trip-context";
+import { useTrip } from "@/lib/trip-context";
 
 export interface AccountTrip {
   id: string;
@@ -28,6 +28,7 @@ export interface AccountTrip {
  */
 export default function TripsList({ trips }: { trips: AccountTrip[] }) {
   const router = useRouter();
+  const trip = useTrip();
   const [supabase] = useState(() => createClient());
   const [busy, setBusy] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -35,12 +36,12 @@ export default function TripsList({ trips }: { trips: AccountTrip[] }) {
   const [error, setError] = useState<string | null>(null);
 
   function open(id: string) {
-    try {
-      window.localStorage.setItem(ACTIVE_TRIP_KEY, id);
-    } catch {
-      // Private mode or full storage. The trip still opens; it just will
-      // not be remembered as the active one next visit.
-    }
+    /* Through the context, not straight at localStorage (5 Sep 2026).
+       Writing the key here and navigating moved a pointer nobody re-read:
+       TripSync did not watch it, so /trip showed the trip you had just
+       left and the next edit was written back over it. setActiveTrip
+       writes the same key AND tells TripSync to go and fetch that row. */
+    trip.setActiveTrip(id);
     router.push("/trip");
   }
 
@@ -94,13 +95,8 @@ export default function TripsList({ trips }: { trips: AccountTrip[] }) {
       setError("Couldn't delete that trip.");
       return;
     }
-    try {
-      if (window.localStorage.getItem(ACTIVE_TRIP_KEY) === id) {
-        window.localStorage.removeItem(ACTIVE_TRIP_KEY);
-      }
-    } catch {
-      // Nothing to clean up if storage is unavailable.
-    }
+    // Deleting the trip you were editing leaves nothing to point at.
+    if (trip.activeTripId === id) trip.setActiveTrip(null);
     router.refresh();
   }
 

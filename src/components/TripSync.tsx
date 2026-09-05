@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useTrip, ACTIVE_TRIP_KEY, TRIP_SYNCED_KEY } from "@/lib/trip-context";
+import { useTrip, TRIP_SYNCED_KEY } from "@/lib/trip-context";
 
 /**
  * Keeps a signed-in visitor's trip in their account (4 Sep 2026).
@@ -73,31 +73,46 @@ export default function TripSync() {
    *  this browser's trip over the account's. */
   const loaded = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Mirrors userId for the auth callback below, which must not read
+   *  state it did not close over. */
+  const knownUserId = useRef<string | null>(null);
+  /* The auth subscription is set up once and must not be torn down and
+     rebuilt on every render, so it reaches the current setter through a
+     ref rather than closing over one that goes stale. */
+  const setActiveTripRef = useRef(trip.setActiveTrip);
+  useEffect(() => {
+    setActiveTripRef.current = trip.setActiveTrip;
+  });
 
   // Who is signed in, now and whenever that changes.
   useEffect(() => {
     let cancelled = false;
 
     supabase.auth.getUser().then(({ data }) => {
-      if (!cancelled) setUserId(data.user?.id ?? null);
+      if (cancelled) return;
+      knownUserId.current = data.user?.id ?? null;
+      setUserId(knownUserId.current);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       const nextId = session?.user?.id ?? null;
-      setUserId((prev) => {
+      /* Compared against a ref rather than inside a setState updater.
+         Updaters must be pure - this branch clears refs and can call
+         another component's setter, neither of which belongs in one. */
+      if (knownUserId.current !== nextId) {
         // Signing out resets everything so a second visitor on the same
         // browser cannot inherit the first one's row id.
-        if (prev !== nextId) {
-          loaded.current = false;
-          tripRowId.current = null;
-          if (!nextId) {
-            // Signed out. Nothing is syncing any more, so the marker
-            // must not linger and claim otherwise.
-            markUnsynced();
-          }
+        loaded.current = false;
+        tripRowId.current = null;
+        if (!nextId) {
+          // Signed out. Nothing is syncing any more, so neither the
+          // marker nor the pointer may linger and claim otherwise.
+          markUnsynced();
+          setActiveTripRef.current(null);
         }
-        return nextId;
-      });
+        knownUserId.current = nextId;
+      }
+      setUserId(nextId);
     });
 
     return () => {
@@ -106,36 +121,48 @@ export default function TripSync() {
     };
   }, [supabase]);
 
-  // On sign-in: load the account's trip, or adopt this browser's.
+  /* On sign-in, and whenever the visitor chooses a different trip: make
+     the trip on screen be the trip the account holds.
+
+     THE SWITCH CASE IS WHY THIS EFFECT WATCHES activeTripId (5 Sep 2026).
+     It used to run once per sign-in and read the active id straight from
+     localStorage. Opening a different trip from the account page wrote
+     that key and navigated - which moved a pointer nobody re-read. The
+     previous trip stayed on screen, tripRowId still addressed the
+     previous row, and the next edit was saved back over it. The library
+     listed trips you could not actually switch between. */
   useEffect(() => {
-    if (!userId || !trip.ready || loaded.current) return;
+    if (!userId || !trip.ready) return;
+
+    const activeId = trip.activeTripId;
+    /* A deliberate switch: we have already settled on a row, and the
+       visitor has now pointed us at a different one. Distinct from the
+       first load after sign-in, and it matters below - a switch must
+       never push this browser's trip into the row being opened. */
+    const isSwitch = loaded.current && activeId !== null && activeId !== tripRowId.current;
+    if (loaded.current && !isSwitch) return;
+
+    if (isSwitch) {
+      /* Synchronously, before any await. Both refs gate the save effect,
+         so until the new row's contents arrive there is no window in
+         which the outgoing trip could be written into the incoming row. */
+      loaded.current = false;
+      tripRowId.current = null;
+      markUnsynced();
+    }
+
     let cancelled = false;
 
     (async () => {
-      /* Which trip? The one this browser last opened from the account
-         page, if it is still there; otherwise the most recently saved.
-         Reading the whole list rather than filtering server-side keeps
-         one round trip and lets the fallback work without a second
-         query when the remembered id has been deleted elsewhere. */
-      let activeId: string | null = null;
-      try {
-        activeId = window.localStorage.getItem(ACTIVE_TRIP_KEY);
-      } catch {
-        // Storage unavailable - fall through to most-recent.
-      }
-
+      /* Reading the whole list rather than filtering server-side keeps
+         one round trip and lets the fallback work without a second query
+         when the remembered id has been deleted elsewhere. */
       const { data: allTrips, error } = await supabase
         .from("trips")
         .select("id, payload, updated_at")
         .order("updated_at", { ascending: false });
 
       if (cancelled) return;
-
-      const data = allTrips
-        ? activeId
-          ? allTrips.filter((t) => t.id === activeId).concat(allTrips).slice(0, 1)
-          : allTrips.slice(0, 1)
-        : null;
 
       if (error) {
         // Offline, or RLS refused. Leave the trip exactly as it is and
@@ -144,35 +171,43 @@ export default function TripSync() {
         return;
       }
 
+      const data = allTrips
+        ? activeId
+          ? allTrips.filter((t) => t.id === activeId).concat(allTrips).slice(0, 1)
+          : allTrips.slice(0, 1)
+        : null;
+
+      let settledId: string | null = null;
+
       if (data && data.length > 0) {
-        tripRowId.current = data[0].id;
-        try {
-          window.localStorage.setItem(ACTIVE_TRIP_KEY, data[0].id);
-        } catch {
-          // Not remembering it is survivable; it just defaults to most
-          // recent next time.
-        }
+        settledId = data[0].id;
+        tripRowId.current = settledId;
         const payload = data[0].payload as Record<string, unknown> | null;
-        // An empty payload is not a trip. Adopting it would wipe the
-        // browser's work on the strength of an empty row.
-        if (payload && Object.keys(payload).length > 0) {
-          // Cast through unknown: what comes back from jsonb is
-          // genuinely untyped, and replaceTrip already defaults every
-          // missing field rather than trusting the shape.
+        const hasContent = payload !== null && Object.keys(payload).length > 0;
+
+        if (isSwitch) {
+          /* Take the row verbatim, empty included. Opening an empty trip
+             should show an empty trip - the alternative is that the trip
+             you just left follows you into it. Cast through unknown:
+             jsonb is genuinely untyped, and replaceTrip defaults every
+             missing field rather than trusting the shape. */
+          trip.replaceTrip((payload ?? {}) as unknown as Parameters<typeof trip.replaceTrip>[0]);
+          markSynced();
+        } else if (hasContent) {
           trip.replaceTrip(payload as unknown as Parameters<typeof trip.replaceTrip>[0]);
           // Local is now a copy of the account's trip, so it is safe to
           // discard on sign-out.
           markSynced();
         } else {
-          /* The row exists but is empty, so the browser's trip is the
-             real one and has never reached the account. Push it up now
-             rather than waiting for the next edit - otherwise somebody
-             who signs in and straight back out would be relying on a
-             save that was never scheduled. */
+          /* First load, and the row is empty - so the browser's trip is
+             the real one and has never reached the account. Push it up
+             now rather than waiting for the next edit, or somebody who
+             signs in and straight back out would be relying on a save
+             that was never scheduled. */
           const { error: seedError } = await supabase
             .from("trips")
             .update({ payload: trip.snapshot })
-            .eq("id", data[0].id);
+            .eq("id", settledId);
           if (!cancelled && !seedError) markSynced();
         }
       } else {
@@ -182,28 +217,29 @@ export default function TripSync() {
           .select("id")
           .single();
         if (!cancelled && !insertError && created) {
-          tripRowId.current = created.id;
+          settledId = created.id;
+          tripRowId.current = settledId;
           // The insert carried trip.snapshot with it, so the account
           // already holds exactly what the browser holds.
           markSynced();
-          try {
-            window.localStorage.setItem(ACTIVE_TRIP_KEY, created.id);
-          } catch {
-            // As above.
-          }
         }
       }
 
-      if (!cancelled) loaded.current = true;
+      if (cancelled) return;
+      /* Order matters. loaded flips first so that the re-render caused by
+         setActiveTrip below finds this effect already settled and returns
+         at the guard, rather than starting the fetch again. */
+      loaded.current = true;
+      if (settledId && settledId !== activeId) trip.setActiveTrip(settledId);
     })();
 
     return () => {
       cancelled = true;
     };
-    // trip.snapshot deliberately excluded: this runs once per sign-in,
-    // and including it would re-fetch on every keystroke.
+    // trip.snapshot deliberately excluded: including it would re-fetch on
+    // every keystroke.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, trip.ready, supabase]);
+  }, [userId, trip.ready, trip.activeTripId, supabase]);
 
   // Save changes, debounced. Somebody dragging a stop around should not
   // send a write per frame.

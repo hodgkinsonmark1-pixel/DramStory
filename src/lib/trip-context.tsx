@@ -122,7 +122,7 @@ export const DEFAULT_TRIP_ANSWERS: TripAnswers = {
   todayNear: AREAS[0].slug,
 };
 
-interface StoredTrip {
+export interface StoredTrip {
   days: ItineraryDay[];
   intake: TripIntake | null;
   currentDayIndex: number;
@@ -194,6 +194,21 @@ interface TripContextValue {
    *  one tab actively editing at a time and does not attempt to merge
    *  concurrent edits. */
   replaceTrip: (stored: StoredTrip) => void;
+  /** Which account trip is being edited in this browser, or null when
+   *  signed out / not yet resolved (5 Sep 2026).
+   *
+   *  IT LIVES HERE RATHER THAN ONLY IN localStorage because a pointer
+   *  nobody re-reads is not a switch. TripsList used to write the key and
+   *  navigate, which moved the pointer and nothing else: TripSync's load
+   *  effect did not depend on it, so the previous trip stayed on screen
+   *  and the next edit was written back to the previous row. Holding it
+   *  as state is what makes choosing a trip actually change the trip. */
+  activeTripId: string | null;
+  /** Point this browser at a different account trip. TripSync notices and
+   *  fetches that row's contents; callers do not load the payload
+   *  themselves, so there is exactly one path that decides what the trip
+   *  currently is. Pass null to stop tracking a row (sign-out). */
+  setActiveTrip: (id: string | null) => void;
   initDays: (count: number) => void;
   /** Grows the day list to match a target count if it's currently
    *  shorter, preserving every existing day and its stops - used when the
@@ -337,6 +352,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
   const [heroRevealed, setHeroRevealedState] = useState(false);
   const [shortlist, setShortlist] = useState<ItineraryStop[]>([]);
   const [ready, setReady] = useState(false);
+  const [activeTripId, setActiveTripIdState] = useState<string | null>(null);
 
   // Reads localStorage after mount rather than in a lazy useState
   // initializer deliberately: the server always renders an empty trip
@@ -358,6 +374,21 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
     setShortlist(parsed.shortlist ?? []);
   }
 
+  /** Writes through to localStorage as well as state, because which trip
+   *  is being edited has to survive a reload - and because TripSync reads
+   *  the key directly on a cold start, before this provider has told
+   *  anyone anything. */
+  function setActiveTrip(id: string | null) {
+    try {
+      if (id) window.localStorage.setItem(ACTIVE_TRIP_KEY, id);
+      else window.localStorage.removeItem(ACTIVE_TRIP_KEY);
+    } catch {
+      // Private mode or full storage. The switch still works for this
+      // session; it just will not be remembered next visit.
+    }
+    setActiveTripIdState(id);
+  }
+
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -365,6 +396,8 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         applyStoredTrip(JSON.parse(raw));
       }
+      const active = window.localStorage.getItem(ACTIVE_TRIP_KEY);
+      if (active) setActiveTripIdState(active);
     } catch {
       // Corrupt or inaccessible storage - just start fresh.
     }
@@ -852,6 +885,8 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
         setAnswersTodayPoint,
         snapshot: { days, intake, currentDayIndex, mapView, tripDates, answers, heroRevealed, shortlist },
         replaceTrip: applyStoredTrip,
+        activeTripId,
+        setActiveTrip,
         heroRevealed,
         setHeroRevealed,
       }}

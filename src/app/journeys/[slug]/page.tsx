@@ -13,7 +13,7 @@ import {
 import Footer from "@/components/Footer";
 import SiteHeader from "@/components/SiteHeader";
 import JourneyRail from "@/components/journeys/JourneyRail";
-import PutInPlannerButton, { TakeTheDaysLink } from "@/components/journeys/PutInPlannerButton";
+import AddJourneyToTrips from "@/components/journeys/AddJourneyToTrips";
 import SeasonalNotice from "@/components/journeys/SeasonalNotice";
 import { type RouteMapStop } from "@/components/journeys/JourneyRouteMap";
 import { type DayBase } from "@/lib/day-derivations";
@@ -693,16 +693,23 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
             <li>Or change any part of it</li>
             <li>Nothing is booked, and nothing is paid</li>
           </ul>
-          <PutInPlannerButton
+          <AddJourneyToTrips
             journey={journey}
             note="Free, and you can edit it after."
             deviceNote="Right now it is kept in this browser."
           />
-          {/* Two equal buttons forced a choice before anyone knew what
-              either did. These are the same two routes, demoted to text. */}
+          {/* "Take the days, not the nights" used to sit here. It was
+              removed on 5 Sep 2026 because the distinction it promised did
+              not exist: Journey.accommodationNote is prose on this page,
+              and TripAnswers' base/nights are only ever written by
+              DaysAnswersBar, so NEITHER action ever carried accommodation.
+              The only real difference was that it appended rather than
+              replaced - bolting five curated days onto the end of whatever
+              you had, which produces an itinerary that criss-crosses the
+              island. Cherry-picking single days is served properly on
+              /days and the day cards. */}
           <div className="jr-ask-or">
             <span className="jr-eyebrow">Or start differently</span>
-            <TakeTheDaysLink journey={journey} />
             {/* One string, built in JS rather than assembled out of JSX
                 text nodes: a text node that both follows an expression
                 and carries an entity loses its leading space at compile
