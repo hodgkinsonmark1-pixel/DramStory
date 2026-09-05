@@ -3442,9 +3442,23 @@ a.hero-dream-card-navy:hover {
   line-height: 1.6;
   color: var(--peat);
 }
-.account-cta {
+.account-cta,
+.account-new-trip {
   display: inline-block;
+  padding: 12px 26px;
+  background: var(--navy);
+  color: var(--white);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
   text-decoration: none;
+  border: 0;
+  border-radius: 100px;
+  cursor: pointer;
+}
+.account-cta:hover,
+.account-new-trip:hover {
+  background: var(--navy-mid);
 }
 .account-trips {
   list-style: none;
@@ -3566,7 +3580,6 @@ button.account-trip-link {
 }
 .account-new-trip {
   margin-top: 16px;
-  display: inline-block;
 }
 @media (max-width: 560px) {
   /* Three actions plus a name will not sit on one line on a phone. */

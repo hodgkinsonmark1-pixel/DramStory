@@ -52,6 +52,20 @@ cannot get into their account.
 So the brand is carried by colour, typography and the sender name, and
 nothing else. The DramStory voice belongs in the newsletter.
 
+**A logo is fine, and is in both templates.** The guidance says *reduce*
+images, not eliminate them. One logo alongside plenty of real text is
+normal, expected, and helps: an authentication email with no branding at
+all looks more like phishing, not less. What actually trips filters is
+image-heavy or image-only email, and tracking pixels — neither of which
+these are.
+
+Three rules it follows: an absolute `https://` URL (email clients will
+not resolve a relative path), real `alt` text so it degrades to the word
+"DramStory" when images are blocked — which many clients do by default —
+and explicit width and height so the layout does not jump while it
+loads. The wordmark below it is text, not part of the image, so the
+email reads correctly either way.
+
 Two technical notes that look like mistakes and are not:
 
 - **Tables and inline styles.** Email clients are twenty years behind

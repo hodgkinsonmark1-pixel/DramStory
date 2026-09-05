@@ -568,11 +568,27 @@
 .trip-save-state {
   text-align: center;
 }
+/* Its own pill, NOT .trip-btn-primary. That class is built for the
+   side-by-side row it used to live in - flex:1 to share the width, and
+   --radius-sm corners - so on its own it rendered as a wide blocky
+   rectangle against a site whose buttons are all 100px pills. Same
+   shape as .hd-wall-cta and the hero's own actions. */
 .trip-save-cta {
   display: inline-block;
+  padding: 12px 28px;
+  background: var(--navy);
+  color: var(--white);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
   text-decoration: none;
   text-align: center;
-  min-width: 220px;
+  border: 0;
+  border-radius: 100px;
+  transition: background 0.2s var(--ease-out);
+}
+.trip-save-cta:hover {
+  background: var(--navy-mid);
 }
 /* Its own rule rather than .trip-actions-note: that one is 12px on the
    page background and was too faint here, on a tinted panel, doing a
