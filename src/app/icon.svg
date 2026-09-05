@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="DramStory">
+  <!--
+    Tab icon, 5 September 2026.
+
+    THE FULL LOGO CANNOT BE USED HERE. It is an open book, a landscape,
+    a distillery pagoda, a compass star and a wordmark. At 16px - which
+    is what a browser tab actually renders - that is an unreadable
+    smudge. Detail that reads beautifully at 200px is noise at 16.
+
+    So this is the compass star lifted out of the logo and given room.
+    It is the one element that survives the size, and it is still
+    DramStory's own mark rather than a generic whisky glass: at tab size
+    people recognise a silhouette and a colour, and a gold star on navy
+    is unmistakably this site in a row of twenty tabs.
+
+    Navy ground rather than transparent, because a transparent icon
+    disappears against a dark browser theme.
+  -->
+  <rect width="32" height="32" rx="7" fill="#1A3A4A"/>
+  <path
+    d="M16 3 L18.9 13.1 L29 16 L18.9 18.9 L16 29 L13.1 18.9 L3 16 L13.1 13.1 Z"
+    fill="#D4A574"/>
+</svg>
