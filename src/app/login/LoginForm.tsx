@@ -20,6 +20,11 @@ import { createClient } from "@/lib/supabase/client";
  * anyone who asks which addresses are registered here.
  */
 export default function LoginForm({ next }: { next: string }) {
+  /* Where the link returns to. "/" means the visitor came to /login
+     directly rather than from a trip, so send them to the account page -
+     landing on the homepage after signing in gives no sign anything
+     happened. A real ?next (from "Keep this trip") is honoured. */
+  const returnTo = next === "/" ? "/account" : next;
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -39,7 +44,7 @@ export default function LoginForm({ next }: { next: string }) {
     const { error } = await supabase.auth.signInWithOtp({
       email: trimmed,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(returnTo)}`,
       },
     });
 

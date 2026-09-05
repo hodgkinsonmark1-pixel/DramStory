@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import Footer from "@/components/Footer";
 import LoginForm from "./LoginForm";
@@ -35,27 +36,18 @@ export default async function LoginPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  /* Already signed in? /login has nothing to offer - send them to the
+     page that does. Replaces a "You're signed in" panel whose sign-out
+     button was, additionally, white text on a cream background and
+     therefore invisible. */
+  if (user) redirect(next === "/" ? "/account" : next);
+
   return (
     <>
       <PageHeader />
       <main className="login-page">
-        {user ? (
-          <div className="login-panel">
-            <div className="login-eyebrow">Signed in</div>
-            <h1 className="login-title">You&rsquo;re signed in</h1>
-            <p>
-              As <strong>{user.email}</strong>. Your trip is saved to this
-              account.
-            </p>
-            <form action="/auth/sign-out" method="post">
-              <button type="submit" className="hero-action-btn hero-action-secondary login-submit">
-                Sign out
-              </button>
-            </form>
-          </div>
-        ) : (
-          <div className="login-panel">
-            <div className="login-eyebrow">Keep your trip</div>
+        <div className="login-panel">
+          <div className="login-eyebrow">Keep your trip</div>
             <h1 className="login-title">Your trip, on every device</h1>
             <p className="login-lede">
               Right now the trip you build lives in this browser. Clear your
@@ -79,8 +71,7 @@ export default async function LoginPage({
             )}
 
             <LoginForm next={next} />
-          </div>
-        )}
+        </div>
       </main>
       <Footer />
     </>

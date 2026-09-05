@@ -3408,3 +3408,109 @@ a.hero-dream-card-navy:hover {
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   ACCOUNT PAGE (5 Sep 2026). The signed-in home. Signing in used to
+   land on /login saying "You're signed in" and nothing else - an
+   account whose only visible effect is a sentence confirming it exists
+   has not paid for itself.
+   ───────────────────────────────────────────────────────────────────── */
+.account-page {
+  min-height: 60vh;
+  background: var(--off-white);
+  padding: 56px 24px 88px;
+}
+.account-inner {
+  max-width: 620px;
+  margin: 0 auto;
+}
+.account-signed-as {
+  font-size: 14px;
+  color: var(--slate);
+  margin: 0 0 28px;
+}
+.account-empty {
+  padding: 28px 24px;
+  background: var(--white);
+  border: 1px solid var(--stone);
+  border-radius: var(--radius);
+  text-align: center;
+}
+.account-empty p {
+  margin: 0 0 16px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--peat);
+}
+.account-cta {
+  display: inline-block;
+  text-decoration: none;
+}
+.account-trips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.account-trip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  background: var(--white);
+  border: 1px solid var(--stone);
+  border-radius: var(--radius);
+}
+.account-trip-main {
+  min-width: 0;
+}
+.account-trip-name {
+  display: block;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 18px;
+  color: var(--navy);
+  line-height: 1.25;
+}
+.account-trip-meta {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--slate);
+}
+.account-trip-link {
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--copper);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.account-trip-link:hover {
+  text-decoration: underline;
+}
+/* Its own button, NOT .hero-action-secondary. That style is frosted
+   white-on-translucent, built to sit over the hero video - on this cream
+   page it rendered white text on near-white and was invisible. Signing
+   out is also a quiet action: it should be legible, not prominent. */
+.account-signout {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--stone);
+}
+.account-signout-btn {
+  padding: 9px 18px;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 13.5px;
+  color: var(--peat);
+  background: none;
+  border: 1px solid var(--mist);
+  border-radius: 100px;
+  cursor: pointer;
+}
+.account-signout-btn:hover {
+  border-color: var(--copper);
+  color: var(--copper);
+}
