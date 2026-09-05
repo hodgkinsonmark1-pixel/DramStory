@@ -3576,3 +3576,86 @@ button.account-trip-link {
     gap: 10px;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   SAVE PROMPT (5 Sep 2026). Site-wide, appears once a signed-out
+   visitor's trip is worth losing. A BAR, not a modal - the planner works
+   without an account and an interruption would be a toll booth on the
+   two-minute booking objective.
+   ───────────────────────────────────────────────────────────────────── */
+.trip-save-prompt {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 20px;
+  z-index: 60;
+  width: calc(100% - 32px);
+  max-width: 520px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  background: var(--navy);
+  border-radius: 100px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.22);
+}
+.trip-save-prompt-text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.82);
+}
+.trip-save-prompt-text strong {
+  color: var(--white);
+}
+.trip-save-prompt-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.trip-save-prompt-cta {
+  padding: 8px 16px;
+  background: var(--amber);
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+.trip-save-prompt-cta:hover {
+  background: var(--amber-light);
+}
+.trip-save-prompt-dismiss {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.trip-save-prompt-dismiss:hover {
+  color: var(--white);
+}
+@media (max-width: 520px) {
+  /* Rounded pill becomes a card on a phone - at this width the text
+     wraps and a 100px radius starts clipping its own corners. */
+  .trip-save-prompt {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    border-radius: 14px;
+    bottom: 12px;
+  }
+  .trip-save-prompt-actions {
+    justify-content: space-between;
+  }
+  .trip-save-prompt-cta {
+    flex: 1;
+    text-align: center;
+  }
+}

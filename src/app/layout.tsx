@@ -5,6 +5,7 @@ import { TripProvider } from "@/lib/trip-context";
 import { BackgroundVideoProvider } from "@/lib/background-video-context";
 import SiteBackgroundVideo from "@/components/SiteBackgroundVideo";
 import TripSync from "@/components/TripSync";
+import TripSavePrompt from "@/components/TripSavePrompt";
 import "./globals.css";
 
 // Brand typography, locked in the brand sheet:
@@ -84,6 +85,10 @@ export default function RootLayout({
                 TripSync. Inside TripProvider because it reads the trip. */}
             <TripSync />
             {children}
+            {/* Watches the trip, not the buttons - so every one of the
+                twelve components that can add a stop is covered, and so
+                is the thirteenth. Slim, dismissible, blocks nothing. */}
+            <TripSavePrompt />
           </TripProvider>
         </BackgroundVideoProvider>
 
