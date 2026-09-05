@@ -562,8 +562,24 @@
 .trip-save-state-on .trip-save-line {
   margin-bottom: 4px;
 }
+/* Centred, with the note beneath rather than beside it. The note was
+   floating to the right of the button on the same line, which read as a
+   caption to nothing and left the button stranded in the corner. */
+.trip-save-state {
+  text-align: center;
+}
 .trip-save-cta {
   display: inline-block;
   text-decoration: none;
   text-align: center;
+  min-width: 220px;
+}
+/* Its own rule rather than .trip-actions-note: that one is 12px on the
+   page background and was too faint here, on a tinted panel, doing a
+   job that matters - it is the answer to "what happens if I press it". */
+.trip-save-note {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--peat);
 }

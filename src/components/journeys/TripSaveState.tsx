@@ -62,10 +62,13 @@ export default function TripSaveState() {
     return (
       <div className="trip-save-state trip-save-state-on">
         <p className="trip-save-line">
-          <strong>Saved to your account.</strong> This trip is on every device
-          you sign in to as {email}.
+          {/* Explicit {" "} after </strong>, not a literal space. This
+              build drops the literal one - the homepage had the same
+              fault rendering "fourfeatured hotels". */}
+          <strong>Saved to your account.</strong>{" "}
+          This trip is on every device you sign in to as {email}.
         </p>
-        <p className="trip-actions-note">
+        <p className="trip-save-note">
           Emailing your trip to yourself is still to come.
         </p>
       </div>
@@ -75,9 +78,9 @@ export default function TripSaveState() {
   return (
     <div className="trip-save-state">
       <p className="trip-save-line">
-        <strong>This trip lives in this browser.</strong> Clear your history and
-        it&rsquo;s gone, and it isn&rsquo;t on your phone when you&rsquo;re
-        standing on Islay.
+        <strong>This trip lives in this browser.</strong>{" "}
+        Clear your history and it&rsquo;s gone, and it isn&rsquo;t on your phone
+        when you&rsquo;re standing on Islay.
       </p>
       {/* Carries the current page so signing in returns here rather than
           dumping someone on the homepage having lost their place. */}
@@ -87,7 +90,7 @@ export default function TripSaveState() {
       >
         Keep this trip
       </Link>
-      <p className="trip-actions-note">
+      <p className="trip-save-note">
         No password &mdash; we&rsquo;ll email you a link. Your trip stays exactly
         as it is.
       </p>
