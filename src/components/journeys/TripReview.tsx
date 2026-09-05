@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import TripSaveState from "./TripSaveState";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Distillery, HubDay, ItineraryDay, ItineraryStop } from "@/lib/types";
@@ -593,22 +594,15 @@ export default function TripReview({ hubDays, distilleries }: { hubDays: HubDay[
           <div className="trip-numbers-caption">Tours only — no travel, food or stays.</div>
         </div>
 
-        {/* §3.3 item 7 - undecided whether a saved trip needs login
-            (design doc §8, open question 6) - both buttons are present
-            per the copy deck but inert, rather than either building
-            real persistence/email infra or silently doing nothing with
-            no explanation. Flagged in the Phase 3 report. */}
-        <div className="trip-actions">
-          <button type="button" className="trip-btn trip-btn-ghost" disabled aria-disabled="true">
-            Save as a tour
-          </button>
-          <button type="button" className="trip-btn trip-btn-primary" disabled aria-disabled="true">
-            Email this trip to myself
-          </button>
-        </div>
-        <p className="trip-actions-note">
-          Saving and emailing are coming soon — for now, this page is yours to bookmark.
-        </p>
+        {/* Was two disabled buttons and "Saving and emailing are coming
+            soon" - the open question from §3.3 item 7, answered on
+            5 Sep 2026 when accounts shipped. Saving is no longer coming;
+            it is happening, continuously, for anyone signed in. See
+            TripSaveState for why there is no save button. Emailing a
+            trip to yourself genuinely is still to come - no transactional
+            email exists yet - and is said there rather than promised
+            here. */}
+        <TripSaveState />
       </div>
 
       {datesOpen && (

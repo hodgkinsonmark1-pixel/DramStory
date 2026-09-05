@@ -537,3 +537,33 @@
     padding-right: max(24px, calc((100% - 720px) / 2 + 24px));
   }
 }
+
+/* Sign-in state at the foot of /trip (5 Sep 2026), replacing the two
+   inert buttons and the "coming soon" line. See TripSaveState. */
+.trip-save-state {
+  margin-top: 20px;
+  padding: 16px 18px;
+  background: var(--amber-pale);
+  border: 1px solid var(--amber-light);
+  border-radius: var(--radius);
+}
+/* Signed in is a statement of fact, not a call to action, so it loses
+   the amber and reads as reassurance rather than a prompt. */
+.trip-save-state-on {
+  background: var(--off-white);
+  border-color: var(--stone);
+}
+.trip-save-line {
+  margin: 0 0 12px;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--peat);
+}
+.trip-save-state-on .trip-save-line {
+  margin-bottom: 4px;
+}
+.trip-save-cta {
+  display: inline-block;
+  text-decoration: none;
+  text-align: center;
+}
