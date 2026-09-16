@@ -2,7 +2,7 @@
 
 **DRAFT — not published, not legally reviewed. See `README.md`.**
 
-Last updated: [[TO CONFIRM: publication date]]
+Last updated: 16 September 2026
 
 ---
 
@@ -108,4 +108,4 @@ will forget your trip between visits.
 
 ## Questions
 
-[[TO CONFIRM: contact address]]
+privacy@dramstory.com
