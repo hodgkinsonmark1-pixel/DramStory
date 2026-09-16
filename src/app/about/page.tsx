@@ -140,6 +140,16 @@ export default function AboutPage() {
               &mdash; across both Islay and Jura.
             </p>
 
+            {/* Restored 16 Sep 2026. Cut from v4 for length, and the second-
+                pass review called losing it the costliest edit on the page:
+                without it nothing here says what DramStory actually DOES.
+                "Help you work out where to go" describes a guidebook or a
+                blog just as well. This is the only sentence that does not. */}
+            <p>
+              Tell it what matters to you &mdash; distilleries, beaches, walks,
+              somewhere good to eat &mdash; and it lays the days out end to end.
+            </p>
+
             <p>
               That first journey led to others, and in turn to a book about
               whisky travel, now close to publication.
