@@ -17,7 +17,8 @@ import type { Journey } from "@/lib/types";
  * with `position: sticky` inside it), not something this component
  * measures.
  *
- * WHAT IT WATCHES, and why there are two observers rather than one:
+ * WHAT IT WATCHES, in one scroll pass (rewritten 16 Sep 2026 - it was two
+ * IntersectionObservers, and see the effect below for why it is not):
  *
  *  - `[data-jr-day]` - every day card. The most recently crossed one is
  *    the day the map labels. Deliberately "most recently crossed going
@@ -30,17 +31,20 @@ import type { Journey } from "@/lib/types";
  *    action hides the moment the block it points at is visible. Without
  *    this the reader gets the same sentence twice, six inches apart.
  *
+ * THE MAP IS ALSO FLICKABLE on its own, with arrows that move it and
+ * nothing else, so you can look ahead at day four while still reading day
+ * one. Scrolling hands control back to the page.
+ *
  * MOBILE is the same component and the same state: CSS drops the rail,
  * promotes the map to a full-width band above the days, and turns the
  * action into a bottom bar. The bar appears only after day one has gone
- * past - `currentDay >= 1` - because an ask before anyone has read a
- * single day is the thing this page's whole structure is arguing
- * against.
+ * past - and it gates on the day READ, not the day flicked to, because
+ * looking ahead is not reading, and an ask before anyone has read a
+ * single day is the thing this page's whole structure argues against.
  *
- * Falls back gracefully with no JavaScript and no IntersectionObserver:
- * the map renders, the overlay simply names day one, and the action is a
- * plain link that is always shown. Nothing here is required to read the
- * page.
+ * Falls back gracefully with no JavaScript: the map renders, the overlay
+ * names day one, and the ask is a plain link to the block at the foot.
+ * Nothing here is required to read the page.
  */
 export default function JourneyRail({
   journey,
@@ -141,9 +145,6 @@ export default function JourneyRail({
       frame = window.requestAnimationFrame(recompute);
     }
 
-    // Scheduled rather than called: setting state straight from an effect
-    // body cascades a render, which is what react-hooks/set-state-in-effect
-    // is there to stop.
     /* Scrolling hands control back to the page. Not throttled and not
        inside recompute on purpose: it must happen on the first scroll
        event, before the next frame, or the map would show the flicked day
@@ -154,6 +155,9 @@ export default function JourneyRail({
       schedule();
     }
 
+    // Scheduled rather than called: setting state straight from an effect
+    // body cascades a render, which is what react-hooks/set-state-in-effect
+    // is there to stop.
     schedule();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", schedule);
@@ -172,10 +176,17 @@ export default function JourneyRail({
   const area = dayAreas[shownDay - 1];
 
   /** Flick the map. Deliberately does NOT move the page - the map is a
-   *  thing you can look through on its own while reading day one. */
-  function showDay(day: number) {
-    if (day < 1 || day > dayCount) return;
-    setManualDay(day);
+   *  thing you can look through on its own while reading day one.
+   *
+   *  Takes a step rather than a destination, and computes it inside the
+   *  updater. Two quick clicks land in the same React batch and would
+   *  otherwise both read the same render's day and both resolve to the
+   *  same answer: three presses moved the map two days. */
+  function stepDay(delta: number) {
+    setManualDay((prev) => {
+      const next = (prev ?? currentDay) + delta;
+      return next < 1 || next > dayCount ? prev : next;
+    });
   }
 
   /* The rail's ask ADDS the trip now (12 Sep 2026) rather than scrolling
@@ -229,7 +240,7 @@ export default function JourneyRail({
             <button
               type="button"
               className="jr-map-nav-btn"
-              onClick={() => showDay(shownDay - 1)}
+              onClick={() => stepDay(-1)}
               disabled={shownDay <= 1}
               aria-label="Previous day on the map"
             >
@@ -241,7 +252,7 @@ export default function JourneyRail({
             <button
               type="button"
               className="jr-map-nav-btn"
-              onClick={() => showDay(shownDay + 1)}
+              onClick={() => stepDay(1)}
               disabled={shownDay >= dayCount}
               aria-label="Next day on the map"
             >
