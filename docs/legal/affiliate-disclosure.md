@@ -2,7 +2,7 @@
 
 **DRAFT — not published, not legally reviewed. See `README.md`.**
 
-Last updated: [[TO CONFIRM: publication date]]
+Last updated: 16 September 2026
 
 ---
 
@@ -18,12 +18,13 @@ That is currently the only way this site earns anything.
 
 | Company | What for | Our arrangement |
 |---|---|---|
-| Hotels.com | Accommodation | Expedia Group Travel Creator Program [[TO CONFIRM: name as it should be publicly stated]] |
-| Booking.com | Accommodation | [[TO CONFIRM: programme reference]] |
+| Hotels.com | Accommodation | Expedia Group Travel Creator Program |
+| Discover Cars | Car hire | Affiliate programme |
 
-[[TO CONFIRM: whether car hire links are affiliate or plain links. `docs`
-mentions a "WE EARN A COMMISSION" label on one car hire firm — if that is live,
-it belongs in this table.]]
+Resolved 16 Sep 2026: it is live. Discover Cars carries a "we earn a
+commission" label and `rel="sponsored nofollow"` on the homepage. The two
+island firms, Islay Car Hire and Cresswell Cars, are plain links and pay
+nothing.
 
 ## What this does not affect
 
@@ -64,4 +65,4 @@ See our Privacy Policy for what we do and do not collect.
 
 ## Questions
 
-[[TO CONFIRM: contact address]]
+privacy@dramstory.com

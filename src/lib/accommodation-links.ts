@@ -89,25 +89,22 @@ export function buildAccommodationBookingLink(location: string, tripDates?: Trip
   return `https://uk.hotels.com/Hotel-Search?${params.toString()}`;
 }
 
-/**
- * Booking.com - secondary supplier, deliberately smaller/less prominent
- * than Hotels.com in the UI (19 July 2026: "clearly as a 2nd option...
- * not on equal booking"). Session-based attribution, not a multi-day
- * cookie - see business-plan.md, Pillar 5, for the reasoning behind
- * Hotels.com being primary instead.
- */
-const BOOKING_AID = "YOUR_AID_HERE";
+/* BOOKING.COM REMOVED, 16 Sep 2026.
+ *
+ * buildBookingComLink stood here since 19 July as the "secondary
+ * supplier", building a Booking.com search URL with an `aid` affiliate
+ * parameter set to the literal string "YOUR_AID_HERE".
+ *
+ * Mark confirmed on 16 Sep that there is no Booking.com affiliate
+ * account, and there never was. So the parameter was never going to
+ * resolve to anything: every click sent through it was an ordinary
+ * unattributed visit dressed up as a tracked one, and the affiliate
+ * disclosure listed a programme the site is not in - which is the one
+ * thing a disclosure must never do.
+ *
+ * Deleted rather than reduced to a plain link. Nothing in the live UI
+ * called it, and a dormant link builder for a supplier we have no
+ * relationship with is an invitation to wire it up later without anyone
+ * rechecking why it was disabled. If Booking.com is ever joined
+ * properly, this is a small function to write again with a real id. */
 
-export function buildBookingComLink(location: string, tripDates?: TripDates): string {
-  const { checkin, checkout } = resolveCheckinCheckout(tripDates);
-  const params = new URLSearchParams({
-    aid: BOOKING_AID,
-    ss: `${location}, Islay, Scotland`,
-    checkin,
-    checkout,
-    group_adults: "2",
-    no_rooms: "1",
-    selected_currency: "GBP",
-  });
-  return `https://www.booking.com/searchresults.html?${params.toString()}`;
-}

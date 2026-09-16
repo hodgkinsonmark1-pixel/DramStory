@@ -2,14 +2,14 @@
 
 **DRAFT — not published, not legally reviewed. See `README.md`.**
 
-Last updated: [[TO CONFIRM: publication date]]
+Last updated: 16 September 2026
 
 ---
 
 ## 1 · Who these terms are with
 
-DramStory is operated by DramStory Ltd, company number [[TO CONFIRM]],
-registered in [[TO CONFIRM]] at [[TO CONFIRM: registered address]].
+DramStory is run by Mark Hodgkinson, trading as DramStory, a sole trader in England and Wales, at
+c/o GTA Accounting, Johnsons Barns, Waterworks Rd, Petersfield GU32 2BY.
 
 By using dramstory.com you accept these terms. If you do not, please stop using
 the site.
@@ -135,11 +135,10 @@ will be flagged on the site [[NOT YET BUILT: and emailed to account holders]].
 
 ## 13 · Law
 
-These terms are governed by the law of [[TO CONFIRM: England and Wales, or
-Scotland — should match where DramStory Ltd is registered]], and its courts
+These terms are governed by the law of England and Wales, and its courts
 have exclusive jurisdiction. If you are a consumer this does not remove the
 protection of the law where you live.
 
 ## 14 · Contact
 
-[[TO CONFIRM: contact address]]
+privacy@dramstory.com

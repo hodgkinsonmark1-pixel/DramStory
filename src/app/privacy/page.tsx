@@ -16,26 +16,31 @@ export default function PrivacyPolicyPage() {
     >
       <h2>Who we are</h2>
       <p>
-        DramStory is a whisky travel planning site for Islay and Jura, operated
-        by {LEGAL_DETAILS.companyName}.
+        DramStory is a whisky travel planning site for Islay and Jura, run by{" "}
+        {LEGAL_DETAILS.legalName}.
       </p>
       <ul>
         <li>
-          <strong>Company:</strong> {LEGAL_DETAILS.companyName}, registered in{" "}
-          <Detail value={LEGAL_DETAILS.jurisdiction} />, company number{" "}
-          <Detail value={LEGAL_DETAILS.companyNumber} />
+          <strong>Operator:</strong> {LEGAL_DETAILS.legalName}, a sole trader in{" "}
+          <Detail value={LEGAL_DETAILS.jurisdiction} />
         </li>
         <li>
-          <strong>Registered address:</strong>{" "}
-          <Detail value={LEGAL_DETAILS.registeredAddress} />
+          <strong>Business address:</strong>{" "}
+          <Detail value={LEGAL_DETAILS.businessAddress} />
         </li>
         <li>
           <strong>Contact:</strong> <Detail value={LEGAL_DETAILS.contactEmail} />
         </li>
-        <li>
-          <strong>ICO registration number:</strong>{" "}
-          <Detail value={LEGAL_DETAILS.icoNumber} />
-        </li>
+        {/* Omitted entirely until the registration exists. Publishing the
+            number is good practice rather than a requirement, and an empty
+            or "to confirm" line on a privacy policy is worse than no line:
+            it advertises that the operator knows about the obligation and
+            has not met it. */}
+        {LEGAL_DETAILS.icoNumber && (
+          <li>
+            <strong>ICO registration number:</strong> {LEGAL_DETAILS.icoNumber}
+          </li>
+        )}
       </ul>
       <p>
         We are the <strong>data controller</strong> for the personal data

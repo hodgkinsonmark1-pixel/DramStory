@@ -99,7 +99,7 @@ export default function Footer() {
 
       <div className="footer-bottom">
         <div className="footer-legal">
-          © {year} DramStory Ltd. All rights reserved.
+          © {year} DramStory. All rights reserved.
           <br />
           {/* Real routes from 4 Sep 2026, but only linked once the pages
               are finished: LEGAL_READY gates this, and flipping that one
@@ -123,7 +123,7 @@ export default function Footer() {
             </>
           )}
           <br />
-          DramStory Ltd is not affiliated with any distillery unless stated. Drink
+          DramStory is not affiliated with any distillery unless stated. Drink
           responsibly. For information and support visit{" "}
           <a href="https://www.drinkaware.co.uk" target="_blank" rel="noreferrer">
             Drinkaware.co.uk

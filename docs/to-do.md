@@ -34,23 +34,47 @@ The four pages exist as real routes on `feature/accounts` and are **not live**.
 `noindex`, and whether the footer links or just shows labels. All three change
 together when it flips.
 
-- [ ] **Fill the six fields in `src/lib/legal-details.ts`** — every one is
-  still the literal string `"TO CONFIRM"`: company number, jurisdiction
-  (England and Wales, or Scotland), registered address, contact email, ICO
-  number, publication date. One file feeds all four pages. *Mark.*
-- [ ] **Clear the 22 `[[TO CONFIRM]]` markers in `docs/legal/`** — privacy 9,
-  affiliate disclosure 5, terms 5, cookie policy 2, README 1. *Mark.*
-- [ ] **Solicitor's review before publication** — particularly the liability
-  section of the Terms, limited by the Consumer Rights Act in ways no draft
-  should be trusted on. *Mark.*
-- [ ] Confirm affiliate links are labelled at the point of the link. The
-  Affiliate Disclosure draft claims they are; if they are not, either build the
-  labelling or change the claim. Never publish a claim the site does not meet.
-  *Both.*
-- [ ] **Flip `LEGAL_READY`** once the four above are done. *Claude.*
+- [x] **Fill `src/lib/legal-details.ts`.** Done 16 Sep 2026, and restructured:
+  DramStory is a **sole trader**, not DramStory Ltd, so `companyNumber` and
+  "registered in" were removed rather than filled - a sole trader has neither.
+  The controller is named as *Mark Hodgkinson, trading as DramStory*, because
+  UK GDPR requires the controller identified and there is no separate legal
+  person to name instead.
+- [x] **Clear the `[[TO CONFIRM]]` markers.** All resolved 16 Sep 2026.
+  Publication date set to 16 September 2026.
+- [x] **Solicitor's review** — Mark's call, 16 Sep 2026: not needed to go live
+  at this stage. The exposure accepted is the Terms' liability section, which
+  the Consumer Rights Act limits in ways a draft cannot be certain of.
+- [x] Affiliate links are labelled at the point of the link - verified on the
+  live homepage, 16 Sep 2026. Discover Cars carries the label and
+  `rel="sponsored nofollow"`; the two island firms are plain links. See the
+  warning below about whether that label is currently earning anything.
+- [x] **`LEGAL_READY` flipped to true.** 16 Sep 2026.
+- [ ] ⛔ **Do not merge the legal pages until the Discover Cars question below
+  is settled.** The disclosure now lists Discover Cars because the site claims
+  a commission on it. If that arrangement is not real the row must come out and
+  the homepage label with it. *Mark.*
 
 ### Affiliate deep links
 
+- [ ] ⚠️ **Discover Cars is labelled "we earn a commission" on the homepage and
+  the link cannot pay one.** Found 16 Sep 2026: the live href is a bare
+  `https://www.discovercars.com/` with no tracking parameter of any kind. So
+  the site makes a disclosure it does not benefit from, and every click through
+  it is unattributed. Either add the real tracking link or remove the claim -
+  the two must agree. *Mark to supply the link, Claude to wire it.*
+- [ ] ⚠️ **`/accommodation-shell` is a live, indexable route** with no
+  `noindex`, built as a demo with placeholder tracking codes
+  (`YOUR_MDPCID_HERE`, `YOUR_AID_HERE`, `YOUR_CAMREF_HERE`). Its own header
+  claims "all three platforms are live, approved affiliate accounts", which is
+  not true of Booking.com. Decide: noindex it, delete it, or finish it. Whatever
+  else happens it should not be reachable by a search engine while the affiliate
+  disclosure says something different. *Mark to decide, Claude to action.*
+- [ ] **Add the ICO number to `src/lib/legal-details.ts`** once registered. The
+  field is `icoNumber`, currently `null`, and the privacy page omits the line
+  entirely rather than printing a blank one. Publishing the number is good
+  practice, not a requirement - the registration itself is the requirement.
+  *Mark to register, Claude to add.*
 - [ ] **Put the correct affiliate deep links in place.** Hotels.com links still
   carry an `mdpcid` placeholder rather than a real tracking value — confirmed
   still present in `src/lib/accommodation-links.ts` on 16 Sep. Until it is

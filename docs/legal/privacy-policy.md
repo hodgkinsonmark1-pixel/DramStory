@@ -2,7 +2,7 @@
 
 **DRAFT — not published, not legally reviewed. See `README.md`.**
 
-Last updated: [[TO CONFIRM: publication date]]
+Last updated: 16 September 2026
 
 ---
 
@@ -11,12 +11,9 @@ Last updated: [[TO CONFIRM: publication date]]
 DramStory is a whisky travel planning site for Islay and Jura, operated by
 DramStory Ltd.
 
-- **Company:** DramStory Ltd, registered in [[TO CONFIRM: England and Wales /
-  Scotland]], company number [[TO CONFIRM]]
-- **Registered address:** [[TO CONFIRM]]
-- **Contact:** [[TO CONFIRM: privacy@dramstory.com or similar]]
-- **ICO registration number:** [[TO CONFIRM — see plan §6.1; Tier 1, £52/year,
-  register before collecting any email address]]
+- **Operator:** Mark Hodgkinson, trading as DramStory, a sole trader in England and Wales
+- **Business address:** c/o GTA Accounting, Johnsons Barns, Waterworks Rd, Petersfield GU32 2BY
+- **Contact:** privacy@dramstory.com
 
 We are the **data controller** for the personal data described here. That means
 we decide why it is collected and what happens to it, and we are accountable
@@ -124,8 +121,7 @@ cannot use your data for their own purposes.
 | [[NOT YET BUILT]] Supabase | Accounts and saved trips | Email address, trips, visits |
 | [[NOT YET BUILT]] Resend | Sending sign-in links and the newsletter | Email address |
 
-[[TO CONFIRM: Supabase project must be created in an EU or London region so
-this stays accurate. See plan §2.]]
+Confirmed 16 Sep 2026: the Supabase project is in West Europe (London).
 
 We do not sell your data. We do not share it with advertisers. Nobody pays us
 to put their product in front of you.
@@ -142,7 +138,7 @@ privacy policies, not this one. See our Affiliate Disclosure.
 | Data | Kept for |
 |---|---|
 | Trip in your browser | Until you clear it. We never see it. |
-| Server logs | [[TO CONFIRM: Vercel's retention period for your plan]] |
+| Server logs | Held by our hosting provider, Vercel, under their own retention policy. We do not read them except to fix a fault, and we never use them for anything else. |
 | [[NOT YET BUILT]] Account and trips | Until you delete your account |
 | [[NOT YET BUILT]] Newsletter subscription | Until you unsubscribe, then a record that you unsubscribed, so we do not email you again by mistake |
 
@@ -162,7 +158,7 @@ Under UK data protection law you can ask us to:
 [[NOT YET BUILT]] Account holders can export and delete everything from account
 settings, without contacting us.
 
-To exercise any of these, email [[TO CONFIRM: contact address]]. We will
+To exercise any of these, email privacy@dramstory.com. We will
 respond within one month.
 
 If you are unhappy with how we have handled your data you can complain to the
