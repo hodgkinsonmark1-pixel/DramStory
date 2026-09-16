@@ -2839,6 +2839,18 @@ a.cj-card-credit:hover {
   height: min(50vh, 440px);
   background: var(--stone);
 }
+/* The photo credit at the foot of the About page (16 Sep 2026). Quieter
+   than the body it follows, because it is a note about the picture rather
+   than part of the story - but still body-width and still linked, since
+   the Ardbeg page is somewhere a reader might actually want to go from
+   here. */
+.about-photo-credit {
+  margin-top: 28px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--slate);
+}
+
 .journal-post-content {
   max-width: 720px;
   margin: 0 auto;

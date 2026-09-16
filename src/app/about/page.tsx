@@ -157,6 +157,17 @@ export default function AboutPage() {
               <br />
               <em>Founders of DramStory</em>
             </p>
+
+            {/* The photo credit, last, as the approved copy places it. It is
+                the only thing v4 carried that the recovered page did not -
+                the commit it was in was dropped by a rebase on 11 Sep and
+                rebuilt by hand from the working tree, which had the body
+                but not this line. */}
+            <p className="about-photo-credit">
+              Photo: Pete and Mark at{" "}
+              <Link href="/distilleries/ardbeg">Ardbeg</Link>, on the journey
+              that started DramStory.
+            </p>
           </div>
 
           <Link href="/" className="journal-post-back">
