@@ -67,9 +67,11 @@ together when it flips.
   `noindex`, built as a demo with placeholder tracking codes
   (`YOUR_MDPCID_HERE`, `YOUR_AID_HERE`, `YOUR_CAMREF_HERE`). Its own header
   claims "all three platforms are live, approved affiliate accounts", which is
-  not true of Booking.com. Decide: noindex it, delete it, or finish it. Whatever
-  else happens it should not be reachable by a search engine while the affiliate
-  disclosure says something different. *Mark to decide, Claude to action.*
+  not true of Booking.com. **`noindex` added 16 Sep 2026** via a layout, since
+  the page is a client component - that closes the search-engine half only. It
+  still serves, still builds placeholder-tracked links, and still names two
+  suppliers the site has no relationship with. Finish it or delete it.
+  *Mark to decide, Claude to action.*
 - [ ] **Add the ICO number to `src/lib/legal-details.ts`** once registered. The
   field is `icoNumber`, currently `null`, and the privacy page omits the line
   entirely rather than printing a blank one. Publishing the number is good
