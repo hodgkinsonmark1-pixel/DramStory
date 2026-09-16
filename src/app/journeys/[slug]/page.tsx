@@ -689,9 +689,17 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
       <section className="jr-wide">
         <div className="jr-ask" id="jr-ask">
           <h2 className="jr-ask-title">Take {inSentence(journey.name)}</h2>
+          {/* Rewritten 16 Sep 2026. The old line said it "goes into your
+              planner as a working trip", which stopped being true of
+              either button: taking it as it stands does not open the
+              planner at all, and the alternative does. So the sentence
+              now describes what you are getting rather than where it
+              lands, and the two routes are named in the order the
+              buttons offer them. */}
           <p className="jr-ask-body">
-            It goes into your planner as a working trip &mdash; {spellCount(journey.days.length)} days,{" "}
-            {spellCount(journey.nights)} nights, every tour and every drive already in place.
+            Every tour and every drive already worked out, across {spellCount(journey.days.length)}{" "}
+            days and {spellCount(journey.nights)} nights. Take it exactly as it stands, or open it up
+            and make it yours.
           </p>
           <ul className="jr-ask-ticks">
             <li>Use it exactly as it is</li>

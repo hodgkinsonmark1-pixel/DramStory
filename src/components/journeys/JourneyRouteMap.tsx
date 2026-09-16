@@ -22,6 +22,12 @@ interface JourneyRouteMapProps {
    *  (Bridgend, as of 13 Aug 2026) - coordinates are never estimated for
    *  a village here, per content-sourcing-standards.md. */
   base?: { name: string; lat: number; lng: number };
+  /** The day the map should be showing (16 Sep 2026). Its stops are
+   *  framed and drawn full strength; the rest of the route stays on the
+   *  map, dimmed, so you keep the shape of the whole trip while reading
+   *  one day of it. Undefined frames the entire route, which is what this
+   *  map did before. */
+  focusDay?: number;
 }
 
 /**
@@ -49,9 +55,17 @@ interface JourneyRouteMapProps {
  * docs/hero-handoff.md section 5's "no literal hexes" rule even inside
  * the generated markup.
  */
-export default function JourneyRouteMap({ stops, base }: JourneyRouteMapProps) {
+export default function JourneyRouteMap({ stops, base, focusDay }: JourneyRouteMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Leaflet.Map | null>(null);
+  /** Set once the map exists, so the focus effect below can reframe
+   *  without re-running the whole init. */
+  const frameRef = useRef<((day: number | undefined) => void) | null>(null);
+  const observerRef = useRef<ResizeObserver | null>(null);
+  /* The init effect closes over the first render's props and never runs
+     again, so the ResizeObserver inside it would reframe on a stale day
+     forever. It reads the day through this instead. */
+  const focusDayRef = useRef<number | undefined>(focusDay);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,8 +93,12 @@ export default function JourneyRouteMap({ stops, base }: JourneyRouteMapProps) {
 
       const mappable = stops.filter((s) => !!s.lat && !!s.lng);
 
+      /** Pin markers by day, so reframing can dim the ones that are not
+       *  the day being read without rebuilding the whole layer. */
+      const markersByDay = new Map<number, Leaflet.Marker[]>();
+
       for (const stop of mappable) {
-        L.marker([stop.lat, stop.lng], {
+        const marker = L.marker([stop.lat, stop.lng], {
           icon: L.divIcon({
             className: "",
             html: `<div style="background:${navy};color:${white};width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid ${white};box-shadow:0 1px 4px rgba(0,0,0,0.35);font-size:11px;font-weight:700">${stop.dayNumber}</div>`,
@@ -90,6 +108,9 @@ export default function JourneyRouteMap({ stops, base }: JourneyRouteMapProps) {
         })
           .bindTooltip(`Day ${stop.dayNumber} - ${stop.name}`, { direction: "top", offset: [0, -12] })
           .addTo(map);
+        const list = markersByDay.get(stop.dayNumber) ?? [];
+        list.push(marker);
+        markersByDay.set(stop.dayNumber, list);
       }
 
       if (base) {
@@ -106,27 +127,86 @@ export default function JourneyRouteMap({ stops, base }: JourneyRouteMapProps) {
           .addTo(map);
       }
 
-      const points: [number, number][] = [
+      const allPoints: [number, number][] = [
         ...mappable.map((s) => [s.lat, s.lng] as [number, number]),
         ...(base ? [[base.lat, base.lng] as [number, number]] : []),
       ];
-      if (points.length === 0) return;
-      if (points.length === 1) {
-        map.setView(points[0], 12);
-        return;
+      if (allPoints.length === 0) return;
+
+      /* Frame the map on a day, or on everything.
+       *
+       * maxZoom matters: a day with one stop, or two stops a mile apart,
+       * would otherwise fit its bounds at zoom 17 and show a car park.
+       * 13 keeps a village and its surroundings in view, which is the
+       * useful scale for "where on the island am I today". */
+      function frame(day: number | undefined) {
+        const dayPoints =
+          day === undefined
+            ? []
+            : mappable.filter((s) => s.dayNumber === day).map((s) => [s.lat, s.lng] as [number, number]);
+        const points = dayPoints.length > 0 ? dayPoints : allPoints;
+
+        // Dim the days you are not reading, rather than hiding them - the
+        // shape of the whole trip is worth keeping on screen.
+        for (const [dayNumber, markers] of markersByDay) {
+          const dim = day !== undefined && dayPoints.length > 0 && dayNumber !== day;
+          for (const marker of markers) marker.setOpacity(dim ? 0.35 : 1);
+        }
+
+        if (points.length === 1) {
+          map.setView(points[0], 12);
+          return;
+        }
+        map.fitBounds(L.latLngBounds(points), { padding: [26, 26], maxZoom: 13 });
       }
-      map.fitBounds(L.latLngBounds(points), { padding: [26, 26] });
+
+      frameRef.current = frame;
+      frame(focusDayRef.current);
+
+      /* THE MAP USED TO COME OUT SHOWING HALF OF EUROPE, INTERMITTENTLY.
+         This is why (16 Sep 2026).
+
+         The canvas is `width: 100%` inside the sticky rail, which is a
+         CSS grid child. Leaflet measures its container once, when the map
+         is created. If that happens before the grid has settled to its
+         real width - which depends on fonts and on the images further up
+         the page - it fits the route into a container a few pixels wide,
+         which means zooming out until Islay is a dot. Nothing corrected
+         it afterwards, because the init effect runs once and there was no
+         invalidateSize anywhere in the component.
+
+         A ResizeObserver fixes the whole class of problem rather than the
+         one instance: any later change in the container's size - layout
+         settling, a window resize, the rail switching to the mobile band
+         at a breakpoint - re-measures and reframes. */
+      const observer = new ResizeObserver(() => {
+        map.invalidateSize({ animate: false });
+        frameRef.current?.(focusDayRef.current);
+      });
+      if (containerRef.current) observer.observe(containerRef.current);
+      observerRef.current = observer;
     }
 
     init();
 
     return () => {
       cancelled = true;
+      observerRef.current?.disconnect();
+      observerRef.current = null;
+      frameRef.current = null;
       mapRef.current?.remove();
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* Reframe when the day being read changes. Separate from init on
+     purpose: rebuilding the map on every scrolled day would tear down and
+     recreate a Leaflet instance several times a page. */
+  useEffect(() => {
+    focusDayRef.current = focusDay;
+    frameRef.current?.(focusDay);
+  }, [focusDay]);
 
   return <div ref={containerRef} className="jr-map-canvas" />;
 }

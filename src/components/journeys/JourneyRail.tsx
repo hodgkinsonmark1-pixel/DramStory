@@ -110,6 +110,21 @@ export default function JourneyRail({
   }, []);
 
   const area = dayAreas[currentDay - 1];
+  const dayCount = dayAreas.length;
+
+  /** Scroll the day spine to a day and let the observer do the rest.
+   *  Lands the card just above the trigger line so it registers as the
+   *  day you are on the moment it arrives. */
+  function goToDay(day: number) {
+    if (day < 1 || day > dayCount) return;
+    const card = document.querySelector<HTMLElement>(`[data-jr-day="${day}"]`);
+    if (!card) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({
+      top: card.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.28,
+      behavior: reduced ? "auto" : "smooth",
+    });
+  }
 
   /* The rail's ask ADDS the trip now (12 Sep 2026) rather than scrolling
      to the block that does. Someone who has decided on day three should
@@ -154,9 +169,40 @@ export default function JourneyRail({
   return (
     <aside className="jr-rail">
       <div className="jr-rail-map">
-        <span className="jr-eyebrow jr-rail-map-eyebrow">Today, on the map</span>
+        <div className="jr-rail-map-head">
+          <span className="jr-eyebrow jr-rail-map-eyebrow">Today, on the map</span>
+          {/* Arrows step the DAY, by scrolling the spine rather than by
+              setting state here. The observer above is the single source
+              of truth for which day you are on, and two things writing
+              that would drift the moment you used an arrow and then
+              scrolled. This way the map, the badge and the page always
+              agree, because only one thing ever decides. */}
+          <div className="jr-map-nav">
+            <button
+              type="button"
+              className="jr-map-nav-btn"
+              onClick={() => goToDay(currentDay - 1)}
+              disabled={currentDay <= 1}
+              aria-label="Previous day"
+            >
+              &lsaquo;
+            </button>
+            <span className="jr-map-nav-count" aria-hidden="true">
+              {currentDay}/{dayCount}
+            </span>
+            <button
+              type="button"
+              className="jr-map-nav-btn"
+              onClick={() => goToDay(currentDay + 1)}
+              disabled={currentDay >= dayCount}
+              aria-label="Next day"
+            >
+              &rsaquo;
+            </button>
+          </div>
+        </div>
         <div className="jr-map-holder">
-          <JourneyRouteMap stops={stops} base={base} />
+          <JourneyRouteMap stops={stops} base={base} focusDay={currentDay} />
           <div className="jr-map-badge">
             <span className="jr-map-badge-day">Day {ordinalWord(currentDay)}</span>
             {area && <span className="jr-map-badge-area">{area}</span>}
