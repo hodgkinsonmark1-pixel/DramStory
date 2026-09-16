@@ -74,38 +74,74 @@ export default function JourneyRail({
      shown at once - see askVisible below. */
   const addJourney = useAddJourney(journey);
 
-  useEffect(() => {
-    if (typeof IntersectionObserver === "undefined") return;
-    const cards = Array.from(document.querySelectorAll<HTMLElement>("[data-jr-day]"));
-    if (cards.length === 0) return;
+  /* WHY THIS IS A SCROLL LISTENER AND NOT TWO IntersectionObservers
+     (16 Sep 2026).
 
-    // rootMargin pulls the trigger line up to roughly a third down the
-    // viewport: a card counts as "the day you are on" once its top has
-    // passed that line, which is where a reader's eye actually is.
-    const observer = new IntersectionObserver(
-      () => {
+     It used to be observers, and the day badge never once changed. It sat
+     on "Day one" for the whole page - confirmed by scrolling the length
+     of the Grand Tour on the preview and watching it not move.
+
+     The reason was one line: the effect queried [data-jr-day], and if it
+     found nothing it returned. No observer was created, nothing retried,
+     and the rail was frozen for the life of the page. A single query at a
+     single moment decided whether the feature existed at all.
+
+     Recomputing from scroll removes that entirely. There is no setup step
+     to miss, the cards are re-queried each time (four elements - the cost
+     is nothing), and a day added or removed later is picked up for free.
+     rAF-throttled, so it runs at most once a frame however fast the wheel
+     spins, and passive so it never blocks scrolling.
+
+     The rule it implements is unchanged: the day you are on is the last
+     one whose top has crossed a line about a third down the viewport -
+     "most recently crossed", not "most visible". On a long day card the
+     visible fraction of the NEXT card overtakes it well before the reader
+     has finished the one they are on, and the map would run a day ahead
+     of the text beside it. */
+  useEffect(() => {
+    let frame = 0;
+
+    function recompute() {
+      frame = 0;
+
+      const cards = Array.from(document.querySelectorAll<HTMLElement>("[data-jr-day]"));
+      if (cards.length > 0) {
+        const line = window.innerHeight * 0.34;
         let current = 1;
         for (const card of cards) {
-          const top = card.getBoundingClientRect().top;
-          if (top <= window.innerHeight * 0.34) {
+          if (card.getBoundingClientRect().top <= line) {
             current = Number(card.dataset.jrDay) || current;
           }
         }
         setCurrentDay(current);
-      },
-      { threshold: [0, 0.01, 0.5, 1], rootMargin: "-33% 0px -33% 0px" }
-    );
-    for (const card of cards) observer.observe(card);
+      }
 
-    const ask = document.getElementById("jr-ask");
-    const askObserver = ask
-      ? new IntersectionObserver(([entry]) => setAskVisible(entry.isIntersecting), { threshold: 0 })
-      : undefined;
-    if (ask && askObserver) askObserver.observe(ask);
+      /* One ask on screen at a time: the rail's slim action hides the
+         moment the full navy block it points at is visible, or the reader
+         gets the same offer twice, six inches apart. */
+      const ask = document.getElementById("jr-ask");
+      if (ask) {
+        const box = ask.getBoundingClientRect();
+        setAskVisible(box.top < window.innerHeight && box.bottom > 0);
+      }
+    }
+
+    function schedule() {
+      if (frame) return;
+      frame = window.requestAnimationFrame(recompute);
+    }
+
+    // Scheduled rather than called: setting state straight from an effect
+    // body cascades a render, which is what react-hooks/set-state-in-effect
+    // is there to stop.
+    schedule();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
 
     return () => {
-      observer.disconnect();
-      askObserver?.disconnect();
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
     };
   }, []);
 
