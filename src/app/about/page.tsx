@@ -54,11 +54,6 @@ export default function AboutPage() {
 
           <div className="journal-post-body">
             <p>
-              Two old friends. Five days on Islay. One journey that changed
-              rather more than expected.
-            </p>
-
-            <p>
               We&rsquo;re Pete and Mark. We&rsquo;ve been friends for more than
               25 years, which is long enough to have accumulated a great many
               stories &mdash; and to know which of them become better with every
