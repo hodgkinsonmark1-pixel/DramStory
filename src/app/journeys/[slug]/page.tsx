@@ -638,14 +638,19 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
           </div>
         </div>
 
+        {/* The rail's ask does the thing now rather than pointing at it
+            (12 Sep 2026), so the label names the action. askHref stays
+            the anchor: it is the no-JavaScript fallback, and the rail
+            only intercepts the click once there is a handler to do so. */}
         <JourneyRail
+          journey={journey}
           stops={routeStops}
           base={baseMarker}
           routeSummary={journey.routeSummary}
           dayAreas={journey.days.map((d) => d.areaNote)}
           askHref="#jr-ask"
-          askLabel={`Take ${inSentence(journey.name)} →`}
-          askNote="Five minutes to read. Nothing booked, nothing paid."
+          askLabel="Add this trip as is →"
+          askNote={`All ${spellCount(journey.days.length)} days, already planned. Nothing booked.`}
         />
       </div>
 
@@ -693,11 +698,7 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
             <li>Or change any part of it</li>
             <li>Nothing is booked, and nothing is paid</li>
           </ul>
-          <AddJourneyToTrips
-            journey={journey}
-            note="Free, and you can edit it after."
-            deviceNote="Right now it is kept in this browser."
-          />
+          <AddJourneyToTrips journey={journey} note="Free, and you can edit it after." />
           {/* "Take the days, not the nights" used to sit here. It was
               removed on 5 Sep 2026 because the distinction it promised did
               not exist: Journey.accommodationNote is prose on this page,

@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import JourneyRouteMap, { type RouteMapStop } from "@/components/journeys/JourneyRouteMap";
 import { ordinalWord } from "@/lib/journey-derivations";
+import { useAddJourney } from "./use-add-journey";
+import type { Journey } from "@/lib/types";
 
 /**
  * The right-hand rail on /journeys/[slug] (18 Aug 2026, to the build
@@ -41,6 +43,7 @@ import { ordinalWord } from "@/lib/journey-derivations";
  * page.
  */
 export default function JourneyRail({
+  journey,
   stops,
   base,
   routeSummary,
@@ -49,6 +52,9 @@ export default function JourneyRail({
   askLabel,
   askNote,
 }: {
+  /** The Journey this rail belongs to. Added 12 Sep 2026, when the rail's
+   *  ask stopped being a signpost and became the action itself. */
+  journey: Journey;
   stops: RouteMapStop[];
   base?: { name: string; lat: number; lng: number };
   routeSummary: string;
@@ -63,6 +69,10 @@ export default function JourneyRail({
 }) {
   const [currentDay, setCurrentDay] = useState(1);
   const [askVisible, setAskVisible] = useState(false);
+  /* Its own instance, separate from the one in the navy block. They do
+     not share a state machine, which is why the two surfaces are never
+     shown at once - see askVisible below. */
+  const addJourney = useAddJourney(journey);
 
   useEffect(() => {
     if (typeof IntersectionObserver === "undefined") return;
@@ -101,6 +111,46 @@ export default function JourneyRail({
 
   const area = dayAreas[currentDay - 1];
 
+  /* The rail's ask ADDS the trip now (12 Sep 2026) rather than scrolling
+     to the block that does. Someone who has decided on day three should
+     not have to travel to the foot of the page to say so.
+
+     Still a link, not a button, and the href is still the anchor: with
+     no JavaScript the click does exactly what it always did and scrolls
+     to the full ask. preventDefault only fires once there is a handler
+     to take over. Same reasoning as the rest of this component, which
+     was written to degrade rather than break.
+
+     The collision case is deliberately thinner here than in the block.
+     The rail is a shortcut; "replace what I have" destroys work and
+     belongs with the full explanation at the foot of the page, not in a
+     sticky bar. */
+  const busy = addJourney.status === "saving";
+  const ask =
+    addJourney.status === "added"
+      ? { href: "/trip", label: "View trip →", note: `${journey.name} is in your trips.` }
+      : addJourney.collision
+        ? {
+            href: addJourney.loginHref,
+            label: "Sign in to keep both →",
+            note: "You already have a trip in this browser.",
+          }
+        : { href: askHref, label: busy ? "Adding…" : askLabel, note: askNote };
+
+  function handleAskClick(event: MouseEvent<HTMLAnchorElement>) {
+    // Added and collision are real destinations - let them navigate.
+    if (addJourney.status === "added" || addJourney.collision) return;
+    event.preventDefault();
+    addJourney.add(false);
+  }
+
+  const askInner = (
+    <>
+      <span className="jr-rail-ask-label">{ask.label}</span>
+      <span className="jr-rail-ask-note">{ask.note}</span>
+    </>
+  );
+
   return (
     <aside className="jr-rail">
       <div className="jr-rail-map">
@@ -117,27 +167,29 @@ export default function JourneyRail({
 
       {/* ONE ask, and only while the full block is off screen. */}
       <Link
-        href={askHref}
+        href={ask.href}
+        onClick={handleAskClick}
         className={askVisible ? "jr-rail-ask jr-rail-ask-hidden" : "jr-rail-ask"}
         aria-hidden={askVisible}
+        aria-disabled={busy}
         tabIndex={askVisible ? -1 : undefined}
       >
-        <span className="jr-rail-ask-label">{askLabel}</span>
-        <span className="jr-rail-ask-note">{askNote}</span>
+        {askInner}
       </Link>
 
       {/* Phone only (CSS). Same link, same rule, plus "not before day
           one has been read". */}
       <Link
-        href={askHref}
+        href={ask.href}
+        onClick={handleAskClick}
         className={
           askVisible || currentDay < 1 ? "jr-mobile-ask jr-rail-ask-hidden" : "jr-mobile-ask"
         }
         aria-hidden={askVisible}
+        aria-disabled={busy}
         tabIndex={askVisible ? -1 : undefined}
       >
-        <span className="jr-rail-ask-label">{askLabel}</span>
-        <span className="jr-rail-ask-note">{askNote}</span>
+        {askInner}
       </Link>
     </aside>
   );

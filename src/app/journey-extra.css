@@ -3240,3 +3240,40 @@ select.location-inline-input {
 .jr-ask-collision-cancel:hover {
   color: rgba(255, 255, 255, 0.8);
 }
+
+/* "Make it your own" (12 Sep 2026) - the second of the two things you
+   can do with a Journey, and deliberately NOT a second filled button.
+   Two equal buttons are what this section was rebuilt in August to get
+   rid of: they force a choice before anyone knows what either does.
+
+   Sized between the primary button and the .jr-ask-alt links below the
+   rule, because that is exactly where it sits in the hierarchy - a real
+   alternative to the button above it, not one of the "or start
+   differently" signposts. Brighter than those, quieter than the button. */
+.jr-ask-secondary {
+  display: block;
+  margin-top: 14px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--jr-sans);
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--jr-accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(221, 168, 106, 0.4);
+  text-underline-offset: 3px;
+}
+.jr-ask-secondary:hover {
+  text-decoration-color: currentColor;
+}
+.jr-ask-secondary:focus-visible {
+  outline: 3px solid var(--jr-accent);
+  outline-offset: 2px;
+}
+.jr-ask-secondary:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
