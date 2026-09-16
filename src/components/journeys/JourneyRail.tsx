@@ -119,11 +119,26 @@ export default function JourneyRail({
     if (day < 1 || day > dayCount) return;
     const card = document.querySelector<HTMLElement>(`[data-jr-day="${day}"]`);
     if (!card) return;
+
+    const top = card.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.28;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    window.scrollTo({
-      top: card.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.28,
-      behavior: reduced ? "auto" : "smooth",
-    });
+    const from = window.scrollY;
+
+    window.scrollTo({ top, behavior: reduced ? "auto" : "smooth" });
+
+    /* Smooth scrolling is not honoured everywhere, and where it is
+       ignored the scroll is dropped entirely rather than falling back to
+       a jump - the arrows then look broken while the page sits exactly
+       where it was. Found on the preview, 16 Sep 2026: a plain
+       scrollTo(0, n) moved the page and the identical call with
+       behavior:"smooth" did nothing at all.
+       So: ask for smooth, then check we actually went somewhere, and
+       jump if we did not. An instant arrival beats no arrival. */
+    if (!reduced) {
+      window.setTimeout(() => {
+        if (Math.abs(window.scrollY - from) < 2) window.scrollTo(0, top);
+      }, 250);
+    }
   }
 
   /* The rail's ask ADDS the trip now (12 Sep 2026) rather than scrolling
