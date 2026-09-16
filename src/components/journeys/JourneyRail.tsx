@@ -68,6 +68,16 @@ export default function JourneyRail({
   askNote: string;
 }) {
   const [currentDay, setCurrentDay] = useState(1);
+  /** A day chosen with the arrows, which overrides the one being read
+   *  until the reader scrolls again (Mark, 16 Sep 2026: "I'd like the map
+   *  to be standalone flickable").
+   *
+   *  Two inputs, one at a time, rather than two permanent sources of
+   *  truth: while this is set the map is yours to flick through; the
+   *  moment you scroll it clears and the map goes back to following the
+   *  day you are reading. Nothing has to reconcile, because only one of
+   *  them is ever in charge. */
+  const [manualDay, setManualDay] = useState<number | null>(null);
   const [askVisible, setAskVisible] = useState(false);
   /* Its own instance, separate from the one in the navy block. They do
      not share a state machine, which is why the two surfaces are never
@@ -134,47 +144,38 @@ export default function JourneyRail({
     // Scheduled rather than called: setting state straight from an effect
     // body cascades a render, which is what react-hooks/set-state-in-effect
     // is there to stop.
+    /* Scrolling hands control back to the page. Not throttled and not
+       inside recompute on purpose: it must happen on the first scroll
+       event, before the next frame, or the map would show the flicked day
+       for a beat after the reader has started moving. Setting null when
+       it is already null is free - React bails on an unchanged value. */
+    function onScroll() {
+      setManualDay(null);
+      schedule();
+    }
+
     schedule();
-    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", schedule);
 
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", schedule);
     };
   }, []);
 
-  const area = dayAreas[currentDay - 1];
   const dayCount = dayAreas.length;
+  /** What the map and the badge are showing: the flicked day if there is
+   *  one, otherwise the day being read. */
+  const shownDay = Math.min(Math.max(manualDay ?? currentDay, 1), Math.max(dayCount, 1));
+  const area = dayAreas[shownDay - 1];
 
-  /** Scroll the day spine to a day and let the observer do the rest.
-   *  Lands the card just above the trigger line so it registers as the
-   *  day you are on the moment it arrives. */
-  function goToDay(day: number) {
+  /** Flick the map. Deliberately does NOT move the page - the map is a
+   *  thing you can look through on its own while reading day one. */
+  function showDay(day: number) {
     if (day < 1 || day > dayCount) return;
-    const card = document.querySelector<HTMLElement>(`[data-jr-day="${day}"]`);
-    if (!card) return;
-
-    const top = card.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.28;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const from = window.scrollY;
-
-    window.scrollTo({ top, behavior: reduced ? "auto" : "smooth" });
-
-    /* Smooth scrolling is not honoured everywhere, and where it is
-       ignored the scroll is dropped entirely rather than falling back to
-       a jump - the arrows then look broken while the page sits exactly
-       where it was. Found on the preview, 16 Sep 2026: a plain
-       scrollTo(0, n) moved the page and the identical call with
-       behavior:"smooth" did nothing at all.
-       So: ask for smooth, then check we actually went somewhere, and
-       jump if we did not. An instant arrival beats no arrival. */
-    if (!reduced) {
-      window.setTimeout(() => {
-        if (Math.abs(window.scrollY - from) < 2) window.scrollTo(0, top);
-      }, 250);
-    }
+    setManualDay(day);
   }
 
   /* The rail's ask ADDS the trip now (12 Sep 2026) rather than scrolling
@@ -222,40 +223,36 @@ export default function JourneyRail({
       <div className="jr-rail-map">
         <div className="jr-rail-map-head">
           <span className="jr-eyebrow jr-rail-map-eyebrow">Today, on the map</span>
-          {/* Arrows step the DAY, by scrolling the spine rather than by
-              setting state here. The observer above is the single source
-              of truth for which day you are on, and two things writing
-              that would drift the moment you used an arrow and then
-              scrolled. This way the map, the badge and the page always
-              agree, because only one thing ever decides. */}
+          {/* The map is flickable on its own - these move it and nothing
+              else. Scrolling gives control back to the page. */}
           <div className="jr-map-nav">
             <button
               type="button"
               className="jr-map-nav-btn"
-              onClick={() => goToDay(currentDay - 1)}
-              disabled={currentDay <= 1}
-              aria-label="Previous day"
+              onClick={() => showDay(shownDay - 1)}
+              disabled={shownDay <= 1}
+              aria-label="Previous day on the map"
             >
               &lsaquo;
             </button>
             <span className="jr-map-nav-count" aria-hidden="true">
-              {currentDay}/{dayCount}
+              {shownDay}/{dayCount}
             </span>
             <button
               type="button"
               className="jr-map-nav-btn"
-              onClick={() => goToDay(currentDay + 1)}
-              disabled={currentDay >= dayCount}
-              aria-label="Next day"
+              onClick={() => showDay(shownDay + 1)}
+              disabled={shownDay >= dayCount}
+              aria-label="Next day on the map"
             >
               &rsaquo;
             </button>
           </div>
         </div>
         <div className="jr-map-holder">
-          <JourneyRouteMap stops={stops} base={base} focusDay={currentDay} />
+          <JourneyRouteMap stops={stops} base={base} focusDay={shownDay} />
           <div className="jr-map-badge">
-            <span className="jr-map-badge-day">Day {ordinalWord(currentDay)}</span>
+            <span className="jr-map-badge-day">Day {ordinalWord(shownDay)}</span>
             {area && <span className="jr-map-badge-area">{area}</span>}
           </div>
         </div>
