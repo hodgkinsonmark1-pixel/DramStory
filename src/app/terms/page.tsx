@@ -16,10 +16,9 @@ export default function TermsOfUsePage() {
     >
       <h2>1 &middot; Who these terms are with</h2>
       <p>
-        DramStory is operated by {LEGAL_DETAILS.companyName}, company number{" "}
-        <Detail value={LEGAL_DETAILS.companyNumber} />, registered in{" "}
-        <Detail value={LEGAL_DETAILS.jurisdiction} /> at{" "}
-        <Detail value={LEGAL_DETAILS.registeredAddress} />.
+        DramStory is run by {LEGAL_DETAILS.legalName}, a sole trader in{" "}
+        <Detail value={LEGAL_DETAILS.jurisdiction} />, at{" "}
+        <Detail value={LEGAL_DETAILS.businessAddress} />.
       </p>
       <p>
         By using dramstory.com you accept these terms. If you do not, please stop
@@ -107,7 +106,7 @@ export default function TermsOfUsePage() {
       <p>
         Distillery names and trade marks belong to their owners. We use them to
         say what a place is. Nothing here implies endorsement or affiliation, and
-        DramStory Ltd is not affiliated with any distillery unless stated.
+        DramStory is not affiliated with any distillery unless stated.
       </p>
 
       <h2>8 &middot; Affiliate links</h2>

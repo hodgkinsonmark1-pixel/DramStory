@@ -29,26 +29,42 @@ export default function AffiliateDisclosurePage() {
           <tr>
             <th>Company</th>
             <th>What for</th>
+            <th>Programme</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td>Hotels.com</td>
             <td>Accommodation</td>
+            <td>Expedia Group Travel Creator Program</td>
           </tr>
           <tr>
-            <td>Booking.com</td>
-            <td>Accommodation</td>
+            <td>Discover Cars</td>
+            <td>Car hire</td>
+            <td>Affiliate programme</td>
           </tr>
         </tbody>
       </table>
+
+      {/* Booking.com was listed here until 16 Sep 2026. There is no
+          Booking.com affiliate account and there never was - the link
+          builder carried a placeholder id. A disclosure naming a
+          programme the site is not in is the one failure this page
+          cannot have. */}
+      <p>
+        That is the whole list. Everything else pays us nothing &mdash; ferries,
+        flights, tours, and every distillery booking. The two island car hire
+        firms we name, Islay Car Hire and Cresswell Cars, pay us nothing either,
+        which is why only the Discover Cars row carries a label on the page it
+        appears on.
+      </p>
 
       <h2>What this does not affect</h2>
       <p>This matters more than the disclosure itself, so it is worth being plain.</p>
       <ul>
         <li>
           <strong>We are not paid by any distillery</strong>, and no distillery
-          pays to appear, to rank higher, or to be recommended. DramStory Ltd is
+          pays to appear, to rank higher, or to be recommended. DramStory is
           not affiliated with any distillery unless we say so explicitly.
         </li>
         <li>

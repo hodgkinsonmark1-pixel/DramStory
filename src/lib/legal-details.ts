@@ -1,59 +1,75 @@
 /**
- * The company and contact facts the four legal pages render from
- * (4 Sep 2026).
+ * The identity and contact facts the four legal pages render from
+ * (4 Sep 2026; rewritten 16 Sep 2026 for a sole trader).
  *
  * ONE FILE, so that filling in the blanks is one job rather than four,
- * and so the same company number cannot end up different on two pages.
+ * and so the same fact cannot end up different on two pages.
  *
- * WHY THE PAGES ARE NOT LIVE YET: see LEGAL_READY below. A privacy
- * policy is a legal representation to visitors about what is done with
- * their data. Publishing one with placeholder text in it is worse than
- * publishing nothing, because it is a statement the operator can be held
- * to. So the pages exist, build, and can be reviewed at their URLs - but
- * they are noindex and unlinked until the facts are real and a solicitor
- * has read them.
+ * NOT A LIMITED COMPANY. The first version of this file assumed
+ * DramStory Ltd, with a Companies House number and a registered office.
+ * Neither exists: DramStory is Mark Hodgkinson trading as DramStory, and
+ * a sole trader has no company number and is not "registered in" a
+ * jurisdiction the way a company is.
+ *
+ * That is not a cosmetic difference. UK GDPR requires the data
+ * CONTROLLER to be identified, and for a sole trader the controller is
+ * the individual - there is no separate legal person to name instead. So
+ * the trader's own name appears on the privacy policy, because nothing
+ * else would satisfy the requirement.
  */
 
-/** Every one of these must be filled before LEGAL_READY can be true. */
 export const LEGAL_DETAILS = {
-  companyName: "DramStory Ltd",
-  /** TODO(mark): Companies House number */
-  companyNumber: "TO CONFIRM",
-  /** TODO(mark): "England and Wales" or "Scotland" - must match the
-   *  jurisdiction named in the Terms, so this drives both. */
-  jurisdiction: "TO CONFIRM",
-  /** TODO(mark): registered office address */
-  registeredAddress: "TO CONFIRM",
-  /** TODO(mark): a real monitored inbox. Used for data requests, which
-   *  carry a one-month statutory deadline - do not point it somewhere
-   *  nobody reads. */
-  contactEmail: "TO CONFIRM",
-  /** TODO(mark): ICO registration number, once registered. Tier 1, £52.
-   *  Required before the first email address is stored - see
-   *  docs/to-do.md. */
-  icoNumber: "TO CONFIRM",
-  /** Reviewed and published date, shown on each page. */
-  lastUpdated: "TO CONFIRM",
+  /** The controller. A person, not a company - see above. */
+  traderName: "Mark Hodgkinson",
+  /** The name the site trades under, used wherever the brand rather than
+   *  the legal person is the natural subject. */
+  tradingAs: "DramStory",
+  /** How the two are stated together where the law wants the operator
+   *  named. */
+  legalName: "Mark Hodgkinson, trading as DramStory",
+  /** Governing law of the Terms. Mark's choice, 16 Sep 2026 - not
+   *  inferred from the address. */
+  jurisdiction: "England and Wales",
+  /** Business address. A c/o accountant's address is a normal and
+   *  sufficient business address for a sole trader; a home address is
+   *  not required and should not be used. */
+  businessAddress: "c/o GTA Accounting, Johnsons Barns, Waterworks Rd, Petersfield GU32 2BY",
+  /** A real monitored inbox. Used for data requests, which carry a
+   *  one-month statutory deadline - do not point it somewhere nobody
+   *  reads. */
+  contactEmail: "privacy@dramstory.com",
+  /** ICO registration number, once registered - Tier 1, £52/year.
+   *
+   *  NULL IS A LEGITIMATE STATE HERE, and deliberately not "TO CONFIRM".
+   *  Publishing the number is good practice, not a legal requirement, so
+   *  its absence does not hold up publication. What IS required is the
+   *  registration itself, before the first personal data is processed
+   *  commercially - which for this site means before accounts go live.
+   *  The privacy page omits the line entirely while this is null rather
+   *  than printing an empty one. See docs/to-do.md. */
+  icoNumber: null as string | null,
+  /** Published date, shown on each page. */
+  lastUpdated: "16 September 2026",
 } as const;
 
 /**
- * Flip to true ONLY when all of the following are true:
+ * Flip to true when the facts above are real and the pages have been
+ * read through.
  *
- *   1. Every "TO CONFIRM" above is filled in
- *   2. A solicitor has reviewed all four pages - particularly the
- *      liability section of the Terms, which the Consumer Rights Act
- *      limits in ways a draft should not be trusted on
- *   3. The ICO registration exists, if any personal data is being
- *      collected by then
+ * Mark's call, 16 Sep 2026: no solicitor review before this stage. The
+ * exposure he is accepting is the liability section of the Terms, which
+ * the Consumer Rights Act limits in ways a draft cannot be certain of -
+ * an unenforceable exclusion does not create liability, it just fails to
+ * prevent it.
  *
  * Flipping it does three things at once: removes the draft banner,
- * removes noindex, and lights up the footer links. Nothing else needs
- * touching.
+ * removes noindex, and lights up the footer links.
  */
-export const LEGAL_READY = false;
+export const LEGAL_READY = true;
 
-/** True while any placeholder remains - used to warn in the draft banner
- *  even if someone flips LEGAL_READY early by mistake. */
-export const LEGAL_HAS_PLACEHOLDERS = Object.values(LEGAL_DETAILS).some((v) =>
-  v.includes("TO CONFIRM")
+/** True while any placeholder remains - warns in the draft banner even
+ *  if LEGAL_READY gets flipped early by mistake. icoNumber is excluded:
+ *  null there is a real, expected state rather than an unfilled blank. */
+export const LEGAL_HAS_PLACEHOLDERS = Object.values(LEGAL_DETAILS).some(
+  (v) => typeof v === "string" && v.includes("TO CONFIRM")
 );
