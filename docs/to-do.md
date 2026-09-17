@@ -96,9 +96,18 @@ done and on `feature/accounts` (24 commits, deployed, green). Remaining:
 
 - [ ] **Delete account, and export trips as JSON.** GDPR erasure and
   portability. Cheap now, miserable to retrofit. Not built. *Claude.*
-- [ ] **Keep-alive cron** (Vercel Cron, daily) so the free Supabase project
-  does not pause after 7 days — plan §2.1. Not `pg_cron`, not GitHub Actions.
-  *Claude.*
+- [x] **Keep-alive cron.** Built 17 Sep 2026 - `/api/cron/keep-alive`, daily at
+  07:00 via `vercel.json`. Mark had to reactivate the project by hand that
+  morning, which is exactly what this prevents.
+  **Needs `CRON_SECRET` set in Vercel** or the route returns 401 and the
+  project goes back to pausing. Any long random string. *Mark.*
+  Delete the route the day Supabase moves to Pro - Pro projects do not pause,
+  which makes it dead weight rather than merely unnecessary.
+- [ ] **Set `SUPABASE_SERVICE_ROLE_KEY` in Vercel** so account deletion works.
+  Supabase → Project Settings → API → `service_role`. A plain variable, never
+  with a `NEXT_PUBLIC_` prefix - that key bypasses row level security, and the
+  prefix would ship it to every browser. Until it is set, the delete button
+  says so rather than failing silently. *Mark.*
 - [ ] **Test named trips on the preview**: create a second, rename both, switch
   between them, delete one. Worth doing properly now — switching was silently
   broken until 5 Sep and the fix has not been exercised by hand. *Mark.*
