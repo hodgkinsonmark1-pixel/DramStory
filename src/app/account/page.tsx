@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import { createClient } from "@/lib/supabase/server";
 import TripsList, { type AccountTrip } from "./TripsList";
 import SignOutButton from "@/components/SignOutButton";
+import AccountData from "./AccountData";
 
 export const metadata: Metadata = {
   title: "Your trips — DramStory",
@@ -98,6 +99,10 @@ export default async function AccountPage() {
           )}
 
           <SignOutButton />
+
+          {/* Below sign-out deliberately: these are the things you do
+              once, not the things you came here for. */}
+          <AccountData email={user.email ?? ""} />
         </div>
       </main>
       <Footer />
