@@ -50,6 +50,15 @@ function markSynced() {
   }
 }
 
+/** Is there anything here worth a row in the database?
+ *
+ *  A trip with no days is not a trip. It is the state every visitor is in
+ *  before they have done anything, and storing it produces rows that
+ *  clutter the account page and tell the owner nothing. */
+function hasSomethingWorthSaving(snapshot: { days?: unknown[] }) {
+  return (snapshot.days?.length ?? 0) > 0;
+}
+
 function markUnsynced() {
   try {
     window.localStorage.removeItem(TRIP_SYNCED_KEY);
@@ -73,6 +82,19 @@ export default function TripSync() {
    *  this browser's trip over the account's. */
   const loaded = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** True while the load effect is mid-flight.
+   *
+   *  THE BUG THIS FIXES (17 Sep 2026). `loaded` is only set at the END of
+   *  the async work, so it cannot stop a SECOND run that starts before
+   *  the first has finished - and on sign-in there always is one, because
+   *  userId and trip.ready both change and the effect watches both. Two
+   *  runs looked for an existing trip, both correctly found none, and
+   *  both inserted. Mark's export on 17 Sep showed the result: two empty
+   *  trips called "Your trip", created 29 milliseconds apart.
+   *
+   *  This ref is set synchronously, before the first await, so the second
+   *  run turns round at the door. */
+  const inFlight = useRef(false);
   /** Mirrors userId for the auth callback below, which must not read
    *  state it did not close over. */
   const knownUserId = useRef<string | null>(null);
@@ -142,6 +164,11 @@ export default function TripSync() {
     const isSwitch = loaded.current && activeId !== null && activeId !== tripRowId.current;
     if (loaded.current && !isSwitch) return;
 
+    /* Before anything async. See the ref's own note - without this, two
+       runs race each other into two inserts. */
+    if (inFlight.current) return;
+    inFlight.current = true;
+
     if (isSwitch) {
       /* Synchronously, before any await. Both refs gate the save effect,
          so until the new row's contents arrive there is no window in
@@ -210,7 +237,17 @@ export default function TripSync() {
             .eq("id", settledId);
           if (!cancelled && !seedError) markSynced();
         }
-      } else {
+      } else if (hasSomethingWorthSaving(trip.snapshot)) {
+        /* Only insert when there is a trip to insert.
+           
+           Signing in used to create a row unconditionally, which is how a
+           brand-new account ended up owning a trip with no days in it and
+           the name "Your trip" - visible in the account list, exportable,
+           and meaning nothing. An account with nothing saved should have
+           nothing saved.
+           
+           When the visitor does start planning, the save effect below
+           creates the row. */
         const { data: created, error: insertError } = await supabase
           .from("trips")
           .insert({ user_id: userId, payload: trip.snapshot })
@@ -231,7 +268,11 @@ export default function TripSync() {
          at the guard, rather than starting the fetch again. */
       loaded.current = true;
       if (settledId && settledId !== activeId) trip.setActiveTrip(settledId);
-    })();
+    })().finally(() => {
+      // However the run ended - settled, cancelled or thrown - the door
+      // reopens. Leaving this set would freeze syncing for the session.
+      inFlight.current = false;
+    });
 
     return () => {
       cancelled = true;
@@ -244,7 +285,10 @@ export default function TripSync() {
   // Save changes, debounced. Somebody dragging a stop around should not
   // send a write per frame.
   useEffect(() => {
-    if (!userId || !loaded.current || !tripRowId.current) return;
+    if (!userId || !loaded.current) return;
+    /* No row yet and nothing worth one - the visitor is signed in but has
+       not started planning. Nothing to do until they do. */
+    if (!tripRowId.current && !hasSomethingWorthSaving(trip.snapshot)) return;
 
     /* Mark the trip unsynced the MOMENT it changes, before the debounce
        even starts. Anything else leaves a window where the marker says
@@ -254,20 +298,43 @@ export default function TripSync() {
 
     if (saveTimer.current) clearTimeout(saveTimer.current);
     const rowId = tripRowId.current;
-    saveTimer.current = setTimeout(() => {
-      supabase
+    saveTimer.current = setTimeout(async () => {
+      /* CREATE THE ROW HERE if sign-in did not. This is the other half of
+         not inserting empty trips: the first time a signed-in visitor
+         adds a day, that day is what brings the row into existence.
+         Guarded by the same in-flight ref as the load, so a flurry of
+         edits cannot produce a flurry of rows. */
+      if (!rowId) {
+        if (inFlight.current) return;
+        inFlight.current = true;
+        const { data: created, error: insertError } = await supabase
+          .from("trips")
+          .insert({ user_id: userId, payload: trip.snapshot })
+          .select("id")
+          .single();
+        inFlight.current = false;
+        if (insertError || !created) return;
+        tripRowId.current = created.id;
+        // Through the ref, not trip.setActiveTrip directly: this effect's
+        // deps are the snapshot, and taking the whole trip object would
+        // re-run it on every render.
+        setActiveTripRef.current(created.id);
+        markSynced();
+        return;
+      }
+
+      const { error } = await supabase
         .from("trips")
         .update({ payload: trip.snapshot })
-        .eq("id", rowId)
-        .then(({ error }) => {
-          // Failures are deliberately silent in the UI - localStorage
-          // still holds the trip, so nothing is lost, and a toast for a
-          // background save is noise nobody can act on. But the marker
-          // must NOT be set, or sign-out would discard the local copy of
-          // something that never reached the account.
-          if (error) return;
-          markSynced();
-        });
+        .eq("id", rowId);
+
+      // Failures are deliberately silent in the UI - localStorage still
+      // holds the trip, so nothing is lost, and a toast for a background
+      // save is noise nobody can act on. But the marker must NOT be set,
+      // or sign-out would discard the local copy of something that never
+      // reached the account.
+      if (error) return;
+      markSynced();
     }, SAVE_DEBOUNCE_MS);
 
     return () => {
