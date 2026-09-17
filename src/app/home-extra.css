@@ -3798,3 +3798,74 @@ button.account-trip-link {
     text-align: center;
   }
 }
+
+/* The sign-in / account-deleted notice (17 Sep 2026). Sits above the page
+   it lands on and reports something that has already happened, so it is
+   informative rather than an action: navy for weight, but slim, and
+   dismissible without consequence.
+
+   Not fixed or sticky. It answers a question the reader has right now -
+   did that work? - and once answered it should get out of the way and
+   stay out of it. Anything that follows you down the page is an offer,
+   and this is not one. */
+.auth-notice {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 11px 24px;
+  background: var(--navy);
+  color: var(--white);
+}
+.auth-notice-text {
+  margin: 0;
+  flex: 1;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.auth-notice-link {
+  flex: none;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--amber-light);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+.auth-notice-link:hover {
+  color: var(--white);
+}
+.auth-notice-dismiss {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 19px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.6);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.auth-notice-dismiss:hover {
+  color: var(--white);
+}
+.auth-notice-link:focus-visible,
+.auth-notice-dismiss:focus-visible {
+  outline: 2px solid var(--amber-light);
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  .auth-notice {
+    padding: 10px 16px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .auth-notice-text {
+    flex-basis: 100%;
+  }
+}

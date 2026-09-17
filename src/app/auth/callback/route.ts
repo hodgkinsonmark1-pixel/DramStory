@@ -36,5 +36,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login?error=link-expired`);
   }
 
-  return NextResponse.redirect(`${origin}${next}`);
+  /* Mark it, so wherever they land can say they are signed in (17 Sep
+     2026). Returning someone to the page they were reading is right, but
+     that page looks identical to how they left it - nothing tells them
+     the sign-in worked or that their trip is now safe. AuthNotice reads
+     this and strips it from the URL straight away.
+
+     Appended rather than assigned: `next` may already carry a query of
+     its own, and clobbering it would lose whatever state the page was
+     holding. */
+  const separator = next.includes("?") ? "&" : "?";
+  return NextResponse.redirect(`${origin}${next}${separator}signedin=1`);
 }

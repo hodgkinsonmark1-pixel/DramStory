@@ -6,6 +6,7 @@ import { BackgroundVideoProvider } from "@/lib/background-video-context";
 import SiteBackgroundVideo from "@/components/SiteBackgroundVideo";
 import TripSync from "@/components/TripSync";
 import TripSavePrompt from "@/components/TripSavePrompt";
+import AuthNotice from "@/components/AuthNotice";
 import "./globals.css";
 
 // Brand typography, locked in the brand sheet:
@@ -84,6 +85,9 @@ export default function RootLayout({
                 account, and does nothing at all when signed out - see
                 TripSync. Inside TripProvider because it reads the trip. */}
             <TripSync />
+            {/* Above the page, because it reports on something that has
+                already happened rather than offering an action. */}
+            <AuthNotice />
             {children}
             {/* Watches the trip, not the buttons - so every one of the
                 twelve components that can add a stop is covered, and so
