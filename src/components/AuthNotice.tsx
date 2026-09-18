@@ -46,6 +46,20 @@ function Notice() {
         : null
   );
   const [dismissed, setDismissed] = useState(false);
+  /* Where they were when they asked to sign in, captured at first render
+     for the same reason as `kind`.
+
+     VALIDATED AGAIN HERE, even though the callback validated it. That
+     check protected a redirect; this one guards an anchor href, and an
+     href built from a URL parameter is an open redirect by another route
+     - "/account?from=https://evil.com" would otherwise render a link to
+     evil.com wearing DramStory's clothes. Relative single-slash paths
+     only. */
+  const [from] = useState<string | null>(() => {
+    const raw = searchParams.get("from");
+    if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return null;
+    return raw;
+  });
 
   useEffect(() => {
     if (!kind) return;
@@ -58,6 +72,7 @@ function Notice() {
     if (!rest.has("signedin") && !rest.has("deleted")) return;
     rest.delete("signedin");
     rest.delete("deleted");
+    rest.delete("from");
     const query = rest.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }, [kind, searchParams, router, pathname]);
@@ -76,7 +91,19 @@ function Notice() {
           </>
         )}
       </p>
-      {kind === "signed-in" && (
+      {/* A way back to whatever they were reading, so landing on /account
+          does not cost them their place. Deliberately not named: deriving
+          "the Islay Grand Tour" from a slug means guessing, and a wrong
+          name is worse than an honest generic one.
+
+          No "Your trips" link when they are already on /account - that is
+          the page they are standing on. */}
+      {kind === "signed-in" && from && (
+        <Link href={from} className="auth-notice-link">
+          &larr; Back to where you were
+        </Link>
+      )}
+      {kind === "signed-in" && !from && pathname !== "/account" && (
         <Link href="/account" className="auth-notice-link">
           Your trips &rarr;
         </Link>

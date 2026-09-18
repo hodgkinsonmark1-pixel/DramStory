@@ -36,15 +36,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login?error=link-expired`);
   }
 
-  /* Mark it, so wherever they land can say they are signed in (17 Sep
-     2026). Returning someone to the page they were reading is right, but
-     that page looks identical to how they left it - nothing tells them
-     the sign-in worked or that their trip is now safe. AuthNotice reads
-     this and strips it from the URL straight away.
+  /* ALWAYS LAND ON /account (Mark, 18 Sep 2026), rather than back on the
+     page they signed in from.
 
-     Appended rather than assigned: `next` may already carry a query of
-     its own, and clobbering it would lose whatever state the page was
-     holding. */
-  const separator = next.includes("?") ? "&" : "?";
-  return NextResponse.redirect(`${origin}${next}${separator}signedin=1`);
+     The earlier behaviour returned them to that page so they did not lose
+     their place, with a bar to confirm the sign-in. Mark's call was that
+     seeing the trips list is better proof than being told: you arrive
+     looking at the thing you were worried about.
+
+     `next` is not discarded, it is carried as `from`, so the notice can
+     offer a way back and losing your place stops being the price. It is
+     already validated above as a relative same-site path, and AuthNotice
+     checks it again before rendering a link - a redirect parameter that
+     becomes an anchor href is an open redirect by another route. */
+  const params = new URLSearchParams({ signedin: "1" });
+  if (next !== "/" && next !== "/account") params.set("from", next);
+
+  return NextResponse.redirect(`${origin}/account?${params.toString()}`);
 }
