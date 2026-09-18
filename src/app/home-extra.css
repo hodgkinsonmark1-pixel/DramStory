@@ -1750,6 +1750,21 @@ a.hdw-name:hover {
 .fm-base-dot {
   fill: var(--white);
 }
+/* The word that makes the dot mean something (18 Sep 2026). Small, white
+   and carrying its own dark halo via paint-order, because it sits over a
+   map whose background changes colour region by region - a plain white
+   label is invisible over the pale zones. */
+.fm-base-label {
+  fill: var(--white);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  paint-order: stroke fill;
+  stroke: rgba(26, 58, 74, 0.75);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
 
 /* THE MAP. The SVG carries its own aspect ratio from the viewBox that
    islay-outline.ts computes off the real coordinates, so it is never
@@ -2839,18 +2854,6 @@ a.cj-card-credit:hover {
   height: min(50vh, 440px);
   background: var(--stone);
 }
-/* The photo credit at the foot of the About page (16 Sep 2026). Quieter
-   than the body it follows, because it is a note about the picture rather
-   than part of the story - but still body-width and still linked, since
-   the Ardbeg page is somewhere a reader might actually want to go from
-   here. */
-.about-photo-credit {
-  margin-top: 28px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--slate);
-}
-
 .journal-post-content {
   max-width: 720px;
   margin: 0 auto;
@@ -3541,120 +3544,6 @@ a.hero-dream-card-navy:hover {
   color: var(--copper);
 }
 
-/* Your data - export and deletion (17 Sep 2026). Sits below sign-out, and
-   looks quieter than everything above it, because these are the things
-   you do once rather than the things you came to the page for. */
-.account-data {
-  margin-top: 40px;
-  padding-top: 24px;
-  border-top: 1px solid var(--stone);
-}
-.account-data-title {
-  font-family: var(--font-display), Georgia, serif;
-  font-size: 19px;
-  font-weight: 400;
-  color: var(--dark);
-  margin: 0 0 4px;
-}
-.account-data-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--stone);
-}
-.account-data-row strong {
-  font-size: 14.5px;
-  color: var(--dark);
-}
-.account-data-note {
-  margin: 4px 0 0;
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--slate);
-  max-width: 46ch;
-}
-.account-data-btn {
-  flex: none;
-  padding: 8px 16px;
-  font-family: var(--font-body), system-ui, sans-serif;
-  font-size: 13px;
-  color: var(--peat);
-  background: none;
-  border: 1px solid var(--mist);
-  border-radius: 100px;
-  cursor: pointer;
-}
-.account-data-btn:hover:not(:disabled) {
-  border-color: var(--copper);
-  color: var(--copper);
-}
-.account-data-btn:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-/* Red only once the action is genuinely destructive, and never as the
-   first thing the eye lands on - the row above it explains what it does
-   before the colour insists on it. */
-.account-data-btn-danger {
-  color: #9B2C2C;
-  border-color: rgba(155, 44, 44, 0.35);
-}
-.account-data-btn-danger:hover:not(:disabled) {
-  border-color: #9B2C2C;
-  color: #9B2C2C;
-  background: rgba(155, 44, 44, 0.05);
-}
-.account-delete-confirm {
-  margin-top: 18px;
-  padding: 18px;
-  border: 1px solid rgba(155, 44, 44, 0.3);
-  border-radius: 4px;
-  background: rgba(155, 44, 44, 0.03);
-}
-.account-delete-confirm p {
-  margin: 0 0 12px;
-  font-size: 13.5px;
-  line-height: 1.6;
-  color: var(--peat);
-}
-.account-delete-input {
-  width: 100%;
-  max-width: 320px;
-  padding: 9px 12px;
-  font-family: var(--font-body), system-ui, sans-serif;
-  font-size: 14px;
-  color: var(--dark);
-  background: var(--white);
-  border: 1px solid var(--mist);
-  border-radius: 4px;
-}
-.account-delete-input:focus-visible {
-  outline: 2px solid var(--copper);
-  outline-offset: 1px;
-}
-.account-delete-actions {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: 14px;
-  flex-wrap: wrap;
-}
-.account-delete-cancel {
-  padding: 0;
-  font-family: var(--font-body), system-ui, sans-serif;
-  font-size: 13px;
-  color: var(--slate);
-  background: none;
-  border: none;
-  cursor: pointer;
-  text-decoration: underline;
-}
-.account-delete-cancel:hover:not(:disabled) {
-  color: var(--peat);
-}
-
 /* Named trips library controls (5 Sep 2026). */
 .account-trip-actions {
   flex: 0 0 auto;
@@ -3799,73 +3688,86 @@ button.account-trip-link {
   }
 }
 
-/* The sign-in / account-deleted notice (17 Sep 2026). Sits above the page
-   it lands on and reports something that has already happened, so it is
-   informative rather than an action: navy for weight, but slim, and
-   dismissible without consequence.
+/* THE FOUNDERS' BAND (18 Sep 2026). A band, not a section: the page's job
+   is planning a trip, and this is the credential that makes the rest
+   believable rather than a competing destination. Given a full section it
+   would fight the thing people actually came for.
 
-   Not fixed or sticky. It answers a question the reader has right now -
-   did that work? - and once answered it should get out of the way and
-   stay out of it. Anything that follows you down the page is an offer,
-   and this is not one. */
-.auth-notice {
-  display: flex;
+   Off-white ground rather than the page cream, so it reads as a pause
+   between Before you go and the newsletter without needing a rule. */
+.our-story {
+  background: var(--off-white);
+  padding: 56px 24px;
+  border-top: 1px solid var(--stone);
+}
+.our-story-inner {
+  max-width: 980px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 40px;
   align-items: center;
-  gap: 16px;
-  padding: 11px 24px;
-  background: var(--navy);
-  color: var(--white);
 }
-.auth-notice-text {
-  margin: 0;
-  flex: 1;
-  font-family: var(--font-body), system-ui, sans-serif;
-  font-size: 13.5px;
-  line-height: 1.5;
+/* Fixed ratio rather than a height: the photo is landscape and cropping
+   it to a square would cut one of them out of it. */
+.our-story-photo {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--stone);
 }
-.auth-notice-link {
-  flex: none;
+.our-story-eyebrow {
+  display: block;
   font-family: var(--font-body), system-ui, sans-serif;
-  font-size: 13.5px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--amber-light);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 10px;
+}
+.our-story-title {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(22px, 2.6vw, 30px);
+  font-weight: 400;
+  line-height: 1.22;
+  color: var(--dark);
+  margin: 0 0 14px;
+}
+.our-story-body {
+  margin: 0 0 12px;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.62;
+  color: var(--peat);
+  max-width: 54ch;
+}
+.our-story-link {
+  display: inline-block;
+  margin-top: 6px;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--copper);
   text-decoration: underline;
   text-underline-offset: 3px;
-  white-space: nowrap;
 }
-.auth-notice-link:hover {
-  color: var(--white);
+.our-story-link:hover {
+  color: var(--dark);
 }
-.auth-notice-dismiss {
-  flex: none;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  font-size: 19px;
-  line-height: 1;
-  color: rgba(255, 255, 255, 0.6);
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-.auth-notice-dismiss:hover {
-  color: var(--white);
-}
-.auth-notice-link:focus-visible,
-.auth-notice-dismiss:focus-visible {
-  outline: 2px solid var(--amber-light);
-  outline-offset: 2px;
-}
-@media (max-width: 600px) {
-  .auth-notice {
-    padding: 10px 16px;
-    gap: 10px;
-    flex-wrap: wrap;
+/* Photo above the words on a phone. Stacking the other way would put a
+   340px image between the reader and the point of the band. */
+@media (max-width: 860px) {
+  .our-story {
+    padding: 40px 20px;
   }
-  .auth-notice-text {
-    flex-basis: 100%;
+  .our-story-inner {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+  .our-story-photo {
+    aspect-ratio: 16 / 10;
   }
 }

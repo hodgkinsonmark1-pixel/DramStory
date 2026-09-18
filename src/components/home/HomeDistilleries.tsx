@@ -4,7 +4,10 @@ import { isPublishableTour, formatPrice } from "@/lib/pricing";
 import { spellCount } from "@/lib/journey-derivations";
 
 /**
- * "Every distillery on Islay" - rebuilt 01 Sep 2026 to Mark's final
+ * "Every distillery on Islay and Jura" - rebuilt 01 Sep 2026 to Mark's
+ * final. Jura added to the heading 18 Sep 2026: the grid already lists
+ * Isle of Jura ("across the sound"), so the heading was undercounting
+ * what sat directly beneath it.
  * design (desktop page 5, mobile panel 3).
  *
  * WHAT IT REPLACES: three featured cards picked by an Airtable badge,
@@ -190,7 +193,7 @@ export default function HomeDistilleries({ distilleries }: { distilleries: Disti
             {spellCount(open.length)} you can visit today &middot; {spellCount(distilleries.length)}{" "}
             in all
           </div>
-          <h2 className="how-title">Every distillery on Islay</h2>
+          <h2 className="how-title">Every distillery on Islay and Jura</h2>
         </div>
         <div className="sec-head-aside">
           <Link className="sec-head-btn" href="/distilleries">

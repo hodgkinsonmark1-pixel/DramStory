@@ -7,6 +7,7 @@ import WhenToGo from "@/components/home/WhenToGo";
 import WhatsOn from "@/components/home/WhatsOn";
 import WhereToStay from "@/components/home/WhereToStay";
 import BeforeYouGo from "@/components/home/BeforeYouGo";
+import OurStory from "@/components/home/OurStory";
 import Footer from "@/components/Footer";
 import {
   getDistilleries,
@@ -95,6 +96,11 @@ export default async function HomePage() {
         distilleries={distilleries}
         journeys={journeys}
       />
+      {/* Mark's call, 18 Sep 2026: between Before you go and the
+          newsletter, which lives in Footer.tsx. By this point the
+          practical questions are answered and the remaining one is who is
+          telling you all this. */}
+      <OurStory />
       <Footer />
     </>
   );
