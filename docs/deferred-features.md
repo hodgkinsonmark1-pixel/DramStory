@@ -338,3 +338,129 @@ anything else, then the twenty routed figures, then the homepage section
 with the four cards linking to stub pages, then the full page template
 one zone at a time. The section can ship against stub pages; it cannot
 ship against no zones.
+
+## Food and drink layer: open items after the Google Places work
+
+**Status:** The feature shipped 31 Aug 2026 and is live. These are the
+decisions and fixes it left behind, none of them blocking.
+
+Full venue-by-venue detail sits in the Islay Food & Drink Audit artifact;
+the rules behind all of it are in `google-places-policy.md`.
+
+### 1. Nine venues are hidden from the map, five of them wrongly
+
+The render gate in `Workspace.tsx` hides any food or drink venue with
+neither a Google place ID nor a `Website`. Four of those nine are closed or
+unverifiable and should stay hidden. **Five are trading and are off the map
+purely for want of a URL:**
+
+- Flossie's Kitchen — the café inside the Port Mòr Centre
+- Cafaidh Blasta — listed in Airtable as "Cafe Blasta"; its own site is
+  `islaygaeliccentre.co.uk/cafe`
+- Port Bar — the public bar of the Port Askaig Hotel,
+  `portaskaig.co.uk/bar-restaurant.html`
+- Debbie's — trades as Bruichladdich Mini Market
+- Outback Art & Café — weekends only
+
+Adding a `Website` to each brings the pin straight back with an
+"Official site" link. **This is the cheapest outstanding job in the whole
+food layer** and needs no code at all.
+
+### 2. Two duplicate pairs
+
+- **Flossie's Kitchen** and **Port Mor Community Cafe** are the same café.
+  FHIS has Flossie's as the current operator (Pass, 14 Apr 2025); Google
+  still lists the older name. The corrected coordinates for both land
+  within 15m of each other.
+- **Port Bar** and **Port Askaig Hotel (Old Port Bar)** are one venue —
+  the hotel's own site calls the Port Bar "the oldest continually licensed
+  premises on the island".
+
+Merge or delete; decide which name leads.
+
+### 3. Closures and renames still to action
+
+- **The Munchie Box** — closed. Last Facebook post February 2022; the
+  premises now trades as **The Deli Den**, opened January 2026 by a
+  different operator (I and A Catering Ltd).
+- **Cafe Life** — unverifiable. The only trace anywhere is a single OSM
+  node from May 2022, never edited. No FHIS registration, no website, no
+  listing. Honest verdict is "unverifiable", not "proven closed".
+- **The Wee Box** — closed. THE WEE BOX LIMITED dissolved 11 April 2023.
+- **The Islay Bakery** — ceased trading. A UK-wide FSA search returns zero
+  registrations. Its name survives only as the *address* of the Islay's
+  Plaice premises, which is what made an earlier check read it as still
+  trading.
+
+### 4. Seasonal venues need a way to say so
+
+Two venues are seasonal rather than closed, and the site currently has no
+field or treatment that distinguishes the two:
+
+- **Tea On The Beach** (Jura) — an honesty horsebox at Inverlussa, open
+  April to September only.
+- **Outback Art & Café** — weekends, 11:00–16:00.
+
+Google reports both as closed, because a Scottish island's winter shutdown
+looks identical to permanent closure in its data. This will recur every
+year, so it wants a real answer rather than a per-venue note.
+
+### 5. The Deli Den and Islay Plaice: coordinates unverified
+
+Both drafted with copy and place IDs, both deliberately held back on
+2 Sep 2026. The Deli Den has no OpenStreetMap object at all, so its
+position is a bare PA43 7JH postcode centroid; Islay Plaice sits on an OSM
+node still named for the bakery that has stopped trading. Both are on
+Bowmore Main Street and want a street-level check before they get pins.
+
+### 6. Monthly accuracy review: written, not scheduled
+
+A full monthly review prompt exists and was deliberately left unscheduled
+pending a wider decision about *all* recurring site maintenance. Three
+passes:
+
+1. **Openings** — pull the Food Standards Scotland FHIS extract for Argyll
+   and Bute, filter to PA42–PA49 and PA60, diff against Airtable. This
+   found The Deli Den, Cafaidh Blasta and Flossie's Kitchen, all of which
+   Google missed. Caveat: the extract is incomplete, so absence from it is
+   weak evidence.
+2. **Closures** — Google `businessStatus` as a smoke alarm only. In the
+   August audit it reported four closures and exactly one was real.
+3. **Coordinate drift** — anything more than 300m from its stored point,
+   corrected from OSM or postcodes.io, never from Google.
+
+Neither register is sufficient alone: FHIS found the distillery cafés and
+the hotels, Google found the pubs trading under a name that differs from
+their registration.
+
+## Known defects (not deferred features)
+
+These are faults rather than parked ideas. Logged here only because the
+repo has no bug log of its own — worth deciding whether they should have
+one.
+
+### Journey page white-screens when localStorage is cleared
+
+Reproducible on production, 1 Sep 2026. Running `localStorage.clear()` and
+reloading `/journey` renders a blank page — body length zero, no map, and a
+Leaflet `_leaflet_pos` TypeError in the console. A fresh navigation to the
+same URL is fine, so it is specific to reloading into a state where the
+saved trip vanished mid-session. A visitor clearing site data with the page
+open would hit it. Likely `trip-context` reading a null saved trip without a
+fallback. Unrelated to the Google Places work — it reproduces independently.
+
+### Live-details panel is not keyboard accessible
+
+Opening the panel moves no focus and announces nothing, there is no Escape
+handler, and because the panel sits after the map in the DOM a keyboard
+user who opened it from a focused marker must tab through every remaining
+Leaflet marker to reach the close button or "+ Add to Trip". The loading
+and error messages carry `role="status"`; nothing else is addressed.
+
+### Live-details panel is untested below ~1000px
+
+The desktop panel is a fixed 340px pinned to the top right of the map. It
+can cover Leaflet's bottom-right OpenStreetMap attribution on a short map,
+and the weather popup below roughly 760px of map width. The attribution
+overlap matters more than it sounds on a feature whose whole premise is
+attribution compliance.
