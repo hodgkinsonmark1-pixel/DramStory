@@ -592,10 +592,24 @@ html,body{min-height:100%;font-family:var(--font-body);color:var(--dark);overflo
 .footer-social{display:flex;gap:12px}
 .footer-social-btn{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;transition:all 0.2s;text-decoration:none}
 .footer-social-btn:hover{background:var(--amber);border-color:var(--amber)}
+/* Text label instead of a glyph (19 Sep 2026) - see the note in
+   Footer.tsx about not hand-drawing a trademarked mark. A 36px circle
+   cannot hold a word, so this overrides the circle into a pill and drops
+   the fixed width. It reverts to the circle rule above the moment the
+   official SVG lands in public/images/social/. */
+.footer-social-btn-text{width:auto;height:auto;border-radius:999px;padding:7px 16px;font-size:13px;color:rgba(255,255,255,0.75);letter-spacing:0.02em}
+.footer-social-btn-text:hover{color:var(--navy)}
 .footer-col-title{font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:16px}
 .footer-links{list-style:none;display:flex;flex-direction:column;gap:10px}
 .footer-links a{font-size:13px;color:rgba(255,255,255,0.6);text-decoration:none;transition:color 0.2s}
 .footer-links a:hover{color:white}
+/* A row that is a label rather than a link (19 Sep 2026). The Journal
+   categories and Work With Us have no route yet, and the site's rule is
+   that a label with no link beats an href="#" that goes nowhere. Dimmer
+   than a link and with no hover, so the difference is visible before
+   anyone clicks - a row styled identically to its neighbours but inert
+   is a worse experience than an obviously not-yet row. */
+.footer-link-pending{font-size:13px;color:rgba(255,255,255,0.35);cursor:default}
 .footer-newsletter{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius);padding:24px;margin-bottom:48px}
 .footer-newsletter-title{font-family:var(--font-display);font-size:20px;font-weight:400;color:white;margin-bottom:6px}
 .footer-newsletter-sub{font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:16px}

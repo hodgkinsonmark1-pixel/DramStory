@@ -52,22 +52,86 @@ rename.
   panel. Photo, three sentences, one link — deliberately a band rather
   than a section, and deliberately NOT the About page's own opening lines.
 
-### Agreed, outstanding
+### Done, 19 Sep
 
-- **Five days have no `Hook`** — the one-line teaser on the day card. It
-  is Airtable data, not code. Empty on: Bowmore to Port Ellen Old and New;
-  Lagavulin by the Bay; Caol Ila Hiding in Plain Sight; Jura Across the
-  Water; Laphroaig and the Mull of Oa. The other eleven have one.
-  *Claude to draft from each day's real stops and narrative, Mark to
-  review, then Airtable as Status: Draft.*
+- **The footer's dead links are gone.** The audit said eight; it was
+  thirteen, because it missed the Company column entirely. Resolved as:
+  - *Social* — one Instagram link to the real account, the other three
+    removed until those accounts exist. Text label rather than a glyph:
+    hand-drawing Instagram's mark would be reproducing a trademark. Drop
+    the official SVG from brand.instagram.com into
+    `public/images/social/` and it becomes an `<Image>` in one line.
+  - *Journal* — Mark's six slots replace four categories that described a
+    content library the site does not have. All Articles links; the rest
+    are labels until the routes exist.
+  - *Company* — three rows, not six. Distillery Partners, Advertise and
+    Press removed.
+  - The rule applied throughout, and already used by the legal block
+    since 4 Sep: **a label with no link beats an `href="#"`**. Styled
+    dimmer, via `.footer-link-pending`, so the difference reads before
+    anyone clicks.
+
+### Airtable, 19 Sep
+
+Both applied directly at Mark's instruction; both are corrections to
+live records rather than new content.
+
+- **"Dunyveg" → "Dunyvaig Castle".** The site was using both spellings,
+  and in one place inside a single record: the Local Features record was
+  *named* Dunyveg Castle while its own history text, its slug and the
+  static fallback in `distilleries.ts` all said Dunyvaig. Changed in
+  three places — the record's Name, and both mentions on the Lagavulin
+  Bay record — plus the Lagavulin by the Bay day narrative. The rule
+  that a link label must match the live record's Name exactly is what
+  made this worth chasing: it was silently broken.
+  - Still says Dunyveg: `docs/business-plan.md` line 84, in a note about
+    a map-pin fix. Historical record, left alone.
+- **Jura, Across the Water: the "no guided tour" line moved up.** It was
+  the third sentence, inside a paragraph about how to get there. It is
+  now the second, immediately after the hook. Fifteen of sixteen day
+  cards are tour days, so a reader's default assumption is a tour, and
+  the fact that corrects it should not be something they reach by
+  reading on. Nothing else in the narrative changed.
+
+- **All five missing `Hook` values are in.** Drafted 18 Sep,
+  second-pass review 19 Sep, revised, signed off by Mark, written to
+  Airtable. Bowmore to Port Ellen Old and New; Lagavulin by the Bay;
+  Caol Ila Hiding in Plain Sight; Jura Across the Water; Laphroaig and
+  the Mull of Oa. All sixteen Days now have one.
+  - The review caught a false claim in the first draft: "245 years
+    between their first days" is Bowmore's founding to Port Ellen's
+    *reopening*, not founding to founding. It would have shipped as a
+    factual statement on a card.
+  - It also caught that all five used a single em dash at the same
+    structural point. Four of the existing eleven do; five more would
+    have given the grid a visible template. Two were rewritten to break
+    it.
+  - **Deliberate deviation from the content process.** The rule is that
+    new content reaches Airtable as Status: Draft. These five Days are
+    already Live, and Status sits on the Day rather than on the Hook —
+    so setting Draft would have pulled five live day cards off the site
+    to stage a reviewed one-liner. The Hook field was written on its
+    own and the Status left alone.
+
+### Agreed, outstanding
+- **Journal categories need a route.** The Journal table has a Category
+  field and the data exists, but nothing renders a category view. Five
+  footer labels are waiting on it.
+- **`/events` does not exist.** The Events table does. Sixth footer slot
+  is waiting on it.
+- **Work With Us has no page.** Mark wants the row kept; the label is
+  there, unlinked.
 
 ### Found in the audit, not yet raised
 
-- **Eight dead links.** Four social icons and four footer categories
-  ("Whisky Reviews", "Travel Stories", "Islay News", "Planning Tips") are
-  all `href="#"`. They look clickable and do nothing.
 - **One image with no alt text** — an Airtable attachment.
-- **Two external links without `rel="noopener"`** — Vimeo, Drinkaware.
+- **`rel` on external links.** The Drinkaware link carries
+  `rel="noreferrer"`, which already implies `noopener` — that audit line
+  was a false positive. Vimeo still needs checking.
+- **A latent dead link in Explore.** `otherLiveRegions` maps to
+  `href="#"`. It renders nothing today because Islay is the only live
+  region, so it is invisible — and it will appear as a dead link the
+  moment a second region's `live` flag flips.
 
 ---
 
