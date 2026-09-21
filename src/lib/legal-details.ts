@@ -49,7 +49,13 @@ export const LEGAL_DETAILS = {
    *  than printing an empty one. See docs/to-do.md. */
   icoNumber: null as string | null,
   /** Published date, shown on each page. */
-  lastUpdated: "16 September 2026",
+  /* 21 Sep 2026. Moved because the policy genuinely changed rather than
+     to look current: the 16 Sep text was written against a site with no
+     accounts and said so in as many words - "no account", "we never see
+     it". Accounts went live on the 21st and made those sentences false,
+     which is the one thing a privacy notice cannot be. Supabase, Resend
+     and the newsletter were all added to it the same day. */
+  lastUpdated: "21 September 2026",
 } as const;
 
 /**

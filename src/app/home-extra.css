@@ -2029,6 +2029,32 @@ a.hdw-name:hover {
   flex-direction: column;
   gap: 10px;
   width: 300px;
+  /* The honeypot is absolutely positioned off-screen, so the column it
+     sits in needs to be the thing it escapes from rather than the page -
+     without this it pushes a 9999px-wide scroll region onto every page
+     on the site. */
+  position: relative;
+}
+/* What the form says back (21 Sep 2026). Both replace or sit under the
+   row, in the same 300px column, so nothing reflows around them.
+
+   ONE MESSAGE FOR SUCCESS, WHATEVER HAPPENED BEHIND IT. A new address, an
+   address already pending and an address already subscribed all produce
+   this same line, because the route behind it deliberately refuses to say
+   which - otherwise anyone could type an address into the footer and
+   learn whether that person subscribes. */
+.newsletter-result {
+  width: 300px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--peat);
+  margin: 0;
+}
+.newsletter-error {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #9a3412;
+  margin: 0;
 }
 .newsletter-card .footer-newsletter-input {
   flex: none;

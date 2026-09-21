@@ -26,6 +26,23 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
  * add a history entry either - pressing Back should go back to the page
  * before, not to the same page with a banner on it.
  */
+/**
+ * NEWSLETTER OUTCOMES LIVE HERE TOO, since 21 Sep 2026, and the component
+ * keeps its name because renaming it would touch the root layout for no
+ * gain. What it does has always been broader than auth: it says what just
+ * happened, wherever you land. Confirming a subscription and unsubscribing
+ * are both links in an email that have to send the reader somewhere, and
+ * "the homepage, with a line explaining itself" beats two more routes that
+ * exist only to say one sentence each.
+ */
+type Kind =
+  | "signed-in"
+  | "deleted"
+  | "newsletter-confirmed"
+  | "newsletter-unsubscribed"
+  | "newsletter-error"
+  | null;
+
 function Notice() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -38,13 +55,15 @@ function Notice() {
    *  effect body cascades a render, which react-hooks/set-state-in-effect
    *  exists to stop - a lazy initialiser runs during render instead, so
    *  there is no second pass. */
-  const [kind] = useState<"signed-in" | "deleted" | null>(() =>
-    searchParams.get("deleted") === "1"
-      ? "deleted"
-      : searchParams.get("signedin") === "1"
-        ? "signed-in"
-        : null
-  );
+  const [kind] = useState<Kind>(() => {
+    if (searchParams.get("deleted") === "1") return "deleted";
+    if (searchParams.get("signedin") === "1") return "signed-in";
+    const nl = searchParams.get("newsletter");
+    if (nl === "confirmed") return "newsletter-confirmed";
+    if (nl === "unsubscribed") return "newsletter-unsubscribed";
+    if (nl === "error") return "newsletter-error";
+    return null;
+  });
   const [dismissed, setDismissed] = useState(false);
   /* Where they were when they asked to sign in, captured at first render
      for the same reason as `kind`.
@@ -69,9 +88,10 @@ function Notice() {
        gone this returns before touching the router, so the effect
        re-running on the new searchParams does nothing. */
     const rest = new URLSearchParams(searchParams.toString());
-    if (!rest.has("signedin") && !rest.has("deleted")) return;
+    if (!rest.has("signedin") && !rest.has("deleted") && !rest.has("newsletter")) return;
     rest.delete("signedin");
     rest.delete("deleted");
+    rest.delete("newsletter");
     rest.delete("from");
     const query = rest.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
@@ -82,12 +102,29 @@ function Notice() {
   return (
     <div className="auth-notice" role="status">
       <p className="auth-notice-text">
-        {kind === "deleted" ? (
-          <>Your account and everything in it has been deleted.</>
-        ) : (
+        {kind === "deleted" && <>Your account and everything in it has been deleted.</>}
+        {kind === "signed-in" && (
           <>
             <strong>Signed in.</strong> Your trip is saved to your account, on
             every device you sign in to.
+          </>
+        )}
+        {kind === "newsletter-confirmed" && (
+          <>
+            <strong>You&rsquo;re on the list.</strong> The DramStory Journal lands
+            once a month, and every one of them has an unsubscribe link.
+          </>
+        )}
+        {kind === "newsletter-unsubscribed" && (
+          <>
+            <strong>Unsubscribed.</strong> That&rsquo;s the last you&rsquo;ll hear
+            from the Journal &mdash; no confirmation email, nothing to click.
+          </>
+        )}
+        {kind === "newsletter-error" && (
+          <>
+            We couldn&rsquo;t complete that just now. Try the link in your email
+            again, or email us and we&rsquo;ll sort it by hand.
           </>
         )}
       </p>
