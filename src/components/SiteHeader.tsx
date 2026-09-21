@@ -32,15 +32,27 @@ interface SiteHeaderProps {
   links?: { href: string; label: string }[];
 }
 
+/* "Account", not "Login" (5 Sep 2026). The destination already adapts -
+   /login redirects a signed-in visitor to /account - so the only thing
+   that was wrong was the word, which told someone already signed in to
+   sign in again.
+ 
+   Deliberately NOT made session-aware. Reading the session here would
+   either need a client component that swaps the label after mount (a
+   visible flash of the wrong word on every page load) or a server read
+   (which would force dynamic rendering on pages that are currently
+   static or ISR - a real cost across the whole site to change one
+   word). "Account" is honest in both states: signed out it is where you
+   go to get one, signed in it is where yours lives. */
 const DEFAULT_LINKS = [
-  { href: "/login", label: "Login" },
+  { href: "/login", label: "Account" },
   { href: "/distilleries", label: "Distilleries" },
   { href: "/journal", label: "Journal" },
   { href: "/contact", label: "Contact" },
 ];
 
 /**
- * The site's primary nav — logo + Login / Distilleries / Journal / Contact.
+ * The site's primary nav — logo + Account / Distilleries / Journal / Contact.
  * Used on the homepage hero and the three journey intake screens (Q2, trip
  * length, Q3), which is where a consistent header actually matters most —
  * the workspace and distillery pages keep their own specialised headers.

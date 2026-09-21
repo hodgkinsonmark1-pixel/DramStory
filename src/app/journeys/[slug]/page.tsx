@@ -13,7 +13,7 @@ import {
 import Footer from "@/components/Footer";
 import SiteHeader from "@/components/SiteHeader";
 import JourneyRail from "@/components/journeys/JourneyRail";
-import PutInPlannerButton, { TakeTheDaysLink } from "@/components/journeys/PutInPlannerButton";
+import AddJourneyToTrips from "@/components/journeys/AddJourneyToTrips";
 import SeasonalNotice from "@/components/journeys/SeasonalNotice";
 import { type RouteMapStop } from "@/components/journeys/JourneyRouteMap";
 import { type DayBase } from "@/lib/day-derivations";
@@ -520,7 +520,7 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
             { href: "/days", label: "Day plans" },
             { href: "/distilleries", label: "Distilleries" },
             { href: "/journal", label: "Journal" },
-            { href: "/login", label: "Login" },
+            { href: "/login", label: "Account" },
           ]}
         />
         <div className="jr-hero-inner">
@@ -638,14 +638,19 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
           </div>
         </div>
 
+        {/* The rail's ask does the thing now rather than pointing at it
+            (12 Sep 2026), so the label names the action. askHref stays
+            the anchor: it is the no-JavaScript fallback, and the rail
+            only intercepts the click once there is a handler to do so. */}
         <JourneyRail
+          journey={journey}
           stops={routeStops}
           base={baseMarker}
           routeSummary={journey.routeSummary}
           dayAreas={journey.days.map((d) => d.areaNote)}
           askHref="#jr-ask"
-          askLabel={`Take ${inSentence(journey.name)} →`}
-          askNote="Five minutes to read. Nothing booked, nothing paid."
+          askLabel="Add this trip as is →"
+          askNote={`All ${spellCount(journey.days.length)} days, already planned. Nothing booked.`}
         />
       </div>
 
@@ -684,25 +689,36 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
       <section className="jr-wide">
         <div className="jr-ask" id="jr-ask">
           <h2 className="jr-ask-title">Take {inSentence(journey.name)}</h2>
+          {/* Rewritten 16 Sep 2026. The old line said it "goes into your
+              planner as a working trip", which stopped being true of
+              either button: taking it as it stands does not open the
+              planner at all, and the alternative does. So the sentence
+              now describes what you are getting rather than where it
+              lands, and the two routes are named in the order the
+              buttons offer them. */}
           <p className="jr-ask-body">
-            It goes into your planner as a working trip &mdash; {spellCount(journey.days.length)} days,{" "}
-            {spellCount(journey.nights)} nights, every tour and every drive already in place.
+            Every tour and every drive already worked out, across {spellCount(journey.days.length)}{" "}
+            days and {spellCount(journey.nights)} nights. Take it exactly as it stands, or open it up
+            and make it yours.
           </p>
           <ul className="jr-ask-ticks">
             <li>Use it exactly as it is</li>
             <li>Or change any part of it</li>
             <li>Nothing is booked, and nothing is paid</li>
           </ul>
-          <PutInPlannerButton
-            journey={journey}
-            note="Free, and you can edit it after."
-            deviceNote="It is kept on this device for now — accounts are the next thing we are building."
-          />
-          {/* Two equal buttons forced a choice before anyone knew what
-              either did. These are the same two routes, demoted to text. */}
+          <AddJourneyToTrips journey={journey} note="Free, and you can edit it after." />
+          {/* "Take the days, not the nights" used to sit here. It was
+              removed on 5 Sep 2026 because the distinction it promised did
+              not exist: Journey.accommodationNote is prose on this page,
+              and TripAnswers' base/nights are only ever written by
+              DaysAnswersBar, so NEITHER action ever carried accommodation.
+              The only real difference was that it appended rather than
+              replaced - bolting five curated days onto the end of whatever
+              you had, which produces an itinerary that criss-crosses the
+              island. Cherry-picking single days is served properly on
+              /days and the day cards. */}
           <div className="jr-ask-or">
             <span className="jr-eyebrow">Or start differently</span>
-            <TakeTheDaysLink journey={journey} />
             {/* One string, built in JS rather than assembled out of JSX
                 text nodes: a text node that both follows an expression
                 and carries an entity loses its leading space at compile

@@ -1750,6 +1750,21 @@ a.hdw-name:hover {
 .fm-base-dot {
   fill: var(--white);
 }
+/* The word that makes the dot mean something (18 Sep 2026). Small, white
+   and carrying its own dark halo via paint-order, because it sits over a
+   map whose background changes colour region by region - a plain white
+   label is invisible over the pale zones. */
+.fm-base-label {
+  fill: var(--white);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  paint-order: stroke fill;
+  stroke: rgba(26, 58, 74, 0.75);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
 
 /* THE MAP. The SVG carries its own aspect ratio from the viewBox that
    islay-outline.ts computes off the real coordinates, so it is never
@@ -2839,18 +2854,6 @@ a.cj-card-credit:hover {
   height: min(50vh, 440px);
   background: var(--stone);
 }
-/* The photo credit at the foot of the About page (16 Sep 2026). Quieter
-   than the body it follows, because it is a note about the picture rather
-   than part of the story - but still body-width and still linked, since
-   the Ardbeg page is somewhere a reader might actually want to go from
-   here. */
-.about-photo-credit {
-  margin-top: 28px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--slate);
-}
-
 .journal-post-content {
   max-width: 720px;
   margin: 0 auto;
@@ -3314,4 +3317,457 @@ a.hero-dream-card-navy:hover {
   color: var(--copper);
   font-size: 0.92em;
   padding: 0 3px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   SIGN IN (4 Sep 2026). Replaces the coming-soon placeholder at /login.
+   Deliberately quiet: this page asks for something, so it should look
+   like a form rather than a pitch.
+   ───────────────────────────────────────────────────────────────────── */
+.login-page {
+  min-height: 60vh;
+  background: var(--off-white);
+  padding: 64px 24px 88px;
+}
+.login-panel {
+  max-width: 460px;
+  margin: 0 auto;
+}
+.login-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 12px;
+}
+.login-title {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 34px;
+  font-weight: 500;
+  color: var(--navy);
+  line-height: 1.15;
+  margin: 0 0 16px;
+}
+.login-lede {
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: var(--peat);
+  margin: 0 0 12px;
+}
+.login-form {
+  margin-top: 24px;
+}
+.login-label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 6px;
+}
+.login-input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 16px; /* 16px stops iOS zooming the page on focus */
+  font-family: var(--font-body), system-ui, sans-serif;
+  color: var(--dark);
+  background: var(--white);
+  border: 1px solid var(--mist);
+  border-radius: var(--radius-sm, 6px);
+}
+.login-input:focus {
+  outline: none;
+  border-color: var(--copper);
+  box-shadow: 0 0 0 3px var(--amber-pale);
+}
+.login-input:disabled {
+  opacity: 0.6;
+}
+.login-submit {
+  margin-top: 14px;
+  width: 100%;
+}
+.login-note {
+  margin-top: 14px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--slate);
+}
+.login-error {
+  margin: 10px 0 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--copper);
+}
+.login-sent-title {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--navy);
+  margin: 0 0 10px;
+}
+.login-sent p {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--peat);
+  margin: 0 0 10px;
+}
+/* A "try again" that is a button, because it changes state rather than
+   navigating - but it should read as the link it looks like. */
+.login-link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--copper);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   ACCOUNT PAGE (5 Sep 2026). The signed-in home. Signing in used to
+   land on /login saying "You're signed in" and nothing else - an
+   account whose only visible effect is a sentence confirming it exists
+   has not paid for itself.
+   ───────────────────────────────────────────────────────────────────── */
+.account-page {
+  min-height: 60vh;
+  background: var(--off-white);
+  padding: 56px 24px 88px;
+}
+.account-inner {
+  max-width: 620px;
+  margin: 0 auto;
+}
+.account-signed-as {
+  font-size: 14px;
+  color: var(--slate);
+  margin: 0 0 28px;
+}
+.account-empty {
+  padding: 28px 24px;
+  background: var(--white);
+  border: 1px solid var(--stone);
+  border-radius: var(--radius);
+  text-align: center;
+}
+.account-empty p {
+  margin: 0 0 16px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--peat);
+}
+.account-cta,
+.account-new-trip {
+  display: inline-block;
+  padding: 12px 26px;
+  background: var(--navy);
+  color: var(--white);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 0;
+  border-radius: 100px;
+  cursor: pointer;
+}
+.account-cta:hover,
+.account-new-trip:hover {
+  background: var(--navy-mid);
+}
+.account-trips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.account-trip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  background: var(--white);
+  border: 1px solid var(--stone);
+  border-radius: var(--radius);
+}
+.account-trip-main {
+  min-width: 0;
+}
+.account-trip-name {
+  display: block;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 18px;
+  color: var(--navy);
+  line-height: 1.25;
+}
+.account-trip-meta {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--slate);
+}
+.account-trip-link {
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--copper);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.account-trip-link:hover {
+  text-decoration: underline;
+}
+/* Its own button, NOT .hero-action-secondary. That style is frosted
+   white-on-translucent, built to sit over the hero video - on this cream
+   page it rendered white text on near-white and was invisible. Signing
+   out is also a quiet action: it should be legible, not prominent. */
+.account-signout {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--stone);
+}
+.account-signout-btn {
+  padding: 9px 18px;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 13.5px;
+  color: var(--peat);
+  background: none;
+  border: 1px solid var(--mist);
+  border-radius: 100px;
+  cursor: pointer;
+}
+.account-signout-btn:hover {
+  border-color: var(--copper);
+  color: var(--copper);
+}
+
+/* Named trips library controls (5 Sep 2026). */
+.account-trip-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+/* Open is a button now rather than a link - it records which trip this
+   browser is editing before navigating - so it needs the anchor's look
+   back. */
+button.account-trip-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-body), system-ui, sans-serif;
+  cursor: pointer;
+}
+.account-trip-action {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 12.5px;
+  color: var(--slate);
+  cursor: pointer;
+}
+.account-trip-action:hover:not(:disabled) {
+  color: var(--copper);
+  text-decoration: underline;
+}
+.account-trip-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+/* Destructive, so it reads as destructive on hover and nowhere else -
+   a permanently red button invites misclicks more than it warns. */
+.account-trip-delete:hover:not(:disabled) {
+  color: #a32d2d;
+}
+.account-rename-input {
+  width: 100%;
+  padding: 4px 8px;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 18px;
+  color: var(--navy);
+  background: var(--white);
+  border: 1px solid var(--copper);
+  border-radius: var(--radius-sm, 6px);
+}
+.account-new-trip {
+  margin-top: 16px;
+}
+@media (max-width: 560px) {
+  /* Three actions plus a name will not sit on one line on a phone. */
+  .account-trip {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   SAVE PROMPT (5 Sep 2026). Site-wide, appears once a signed-out
+   visitor's trip is worth losing. A BAR, not a modal - the planner works
+   without an account and an interruption would be a toll booth on the
+   two-minute booking objective.
+   ───────────────────────────────────────────────────────────────────── */
+.trip-save-prompt {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 20px;
+  z-index: 60;
+  width: calc(100% - 32px);
+  max-width: 520px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  background: var(--navy);
+  border-radius: 100px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.22);
+}
+.trip-save-prompt-text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.82);
+}
+.trip-save-prompt-text strong {
+  color: var(--white);
+}
+.trip-save-prompt-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.trip-save-prompt-cta {
+  padding: 8px 16px;
+  background: var(--amber);
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+.trip-save-prompt-cta:hover {
+  background: var(--amber-light);
+}
+.trip-save-prompt-dismiss {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.trip-save-prompt-dismiss:hover {
+  color: var(--white);
+}
+@media (max-width: 520px) {
+  /* Rounded pill becomes a card on a phone - at this width the text
+     wraps and a 100px radius starts clipping its own corners. */
+  .trip-save-prompt {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    border-radius: 14px;
+    bottom: 12px;
+  }
+  .trip-save-prompt-actions {
+    justify-content: space-between;
+  }
+  .trip-save-prompt-cta {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+/* THE FOUNDERS' BAND (18 Sep 2026). A band, not a section: the page's job
+   is planning a trip, and this is the credential that makes the rest
+   believable rather than a competing destination. Given a full section it
+   would fight the thing people actually came for.
+
+   Off-white ground rather than the page cream, so it reads as a pause
+   between Before you go and the newsletter without needing a rule. */
+.our-story {
+  background: var(--off-white);
+  padding: 56px 24px;
+  border-top: 1px solid var(--stone);
+}
+.our-story-inner {
+  max-width: 980px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 40px;
+  align-items: center;
+}
+/* Fixed ratio rather than a height: the photo is landscape and cropping
+   it to a square would cut one of them out of it. */
+.our-story-photo {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--stone);
+}
+.our-story-eyebrow {
+  display: block;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 10px;
+}
+.our-story-title {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(22px, 2.6vw, 30px);
+  font-weight: 400;
+  line-height: 1.22;
+  color: var(--dark);
+  margin: 0 0 14px;
+}
+.our-story-body {
+  margin: 0 0 12px;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.62;
+  color: var(--peat);
+  max-width: 54ch;
+}
+.our-story-link {
+  display: inline-block;
+  margin-top: 6px;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--copper);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.our-story-link:hover {
+  color: var(--dark);
+}
+/* Photo above the words on a phone. Stacking the other way would put a
+   340px image between the reader and the point of the band. */
+@media (max-width: 860px) {
+  .our-story {
+    padding: 40px 20px;
+  }
+  .our-story-inner {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+  .our-story-photo {
+    aspect-ratio: 16 / 10;
+  }
 }

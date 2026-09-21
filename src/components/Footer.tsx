@@ -50,11 +50,29 @@ export default function Footer() {
             Every great whisky adventure begins long before the first dram. Craft your
             story — we&apos;ll help you plan the rest.
           </p>
+          {/* One account, because there is one account (19 Sep 2026,
+              Mark's call). This was four emoji buttons - a camera, two
+              faces, a play arrow - every one of them href="#". A dead
+              social icon costs you the exact visitor who cared enough to
+              look for you, and it costs them twice: once when nothing
+              happens, and again when they conclude the rest of the site
+              is the same. Facebook, X and YouTube go until they exist.
+
+              The label is text rather than a glyph on purpose. Drawing
+              Instagram's mark by hand would be reproducing a trademark,
+              and the emoji it replaces was never the real icon anyway.
+              Meta publishes the official SVG at brand.instagram.com -
+              drop it in public/images/social/ and this becomes an
+              <Image>, one line. */}
           <div className="footer-social">
-            <a href="#" className="footer-social-btn" title="Instagram">📷</a>
-            <a href="#" className="footer-social-btn" title="Facebook">👥</a>
-            <a href="#" className="footer-social-btn" title="X / Twitter">🐦</a>
-            <a href="#" className="footer-social-btn" title="YouTube">▶️</a>
+            <a
+              href="https://www.instagram.com/mydramstory/"
+              className="footer-social-btn footer-social-btn-text"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Instagram
+            </a>
           </div>
         </div>
 
@@ -73,26 +91,49 @@ export default function Footer() {
         </div>
 
         <div>
+          {/* Mark's slots, 19 Sep 2026, replacing four categories that
+              described a content library the site does not have: Whisky
+              Reviews, Travel Stories, Islay News, Planning Tips. These
+              four do describe it - they were derived from the 27 Journal
+              articles that actually exist.
+
+              UNLINKED FOR NOW, DELIBERATELY. The Journal table has a
+              Category field, but there is no route that can render a
+              category and no /events page yet, and Mark is still setting
+              the categories in Airtable. Following the same rule the
+              legal block below has used since 4 Sep: a label with no link
+              is honest about where you are; an href="#" is a promise the
+              page breaks the moment it is clicked. The labels stay so the
+              footer keeps its shape, and each becomes a Link the day its
+              route exists. */}
           <div className="footer-col-title">Journal</div>
           <ul className="footer-links">
             <li><Link href="/journal">All Articles</Link></li>
-            <li><a href="#">Whisky Reviews</a></li>
-            <li><a href="#">Travel Stories</a></li>
-            <li><a href="#">Islay News</a></li>
-            <li><a href="#">Planning Tips</a></li>
-            <li><a href="#">Events</a></li>
+            <li className="footer-link-pending">Trip Planning</li>
+            <li className="footer-link-pending">Island Life</li>
+            <li className="footer-link-pending">Place &amp; History</li>
+            <li className="footer-link-pending">Distilleries</li>
+            <li className="footer-link-pending">Events</li>
           </ul>
         </div>
 
         <div>
+          {/* Three rows, not six (19 Sep 2026, Mark's call). Distillery
+              Partners, Advertise and Press went: a two-person sole trader
+              with no press office should not run a press page, and the
+              other two advertised a commercial operation that does not
+              exist yet. Six rows of which four were dead also made this
+              column look like the biggest thing in the footer.
+
+              Work With Us stays as a label rather than a link, for the
+              same reason as the Journal slots above - Mark wants the row,
+              there is no page behind it yet, and an href="#" would be
+              worse than no link at all. */}
           <div className="footer-col-title">Company</div>
           <ul className="footer-links">
             <li><Link href="/about">About Us</Link></li>
-            <li><a href="#">Work With Us</a></li>
-            <li><a href="#">Distillery Partners</a></li>
-            <li><a href="#">Advertise</a></li>
+            <li className="footer-link-pending">Work With Us</li>
             <li><Link href="/contact">Contact</Link></li>
-            <li><a href="#">Press</a></li>
           </ul>
         </div>
       </div>

@@ -2478,8 +2478,61 @@ select.location-inline-input {
   border-radius: 2px;
   padding: 13px 13px 12px;
 }
-.jr-rail-map-eyebrow {
+/* The eyebrow and the day arrows share a row (16 Sep 2026). The margin
+   moved from the eyebrow to the row, or the arrows would sit on a
+   different baseline to the words beside them. */
+.jr-rail-map-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   margin-bottom: 9px;
+}
+.jr-rail-map-eyebrow {
+  margin-bottom: 0;
+}
+.jr-map-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+/* Deliberately quiet. These step through days on a page whose argument
+   is that you should read it, so they are an aid to someone already
+   scrolling rather than a control demanding to be used. */
+.jr-map-nav-btn {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: none;
+  border: 1px solid rgba(20, 49, 63, 0.16);
+  border-radius: 2px;
+  color: var(--jr-navy);
+  font-family: var(--jr-sans);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.jr-map-nav-btn:hover:not(:disabled) {
+  background: rgba(20, 49, 63, 0.06);
+}
+.jr-map-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.jr-map-nav-btn:focus-visible {
+  outline: 2px solid var(--jr-accent);
+  outline-offset: 1px;
+}
+.jr-map-nav-count {
+  min-width: 30px;
+  text-align: center;
+  font-family: var(--jr-sans);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--jr-body);
 }
 .jr-map-holder {
   position: relative;
@@ -2683,7 +2736,7 @@ select.location-inline-input {
 }
 /* Where the trip is ACTUALLY kept, today. Not a footnote - it is the
    sentence that makes the line above it honest, and it goes the day
-   visitor accounts land. See PutInPlannerButton. */
+   visitor accounts land. See AddJourneyToTrips. */
 .jr-ask-device {
   margin: 3px 0 0;
   font-family: var(--jr-sans);
@@ -3148,4 +3201,132 @@ select.location-inline-input {
   font-size: 12px;
   line-height: 1.5;
   color: var(--slate);
+}
+
+/* Sign-in offer under "Put this trip in my planner" (5 Sep 2026). Sits
+   inside .jr-ask-device, which is on the navy block, so it needs the
+   light-on-dark treatment rather than the site's copper link colour. */
+.jr-ask-signin {
+  color: var(--amber-light);
+  text-decoration: underline;
+  white-space: nowrap;
+}
+.jr-ask-signin:hover {
+  color: var(--white);
+}
+
+/* "Add to my trips" confirmation and the signed-out collision (5 Sep
+   2026) - see AddJourneyToTrips. All on the navy .jr-ask block, so
+   light-on-dark throughout rather than the site's usual ink/copper. */
+.jr-ask-added {
+  margin: 0 0 14px;
+  font-family: var(--jr-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--white);
+  max-width: 52ch;
+}
+.jr-ask-added-tick {
+  color: var(--jr-accent);
+  font-weight: 700;
+}
+/* The confirmation's "View trip" is a link, not a button, but it is the
+   same action in the same place - so it takes the button's appearance
+   rather than inventing a third treatment. inline-block because an
+   anchor will not honour the padding otherwise. */
+.jr-ask-button-link {
+  display: inline-block;
+  text-decoration: none;
+}
+.jr-ask-button:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+.jr-ask-error {
+  margin: 10px 0 0;
+  font-family: var(--jr-sans);
+  font-size: 13px;
+  color: var(--amber-light);
+  max-width: 52ch;
+}
+.jr-ask-collision-title {
+  margin: 0 0 6px;
+  font-family: var(--jr-sans);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--white);
+}
+.jr-ask-collision-body {
+  margin: 0 0 14px;
+  font-family: var(--jr-sans);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.82);
+  max-width: 52ch;
+}
+/* Deliberately a quiet text button, not a second filled one. It destroys
+   work, so it has to be readable and reachable without being the thing
+   the eye lands on first. */
+.jr-ask-collision-replace,
+.jr-ask-collision-cancel {
+  display: block;
+  margin-top: 12px;
+  padding: 0;
+  font-family: var(--jr-sans);
+  font-size: 13px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+.jr-ask-collision-replace {
+  color: rgba(255, 255, 255, 0.72);
+  text-decoration: underline;
+}
+.jr-ask-collision-replace:hover {
+  color: var(--white);
+}
+.jr-ask-collision-cancel {
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.5);
+}
+.jr-ask-collision-cancel:hover {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* "Make it your own" (12 Sep 2026) - the second of the two things you
+   can do with a Journey, and deliberately NOT a second filled button.
+   Two equal buttons are what this section was rebuilt in August to get
+   rid of: they force a choice before anyone knows what either does.
+
+   Sized between the primary button and the .jr-ask-alt links below the
+   rule, because that is exactly where it sits in the hierarchy - a real
+   alternative to the button above it, not one of the "or start
+   differently" signposts. Brighter than those, quieter than the button. */
+.jr-ask-secondary {
+  display: block;
+  margin-top: 14px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--jr-sans);
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--jr-accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(221, 168, 106, 0.4);
+  text-underline-offset: 3px;
+}
+.jr-ask-secondary:hover {
+  text-decoration-color: currentColor;
+}
+.jr-ask-secondary:focus-visible {
+  outline: 3px solid var(--jr-accent);
+  outline-offset: 2px;
+}
+.jr-ask-secondary:disabled {
+  opacity: 0.55;
+  cursor: default;
 }

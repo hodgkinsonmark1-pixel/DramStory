@@ -161,9 +161,28 @@ export default function FourMoods({
             <path d={ISLAY_OUTLINE_PATH} className="fm-island-edge" />
 
             {basePoint && (
-              <g className="fm-base" aria-hidden="true">
+              /* LABELLED, 18 Sep 2026. The eyebrow claimed "your base
+                 marked" and the map drew a white dot, but nothing joined
+                 the two up - Mark could not tell what the dot was, and he
+                 built the thing. A ring and a dot mean nothing on their
+                 own; the word does the work.
+
+                 Not aria-hidden any more either. It was decorative while
+                 it was unlabelled; now it carries the one piece of
+                 personal information on the map, and a screen reader
+                 should get it too. */
+              <g className="fm-base">
+                <title>{`Your base: ${basePlace?.name ?? "your stay"}`}</title>
                 <circle cx={basePoint.x} cy={basePoint.y} r={9} className="fm-base-ring" />
                 <circle cx={basePoint.x} cy={basePoint.y} r={3.5} className="fm-base-dot" />
+                <text
+                  x={basePoint.x}
+                  y={basePoint.y - 15}
+                  className="fm-base-label"
+                  textAnchor="middle"
+                >
+                  {basePlace?.name ? `Your base · ${basePlace.name}` : "Your base"}
+                </text>
               </g>
             )}
 
