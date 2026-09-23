@@ -289,15 +289,30 @@ export default function AccommodationControl({
           <span>
             🏠 Staying: <strong>{accommodation.name}</strong>
           </span>
+          {/* SPONSORED, AND SAID SO (21 Sep 2026). Until today this link
+              carried a placeholder tracking code and earned nothing, so
+              an unlabelled link was at least accurate. It earns now, and
+              the affiliate disclosure promises that paid links are
+              marked at the point of the link - not only on a page nobody
+              reads. The rel matters to Google, the words matter to the
+              reader, and the two have to arrive together.
+
+              A Featured Stay is the venue's own URL and pays us nothing,
+              so it gets neither. */}
           <a
             href={bookNowUrl}
             target="_blank"
-            rel="noopener noreferrer"
+            rel={activeFeatured ? "noopener noreferrer" : "sponsored nofollow noopener noreferrer"}
             className="subcat-chip"
             style={{ background: "var(--green-deep)", color: "white", fontWeight: 600 }}
           >
             {bookNowLabel}
           </a>
+          {!activeFeatured && (
+            <span className="accommodation-affiliate-note">
+              We may earn a commission &mdash; it costs you nothing.
+            </span>
+          )}
         </>
       )}
     </div>

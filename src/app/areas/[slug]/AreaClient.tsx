@@ -148,7 +148,13 @@ export default function AreaClient({ area: a }: AreaClientProps) {
 
   const distilleryCount = a.distilleries.length;
   const featuredStay = a.featuredStays[0];
-  const bookingUrl = buildAccommodationBookingLink(a.name);
+  /* Dates passed in as of 21 Sep 2026. They were not before, while the
+     line beneath the button said "opens a search with your dates" - so
+     the button quietly used a default fortnight-from-now instead of
+     whatever the visitor had set, and the sentence describing it was
+     wrong. Small, but it is a promise on a page, and this is the same
+     class of thing as the tracking code that was not really there. */
+  const bookingUrl = buildAccommodationBookingLink(a.name, trip.tripDates);
   const stayDistanceMiles = featuredStay ? milesBetween(a, featuredStay) : undefined;
 
   function toggleFeature(feature: LocalFeature) {
@@ -528,7 +534,18 @@ export default function AreaClient({ area: a }: AreaClientProps) {
             ) : (
               <p className={styles.handoffPending}>Local booking advice for {a.name} is being added.</p>
             )}
-            <a href={bookingUrl} target="_blank" rel="noopener noreferrer" className={`${styles.ctaGold} ${styles.ctaGoldFull}`}>
+            {/* rel="sponsored nofollow" added 21 Sep 2026, when this link
+                started actually earning. Google asks for `sponsored` on
+                paid links specifically, and without it a page full of
+                untagged affiliate links reads as an attempt to pass
+                ranking signal for money. It matched what the link did
+                before - nothing - and does not now. */}
+            <a
+              href={bookingUrl}
+              target="_blank"
+              rel="sponsored nofollow noopener noreferrer"
+              className={`${styles.ctaGold} ${styles.ctaGoldFull}`}
+            >
               Search stays on hotels.com ↗
             </a>
             <p className={styles.disclosure}>Opens a {a.name} search with your dates. We may earn a commission — it costs you nothing.</p>

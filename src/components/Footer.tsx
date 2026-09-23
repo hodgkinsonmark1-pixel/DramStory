@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LEGAL_READY } from "@/lib/legal-details";
 import Logo from "./Logo";
+import NewsletterForm from "./NewsletterForm";
 import { REGIONS } from "@/lib/journey-options";
 
 export default function Footer() {
@@ -33,10 +34,10 @@ export default function Footer() {
               monthly. Where will your next adventure begin?
             </div>
           </div>
-          <div className="footer-newsletter-row">
-            <input className="footer-newsletter-input" type="email" placeholder="your@email.com" />
-            <button className="footer-newsletter-btn">Subscribe</button>
-          </div>
+          {/* Was an input and a button with no form around them and no
+              handler on either - it did nothing at all, on every page,
+              through launch. See NewsletterForm.tsx. */}
+          <NewsletterForm />
         </div>
       </section>
 

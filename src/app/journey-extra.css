@@ -44,6 +44,15 @@ select.location-inline-input {
   max-width: 150px;
 }
 
+/* The affiliate note beside Search Hotels.com (21 Sep 2026). Quiet, but
+   present: the disclosure has to be readable where the link is, not only
+   on the disclosure page. Sized to sit on the same line as the chip
+   without competing with it. */
+.accommodation-affiliate-note {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--slate);
+}
 .subcat-chip {
   padding: 4px 12px;
   border-radius: 100px;

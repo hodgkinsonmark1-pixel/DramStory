@@ -25,7 +25,53 @@ import type { TripDates } from "@/lib/types";
  * merges, rather than maintaining two copies of the same link-building
  * logic.
  */
-const HOTELS_MDPCID = "YOUR_MDPCID_HERE";
+/**
+ * THE AFFILIATE WRAPPER (21 Sep 2026), replacing seven weeks of
+ * `mdpcid=YOUR_MDPCID_HERE`.
+ *
+ * Until today every "Book Now" on the site carried that literal string.
+ * The links worked - people reached Hotels.com and could book - they
+ * simply earned nothing, and the affiliate disclosure named the Expedia
+ * Group Travel Creator Program the whole time. That is the same failure
+ * as the Discover Cars label, found the same day: a claim the plumbing
+ * could not honour.
+ *
+ * WHY THE SHAPE MATTERS, and why it took a real generated link to know.
+ * The Travel Creator Program is built around hand-made links, one per
+ * page - its own help pages say to filter and sort a search, then
+ * generate a link for that exact URL. That would have been fatal here,
+ * because these links are built live from whatever dates the visitor has
+ * set: we would have had to drop the dates and fall back to one fixed
+ * link per village.
+ *
+ * It turned out to be a WRAPPER rather than a rewritten URL. The target
+ * goes in `landingPage`, url-encoded, and the three tracking values stay
+ * put. So the search can still be assembled at request time and then
+ * wrapped, and nothing about the visitor's dates is lost.
+ *
+ * THESE THREE VALUES ARE NOT SECRETS. They appear in every outbound
+ * accommodation link on a published page; they identify DramStory to
+ * Expedia, not the visitor to anyone. Taken from a link Mark generated
+ * in the Link builder on 21 Sep.
+ */
+const EXPEDIA_AFFILIATE = {
+  camref: "1011l5NpTj",
+  creativeref: "1011l66932",
+  adref: "PZ1Y9ZzywC",
+} as const;
+
+/** Wraps a finished Expedia Group URL in the affiliate redirect. Kept
+ *  separate so that anything else on the site that ever needs to link to
+ *  Hotels.com goes through one place - the mistake this replaces was
+ *  partly that the tracking value was buried inside one function's
+ *  parameter list, where nobody looked at it for seven weeks. */
+function withAffiliateTracking(targetUrl: string): string {
+  const params = new URLSearchParams({
+    landingPage: targetUrl,
+    ...EXPEDIA_AFFILIATE,
+  });
+  return `https://www.hotels.com/affiliate?${params.toString()}`;
+}
 
 function addDays(dateIso: string, days: number): string {
   const d = new Date(dateIso);
@@ -84,9 +130,12 @@ export function buildAccommodationBookingLink(location: string, tripDates?: Trip
     endDate: checkout,
     adults: "2",
     rooms: "1",
-    mdpcid: HOTELS_MDPCID,
   });
-  return `https://uk.hotels.com/Hotel-Search?${params.toString()}`;
+  /* mdpcid is gone from here. The tracking no longer rides inside the
+     search URL as a parameter Hotels.com has to notice - the whole search
+     is now the payload of an affiliate redirect that exists to record the
+     click first. */
+  return withAffiliateTracking(`https://uk.hotels.com/Hotel-Search?${params.toString()}`);
 }
 
 /* BOOKING.COM REMOVED, 16 Sep 2026.

@@ -70,6 +70,52 @@ export default function PrivacyPolicyPage() {
         it for you.
       </p>
 
+      <h3>If you sign in</h3>
+      <p>
+        Signing in is optional, and everything above stays true until you do it.
+      </p>
+      <p>
+        We ask for <strong>one thing: your email address.</strong> No password
+        &mdash; we email you a link instead, so there is nothing to remember and
+        nothing for us to store. No name, no address, no date of birth.
+      </p>
+      <p>
+        From that point your trip is <strong>copied to our database</strong> so
+        it reaches whatever device you sign in on. That is a real change from the
+        paragraph above: a saved trip is no longer only on your machine, and we
+        can technically read it. We do not go looking, but you should know it is
+        possible rather than take our word for a promise the architecture no
+        longer makes.
+      </p>
+      <p>
+        <strong>Lawful basis: contract</strong> &mdash; you asked for an account
+        that remembers your trip, and an address is the minimum needed to give
+        you one.
+      </p>
+      <p>
+        You can take all of it away or delete the lot from{" "}
+        <a href="/account">your account page</a>, yourself, without asking us.
+      </p>
+
+      <h3>If you sign up to the Journal</h3>
+      <p>
+        The newsletter is separate from an account, and you can have either
+        without the other. We store your email address, when you asked, when you
+        confirmed, and which page you were on when you did.
+      </p>
+      <p>
+        <strong>Nothing is sent until you confirm.</strong> Signing up triggers
+        one email asking you to click a link. If you never click it, we never
+        send you anything else &mdash; which also means nobody can sign you up by
+        typing your address into our footer.
+      </p>
+      <p>
+        <strong>Lawful basis: consent</strong> &mdash; that click is the consent,
+        and the date of it is what we keep as proof. Every issue carries a
+        one-click unsubscribe with no sign-in and no questions, and withdrawing
+        is as easy as giving it.
+      </p>
+
       <h3>Server logs</h3>
       <p>
         Our hosting provider, Vercel, records standard request information
@@ -116,11 +162,29 @@ export default function PrivacyPolicyPage() {
             <td>Page requested, referrer, country. No identifier, no cookie.</td>
           </tr>
           <tr>
-            <td>Airtable</td>
-            <td>Our own content &mdash; distilleries, tours, features</td>
+            <td>Supabase</td>
+            <td>Accounts and saved trips</td>
             <td>
-              Nothing about you. Images pass through our own server, so your
-              browser never contacts Airtable directly.
+              Your email address, and any trip you save while signed in. Nothing
+              if you never sign in.
+            </td>
+          </tr>
+          <tr>
+            <td>Resend</td>
+            <td>Sending your sign-in link and the Journal</td>
+            <td>Your email address, and the message itself</td>
+          </tr>
+          <tr>
+            <td>Airtable</td>
+            <td>
+              Our own content &mdash; distilleries, tours, features &mdash; and
+              the Journal subscriber list
+            </td>
+            <td>
+              For content, nothing about you: images pass through our own server,
+              so your browser never contacts Airtable directly. If you subscribe
+              to the Journal, your email address and the dates you asked and
+              confirmed.
             </td>
           </tr>
           <tr>
@@ -143,7 +207,7 @@ export default function PrivacyPolicyPage() {
         pays us to put their product in front of you.
       </p>
       <p>
-        <strong>Affiliate links</strong> to Hotels.com and Booking.com pass a
+        <strong>Affiliate links</strong> to Hotels.com and Discover Cars pass a
         tracking code that tells them the booking came from us. That code
         identifies <strong>us</strong>, not you. What those companies do with
         your data on their own sites is governed by their privacy policies. See
@@ -153,7 +217,19 @@ export default function PrivacyPolicyPage() {
       <h2>How long we keep it</h2>
       <ul>
         <li>
-          <strong>Your trip:</strong> until you clear it. We never see it.
+          <strong>A trip you have not signed in to save:</strong> until you clear
+          it. It stays on your device and we never see it.
+        </li>
+        <li>
+          <strong>Your account and the trips in it:</strong> until you delete
+          them. Deleting your account removes the trips in the same moment, and
+          we cannot get them back afterwards.
+        </li>
+        <li>
+          <strong>Journal subscription:</strong> until you unsubscribe. We keep
+          the record that you unsubscribed rather than erasing the row outright
+          &mdash; that is what stops you being added again by accident. Ask and
+          we will remove it entirely.
         </li>
         <li>
           <strong>Server logs:</strong> as retained by our hosting provider.
@@ -174,9 +250,16 @@ export default function PrivacyPolicyPage() {
         <li>Port it &mdash; receive it in a machine-readable format</li>
       </ul>
       <p>
-        To exercise any of these, email{" "}
-        <Detail value={LEGAL_DETAILS.contactEmail} />. We will respond within one
-        month.
+        <strong>Two of those you can do yourself, right now.</strong> If you have
+        an account, <a href="/account">your account page</a> has a button that
+        downloads everything we hold about you as a file, and a button that
+        deletes the lot. Neither asks us for permission and neither waits on us
+        being at a desk. For the Journal, the unsubscribe link in any issue works
+        the same way.
+      </p>
+      <p>
+        For anything else, email <Detail value={LEGAL_DETAILS.contactEmail} />.
+        We will respond within one month.
       </p>
       <p>
         If you are unhappy with how we have handled your data you can complain to

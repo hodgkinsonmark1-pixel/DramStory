@@ -38,7 +38,20 @@ export default function OurStory() {
             alt="Pete and Mark outside the Ardbeg warehouse on Islay, July 2022"
             fill
             sizes="(max-width: 860px) 100vw, 380px"
-            style={{ objectFit: "cover" }}
+            /* THE CROP HAS TO BE TOLD WHERE THE PEOPLE ARE (21 Sep 2026).
+               The source is panoramic - 3579x1603, near enough 2.23:1 -
+               and it goes into a 4:3 frame, so `cover` can only show about
+               sixty per cent of its width. Centred, that window runs from
+               20% to 80% and slices Pete in half at the left edge, which
+               is what Mark saw: a band about the two of us with one of us
+               cut off.
+
+               20% puts the window at roughly 8%-68%, which holds both men
+               with room to spare and still keeps the ARDBEG wall behind
+               them. Nudge it down to show more of the bay, up to crop
+               tighter - but not past about 25%, where Pete starts to go
+               again. */
+            style={{ objectFit: "cover", objectPosition: "20% center" }}
           />
         </div>
 
