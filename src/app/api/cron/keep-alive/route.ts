@@ -2,46 +2,56 @@ import { createClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
 
 /**
- * Keep the Supabase project awake (17 Sep 2026).
+ * Keep the Supabase project awake (17 Sep 2026, rewritten 24 Sep).
  *
- * WHY THIS EXISTS. Supabase's free tier pauses a project after seven days
- * with no activity. Paused means the database stops answering: sign-in
- * fails, /account breaks, and saved trips will not load. Mark hit exactly
- * this on 17 Sep and had to reactivate the project by hand. A daily poke
- * means it never reaches seven idle days.
+ * WHY THIS EXISTS. Supabase's free tier pauses a project after seven
+ * days without sufficient activity. Paused means the database stops
+ * answering: sign-in fails, /account breaks, and saved trips will not
+ * load. Mark hit exactly that on 17 Sep and had to reactivate by hand.
  *
- * IT IS A WORKAROUND WITH AN EXPIRY DATE. The real fix is Supabase Pro,
- * and the reason is backups rather than pausing - the free tier has none,
- * so the moment a real person saves a real trip the database is the only
- * copy of it. Pro projects do not pause, which makes this route pointless
- * the day that happens. Delete it then. See docs/to-do.md.
+ * WHY IT WAS REWRITTEN, which is the part worth reading. The first
+ * version asked for a row from `trips` using the anon key, knowing the
+ * anon role has no grant on that table, and treated the resulting
+ * "permission denied" as proof of life. The argument was that a paused
+ * project cannot decline anything, so an error means Postgres answered.
  *
- * WHAT COUNTS AS ACTIVITY, and why this query looks wrong. It asks for a
- * row from `trips` using the anon key, and the anon role has no grant on
- * that table - migration 0002 grants to `authenticated` only, on purpose.
- * So this request comes back as a permission error, every time, by
- * design.
+ * That argument is true and irrelevant. It establishes the database is
+ * REACHABLE; it says nothing about whether the inactivity scan counts a
+ * rejected query as ACTIVITY. It does not. This cron ran successfully
+ * every day from 21 September and Supabase scheduled the project for
+ * pausing anyway, which is how we found out. A reasoned guess was
+ * written down as a fact, and the comment explaining it was the most
+ * confident thing in the file.
  *
- * That is still the thing we need. A permission error is Postgres
- * ANSWERING: the request travelled through PostgREST, reached the
- * database, and the database declined it. A paused project cannot
- * decline anything - it does not respond at all. So the error path is the
- * success path here, and only a network-level failure means the project
- * was actually asleep.
+ * WHAT IT DOES NOW. Writes a timestamp to `public.heartbeat` - one row,
+ * created by migration 0003, existing for no other purpose. A real
+ * statement that really changes a real byte, rather than an argument
+ * about what a refusal implies.
  *
- * The alternative was a dedicated heartbeat table that anon may read,
- * which would be tidier to reason about but means another migration for
- * Mark to run by hand for no functional gain.
+ * WHY THE SERVICE ROLE. That table has RLS on and no policies, so
+ * nothing reaching it through PostgREST as anon or authenticated can see
+ * or touch it. The service role bypasses RLS by design. The alternative -
+ * granting anon access so the publishable key could do the write - would
+ * mean a public endpoint letting any holder of that key update our
+ * database, to save using a key this route already has available.
+ *
+ * IT IS STILL A WORKAROUND WITH AN EXPIRY DATE. The real fix is Supabase
+ * Pro, and the reason is backups rather than pausing - the free tier has
+ * none, so the moment a real person saves a real trip the database is
+ * the only copy of it. Pro projects do not pause either, which makes
+ * this route, its table and its vercel.json entry all deletable that
+ * day. See docs/to-do.md.
  */
 export async function GET(request: NextRequest) {
-  /* Vercel sends this header on scheduled invocations. Without the check
-     the route is a public URL anyone can hammer, and while a keep-alive
-     is harmless to call, an unauthenticated endpoint that talks to the
-     database is not a habit worth forming.
+  /* Vercel sends this header on scheduled invocations, and only when
+     CRON_SECRET is set. Without the check the route is a public URL
+     anyone can hammer, and while a keep-alive is harmless to call, an
+     unauthenticated endpoint holding the service role key is not a habit
+     worth forming.
 
-     If CRON_SECRET is not set, refuse rather than run: an unset secret
-     that silently allows everything is the failure mode this check
-     exists to prevent. */
+     If CRON_SECRET is unset, refuse rather than run: a missing secret
+     that silently allows everything is the failure this check exists to
+     prevent. */
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
@@ -50,37 +60,58 @@ export async function GET(request: NextRequest) {
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!url || !key) {
-    console.error("keep-alive: Supabase environment variables are not set.");
+  if (!url || !serviceKey) {
+    console.error(
+      "keep-alive: NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not set - the project will pause."
+    );
     return Response.json({ ok: false, reason: "not-configured" }, { status: 500 });
   }
 
-  const supabase = createClient(url, key, {
+  const supabase = createClient(url, serviceKey, {
     // No session, no storage: this is a machine poking a database, not a
-    // visitor. Persisting anything here would be a leak between runs.
+    // visitor. Persisting anything here would leak between runs.
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
   try {
-    const { error } = await supabase.from("trips").select("id").limit(1);
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from("heartbeat")
+      .update({ last_checked: now, note: "keep-alive cron" })
+      .eq("id", 1)
+      .select("last_checked");
 
-    /* Reached the database either way - see the note above about why an
-       error is the expected outcome. Logged at info rather than error so
-       a week of normal runs does not read like a week of faults. */
-    console.log(
-      error
-        ? `keep-alive: database responded (${error.message}) - project is awake`
-        : "keep-alive: database responded with rows - project is awake"
-    );
+    /* AN ERROR IS NOW A REAL FAILURE, not the expected outcome. This is
+       the whole difference from the previous version: there is no longer
+       a reading of "it went wrong" that also means "it worked". If this
+       logs, the project is heading for a pause and somebody has to look.
 
-    return Response.json({ ok: true, awake: true });
+       The likeliest cause by far is migration 0003 not having been run,
+       so say so rather than making the next person guess. */
+    if (error) {
+      console.error(
+        `keep-alive: could not write to heartbeat (${error.message}) - has migration 0003 been run?`
+      );
+      return Response.json({ ok: false, reason: "write-failed" }, { status: 500 });
+    }
+
+    /* A successful update that matched nothing is the other silent
+       failure: the table exists, the row does not, and every run writes
+       nothing while reporting success. */
+    if (!data || data.length === 0) {
+      console.error("keep-alive: heartbeat table has no row with id = 1 - nothing was written.");
+      return Response.json({ ok: false, reason: "no-row" }, { status: 500 });
+    }
+
+    console.log(`keep-alive: heartbeat written at ${now}`);
+    return Response.json({ ok: true, lastChecked: now });
   } catch (e) {
     /* A thrown error rather than a returned one means the request never
-       got an answer: DNS, TLS, timeout. THIS is what a paused or
+       got an answer at all: DNS, TLS, timeout. That is what a paused or
        unreachable project looks like, and it is worth shouting about,
-       because the next thing to break will be somebody's sign-in. */
+       because the next thing to break is somebody's sign-in. */
     console.error("keep-alive: could not reach Supabase at all -", e);
     return Response.json({ ok: false, awake: false }, { status: 503 });
   }

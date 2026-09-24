@@ -2,169 +2,217 @@
 
 Live task list. Things that are actually next, with who holds them.
 
-Not a backlog — parked ideas live in `docs/deferred-features.md`, and the
-account/newsletter scoping lives in `docs/accounts-and-badges-plan.md`.
+Not a backlog — parked ideas live in `docs/deferred-features.md`, the
+account/newsletter scoping in `docs/accounts-and-badges-plan.md`, and the
+page-by-page design work in `docs/design-pass.md`.
 
-Last updated: 16 September 2026
+Last updated: 23 September 2026
 
 ---
 
-## ⛔ Compliance gates
+## ✅ The compliance gates are closed
 
-**Nothing that stores an email address ships until both of these are done.**
-Recorded here because nothing in the code will ever remind anyone.
+Both cleared. Recorded here because the previous version of this file
+listed them as blockers for a fortnight after they stopped being the
+thing in the way.
 
-- [ ] **Register with the ICO and pay the data protection fee** — Tier 1,
-  £52/year, £5 off by direct debit. Liable from the moment personal data is
-  processed commercially. Not paying when liable is an offence. Run the ICO's
-  fee self-assessment first to confirm the tier. *Mark.*
-- [ ] **Publish the privacy policy and cookie policy.** Collecting an address
-  without a live privacy notice is a breach on day one. The pages are built and
-  gated; what they need is below. *Mark to supply the facts, Claude to flip the
-  flag.*
+- **ICO registration** — done 21 September 2026. Sole trader, Tier 1.
+- **Privacy and cookie policies published** — live since 21 September,
+  and **corrected on the 23rd**: see the warning below about why that
+  correction was needed, because the same trap is set again every time
+  the site starts doing something new.
+
+---
+
+## ⚠️ The pattern that keeps catching us
+
+Three separate times now, the site has **claimed something the plumbing
+could not honour**. Worth reading as one thing rather than three:
+
+1. **Discover Cars** carried "we earn a commission" on the homepage for
+   three weeks while the link was a bare domain with no tracking.
+2. **Hotels.com** links carried `YOUR_MDPCID_HERE` for seven weeks while
+   the affiliate disclosure named the Expedia programme.
+3. **The privacy policy** said "no account… we never see it" for two days
+   after accounts went live and started storing email addresses.
+4. **The keep-alive cron** ran perfectly every day and did not keep
+   anything alive. It was built on the argument that a "permission
+   denied" response proves the database answered — true, and irrelevant:
+   it says nothing about whether the inactivity scan counts a rejected
+   query as activity. It does not. Supabase's warning email on 24 Sep is
+   what found it. The code comment explaining the reasoning was the most
+   confident thing in the file.
+
+Every one looked completely fine from the outside. Nothing was broken;
+links worked, pages rendered, the policy read well. **The failure mode is
+always a true-sounding statement that nobody re-checked after the thing
+it described changed.**
+
+The defence is boring and specific: when a feature ships, ask what the
+site now *says* that it did not do before, and go and look.
 
 ---
 
 ## Now
 
-### The legal pages — the only thing between accounts and launch
+### Verify the money actually arrives — *Mark*
 
-The four pages exist as real routes on `feature/accounts` and are **not live**.
-`LEGAL_READY` in `src/lib/legal-details.ts` gates the draft banner, the
-`noindex`, and whether the footer links or just shows labels. All three change
-together when it flips.
+Both affiliate links are wired and neither has ever been confirmed
+earning. This is the direct lesson of the two entries above.
 
-- [x] **Fill `src/lib/legal-details.ts`.** Done 16 Sep 2026, and restructured:
-  DramStory is a **sole trader**, not DramStory Ltd, so `companyNumber` and
-  "registered in" were removed rather than filled - a sole trader has neither.
-  The controller is named as *Mark Hodgkinson, trading as DramStory*, because
-  UK GDPR requires the controller identified and there is no separate legal
-  person to name instead.
-- [x] **Clear the `[[TO CONFIRM]]` markers.** All resolved 16 Sep 2026.
-  Publication date set to 16 September 2026.
-- [x] **Solicitor's review** — Mark's call, 16 Sep 2026: not needed to go live
-  at this stage. The exposure accepted is the Terms' liability section, which
-  the Consumer Rights Act limits in ways a draft cannot be certain of.
-- [x] Affiliate links are labelled at the point of the link - verified on the
-  live homepage, 16 Sep 2026. Discover Cars carries the label and
-  `rel="sponsored nofollow"`; the two island firms are plain links. See the
-  warning below about whether that label is currently earning anything.
-- [x] **`LEGAL_READY` flipped to true.** 16 Sep 2026.
-- [ ] ⛔ **Do not merge the legal pages until the Discover Cars question below
-  is settled.** The disclosure now lists Discover Cars because the site claims
-  a commission on it. If that arrangement is not real the row must come out and
-  the homepage label with it. *Mark.*
+- [ ] Click a **Hotels.com** link from the live site — any area page, or
+      the accommodation panel on a journey — then check the click appears
+      in the Expedia Travel Creator dashboard. There is a
+      [testing guide](https://help.creator.expediagroup.com/hc/en-us/articles/15360985533463-How-do-I-test-my-Affiliate-Links).
+- [ ] Click the **Discover Cars** link from the homepage, then check the
+      Discover Cars dashboard. The link is now `?a_aid=DramStory`, which
+      is their own affiliate parameter rather than the CJ click-through an
+      earlier note assumed.
+- [ ] Once Plausible has a few weeks of outbound-click data, compare its
+      counts against both dashboards. A large gap is the only way to
+      notice that a link has quietly stopped attributing.
 
-### Affiliate deep links
+### The newsletter has no way to send a newsletter — *Both*
 
-- [ ] ⚠️ **Discover Cars is labelled "we earn a commission" on the homepage and
-  the link cannot pay one.** Found 16 Sep 2026: the live href is a bare
-  `https://www.discovercars.com/` with no tracking parameter of any kind. So
-  the site makes a disclosure it does not benefit from, and every click through
-  it is unattributed. Either add the real tracking link or remove the claim -
-  the two must agree. *Mark to supply the link, Claude to wire it.*
-- [ ] ⚠️ **`/accommodation-shell` is a live, indexable route** with no
-  `noindex`, built as a demo with placeholder tracking codes
-  (`YOUR_MDPCID_HERE`, `YOUR_AID_HERE`, `YOUR_CAMREF_HERE`). Its own header
-  claims "all three platforms are live, approved affiliate accounts", which is
-  not true of Booking.com. **`noindex` added 16 Sep 2026** via a layout, since
-  the page is a client component - that closes the search-engine half only. It
-  still serves, still builds placeholder-tracked links, and still names two
-  suppliers the site has no relationship with. Finish it or delete it.
-  *Mark to decide, Claude to action.*
-- [ ] **Add the ICO number to `src/lib/legal-details.ts`** once registered. The
-  field is `icoNumber`, currently `null`, and the privacy page omits the line
-  entirely rather than printing a blank one. Publishing the number is good
-  practice, not a requirement - the registration itself is the requirement.
-  *Mark to register, Claude to add.*
-- [ ] **Put the correct affiliate deep links in place.** Hotels.com links still
-  carry an `mdpcid` placeholder rather than a real tracking value — confirmed
-  still present in `src/lib/accommodation-links.ts` on 16 Sep. Until it is
-  fixed, clicks are not attributed and **any bookings they produce earn
-  nothing**. *Mark to supply the real values from the Expedia and Booking.com
-  dashboards, Claude to wire them.*
-- [ ] Check every affiliate URL resolves and carries its tracking parameter —
-  one test link per partner, confirmed in the partner dashboard.
-- [ ] Once Plausible is live, cross-check its outbound click counts against the
-  partner dashboards. A large gap means the deep links are wrong, and that
-  comparison is the only way to notice.
+Worth being blunt about: **people can now subscribe to something that
+cannot yet be sent.** Subscribe, confirm and unsubscribe all work and are
+live. There is no mechanism to write an issue and send it to the
+confirmed list, and no issue to send.
 
-### Accounts — what is left
+That is not an emergency — the confirmation email sets the expectation of
+"once a month", and nobody has subscribed yet — but it is a promise with
+a clock on it.
 
-Sign-in, syncing, named trips, the save prompt and the auth emails are all
-done and on `feature/accounts` (24 commits, deployed, green). Remaining:
+- [ ] Decide how an issue gets written and sent. Options: Resend
+      Broadcasts, an export to something like Buttondown, or a small
+      admin route in the site. *Mark to choose, Claude to build.*
+- [ ] Confirm `newsletter@dramstory.com` is verified as a sender in
+      Resend. The domain is already verified for the auth mail, so this
+      is likely fine, but nothing has actually sent from that address to
+      a real inbox. *Mark.*
+- [ ] Send a first issue only after a test to a real address —
+      the end-to-end check on 23 Sep used Resend's simulated address, so
+      **no real inbox has yet received anything from this system**.
 
-- [ ] **Delete account, and export trips as JSON.** GDPR erasure and
-  portability. Cheap now, miserable to retrofit. Not built. *Claude.*
-- [x] **Keep-alive cron.** Built 17 Sep 2026 - `/api/cron/keep-alive`, daily at
-  07:00 via `vercel.json`. Mark had to reactivate the project by hand that
-  morning, which is exactly what this prevents.
-  **Needs `CRON_SECRET` set in Vercel** or the route returns 401 and the
-  project goes back to pausing. Any long random string. *Mark.*
-  Delete the route the day Supabase moves to Pro - Pro projects do not pause,
-  which makes it dead weight rather than merely unnecessary.
-- [ ] **Set `SUPABASE_SERVICE_ROLE_KEY` in Vercel** so account deletion works.
-  Supabase → Project Settings → API → `service_role`. A plain variable, never
-  with a `NEXT_PUBLIC_` prefix - that key bypasses row level security, and the
-  prefix would ship it to every browser. Until it is set, the delete button
-  says so rather than failing silently. *Mark.*
-- [ ] **Test named trips on the preview**: create a second, rename both, switch
-  between them, delete one. Worth doing properly now — switching was silently
-  broken until 5 Sep and the fix has not been exercised by hand. *Mark.*
-- [ ] Move Supabase to Pro ($25/month) **at the first real account** — for the
-  daily backups, not the pause. The free tier has none, and saved trips would
-  be the only copy. Plan §2.2. *Mark.*
-- [ ] Mark's process-flow list from the members-area review — spotted on 5 Sep,
-  never written down. *Mark.*
-- [ ] **Merge `feature/accounts` to `main`**, which also takes Plausible and
-  the legal pages live. Blocked only by the compliance gates. *Both.*
+### Accounts — the bits left over — *Mark*
 
-### The newsletter
+- [ ] **Test named trips by hand.** Create a second trip, rename both,
+      switch between them, delete one. Switching was silently broken
+      until 5 September and the fix has never been exercised by a person.
+      This has been on the list for three weeks.
+- [ ] **Run migration `0003_heartbeat.sql`** in the Supabase SQL editor.
+      Until it runs, the keep-alive cron fails every morning and the
+      project is still heading for a pause. *Mark — one paste, see below.*
+- [ ] **Supabase Pro ($25/month).** Deferred on Mark's call, 21 Sep, and
+      recorded here as an accepted risk. **The argument changed on 24
+      Sep.** It was "for backups, not the pause" — the pause looked
+      handled. Supabase then scheduled this project for pausing anyway,
+      because the keep-alive was built on a wrong assumption (see below).
+      So it is now two live risks rather than one theoretical and one
+      handled: no backups, and a pause that will break sign-in for
+      everyone until someone notices. Plan §2.2.
+- [ ] **Mark's process-flow list** from the members-area review — spotted
+      5 September, still never written down.
 
-Full scope in `docs/accounts-and-badges-plan.md` §7. Blocked by the compliance
-gates above.
+### Housekeeping that has teeth — *Claude*
 
-- [ ] Resend account already exists for auth — verify whether a separate
-  sending domain or From address is wanted for marketing, so a reputation hit
-  on one cannot take sign-in down with it
-- [ ] `subscribers` table, double opt-in, confirmation email
-- [ ] Wire the footer form, which currently collects addresses and does nothing
-- [ ] Unsubscribe link, one click, no login
+- [ ] **`npm ci` reports 8 vulnerabilities, 1 critical.** Review the
+      advisories individually. **Not `npm audit fix --force`** — it would
+      move past the lockfile and break the Next 16 pin. Carried over
+      unreviewed since 16 Sep; the site is now live and holding personal
+      data, which changes the argument for leaving it.
+- [ ] **A `.gitattributes` to normalise line endings.** Without one the
+      whole repo reads as modified from a Linux checkout while looking
+      clean on Windows, which makes it easy to commit a thousand lines of
+      invisible change by accident. This has already cost real time.
+- [ ] **Revoke the GitHub personal access token.** The same token has
+      been pasted into chat four times and has write access to the repo.
+      *Mark.*
+
+---
+
+## Next
+
+### The design pass
+
+Running record and agreed actions in `docs/design-pass.md`. Homepage is
+complete. Still to walk, desktop first:
+
+`/journeys/[slug]` · `/days` and a day · `/journey` · `/trip` ·
+`/account` and `/login` · `/distilleries` · `/about` · `/journal` · legal
+
+Then the whole thing again at phone width.
+
+### Two builds the footer is waiting on — *Claude*
+
+Mark's six Journal slots are in the footer, and five of them are labels
+rather than links because the routes do not exist.
+
+- [ ] **A Journal category view.** The Journal table already has a
+      Category field with the right options, so this is a route and a
+      filter rather than a data problem. Unblocks four labels.
+- [ ] **`/events`**, from the Events table. Unblocks the fifth.
+- [ ] **Work With Us** has no page either. Either write one or drop the
+      row — Mark asked to keep it, so it sits as a label for now.
+
+### Smaller, found in the homepage audit — *Claude*
+
+- [ ] One image with no alt text — an Airtable attachment.
+- [ ] Check the Vimeo link carries `rel="noopener"`. The Drinkaware link
+      turned out to be a false positive: `noreferrer` already implies it.
+- [ ] **A latent dead link in the Explore column.** `otherLiveRegions`
+      maps to `href="#"`. It renders nothing today because Islay is the
+      only live region, so it is invisible — and it will appear as a dead
+      link the moment a second region's `live` flag flips.
+
+### Loose ends — *Mark*
+
+- [ ] **Add the ICO registration number** to `src/lib/legal-details.ts`.
+      The field is `icoNumber`, still `null`, so the privacy page omits
+      the line rather than printing a blank one. Publishing the number is
+      good practice, not a requirement — the registration itself was the
+      requirement, and that is done. *Mark to supply, Claude to add.*
+- [ ] Retire the merged local branches: `rescue-about-us`,
+      `feature/about-us`, `feature/brand-voice-update`. All three are
+      fully accounted for on `main` — checked file by file, 16 Sep.
+- [ ] Delete the superseded `feature/homepage-final-design` branch from
+      the remote. *Claude, on Mark's word.*
+- [ ] Find `DramStory Prototype.html` — named in
+      `docs/days-trip-flow-handoff.md` as "a working, self-contained
+      prototype of everything below", not in the repo. Probably in the
+      claude.ai chat the handoff came from.
 
 ---
 
 ## Recently done
 
-- **16 Sep 2026** — About Us live on `main`, with the restored "lays the days
-  out end to end" line and the standfirst dropped. `brand-voice.md` updated
-  with the voice budget, the earning test and the social register. Seven
-  documents recovered from a dropped commit that existed only on one machine.
-  Journey page: two actions instead of one, the map zoom bug fixed, the map
-  made flickable, and a day badge that had never worked in its life.
-- **5 Sep 2026** — Custom SMTP through Resend, domain verified, rate limit
-  raised; both auth email templates branded; `/account` and named trips; the
-  site-wide save prompt; sign-out clearing a synced trip only.
-- **4 Sep 2026** — Plausible chosen and installed. Legal drafts written against
-  what the code actually does. Supabase project, `trips` table and RLS.
-- **3 Sep 2026** — Homepage A2 design and mobile live details merged to `main`.
-
----
-
-## Housekeeping
-
-- [ ] Delete the superseded `feature/homepage-final-design` branch from the
-  remote. *Claude, on Mark's word.*
-- [ ] Retire the merged local branches: `rescue-about-us`, `feature/about-us`,
-  `feature/brand-voice-update`. All three are fully accounted for on `main` or
-  `feature/accounts` — checked file by file, 16 Sep. *Mark.*
-- [ ] Find `DramStory Prototype.html` — named in
-  `docs/days-trip-flow-handoff.md` as "a working, self-contained prototype of
-  everything below", not in the repo. Probably in the claude.ai chat the
-  handoff came from. *Mark.*
-- [ ] A `.gitattributes` to normalise line endings. Without one the whole repo
-  reads as modified from a Linux checkout while looking clean on Windows, which
-  makes it easy to commit a thousand lines of invisible change by accident.
-  *Claude.*
-- [ ] `npm ci` reports 8 vulnerabilities, 1 critical. Review the advisories
-  individually before launch. **Not `npm audit fix --force`** — it would move
-  past the lockfile and break the Next 16 pin. *Claude.*
+- **23 Sep 2026** — Newsletter live: double opt-in, Airtable Subscribers
+  table, confirmation and welcome emails through Resend, one-click
+  unsubscribe answering the mail client's own button. Verified end to end
+  on a preview against a simulated address. Privacy policy corrected to
+  describe the site that actually exists. Hotels.com affiliate tracking
+  wired via the `landingPage` wrapper, keeping the visitor's own dates,
+  with `rel="sponsored nofollow"` and a disclosure line at both call
+  sites. `/accommodation-shell` deleted. Founders' photo cropped to the
+  people in it.
+- **21 Sep 2026** — **Accounts went live.** ICO registered. Thirty-four
+  commits merged to `main`: sign-in, saved trips, named trips, JSON
+  export and account deletion, the four legal pages, Plausible, About Us.
+  `CRON_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` set on production. The
+  footer's thirteen dead links removed — the audit had found eight and
+  missed a whole column. Discover Cars tracking link added.
+- **19 Sep 2026** — All five missing day `Hook` values drafted, reviewed
+  and published; all sixteen Days now have one. The review caught a false
+  claim that would otherwise have shipped on a card. "Dunyveg" corrected
+  to "Dunyvaig" across four places, including a record that disagreed
+  with its own slug. The "no guided tour" line moved up the Jura day.
+- **18 Sep 2026** — Homepage: Jura added to the distilleries heading, the
+  Four Moods base marker labelled, and the founders' band added between
+  Before You Go and the newsletter.
+- **16 Sep 2026** — About Us live. Legal pages rewritten for a sole
+  trader. `brand-voice.md` updated. Seven documents recovered from a
+  commit that existed on one machine.
+- **5 Sep 2026** — Custom SMTP through Resend, auth email templates,
+  `/account` and named trips, the site-wide save prompt.
+- **4 Sep 2026** — Plausible installed. Supabase project, `trips` table
+  and RLS.
