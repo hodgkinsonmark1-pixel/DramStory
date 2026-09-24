@@ -35,6 +35,13 @@ could not honour**. Worth reading as one thing rather than three:
    the affiliate disclosure named the Expedia programme.
 3. **The privacy policy** said "no account… we never see it" for two days
    after accounts went live and started storing email addresses.
+4. **The keep-alive cron** ran perfectly every day and did not keep
+   anything alive. It was built on the argument that a "permission
+   denied" response proves the database answered — true, and irrelevant:
+   it says nothing about whether the inactivity scan counts a rejected
+   query as activity. It does not. Supabase's warning email on 24 Sep is
+   what found it. The code comment explaining the reasoning was the most
+   confident thing in the file.
 
 Every one looked completely fine from the outside. Nothing was broken;
 links worked, pages rendered, the policy read well. **The failure mode is
@@ -93,10 +100,17 @@ a clock on it.
       switch between them, delete one. Switching was silently broken
       until 5 September and the fix has never been exercised by a person.
       This has been on the list for three weeks.
+- [ ] **Run migration `0003_heartbeat.sql`** in the Supabase SQL editor.
+      Until it runs, the keep-alive cron fails every morning and the
+      project is still heading for a pause. *Mark — one paste, see below.*
 - [ ] **Supabase Pro ($25/month).** Deferred on Mark's call, 21 Sep, and
-      recorded here as an accepted risk rather than an oversight: the
-      free tier has **no backups**, so the first real saved trip is the
-      only copy of itself. Plan §2.2.
+      recorded here as an accepted risk. **The argument changed on 24
+      Sep.** It was "for backups, not the pause" — the pause looked
+      handled. Supabase then scheduled this project for pausing anyway,
+      because the keep-alive was built on a wrong assumption (see below).
+      So it is now two live risks rather than one theoretical and one
+      handled: no backups, and a pause that will break sign-in for
+      everyone until someone notices. Plan §2.2.
 - [ ] **Mark's process-flow list** from the members-area review — spotted
       5 September, still never written down.
 
