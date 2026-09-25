@@ -91,8 +91,15 @@ export async function GET(request: NextRequest) {
        The likeliest cause by far is migration 0003 not having been run,
        so say so rather than making the next person guess. */
     if (error) {
+      /* Two separate things can cause this, and they look identical from
+         here. 0003 creates the table; 0004 grants the service role
+         access to it through the Data API. This project has
+         "Automatically expose new tables" switched off, so the table can
+         exist, hold its row, be visible in the dashboard, and still be
+         unreachable - which is exactly what happened between 24 and 25
+         September. Name both. */
       console.error(
-        `keep-alive: could not write to heartbeat (${error.message}) - has migration 0003 been run?`
+        `keep-alive: could not write to heartbeat (${error.message}) - have migrations 0003 AND 0004 been run? 0003 creates the table, 0004 makes it reachable.`
       );
       return Response.json({ ok: false, reason: "write-failed" }, { status: 500 });
     }
