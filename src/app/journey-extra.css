@@ -2682,10 +2682,38 @@ select.location-inline-input {
 }
 
 /* THE ASK — the full navy block. One button, and two text links. */
+/* Two columns (26 Sep 2026): the ask on the left, the reassurances on
+   the right, and "or start differently" spanning the foot of both. The
+   block kept its full width - the empty right half was the problem, not
+   the width - and the ticks fill it.
+
+   The right column is bounded rather than fractional so the ask's own
+   measure does not stretch on a wide screen: 1fr for the writing, a
+   fixed-ish band for three short lines. */
 .jr-ask {
   background: var(--jr-navy);
   border-radius: 2px;
   padding: 34px 36px 30px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 260px);
+  column-gap: 52px;
+  align-items: start;
+}
+.jr-ask-main {
+  min-width: 0;
+}
+/* Full width at the foot, under both columns, so the hairline still
+   reads as a division of the whole block rather than of one column. */
+.jr-ask-or {
+  grid-column: 1 / -1;
+}
+/* One column below the point where two would squeeze the ask's measure
+   to something unreadable. The ticks return to a wrapping row there,
+   which is what they were before this change. */
+@media (max-width: 860px) {
+  .jr-ask {
+    display: block;
+  }
 }
 .jr-ask-title {
   font-family: var(--jr-serif);
@@ -2702,13 +2730,25 @@ select.location-inline-input {
   color: rgba(255, 255, 255, 0.8);
   max-width: 58ch;
 }
+/* A column in the right-hand slot (26 Sep 2026), stacked rather than
+   wrapped: three separate assurances read as three, where a wrapping row
+   reads as one sentence with odd spacing. Reverts to the original
+   wrapping row under 860px, where the block is one column again. */
 .jr-ask-ticks {
   list-style: none;
-  margin: 0 0 22px;
+  margin: 0;
   padding: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 28px;
+  flex-direction: column;
+  gap: 12px;
+}
+@media (max-width: 860px) {
+  .jr-ask-ticks {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin: 0 0 22px;
+  }
 }
 .jr-ask-ticks li {
   font-family: var(--jr-sans);
@@ -2805,9 +2845,59 @@ select.location-inline-input {
   background: rgba(20, 49, 63, 0.08);
   margin-bottom: 18px;
 }
+/* A hairline between segments (25 Sep 2026). The bar is coloured by
+   PACING, not by cost, so two days with the same pacing get the same
+   colour - and when they land next to each other they render as one
+   continuous band. On the Islay Grand Tour days one and four are both
+   Packed and sit adjacent in the cost order, so a four-day bar was
+   showing three blocks and quietly under-reporting the trip.
+
+   A border rather than a gap: `gap` on the flex parent would let the
+   track's own grey show through and read as a fifth, empty category.
+   This cuts the cream page colour between them instead, which reads as
+   a division rather than a value. */
 .jr-cost-seg {
   display: block;
   height: 100%;
+  border-right: 2px solid var(--jr-page);
+}
+.jr-cost-seg:last-child {
+  border-right: 0;
+}
+
+/* THE KEY, INLINE (25 Sep 2026). The colours here mean pacing, in a
+   section headed "What it costs, and where", while the only legend on
+   the page sits hundreds of pixels above next to "Day by day". Length
+   means money and colour means effort, and nothing said so. Keeping the
+   pacing colour is worth it - "the most expensive morning is also the
+   most packed day" is a real thing to be able to see - but only if the
+   reader is told, where they are looking. */
+.jr-cost-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+  margin: -6px 0 18px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--slate);
+}
+.jr-cost-key-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.jr-cost-key-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: none;
+}
+.jr-cost-key-note {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
 }
 .jr-cost-rows {
   margin-bottom: 28px;

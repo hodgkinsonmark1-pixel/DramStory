@@ -687,7 +687,16 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
 
       {/* ── THE ASK ──────────────────────────────────────────────────── */}
       <section className="jr-wide">
+        {/* TWO COLUMNS SINCE 26 SEP 2026 (Mark). The block spans the full
+            content width but its writing only reached about halfway, so
+            the right half was empty navy - the largest expanse of nothing
+            on the page, directly beneath the thing it is asking you to
+            do. The ticks move into that space rather than the box
+            shrinking: they are a list of reassurances, and a column of
+            them beside the ask reads as a set of conditions rather than
+            a sentence you skim past. */}
         <div className="jr-ask" id="jr-ask">
+          <div className="jr-ask-main">
           <h2 className="jr-ask-title">Take {inSentence(journey.name)}</h2>
           {/* Rewritten 16 Sep 2026. The old line said it "goes into your
               planner as a working trip", which stopped being true of
@@ -701,12 +710,15 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
             days and {spellCount(journey.nights)} nights. Take it exactly as it stands, or open it up
             and make it yours.
           </p>
+          <AddJourneyToTrips journey={journey} note="Free, and you can edit it after." />
+          </div>
+
           <ul className="jr-ask-ticks">
             <li>Use it exactly as it is</li>
             <li>Or change any part of it</li>
             <li>Nothing is booked, and nothing is paid</li>
           </ul>
-          <AddJourneyToTrips journey={journey} note="Free, and you can edit it after." />
+
           {/* "Take the days, not the nights" used to sit here. It was
               removed on 5 Sep 2026 because the distinction it promised did
               not exist: Journey.accommodationNote is prose on this page,
@@ -748,6 +760,25 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
                 style={{ width: `${(row.share * 100).toFixed(2)}%` }}
               />
             ))}
+          </div>
+
+          {/* The key sits with the bar, not with "Day by day" hundreds of
+              pixels above it (25 Sep 2026, Mark). Only the pacings this
+              journey actually uses are listed - a legend showing three
+              when the trip only has two is a legend that has to be
+              discounted while being read. */}
+          <div className="jr-cost-key">
+            {(["relaxed", "moderate", "packed"] as const)
+              .filter((p) => costRows.some((row) => paceKey(row.pacing) === p))
+              .map((p) => (
+                <span key={p} className="jr-cost-key-item">
+                  <span className={`jr-cost-key-swatch jr-pace-fill-${p}`} aria-hidden />
+                  {p}
+                </span>
+              ))}
+            <span className="jr-cost-key-note">
+              Colour is how hard the day works you. Width is what it costs.
+            </span>
           </div>
 
           <div className="jr-cost-rows">
