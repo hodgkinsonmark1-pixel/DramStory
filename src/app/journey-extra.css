@@ -2054,11 +2054,22 @@ select.location-inline-input {
   background: var(--jr-page);
   display: flex;
   align-items: center;
-  /* Thinner again, second pass 26 Sep. With the standfirst on ONE line
-     (see below) this band only has to hold a single sentence, so it is
-     sized to that rather than to a share of the viewport. */
+  /* Third pass, 26 Sep. The journey of this number is worth recording,
+     because the first two attempts both missed in opposite directions.
+     It began at up to 430px - a near-empty screen of cream that set the
+     pace of the page as sparse before anything had been said. Cutting
+     it to 30px of padding gave a 94px strip, which stopped being a void
+     and became a clamp: one sentence with barely a breath either side.
+
+     52px sits between them. With the standfirst on one line the band
+     comes out around 140px - close to a third of the 420px hero above
+     it, which reads as a deliberate pause between the photograph and
+     the claim band rather than as either a gap or a squeeze. No
+     min-height: the band is sized by its own content, so when the
+     sentence wraps to two lines on a narrower screen it simply grows
+     instead of clipping. */
   min-height: 0;
-  padding: 30px 32px;
+  padding: 52px 32px;
 }
 .jr-standfirst p {
   max-width: 1180px;

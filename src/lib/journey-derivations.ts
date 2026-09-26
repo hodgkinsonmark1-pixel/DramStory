@@ -852,14 +852,21 @@ export function journeyClaimStats(
         ? `the night you land, then ${spellCount(journey.days.length)} days out`
         : "";
 
-    /* The shape-of-stay clauses join with ", and" - that reads correctly
-       for the two of them. The arrival clause is a different kind of
-       statement (it explains the number above it rather than describing
-       the stay), so it takes a dash rather than becoming a third item in
-       the list: joining all three gave "four days out, and one bed
-       throughout, and you'll need a car", with two ands in a row. */
+    /* ONE OR THE OTHER, NEVER BOTH (26 Sep 2026, Mark: "it's crowded").
+     *
+     * Joined, it ran "the night you land, then four days out - one bed
+     * throughout, and you'll need a car": three clauses under a
+     * two-word figure, which is a paragraph pretending to be a label.
+     *
+     * The arrival clause wins where it exists, because it is the only
+     * one doing urgent work - it answers "why does this say five nights
+     * when the page said four days", which is a reader actively
+     * confused. The bed and the car are useful but not puzzling, and
+     * both are said again where they matter more: the base sits above
+     * night one in the accommodation block, and the transport note
+     * names the days that need a car. */
     const shape = [bed, car].filter(Boolean).join(", and ");
-    const clauses = arrival && shape ? `${arrival} — ${shape}` : arrival || shape;
+    const clauses = arrival || shape;
 
     stats.push({
       value: `${journey.nights} ${noun}`,
