@@ -844,7 +844,15 @@ export function journeyClaimStats(
         ? `the night you land, then ${spellCount(journey.days.length)} days out`
         : "";
 
-    const clauses = [arrival, bed, car].filter(Boolean).join(", and ");
+    /* The shape-of-stay clauses join with ", and" - that reads correctly
+       for the two of them. The arrival clause is a different kind of
+       statement (it explains the number above it rather than describing
+       the stay), so it takes a dash rather than becoming a third item in
+       the list: joining all three gave "four days out, and one bed
+       throughout, and you'll need a car", with two ands in a row. */
+    const shape = [bed, car].filter(Boolean).join(", and ");
+    const clauses = arrival && shape ? `${arrival} — ${shape}` : arrival || shape;
+
     stats.push({
       value: `${journey.nights} ${noun}`,
       label: clauses || `based in ${journey.base}`,
