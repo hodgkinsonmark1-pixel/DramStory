@@ -97,26 +97,35 @@ export default function AddJourneyToTrips({ journey, note }: { journey: Journey;
 
   return (
     <div className="jr-ask-action">
-      <button
-        type="button"
-        onClick={() => add(false)}
-        className="jr-ask-button"
-        disabled={busy}
-      >
-        {busy ? "Adding…" : "Add this trip as is →"}
-      </button>
+      {/* SIDE BY SIDE SINCE 26 SEP 2026 (Mark). The alternative used to
+          sit stacked beneath the button with its note under that again,
+          three rows deep into an already tall block. Beside it, the two
+          routes read as the choice they are - take it as it stands, or
+          open it up - rather than as a button followed by an afterthought.
+          Demotion is carried by weight and colour, not by distance. */}
+      <div className="jr-ask-action-row">
+        <button
+          type="button"
+          onClick={() => add(false)}
+          className="jr-ask-button"
+          disabled={busy}
+        >
+          {busy ? "Adding…" : "Add this trip as is →"}
+        </button>
 
-      {/* Demoted on purpose - a text action, not a second filled button. */}
-      <button
-        type="button"
-        onClick={() => add(true)}
-        className="jr-ask-secondary"
-        disabled={busy}
-      >
-        Make it your own &rarr;
-      </button>
-
-      <p className="jr-ask-note">{note}</p>
+        {/* Still a text action, not a second filled button. */}
+        <span className="jr-ask-alt-action">
+          <button
+            type="button"
+            onClick={() => add(true)}
+            className="jr-ask-secondary"
+            disabled={busy}
+          >
+            Make it your own &rarr;
+          </button>
+          <span className="jr-ask-note">{note}</span>
+        </span>
+      </div>
 
       {status === "error" && (
         <p className="jr-ask-error">

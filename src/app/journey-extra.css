@@ -1957,9 +1957,15 @@ select.location-inline-input {
 
 /* ── 1 · HERO ─────────────────────────────────────────────────────────
    330px exactly. It is a photograph with a title on it, not a stage. */
+/* TALLER SINCE 26 SEP 2026 (Mark: "the top image feels squashed"). 330px
+   across a 1400px page is a 4.2:1 letterbox - wide enough that a
+   landscape photograph of a road running to the hills reads as a strip
+   rather than a view. 420px brings it closer to 3.3:1 and gives the
+   image somewhere to be. The height the cream band gives up below is
+   roughly what this takes. */
 .jr-hero {
   position: relative;
-  height: 330px;
+  height: 420px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -2033,12 +2039,37 @@ select.location-inline-input {
    band's top edge off screen on first load. Clamped at both ends so a
    short laptop doesn't get a cramped block and a tall desktop doesn't
    get a screenful of nothing. */
+/* LESS CREAM (26 Sep 2026, Mark). The band was up to 430px tall around
+   three short lines, so the first thing under the hero was mostly empty
+   and it set the pace of the page as sparse before anything had been
+   said.
+
+   WHAT THE HEIGHT WAS FOR, since it was not arbitrary: it pushed the
+   claim band below the fold, so the standfirst had the screen to itself
+   (see 18 Aug 2026's note above). That is given up here deliberately -
+   a glimpse of the claim band is a reason to keep scrolling, where half
+   a screen of cream is a reason to stop. Worth a look on the preview,
+   because it is a real change of intent rather than a tidy-up. */
 .jr-standfirst {
   background: var(--jr-page);
   display: flex;
   align-items: center;
-  min-height: clamp(210px, calc(100svh - 460px), 430px);
-  padding: 44px 32px;
+  /* Third pass, 26 Sep. The journey of this number is worth recording,
+     because the first two attempts both missed in opposite directions.
+     It began at up to 430px - a near-empty screen of cream that set the
+     pace of the page as sparse before anything had been said. Cutting
+     it to 30px of padding gave a 94px strip, which stopped being a void
+     and became a clamp: one sentence with barely a breath either side.
+
+     52px sits between them. With the standfirst on one line the band
+     comes out around 140px - close to a third of the 420px hero above
+     it, which reads as a deliberate pause between the photograph and
+     the claim band rather than as either a gap or a squeeze. No
+     min-height: the band is sized by its own content, so when the
+     sentence wraps to two lines on a narrower screen it simply grows
+     instead of clipping. */
+  min-height: 0;
+  padding: 52px 32px;
 }
 .jr-standfirst p {
   max-width: 1180px;
@@ -2049,7 +2080,25 @@ select.location-inline-input {
   font-size: 22px;
   line-height: 1.55;
   color: var(--jr-ink);
-  max-width: 34ch;
+  /* TWO LINES, WIDER (26 Sep 2026, Mark). Was 34ch, which broke a
+     76-character sentence into three short lines and made the band feel
+     emptier still.
+
+     46ch is sized against the DATA rather than against this one
+     sentence: the four journeys' standfirsts run 71 to 80 characters,
+     so every one of them lands on two lines at this measure and none
+     tips to three. Checked all four before choosing it - a measure
+     tuned to the Grand Tour alone would have left the Rhinns Trail, the
+     longest at 80, on three lines. */
+  /* ONE LINE, second pass 26 Sep (Mark). 46ch gave two; the four
+     journeys' standfirsts run 71 to 81 characters, so 86ch clears the
+     longest of them - the Rhinns Trail - with room to spare, and every
+     one lands on a single line at this page width.
+
+     It wraps to two below roughly 1100px, which is correct rather than a
+     failure: forcing one line on a narrow screen would mean shrinking
+     the type. */
+  max-width: 86ch;
 }
 
 /* ── CLAIM BAND ───────────────────────────────────────────────────────
@@ -2682,10 +2731,38 @@ select.location-inline-input {
 }
 
 /* THE ASK — the full navy block. One button, and two text links. */
+/* Two columns (26 Sep 2026): the ask on the left, the reassurances on
+   the right, and "or start differently" spanning the foot of both. The
+   block kept its full width - the empty right half was the problem, not
+   the width - and the ticks fill it.
+
+   The right column is bounded rather than fractional so the ask's own
+   measure does not stretch on a wide screen: 1fr for the writing, a
+   fixed-ish band for three short lines. */
 .jr-ask {
   background: var(--jr-navy);
   border-radius: 2px;
   padding: 34px 36px 30px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 260px);
+  column-gap: 52px;
+  align-items: start;
+}
+.jr-ask-main {
+  min-width: 0;
+}
+/* Full width at the foot, under both columns, so the hairline still
+   reads as a division of the whole block rather than of one column. */
+.jr-ask-or {
+  grid-column: 1 / -1;
+}
+/* One column below the point where two would squeeze the ask's measure
+   to something unreadable. The ticks return to a wrapping row there,
+   which is what they were before this change. */
+@media (max-width: 860px) {
+  .jr-ask {
+    display: block;
+  }
 }
 .jr-ask-title {
   font-family: var(--jr-serif);
@@ -2702,13 +2779,25 @@ select.location-inline-input {
   color: rgba(255, 255, 255, 0.8);
   max-width: 58ch;
 }
+/* A column in the right-hand slot (26 Sep 2026), stacked rather than
+   wrapped: three separate assurances read as three, where a wrapping row
+   reads as one sentence with odd spacing. Reverts to the original
+   wrapping row under 860px, where the block is one column again. */
 .jr-ask-ticks {
   list-style: none;
-  margin: 0 0 22px;
+  margin: 0;
   padding: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 28px;
+  flex-direction: column;
+  gap: 12px;
+}
+@media (max-width: 860px) {
+  .jr-ask-ticks {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin: 0 0 22px;
+  }
 }
 .jr-ask-ticks li {
   font-family: var(--jr-sans);
@@ -2722,6 +2811,22 @@ select.location-inline-input {
 }
 .jr-ask-action {
   margin-bottom: 24px;
+}
+/* The two routes, side by side (26 Sep 2026). Baseline-aligned rather
+   than centred: the button's text and "Make it your own" then sit on one
+   line, with the note hanging beneath the alternative where it belongs -
+   it qualifies that route, not the filled button. */
+.jr-ask-action-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px 30px;
+}
+.jr-ask-alt-action {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
 }
 .jr-ask-button {
   font-family: var(--jr-sans);
@@ -2738,7 +2843,12 @@ select.location-inline-input {
   filter: brightness(1.06);
 }
 .jr-ask-note {
-  margin: 9px 0 0;
+  /* Was a <p> stacked under the secondary action; now a <span> in the
+     column beside the button (26 Sep 2026), so the top margin that
+     separated two blocks would only push it away from the line it
+     qualifies. */
+  margin: 0;
+  display: block;
   font-family: var(--jr-sans);
   font-size: 13px;
   color: rgba(255, 255, 255, 0.82);
@@ -2805,9 +2915,66 @@ select.location-inline-input {
   background: rgba(20, 49, 63, 0.08);
   margin-bottom: 18px;
 }
+/* A hairline between segments (25 Sep 2026). The bar is coloured by
+   PACING, not by cost, so two days with the same pacing get the same
+   colour - and when they land next to each other they render as one
+   continuous band. On the Islay Grand Tour days one and four are both
+   Packed and sit adjacent in the cost order, so a four-day bar was
+   showing three blocks and quietly under-reporting the trip.
+
+   A border rather than a gap: `gap` on the flex parent would let the
+   track's own grey show through and read as a fifth, empty category.
+   This cuts the cream page colour between them instead, which reads as
+   a division rather than a value. */
 .jr-cost-seg {
   display: block;
   height: 100%;
+  border-right: 2px solid var(--jr-page);
+}
+.jr-cost-seg:last-child {
+  border-right: 0;
+}
+
+/* THE KEY, INLINE (25 Sep 2026). The colours here mean pacing, in a
+   section headed "What it costs, and where", while the only legend on
+   the page sits hundreds of pixels above next to "Day by day". Length
+   means money and colour means effort, and nothing said so. Keeping the
+   pacing colour is worth it - "the most expensive morning is also the
+   most packed day" is a real thing to be able to see - but only if the
+   reader is told, where they are looking. */
+.jr-cost-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 18px;
+  margin: -6px 0 18px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--slate);
+}
+.jr-cost-key-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+}
+.jr-cost-key-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.jr-cost-key-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: none;
+}
+.jr-cost-key-note {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
 }
 .jr-cost-rows {
   margin-bottom: 28px;
@@ -3314,7 +3481,9 @@ select.location-inline-input {
    differently" signposts. Brighter than those, quieter than the button. */
 .jr-ask-secondary {
   display: block;
-  margin-top: 14px;
+  /* No top margin since 26 Sep 2026 - it sits beside the button now, not
+     under it, and the gap is the flex row's. */
+  margin-top: 0;
   padding: 0;
   background: none;
   border: none;

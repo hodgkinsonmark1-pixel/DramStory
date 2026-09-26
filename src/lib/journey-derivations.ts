@@ -113,8 +113,9 @@ export function journeyNightsStatLabel(journey: Journey): string {
 /** Claim-band stat 2's two-line label - "all within walking" is only ever
  *  claimed when every single Day has a real Distance on Foot. */
 export function journeyDistilleryStatLabel(journey: Journey): string {
-  const noun = journeyDistilleryCount(journey) === 1 ? "distillery" : "distilleries";
-  return journeyFullyWalkable(journey) ? `${noun}, all within walking` : `${noun} across the route`;
+  /* No noun since 26 Sep 2026 - the claim band moved it into the value
+   * ("9 distilleries"), so repeating it here would print it twice. */
+  return journeyFullyWalkable(journey) ? "all within walking" : "across the route";
 }
 
 /** Sum of a single Day's linked Tour prices - the "£Npp in tours" half of
@@ -776,7 +777,12 @@ export function journeyClaimStats(
   if (distilleries > 0) {
     const noun = distilleries === 1 ? "distillery" : "distilleries";
     stats.push({
-      value: `${distilleries}`,
+      /* THE NOUN MOVED UP INTO THE VALUE (26 Sep 2026, Mark). This stat
+         read "9" with "distilleries across the route" beneath, while its
+         two neighbours read "from £188.50" and "5 nights" - both of
+         which carry their own unit. A bare numeral was the only figure
+         in the band that meant nothing until you read the line under it. */
+      value: `${distilleries} ${noun}`,
       // Only ever claimed when it is arithmetically true, and today that
       // is exactly one journey: The Islay Grand Tour takes in every
       // distillery on Islay that opens its doors. It deliberately does
@@ -786,12 +792,14 @@ export function journeyClaimStats(
       // journey. Nothing here spells a number out in prose, so publishing
       // another visitable distillery simply drops this branch (the
       // arithmetic stops matching) and the honest fallback takes over.
+      /* The label loses the noun with it - "distilleries / distilleries
+         across the route" would have said it twice. */
       label:
         visitableIslandDistilleryCount !== undefined &&
         distilleries === visitableIslandDistilleryCount
           ? distilleries === 1
-            ? `${noun}, the only one you can visit`
-            : `${noun}, every one you can visit`
+            ? "the only one you can visit"
+            : "every one you can visit"
           : journeyDistilleryStatLabel(journey),
     });
   }
@@ -814,7 +822,52 @@ export function journeyClaimStats(
     const car = journey.days.some((d) => (d.transportClause ?? "").toLowerCase().startsWith("car"))
       ? "you'll need a car"
       : "";
-    const clauses = [bed, car].filter(Boolean).join(", and ");
+
+    /* WHEN THE NIGHTS OUTNUMBER THE DAYS, SAY WHY (26 Sep 2026, Mark).
+     *
+     * The Grand Tour is four days and five nights, and the page stated
+     * both without ever reconciling them: the standfirst opens "Four
+     * days on Islay" and this stat said "5 nights". Both correct - you
+     * land the day before and the itinerary starts the next morning,
+     * which the Arrival note and the first Night Note both say outright
+     * - and a reader deciding between journeys was left doing the
+     * arithmetic and wondering which number to trust.
+     *
+     * CONDITIONAL, and that is the whole point of writing it here rather
+     * than typing it into Airtable. Three of the four journeys have
+     * nights EXACTLY equal to days - Hidden Coast 2/2, Rhinns Trail 3/3,
+     * Kildalton Road 2/2 - and on those this clause would be a lie about
+     * a night that does not exist. Deriving the difference means the
+     * sentence appears only where there is a difference to explain, and
+     * cannot drift the way the two hand-read numbers just did.
+     *
+     * It claims the extra night is the ARRIVAL night, which is true of
+     * the only journey that currently has one and is stated in that
+     * journey's own Arrival field. If a future journey ever prices an
+     * extra night at the END of a trip instead, this wording needs
+     * revisiting rather than extending. */
+    const extraNights = journey.nights - journey.days.length;
+    const arrival =
+      extraNights === 1 && journey.days.length > 0
+        ? `the night you land, then ${spellCount(journey.days.length)} days out`
+        : "";
+
+    /* ONE OR THE OTHER, NEVER BOTH (26 Sep 2026, Mark: "it's crowded").
+     *
+     * Joined, it ran "the night you land, then four days out - one bed
+     * throughout, and you'll need a car": three clauses under a
+     * two-word figure, which is a paragraph pretending to be a label.
+     *
+     * The arrival clause wins where it exists, because it is the only
+     * one doing urgent work - it answers "why does this say five nights
+     * when the page said four days", which is a reader actively
+     * confused. The bed and the car are useful but not puzzling, and
+     * both are said again where they matter more: the base sits above
+     * night one in the accommodation block, and the transport note
+     * names the days that need a car. */
+    const shape = [bed, car].filter(Boolean).join(", and ");
+    const clauses = arrival || shape;
+
     stats.push({
       value: `${journey.nights} ${noun}`,
       label: clauses || `based in ${journey.base}`,

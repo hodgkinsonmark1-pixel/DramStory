@@ -61,6 +61,10 @@ export default function JourneyRouteMap({ stops, base, focusDay }: JourneyRouteM
   /** Set once the map exists, so the focus effect below can reframe
    *  without re-running the whole init. */
   const frameRef = useRef<((day: number | undefined) => void) | null>(null);
+  /** Refitting the whole trip. Separate from `frame` since 26 Sep 2026,
+   *  when stepping a day stopped moving the view: only a container resize
+   *  reframes now, and it needs a handle on the fit alone. */
+  const fitWholeRef = useRef<(() => void) | null>(null);
   const observerRef = useRef<ResizeObserver | null>(null);
   /* The init effect closes over the first render's props and never runs
      again, so the ResizeObserver inside it would reframe on a stale day
@@ -133,34 +137,50 @@ export default function JourneyRouteMap({ stops, base, focusDay }: JourneyRouteM
       ];
       if (allPoints.length === 0) return;
 
-      /* Frame the map on a day, or on everything.
+      /* THE FRAME NO LONGER MOVES (26 Sep 2026, Mark's call).
        *
-       * maxZoom matters: a day with one stop, or two stops a mile apart,
-       * would otherwise fit its bounds at zoom 17 and show a car park.
-       * 13 keeps a village and its surroundings in view, which is the
-       * useful scale for "where on the island am I today". */
-      function frame(day: number | undefined) {
-        const dayPoints =
-          day === undefined
-            ? []
-            : mappable.filter((s) => s.dayNumber === day).map((s) => [s.lat, s.lng] as [number, number]);
-        const points = dayPoints.length > 0 ? dayPoints : allPoints;
-
-        // Dim the days you are not reading, rather than hiding them - the
-        // shape of the whole trip is worth keeping on screen.
-        for (const [dayNumber, markers] of markersByDay) {
-          const dim = day !== undefined && dayPoints.length > 0 && dayNumber !== day;
-          for (const marker of markers) marker.setOpacity(dim ? 0.35 : 1);
-        }
-
-        if (points.length === 1) {
-          map.setView(points[0], 12);
+       * It used to fit the map to each day's own stops, so stepping from
+       * day one to day two re-centred and re-zoomed. Both maps were
+       * correct and the sequence was unreadable: every step looked like a
+       * different island, and you lost where you were between one day and
+       * the next. Mark, flicking through them: "I'd like each to stay a
+       * separate day, but the day to be more intuitive when flicking
+       * through them."
+       *
+       * So the map is fitted ONCE to the whole trip - every stop plus the
+       * base - and stepping days only changes which pins are lit. Nothing
+       * pans, nothing zooms, and today's stops are read against a picture
+       * of the island that has not moved since you arrived. The shape of
+       * the trip comes free, which is the thing a single day's frame
+       * could never show.
+       *
+       * The cost, stated honestly: a day whose stops sit close together
+       * gets less zoom than it would have alone. That is the trade - a
+       * fixed reference beats a tight crop, because the question this
+       * panel answers is "where on the island am I today", and that is
+       * only answerable relative to the rest of it. */
+      function fitWhole() {
+        if (allPoints.length === 1) {
+          map.setView(allPoints[0], 12);
           return;
         }
-        map.fitBounds(L.latLngBounds(points), { padding: [26, 26], maxZoom: 13 });
+        /* maxZoom still matters at the whole-trip level: a two-stop
+         * journey a mile apart would otherwise fit its bounds at zoom 17
+         * and show a car park rather than an island. */
+        map.fitBounds(L.latLngBounds(allPoints), { padding: [26, 26], maxZoom: 13 });
+      }
+
+      /** Light today, dim the rest. No view change - see above. */
+      function frame(day: number | undefined) {
+        for (const [dayNumber, markers] of markersByDay) {
+          const dim = day !== undefined && dayNumber !== day;
+          for (const marker of markers) marker.setOpacity(dim ? 0.3 : 1);
+        }
       }
 
       frameRef.current = frame;
+      fitWholeRef.current = fitWhole;
+      fitWhole();
       frame(focusDayRef.current);
 
       /* THE MAP USED TO COME OUT SHOWING HALF OF EUROPE, INTERMITTENTLY.
@@ -181,7 +201,12 @@ export default function JourneyRouteMap({ stops, base, focusDay }: JourneyRouteM
          at a breakpoint - re-measures and reframes. */
       const observer = new ResizeObserver(() => {
         map.invalidateSize({ animate: false });
-        frameRef.current?.(focusDayRef.current);
+        /* Re-fit rather than re-highlight. Since 26 Sep the day change no
+           longer touches the view, so a resize is the only thing left
+           that has to reframe - and it must, because a container that has
+           changed size needs its bounds fitting again or the route drifts
+           out of the panel. */
+        fitWholeRef.current?.();
       });
       if (containerRef.current) observer.observe(containerRef.current);
       observerRef.current = observer;
@@ -194,6 +219,7 @@ export default function JourneyRouteMap({ stops, base, focusDay }: JourneyRouteM
       observerRef.current?.disconnect();
       observerRef.current = null;
       frameRef.current = null;
+      fitWholeRef.current = null;
       mapRef.current?.remove();
       mapRef.current = null;
     };
