@@ -113,8 +113,9 @@ export function journeyNightsStatLabel(journey: Journey): string {
 /** Claim-band stat 2's two-line label - "all within walking" is only ever
  *  claimed when every single Day has a real Distance on Foot. */
 export function journeyDistilleryStatLabel(journey: Journey): string {
-  const noun = journeyDistilleryCount(journey) === 1 ? "distillery" : "distilleries";
-  return journeyFullyWalkable(journey) ? `${noun}, all within walking` : `${noun} across the route`;
+  /* No noun since 26 Sep 2026 - the claim band moved it into the value
+   * ("9 distilleries"), so repeating it here would print it twice. */
+  return journeyFullyWalkable(journey) ? "all within walking" : "across the route";
 }
 
 /** Sum of a single Day's linked Tour prices - the "£Npp in tours" half of
@@ -776,7 +777,12 @@ export function journeyClaimStats(
   if (distilleries > 0) {
     const noun = distilleries === 1 ? "distillery" : "distilleries";
     stats.push({
-      value: `${distilleries}`,
+      /* THE NOUN MOVED UP INTO THE VALUE (26 Sep 2026, Mark). This stat
+         read "9" with "distilleries across the route" beneath, while its
+         two neighbours read "from £188.50" and "5 nights" - both of
+         which carry their own unit. A bare numeral was the only figure
+         in the band that meant nothing until you read the line under it. */
+      value: `${distilleries} ${noun}`,
       // Only ever claimed when it is arithmetically true, and today that
       // is exactly one journey: The Islay Grand Tour takes in every
       // distillery on Islay that opens its doors. It deliberately does
@@ -786,12 +792,14 @@ export function journeyClaimStats(
       // journey. Nothing here spells a number out in prose, so publishing
       // another visitable distillery simply drops this branch (the
       // arithmetic stops matching) and the honest fallback takes over.
+      /* The label loses the noun with it - "distilleries / distilleries
+         across the route" would have said it twice. */
       label:
         visitableIslandDistilleryCount !== undefined &&
         distilleries === visitableIslandDistilleryCount
           ? distilleries === 1
-            ? `${noun}, the only one you can visit`
-            : `${noun}, every one you can visit`
+            ? "the only one you can visit"
+            : "every one you can visit"
           : journeyDistilleryStatLabel(journey),
     });
   }

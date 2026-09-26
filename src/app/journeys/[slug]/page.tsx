@@ -767,17 +767,22 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
               journey actually uses are listed - a legend showing three
               when the trip only has two is a legend that has to be
               discounted while being read. */}
+          {/* Explanation left, swatches right (26 Sep 2026, Mark). Also
+              the better reading order: the sentence tells you the colours
+              mean something before you meet the colours. */}
           <div className="jr-cost-key">
-            {(["relaxed", "moderate", "packed"] as const)
-              .filter((p) => costRows.some((row) => paceKey(row.pacing) === p))
-              .map((p) => (
-                <span key={p} className="jr-cost-key-item">
-                  <span className={`jr-cost-key-swatch jr-pace-fill-${p}`} aria-hidden />
-                  {p}
-                </span>
-              ))}
             <span className="jr-cost-key-note">
               Colour is how hard the day works you. Width is what it costs.
+            </span>
+            <span className="jr-cost-key-swatches">
+              {(["relaxed", "moderate", "packed"] as const)
+                .filter((p) => costRows.some((row) => paceKey(row.pacing) === p))
+                .map((p) => (
+                  <span key={p} className="jr-cost-key-item">
+                    <span className={`jr-cost-key-swatch jr-pace-fill-${p}`} aria-hidden />
+                    {p}
+                  </span>
+                ))}
             </span>
           </div>
 

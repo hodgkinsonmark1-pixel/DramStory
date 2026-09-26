@@ -1957,9 +1957,15 @@ select.location-inline-input {
 
 /* ── 1 · HERO ─────────────────────────────────────────────────────────
    330px exactly. It is a photograph with a title on it, not a stage. */
+/* TALLER SINCE 26 SEP 2026 (Mark: "the top image feels squashed"). 330px
+   across a 1400px page is a 4.2:1 letterbox - wide enough that a
+   landscape photograph of a road running to the hills reads as a strip
+   rather than a view. 420px brings it closer to 3.3:1 and gives the
+   image somewhere to be. The height the cream band gives up below is
+   roughly what this takes. */
 .jr-hero {
   position: relative;
-  height: 330px;
+  height: 420px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -2048,8 +2054,11 @@ select.location-inline-input {
   background: var(--jr-page);
   display: flex;
   align-items: center;
-  min-height: clamp(170px, calc(100svh - 620px), 260px);
-  padding: 38px 32px;
+  /* Thinner again, second pass 26 Sep. With the standfirst on ONE line
+     (see below) this band only has to hold a single sentence, so it is
+     sized to that rather than to a share of the viewport. */
+  min-height: 0;
+  padding: 30px 32px;
 }
 .jr-standfirst p {
   max-width: 1180px;
@@ -2070,7 +2079,15 @@ select.location-inline-input {
      tips to three. Checked all four before choosing it - a measure
      tuned to the Grand Tour alone would have left the Rhinns Trail, the
      longest at 80, on three lines. */
-  max-width: 46ch;
+  /* ONE LINE, second pass 26 Sep (Mark). 46ch gave two; the four
+     journeys' standfirsts run 71 to 81 characters, so 86ch clears the
+     longest of them - the Rhinns Trail - with room to spare, and every
+     one lands on a single line at this page width.
+
+     It wraps to two below roughly 1100px, which is correct rather than a
+     failure: forcing one line on a narrow screen would mean shrinking
+     the type. */
+  max-width: 86ch;
 }
 
 /* ── CLAIM BAND ───────────────────────────────────────────────────────
@@ -2784,6 +2801,22 @@ select.location-inline-input {
 .jr-ask-action {
   margin-bottom: 24px;
 }
+/* The two routes, side by side (26 Sep 2026). Baseline-aligned rather
+   than centred: the button's text and "Make it your own" then sit on one
+   line, with the note hanging beneath the alternative where it belongs -
+   it qualifies that route, not the filled button. */
+.jr-ask-action-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px 30px;
+}
+.jr-ask-alt-action {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
 .jr-ask-button {
   font-family: var(--jr-sans);
   font-size: 15px;
@@ -2799,7 +2832,12 @@ select.location-inline-input {
   filter: brightness(1.06);
 }
 .jr-ask-note {
-  margin: 9px 0 0;
+  /* Was a <p> stacked under the secondary action; now a <span> in the
+     column beside the button (26 Sep 2026), so the top margin that
+     separated two blocks would only push it away from the line it
+     qualifies. */
+  margin: 0;
+  display: block;
   font-family: var(--jr-sans);
   font-size: 13px;
   color: rgba(255, 255, 255, 0.82);
@@ -2897,12 +2935,19 @@ select.location-inline-input {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   gap: 6px 18px;
   margin: -6px 0 18px;
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--slate);
+}
+.jr-cost-key-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
 }
 .jr-cost-key-item {
   display: inline-flex;
@@ -3425,7 +3470,9 @@ select.location-inline-input {
    differently" signposts. Brighter than those, quieter than the button. */
 .jr-ask-secondary {
   display: block;
-  margin-top: 14px;
+  /* No top margin since 26 Sep 2026 - it sits beside the button now, not
+     under it, and the gap is the flex row's. */
+  margin-top: 0;
   padding: 0;
   background: none;
   border: none;
