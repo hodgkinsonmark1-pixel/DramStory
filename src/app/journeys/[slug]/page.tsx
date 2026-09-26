@@ -16,11 +16,11 @@ import JourneyRail from "@/components/journeys/JourneyRail";
 import AddJourneyToTrips from "@/components/journeys/AddJourneyToTrips";
 import SeasonalNotice from "@/components/journeys/SeasonalNotice";
 import { type RouteMapStop } from "@/components/journeys/JourneyRouteMap";
-import { type DayBase } from "@/lib/day-derivations";
+import { baseLegsSummary, type DayBase } from "@/lib/day-derivations";
 import { formatPrice } from "@/lib/pricing";
 import { stopName } from "@/lib/itinerary-stop";
 import {
-  dayMoneyNote,
+  dayMoneyDetail,
   dayTourTotal,
   firstSentence,
   restAfterFirstSentence,
@@ -63,6 +63,10 @@ import type { HubDay, ItineraryStop, Journey, SeasonalWindow } from "@/lib/types
  *    their own, with a base row above night one saying once where you
  *    sleep for the whole journey. The sidebar has become a sticky rail
  *    that ends with the day list.
+ *    SUPERSEDED 26 Sep 2026: the night connectors are gone - each evening
+ *    is now the "Tonight" band at the foot of the day it follows, night
+ *    one is an Arrival row, and the base row moved into the rail as
+ *    "Where you sleep". See DayCard.
  *
  *  3 PRACTICAL / THE ASK / THE COST. "Before you book" is replaced by
  *    "When to come" (seasonality decides whether the journey works at
@@ -168,6 +172,25 @@ function inSentence(name: string): string {
   return name.replace(/^The /, "the ");
 }
 
+/** "All four days" / "Both days" / "The day" - "All two days" is not
+ *  English, and it was on the Kildalton Road's rail until 26 Sep 2026.
+ *  Same branch dayMoneyNote already makes for "at both". */
+function allDaysPhrase(n: number): string {
+  if (n === 1) return "The day";
+  if (n === 2) return "Both days";
+  return `All ${spellCount(n)} days`;
+}
+
+/** The same for nights, lower-case: it sits under the base's name in the
+ *  rail ("Port Ellen · all five nights"). */
+function allNightsPhrase(n: number): string {
+  // A blank Nights cell arrives as 0 - say nothing rather than "all zero".
+  if (n < 1) return "";
+  if (n === 1) return "one night";
+  if (n === 2) return "both nights";
+  return `all ${spellCount(n)} nights`;
+}
+
 /** Where a stop's own page lives, or undefined when it has none.
  *
  *  A distillery always has one. A feature stop has one wherever the Day
@@ -218,19 +241,48 @@ function DayStopsRow({ day, journeySlug }: { day: HubDay; journeySlug: string })
   );
 }
 
+/** A day card (redesigned 26 Sep 2026 - Option A of the day-by-day
+ *  review, with the stay moved into the rail).
+ *
+ *  WHAT CHANGED, and why:
+ *  - THE EVENING NOW BELONGS TO THE DAY IT FOLLOWS. Nights used to be
+ *    slim rows BETWEEN cards, and "Night two" sat directly above Day TWO
+ *    while its note described the evening after Day ONE. The night that
+ *    follows a day is now the navy "Tonight" band at the foot of that
+ *    day's card - so the band cannot be read as belonging to the wrong
+ *    day. Night one, which comes before any day, is the Arrival row.
+ *  - THE HEADER IS CHIPS. Pace, the day's tour spend, how you get about
+ *    and the travel to and from the base, each in its own chip, instead
+ *    of five facts in one dotted line - so day can be scanned against
+ *    day.
+ *  - THE PRICE IS SAID ONCE. The money note lost its lead sentence
+ *    ("Today's tours cost £56pp."), which restated the chip. See
+ *    dayMoneyDetail.
+ *  - THE TRAVEL CHIP is new: the routed legs to and from the base were
+ *    passed in as `base` and never rendered. See baseLegsSummary. */
 function DayCard({
   day,
   dayNumber,
   journey,
+  base,
+  nights,
+  nightTotal,
 }: {
   day: HubDay;
   dayNumber: number;
   journey: Journey;
   base?: DayBase;
+  /** The nights that follow this day - normally one, none after the last
+   *  day of a journey that ends with the boat home, and more than one
+   *  only where a journey offers optional extra nights at the end. */
+  nights: NightSlot[];
+  nightTotal: number;
 }) {
   const tours = dayTourTotal(day);
-  const money = dayMoneyNote(day, journey.standardTourFloor);
+  const singleTour = day.stops.filter((s) => s.tour).length === 1;
+  const money = dayMoneyDetail(day, journey.standardTourFloor);
   const pace = paceKey(day.pacing);
+  const legs = baseLegsSummary(base);
 
   return (
     // data-jr-day is what the rail's observer watches - the day number
@@ -242,15 +294,44 @@ function DayCard({
     >
       <div className="jr-day-inner">
         <div className="jr-day-head">
-          <span className="jr-day-ord">{ordinalWord(dayNumber)}</span>
-          {day.areaNote && <span className="jr-day-meta">{day.areaNote}</span>}
-          {day.pacing && <span className={`jr-day-pace jr-pace-ink-${pace}`}>{day.pacing}</span>}
-          {tours > 0 && (
-            <span className="jr-day-meta">
-              Today&apos;s tours <span className="jr-num-inline">{formatPrice(tours)}</span>
-            </span>
-          )}
-          {day.transportClause && <span className="jr-day-meta">{day.transportClause}</span>}
+          <div className="jr-day-head-where">
+            <span className="jr-day-ord">Day {ordinalWord(dayNumber).toLowerCase()}</span>
+            {day.areaNote && <span className="jr-day-area">{day.areaNote}</span>}
+          </div>
+          <ul className="jr-day-chips" aria-label="Day at a glance">
+            {day.pacing && (
+              <li className={`jr-chip jr-chip-pace jr-pace-ink-${pace}`}>{day.pacing}</li>
+            )}
+            {tours > 0 && (
+              // "pp" matters: it was in the money note's lead sentence, which
+              // this chip replaced, and without it a couple can read £56 as
+              // the price for both of them.
+              <li className="jr-chip">
+                {singleTour ? "Tour" : "Tours"} <span className="jr-num-inline">{formatPrice(tours)}</span>pp
+              </li>
+            )}
+            {day.transportClause && <li className="jr-chip">{day.transportClause}</li>}
+            {legs && (
+              <li className="jr-chip">
+                <svg
+                  className="jr-chip-icon"
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                </svg>
+                <span className="sr-only">{legs.title}: </span>
+                {legs.text}
+              </li>
+            )}
+          </ul>
         </div>
 
         <h3 className="jr-day-title">
@@ -274,6 +355,16 @@ function DayCard({
           <SeasonalNotice key={`${label}-${i}`} seasonal={seasonal} label={label} className="jr-day-seasonal" />
         ))}
       </div>
+
+      {nights.map((slot) => (
+        <TonightBand
+          key={`night-${slot.night}`}
+          journey={journey}
+          nightNumber={slot.night}
+          pricedNights={nightTotal}
+          optional={slot.optional}
+        />
+      ))}
     </article>
   );
 }
@@ -296,23 +387,85 @@ function seasonalStops(day: HubDay): { label: string; seasonal: SeasonalWindow }
   });
 }
 
-/** A night is a slim text row between day cards, not a card. It says the
- *  night, then the line the Journey authored for it, and nothing else -
- *  where you sleep is stated ONCE, in the base row above night one. */
-function NightRow({
+function MoonIcon() {
+  return (
+    <svg
+      className="jr-tonight-icon"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />
+    </svg>
+  );
+}
+
+/** The evening after a day, as the foot of that day's card (26 Sep
+ *  2026). It says the night, where the bed is, and the line the Journey
+ *  authored for it - set in the serif, because the evening is the part
+ *  of the day people picture, and it used to be the smallest grey text on
+ *  the page.
+ *
+ *  An optional night (the extra night a journey may offer instead of the
+ *  boat home) keeps its note but says it is optional, rather than
+ *  reading as a step. */
+function TonightBand({
   journey,
   nightNumber,
+  pricedNights,
   optional,
 }: {
   journey: Journey;
   nightNumber: number;
+  /** The denominator is the PRICED nights, the same count the rail's
+   *  "all five nights" states - an optional extra night is labelled as
+   *  one rather than stretching "of five" to "of six". */
+  pricedNights: number;
   optional: boolean;
 }) {
   const note = nightNoteFor(journey, nightNumber);
   return (
-    <div className={optional ? "jr-night jr-night-optional" : "jr-night"}>
-      <span className="jr-night-label">Night {ordinalWord(nightNumber).toLowerCase()}</span>
-      {note && <p className="jr-night-note">{note}</p>}
+    <div className={optional ? "jr-tonight jr-tonight-optional" : "jr-tonight"}>
+      <MoonIcon />
+      <div className="jr-tonight-body">
+        <p className="jr-tonight-head">
+          <span className="jr-tonight-label">{optional ? "If you stay on" : "Tonight"}</span>
+          <span className="jr-tonight-meta">
+            {journey.base ? `${journey.base} · ` : ""}
+            {optional ? "an optional extra night" : `night ${nightNumber} of ${pricedNights}`}
+          </span>
+        </p>
+        {note && <p className="jr-tonight-note">{note}</p>}
+      </div>
+    </div>
+  );
+}
+
+/** Night one - the night before any day - as a quiet row above day one.
+ *  Dashed rather than a card, because nothing is planned in it. */
+function ArrivalRow({
+  journey,
+  pricedNights,
+  optional,
+}: {
+  journey: Journey;
+  pricedNights: number;
+  optional: boolean;
+}) {
+  const note = nightNoteFor(journey, 1);
+  return (
+    <div className={optional ? "jr-arrival jr-tonight-optional" : "jr-arrival"}>
+      <span className="jr-arrival-label">Arrival</span>
+      <span className="jr-arrival-meta">
+        {optional ? "an optional night" : `night 1 of ${pricedNights}`}
+      </span>
+      {note && <p className="jr-arrival-note">{note}</p>}
     </div>
   );
 }
@@ -582,59 +735,35 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
             </div>
           </div>
 
-          {/* THE BASE ROW. Where you sleep, said once, above the first
-              night - rather than repeated on every night connector the
-              way it was until 18 Aug 2026.
-
-              30 Aug 2026: the row itself is still one line, but the rest
-              of the Accommodation Note now renders UNDER it instead of
-              being thrown away by firstSentence. Those notes carry real
-              logistics - on the Grand Tour, the fact that the boat home
-              goes from Port Askaig rather than the closed terminal in
-              Port Ellen - and until today none of it reached the page.
-              See firstSentence/restAfterFirstSentence for the full
-              account. */}
-          {journey.base && (
-            <div className="jr-base-block">
-              <div className="jr-base-row">
-                <span className="jr-base-label">Every night</span>
-                <span className="jr-base-place">{journey.base}</span>
-                {journey.accommodationNote && (
-                  <span className="jr-base-note">{firstSentence(journey.accommodationNote)}</span>
-                )}
-                {stayLink && (
-                  <Link href={stayLink.href} className="jr-link jr-base-link">
-                    {stayLink.label} &rarr;
-                  </Link>
-                )}
-              </div>
-              {baseNoteRest && <p className="jr-base-more">{baseNoteRest}</p>}
-            </div>
-          )}
+          {/* THE BASE ROW that used to sit here moved into the rail on 26
+              Sep 2026, as the "Where you sleep" card at its top - the rail
+              is sticky, so the bed stays in view for the whole list rather
+              than being said once and scrolled past. Everything the row
+              carried goes with it: the Accommodation Note in full (both
+              halves - see firstSentence/restAfterFirstSentence) and the
+              link to the area guide or base hotel. */}
 
           <div className="jr-spine">
-            {journey.days.map((day, i) => {
-              const renderNight = (slot: NightSlot) => (
-                <NightRow
-                  key={`night-${slot.night}`}
-                  journey={journey}
-                  nightNumber={slot.night}
-                  optional={slot.optional}
-                />
-              );
-              return (
-                <div key={day.id}>
-                  {nightsBeforeDay(i, journey.days.length, nightCounts).map(renderNight)}
-                  <DayCard
-                    day={day}
-                    dayNumber={i + 1}
+            {journey.days.map((day, i) => (
+              <div key={day.id}>
+                {nightsBeforeDay(i, journey.days.length, nightCounts).map((slot) => (
+                  <ArrivalRow
+                    key={`night-${slot.night}`}
                     journey={journey}
-                    base={journeyBaseFor(journey, i, baseCoords)}
+                    pricedNights={nightCounts.priced}
+                    optional={slot.optional}
                   />
-                  {nightsAfterDay(i, journey.days.length, nightCounts).map(renderNight)}
-                </div>
-              );
-            })}
+                ))}
+                <DayCard
+                  day={day}
+                  dayNumber={i + 1}
+                  journey={journey}
+                  base={journeyBaseFor(journey, i, baseCoords)}
+                  nights={nightsAfterDay(i, journey.days.length, nightCounts)}
+                  nightTotal={nightCounts.priced}
+                />
+              </div>
+            ))}
           </div>
         </div>
 
@@ -650,7 +779,28 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
           dayAreas={journey.days.map((d) => d.areaNote)}
           askHref="#jr-ask"
           askLabel="Add this trip as is →"
-          askNote={`All ${spellCount(journey.days.length)} days, already planned. Nothing booked.`}
+          askNote={`${allDaysPhrase(journey.days.length)}, already planned. Nothing booked.`}
+          stay={
+            journey.base
+              ? {
+                  base: journey.base,
+                  nightsPhrase: allNightsPhrase(journey.nights),
+                  note: journey.accommodationNote ? firstSentence(journey.accommodationNote) : "",
+                  noteRest: baseNoteRest,
+                  guide: stayLink,
+                  // Only a Base with a real Area record gets a Hotels.com
+                  // search: that is the set the link builder has been
+                  // checked against. A Bridgend journey keeps its link to
+                  // the base hotel's own page instead.
+                  searchable: !!baseArea,
+                  // Where the day cards' travel times are measured from,
+                  // when that is not the base itself - said once, visibly,
+                  // here beside the bed (The Kildalton Road times its walks
+                  // from the pathway start).
+                  transferOrigin: journey.transferOriginLabel,
+                }
+              : undefined
+          }
         />
       </div>
 

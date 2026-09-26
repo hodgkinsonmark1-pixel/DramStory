@@ -681,6 +681,25 @@ export function dayMoneyNote(day: HubDay, floors: Record<string, number>): strin
     : `${lead} These are the standard tours ${atClause} — there is no cheaper way round.`;
 }
 
+/** The money note WITHOUT its lead sentence (26 Sep 2026), for the day
+ *  cards on /journeys/[slug]. The lead - "Today's tours cost £56pp." -
+ *  restated the figure the card's own header chip had already given, one
+ *  line above it. What is left is the part only this note says: how the
+ *  planned spend compares with the standard tours.
+ *
+ *  Derived from dayMoneyNote rather than duplicating its branches, so the
+ *  two can never disagree. Every branch there opens with `lead`, and the
+ *  lead always ends "pp." followed by a space, which firstSentence treats
+ *  as the sentence end (it does not split on the "." inside "£22.50").
+ *  When the note is the lead alone - a distillery nobody has priced -
+ *  there is nothing left to say and this returns undefined. */
+export function dayMoneyDetail(day: HubDay, floors: Record<string, number>): string | undefined {
+  const full = dayMoneyNote(day, floors);
+  if (!full) return undefined;
+  const detail = full.slice(firstSentence(full).length).trim();
+  return detail || undefined;
+}
+
 /** One row of the "What it costs, and where" proportion bar. `note` is
  *  computed on exactly the same three-way test as dayMoneyNote above, so
  *  a day can never explain its spend one way in the spine and another way
@@ -877,9 +896,11 @@ export function journeyClaimStats(
   return stats;
 }
 
-/** The Accommodation Note's opening sentence - the base row above night
- *  one is one line beside a village name, so the lead sentence is what
- *  fits in it.
+/** The Accommodation Note's opening sentence - written for the base row
+ *  that sat above night one, one line beside a village name. Since 26 Sep
+ *  2026 that row is the rail's "Where you sleep" card, which renders the
+ *  two halves as two paragraphs; the split still matters there, because
+ *  the second half carries the logistics and is set in heavier ink.
  *
  *  30 AUG 2026, AND THIS IS THE POINT OF THE PAIR: everything after that
  *  sentence used to go nowhere. The claim in this comment that "the full

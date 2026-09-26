@@ -79,9 +79,15 @@ function addDays(dateIso: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** Falls back to a placeholder ~2-week-out, 3-night stay when the visitor
- *  hasn't set real trip dates yet, so the link is never just broken. */
-function resolveCheckinCheckout(tripDates?: TripDates): { checkin: string; checkout: string } {
+/** Falls back to a placeholder ~2-week-out stay when the visitor hasn't
+ *  set real trip dates yet, so the link is never just broken. Three
+ *  nights unless the caller knows better - a Journey does (26 Sep 2026):
+ *  searching three nights for a five-night trip sent the reader to the
+ *  wrong availability. */
+function resolveCheckinCheckout(
+  tripDates?: TripDates,
+  fallbackNights = 3
+): { checkin: string; checkout: string } {
   if (tripDates?.mode === "range" && tripDates.confirmed && tripDates.startDate && tripDates.endDate) {
     return { checkin: tripDates.startDate, checkout: tripDates.endDate };
   }
@@ -97,7 +103,10 @@ function resolveCheckinCheckout(tripDates?: TripDates): { checkin: string; check
     return { checkin, checkout };
   }
   const today = new Date().toISOString().slice(0, 10);
-  return { checkin: addDays(today, 14), checkout: addDays(today, 17) };
+  // A Journey with a blank Nights cell passes 0, which would make checkout
+  // equal checkin - not a search Hotels.com can run.
+  const nights = fallbackNights > 0 ? fallbackNights : 3;
+  return { checkin: addDays(today, 14), checkout: addDays(today, 14 + nights) };
 }
 
 // Real coordinates for each village, used alongside the text destination -
@@ -109,8 +118,12 @@ const VILLAGE_COORDS: Record<string, { lat: number; lng: number }> = {
   Bowmore: { lat: 55.7557, lng: -6.2875 },
 };
 
-export function buildAccommodationBookingLink(location: string, tripDates?: TripDates): string {
-  const { checkin, checkout } = resolveCheckinCheckout(tripDates);
+export function buildAccommodationBookingLink(
+  location: string,
+  tripDates?: TripDates,
+  fallbackNights?: number
+): string {
+  const { checkin, checkout } = resolveCheckinCheckout(tripDates, fallbackNights);
   // Parameter names confirmed 19 July 2026 from a real, working
   // hotels.com SEARCH-RESULTS page URL - genuinely different from the
   // PROPERTY page's params used in the previous (wrong) version of this

@@ -2267,82 +2267,6 @@ select.location-inline-input {
   color: var(--jr-packed-ink);
 }
 
-/* THE BASE ROW — where you sleep, said once, above night one. */
-.jr-base-row {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 10px 16px;
-  background: var(--jr-cream);
-  padding: 13px 18px;
-  margin-bottom: 16px;
-  border-radius: 2px;
-}
-.jr-base-label {
-  font-family: var(--jr-sans);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: var(--jr-moderate-ink);
-}
-.jr-base-place {
-  font-family: var(--jr-serif);
-  font-weight: 600;
-  font-size: 16px;
-  color: var(--jr-ink);
-}
-.jr-base-note {
-  font-family: var(--jr-sans);
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--jr-body);
-  flex: 1 1 240px;
-}
-/* On cream, links take the darker step - see the palette note above. */
-.jr-base-row .jr-link,
-.jr-day-money .jr-link {
-  color: var(--jr-link-cream);
-}
-.jr-base-link {
-  font-family: var(--jr-sans);
-  font-size: 12.5px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-/* ── NIGHT ROWS — slim text between cards, not cards. ─────────────── */
-.jr-night {
-  display: flex;
-  align-items: baseline;
-  gap: 16px;
-  padding: 13px 4px 13px 20px;
-}
-.jr-night-label {
-  flex: 0 0 auto;
-  font-family: var(--jr-sans);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: var(--jr-moderate-ink);
-  min-width: 92px;
-}
-.jr-night-note {
-  margin: 0;
-  font-family: var(--jr-sans);
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--jr-body);
-}
-/* The trailing night a journey offers instead of the boat home. It is a
-   choice, not a step - the copy says so in its own first word, so this
-   only needs to stop it reading as an instruction. */
-.jr-night-optional .jr-night-label,
-.jr-night-optional .jr-night-note {
-  opacity: 0.72;
-}
-
 /* ── DAY CARD — white, and the pace is a 5px strip down its left edge.
    Not a tile. Not a photograph. THE CARD IS NOT CLICKABLE: it holds four
    destinations (the title, the stops, the day page, and whatever the
@@ -2368,15 +2292,24 @@ select.location-inline-input {
 .jr-day-inner {
   padding: 17px 20px 16px;
 }
+/* THE HEADER (26 Sep 2026): where the day is on the left, its facts as
+   chips on the right - pace, tour spend, how you get about, and the
+   travel to and from the base. Chips rather than one dotted line so day
+   can be read against day. They wrap under the title block on a long
+   transport line rather than squeezing it. */
 .jr-day-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 6px 12px;
+  gap: 8px 14px;
   font-family: var(--jr-sans);
-  font-size: 12.5px;
-  color: var(--jr-body);
-  margin-bottom: 9px;
+  margin-bottom: 10px;
+}
+.jr-day-head-where {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
 }
 .jr-day-ord {
   font-weight: 700;
@@ -2385,16 +2318,58 @@ select.location-inline-input {
   font-size: 11px;
   color: var(--jr-ink);
 }
-.jr-day-pace {
+.jr-day-area {
+  font-size: 13px;
+  color: var(--jr-body);
+}
+.jr-day-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.jr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: var(--jr-page);
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--jr-ink);
+}
+/* The pace word keeps the darker ink step it had on white - the chip
+   ground is the page colour, a touch darker than the card, and all three
+   still clear 4.5:1 on it (7.3, 5.1 and 5.7:1). Doubled class so it
+   beats .jr-chip's own ink, which comes later in the file. */
+.jr-chip-pace {
   font-weight: 600;
-  text-transform: lowercase;
+  text-transform: capitalize;
 }
-.jr-day-meta::before,
-.jr-day-pace::before {
-  content: "·";
-  margin-right: 12px;
-  color: rgba(20, 49, 63, 0.32);
+.jr-chip.jr-pace-ink-relaxed {
+  color: var(--jr-relaxed-ink);
 }
+.jr-chip.jr-pace-ink-moderate {
+  color: var(--jr-moderate-ink);
+}
+.jr-chip.jr-pace-ink-packed {
+  color: var(--jr-packed-ink);
+}
+/* On cream the money note's links take the darker step - the rule that
+   used to share a selector with the base row, kept for when a note
+   carries a link. */
+.jr-day-money .jr-link {
+  color: var(--jr-link-cream);
+}
+.jr-chip-icon {
+  flex: 0 0 auto;
+  color: var(--jr-body);
+}
+
 /* A numeral INSIDE a sentence stays in the serif — Instrument Sans is
    for standalone figures. The exception is a money figure sitting in a
    metadata row, which is neither: it reads as a figure, so it gets the
@@ -2641,13 +2616,18 @@ select.location-inline-input {
 /* ONE ask. This is the slim half of it - it hides the instant the full
    navy block scrolls into view, so the reader never gets the same
    sentence twice six inches apart. */
-.jr-rail-ask {
-  display: block;
+/* The navy panel is the wrapper now (26 Sep 2026), so "Make it your
+   own" can sit inside it beneath a rule. The ask link itself is
+   unchanged in behaviour and in type. */
+.jr-rail-askbox {
   background: var(--jr-navy);
   padding: 14px 16px;
   border-radius: 2px;
-  text-decoration: none;
   transition: opacity 0.18s ease;
+}
+.jr-rail-ask {
+  display: block;
+  text-decoration: none;
 }
 .jr-rail-ask-label {
   display: block;
@@ -3106,8 +3086,14 @@ select.location-inline-input {
     position: static;
     gap: 0;
   }
-  .jr-rail-ask {
+  .jr-rail-askbox {
     display: none;
+  }
+  /* The stay card leads the stacked rail on narrow screens, so the bed
+     is still said above the days, where the base row used to be. Mobile
+     gets its own review; this only keeps it from losing the base. */
+  .jr-stay {
+    margin-bottom: 18px;
   }
   .jr-mobile-ask {
     display: block;
@@ -3166,9 +3152,9 @@ select.location-inline-input {
     flex: 1 1 100%;
     order: 3;
   }
-  .jr-night {
-    flex-direction: column;
-    gap: 4px;
+  .jr-arrival {
+    flex-wrap: wrap;
+    gap: 4px 12px;
   }
 }
 
@@ -3186,6 +3172,7 @@ select.location-inline-input {
 .jr-ask-button:focus-visible,
 .jr-ask-alt:focus-visible,
 .jr-rail-ask:focus-visible,
+.jr-rail-secondary-button:focus-visible,
 .jr-mobile-ask:focus-visible {
   outline: 3px solid var(--jr-accent);
   outline-offset: 2px;
@@ -3195,37 +3182,10 @@ select.location-inline-input {
    readable, and the two asks fade rather than move - but a reader who
    has asked for less motion still gets no transition at all. */
 @media (prefers-reduced-motion: reduce) {
-  .jr-rail-ask,
+  .jr-rail-askbox,
   .jr-mobile-ask,
   .jr-link {
     transition: none;
-  }
-}
-
-/* THE REST OF THE ACCOMMODATION NOTE (30 Aug 2026). The base row above
-   stays a single line beside a village name - that constraint was always
-   right. What was wrong was throwing the remaining sentences away rather
-   than giving them somewhere to go, so they now sit directly beneath it,
-   indented to read as a continuation of the same row rather than as a
-   new section. */
-.jr-base-block {
-  display: flex;
-  flex-direction: column;
-}
-.jr-base-more {
-  margin: 6px 0 0;
-  padding-left: 2px;
-  max-width: 78ch;
-  /* Same three tokens .jr-base-note uses - this is a continuation of
-     that sentence, not a different kind of text. */
-  font-family: var(--jr-sans);
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--jr-body);
-}
-@media (max-width: 720px) {
-  .jr-base-more {
-    font-size: 12.5px;
   }
 }
 
@@ -3507,4 +3467,264 @@ select.location-inline-input {
 .jr-ask-secondary:disabled {
   opacity: 0.55;
   cursor: default;
+}
+
+/* ── DAY BY DAY, 26 SEP 2026 ─────────────────────────────────────────
+   The evening moved into the day it follows, and the bed moved into the
+   rail. See DayCard, TonightBand and ArrivalRow in the page, and the
+   stay card in JourneyRail. */
+
+/* THE ARRIVAL ROW - night one, before any day. Dashed, because nothing
+   is planned in it; the note in the serif like every evening. */
+.jr-arrival {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 12px 20px;
+  margin: 0 0 14px;
+  border: 1px dashed rgba(20, 49, 63, 0.22);
+  border-radius: 2px;
+}
+.jr-arrival-label {
+  flex: 0 0 auto;
+  font-family: var(--jr-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--jr-navy);
+}
+.jr-arrival-meta {
+  flex: 0 0 auto;
+  font-family: var(--jr-sans);
+  font-size: 12px;
+  color: var(--jr-body);
+}
+.jr-arrival-note {
+  margin: 0;
+  font-family: var(--jr-serif);
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--jr-ink);
+}
+
+/* Cards stand apart now there are no night rows between them. */
+.jr-spine .jr-day {
+  margin: 0 0 14px;
+  overflow: hidden;
+}
+
+/* TONIGHT - the foot of a day card. Navy, so it reads as the day
+   turning into evening, and the note in the serif at a size people will
+   actually read: the evening is the part they picture. */
+.jr-tonight {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 22px 16px;
+  background: var(--jr-navy);
+  color: var(--jr-cream);
+}
+.jr-tonight + .jr-tonight {
+  border-top: 1px solid rgba(247, 236, 216, 0.14);
+}
+.jr-tonight-icon {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  color: var(--jr-accent);
+}
+.jr-tonight-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.jr-tonight-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin: 0;
+  font-family: var(--jr-sans);
+}
+.jr-tonight-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--jr-accent);
+}
+.jr-tonight-meta {
+  font-size: 12px;
+  color: rgba(247, 236, 216, 0.78);
+}
+.jr-tonight-note {
+  margin: 3px 0 0;
+  font-family: var(--jr-serif);
+  font-style: italic;
+  font-size: 16.5px;
+  line-height: 1.45;
+}
+/* An optional night is a choice, not a step - quieter, same shape. The
+   note only: the small accent label would drop below 4.5:1 on navy. */
+.jr-tonight-optional .jr-tonight-note,
+.jr-tonight-optional.jr-arrival .jr-arrival-note {
+  opacity: 0.8;
+}
+
+/* WHERE YOU SLEEP - the top of the rail. Cream, like the money note: a
+   fact about the trip rather than more prose. On cream, links and small
+   type take the darker steps (--jr-link-cream, --jr-moderate-ink). */
+.jr-stay {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  background: var(--jr-cream);
+  padding: 18px 18px 16px;
+  border-radius: 2px;
+}
+.jr-stay-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-family: var(--jr-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--jr-moderate-ink);
+}
+h2.jr-stay-eyebrow {
+  line-height: 1.3;
+}
+.jr-stay-eyebrow svg {
+  color: var(--jr-link-cream);
+}
+.jr-stay-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0;
+}
+.jr-stay-place {
+  font-family: var(--jr-serif);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--jr-ink);
+}
+.jr-stay-nights {
+  font-family: var(--jr-sans);
+  font-weight: 400;
+  font-size: 12.5px;
+  color: var(--jr-body);
+}
+.jr-stay-note {
+  margin: 0;
+  font-family: var(--jr-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--jr-body);
+}
+/* The rest of the Accommodation Note is where the logistics live (the
+   boat home from Port Askaig), so it takes the heavier ink. */
+.jr-stay-more {
+  margin: 0;
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--jr-moderate-ink);
+}
+.jr-stay-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 0 14px;
+  background: var(--jr-navy);
+  color: var(--jr-cream);
+  border-radius: 2px;
+  font-family: var(--jr-sans);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
+.jr-stay-button:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+/* On cream the accent ring would all but vanish (1.8:1), so this one
+   button takes navy. */
+.jr-stay-button:focus-visible {
+  outline: 3px solid var(--jr-navy);
+  outline-offset: 2px;
+}
+.jr-stay-small {
+  margin: 0;
+  font-family: var(--jr-sans);
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--jr-body);
+}
+.jr-stay .jr-stay-guide {
+  align-self: flex-start;
+  font-family: var(--jr-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--jr-link-cream);
+}
+
+/* MAKE IT YOUR OWN - inside the navy ask, beneath a rule. A text action
+   in the accent, never a second filled button. */
+.jr-rail-secondary {
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(247, 236, 216, 0.18);
+}
+.jr-rail-secondary-button {
+  display: block;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--jr-sans);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--jr-accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(221, 168, 106, 0.5);
+  text-underline-offset: 3px;
+}
+.jr-rail-secondary-button:hover {
+  text-decoration-color: var(--jr-accent);
+}
+.jr-rail-secondary-button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.jr-rail-secondary-note {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--jr-sans);
+  font-size: 12px;
+  color: rgba(247, 236, 216, 0.72);
+}
+
+/* THE RAIL MAY NOT OUTGROW THE SCREEN (26 Sep 2026). With the stay card
+   on top it runs to roughly 900px on the Grand Tour, and a sticky element
+   taller than the viewport pins its top - the ask at its foot would sit
+   out of reach until the day list ended. Capped to the viewport, it
+   scrolls on its own instead, so the ask can always be reached. Desktop
+   only: below 900px the rail is not sticky. */
+@media (min-width: 901px) {
+  .jr-rail {
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
 }

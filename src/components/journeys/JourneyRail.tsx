@@ -5,7 +5,28 @@ import { useEffect, useState, type MouseEvent } from "react";
 import JourneyRouteMap, { type RouteMapStop } from "@/components/journeys/JourneyRouteMap";
 import { ordinalWord } from "@/lib/journey-derivations";
 import { useAddJourney } from "./use-add-journey";
+import { useTrip } from "@/lib/trip-context";
+import { buildAccommodationBookingLink } from "@/lib/accommodation-links";
 import type { Journey } from "@/lib/types";
+
+/** What the rail's "Where you sleep" card needs (26 Sep 2026). Built on
+ *  the server from the Journey and its Base, and passed in whole so the
+ *  rail never has to know how the guide link was chosen. */
+export interface RailStay {
+  base: string;
+  /** "all five nights" / "both nights" - the PRICED nights. */
+  nightsPhrase: string;
+  /** The Accommodation Note's first sentence, and everything after it. */
+  note: string;
+  noteRest: string;
+  /** The area guide or the base hotel's page, where one exists. */
+  guide?: { href: string; label: string };
+  /** Whether to offer a Hotels.com search for the base. */
+  searchable: boolean;
+  /** What the day cards' travel times are measured from, where that is
+   *  not the base itself (Journey.transferOriginLabel). */
+  transferOrigin?: string;
+}
 
 /**
  * The right-hand rail on /journeys/[slug] (18 Aug 2026, to the build
@@ -45,6 +66,20 @@ import type { Journey } from "@/lib/types";
  * Falls back gracefully with no JavaScript: the map renders, the overlay
  * names day one, and the ask is a plain link to the block at the foot.
  * Nothing here is required to read the page.
+ *
+ * 26 SEP 2026 - TWO ADDITIONS, and the "nothing else" above is now three
+ * things:
+ *
+ *  - WHERE YOU SLEEP, at the top. It replaced the base row that sat above
+ *    night one in the day list, where the bed was said once and scrolled
+ *    away. Here it stays in view the whole length of the days, next to
+ *    the thing that books it: a Hotels.com search for the base, carrying
+ *    the visitor's own dates where they have set some and the journey's
+ *    night count where they have not.
+ *  - "MAKE IT YOUR OWN" under the ask - a text action, not a second
+ *    button, the same hierarchy as the full block at the foot (see
+ *    AddJourneyToTrips for why two equal buttons were removed in August).
+ *    It goes where it goes there: add(true), into the planner.
  */
 export default function JourneyRail({
   journey,
@@ -55,6 +90,7 @@ export default function JourneyRail({
   askHref,
   askLabel,
   askNote,
+  stay,
 }: {
   /** The Journey this rail belongs to. Added 12 Sep 2026, when the rail's
    *  ask stopped being a signpost and became the action itself. */
@@ -70,6 +106,7 @@ export default function JourneyRail({
   askHref: string;
   askLabel: string;
   askNote: string;
+  stay?: RailStay;
 }) {
   const [currentDay, setCurrentDay] = useState(1);
   /** A day chosen with the arrows, which overrides the one being read
@@ -87,6 +124,7 @@ export default function JourneyRail({
      not share a state machine, which is why the two surfaces are never
      shown at once - see askVisible below. */
   const addJourney = useAddJourney(journey);
+  const trip = useTrip();
 
   /* WHY THIS IS A SCROLL LISTENER AND NOT TWO IntersectionObservers
      (16 Sep 2026).
@@ -229,8 +267,73 @@ export default function JourneyRail({
     </>
   );
 
+  /* The secondary action only belongs beside the default ask. Once the
+     trip is added, or the browser already holds one, the ask above has
+     become "View trip" or "Sign in", and "make it your own" beside either
+     would be a second, conflicting instruction. */
+  const showSecondary = addJourney.status !== "added" && !addJourney.collision;
+
+  const bookingUrl =
+    stay?.searchable ? buildAccommodationBookingLink(stay.base, trip.tripDates, journey.nights) : undefined;
+
   return (
     <aside className="jr-rail">
+      {stay && (
+        <section className="jr-stay" aria-labelledby="jr-stay-title">
+          <h2 className="jr-stay-eyebrow" id="jr-stay-title">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M3 18V7" />
+              <path d="M3 14h18v4" />
+              <path d="M21 14v-2a3 3 0 0 0-3-3h-7v5" />
+              <circle cx="7" cy="11" r="2" />
+            </svg>
+            Where you sleep
+          </h2>
+          <p className="jr-stay-title">
+            <span className="jr-stay-place">{stay.base}</span>
+            {stay.nightsPhrase && <span className="jr-stay-nights">{stay.nightsPhrase}</span>}
+          </p>
+          {stay.note && <p className="jr-stay-note">{stay.note}</p>}
+          {stay.noteRest && <p className="jr-stay-more">{stay.noteRest}</p>}
+          {stay.transferOrigin && (
+            <p className="jr-stay-note">Travel times below are from {stay.transferOrigin}.</p>
+          )}
+          {bookingUrl && (
+            <>
+              {/* rel="sponsored" for the same reason as the area page's
+                  identical link: it earns commission. */}
+              <a
+                href={bookingUrl}
+                target="_blank"
+                rel="sponsored nofollow noopener noreferrer"
+                className="jr-stay-button"
+              >
+                Find a room in {stay.base} &rarr;
+              </a>
+              <p className="jr-stay-small">
+                Opens Hotels.com in a new tab; check the dates there. We may earn a commission
+                &mdash; it costs you nothing.
+              </p>
+            </>
+          )}
+          {stay.guide && (
+            <Link href={stay.guide.href} className="jr-link jr-stay-guide">
+              {stay.guide.label} &rarr;
+            </Link>
+          )}
+        </section>
+      )}
+
       <div className="jr-rail-map">
         <div className="jr-rail-map-head">
           <span className="jr-eyebrow jr-rail-map-eyebrow">Today, on the map</span>
@@ -270,17 +373,39 @@ export default function JourneyRail({
         {routeSummary && <p className="jr-rail-map-caption">{routeSummary}</p>}
       </div>
 
-      {/* ONE ask, and only while the full block is off screen. */}
-      <Link
-        href={ask.href}
-        onClick={handleAskClick}
-        className={askVisible ? "jr-rail-ask jr-rail-ask-hidden" : "jr-rail-ask"}
+      {/* ONE ask, and only while the full block is off screen. The
+          wrapper carries the navy panel now, so the secondary action sits
+          inside it beneath a rule; the Link keeps every behaviour it had. */}
+      <div
+        className={askVisible ? "jr-rail-askbox jr-rail-ask-hidden" : "jr-rail-askbox"}
         aria-hidden={askVisible}
-        aria-disabled={busy}
-        tabIndex={askVisible ? -1 : undefined}
       >
-        {askInner}
-      </Link>
+        <Link
+          href={ask.href}
+          onClick={handleAskClick}
+          className="jr-rail-ask"
+          aria-disabled={busy}
+          tabIndex={askVisible ? -1 : undefined}
+        >
+          {askInner}
+        </Link>
+        {showSecondary && (
+          <div className="jr-rail-secondary">
+            <button
+              type="button"
+              onClick={() => addJourney.add(true)}
+              className="jr-rail-secondary-button"
+              disabled={busy}
+              tabIndex={askVisible ? -1 : undefined}
+            >
+              Make it your own &rarr;
+            </button>
+            <span className="jr-rail-secondary-note">
+              Opens in the planner, so you can change any part.
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* Phone only (CSS). Same link, same rule, plus "not before day
           one has been read". */}

@@ -163,6 +163,46 @@ export function transferLegsWalked(base: DayBase | undefined): { out: boolean; b
   return { out: base?.fromBaseWalked ?? fallback, back: base?.toBaseWalked ?? fallback };
 }
 
+/** The travel-time chip on a /journeys/[slug] day card (26 Sep 2026):
+ *  "33 min drive out · 43 min back". ROUTED FIGURES ONLY - a blank leg gives
+ *  no chip rather than an estimate, because the chip sits among facts
+ *  (price, pace) and has no room for the "≈" an estimate would owe the
+ *  reader. The day's own page still shows the estimate, marked as one.
+ *
+ *  The verb comes from transferLegsWalked - the per-leg Walked tick, then
+ *  the Journey's Transfer Mode - never from the Day's transport line.
+ *  That is what makes day four of the Grand Tour honest: its line says
+ *  "Car, or walk it from Port Ellen", and "4 min out" beside it would
+ *  read as a walk. When the two legs are made differently, both carry
+ *  their own verb.
+ *
+ *  `title` names what the minutes were measured from, which is
+ *  transferOriginLabel where a journey has one (The Kildalton Road
+ *  routes from the pathway start, not Port Ellen's centre). The journey
+ *  page gives it to screen readers with each chip, and states it once,
+ *  visibly, in the rail's "Where you sleep" card. */
+export function baseLegsSummary(base: DayBase | undefined): { text: string; title: string } | undefined {
+  if (!base) return undefined;
+  const out = base.fromBaseMinutes;
+  const back = base.toBaseMinutes;
+  if (out === undefined && back === undefined) return undefined;
+  const walked = transferLegsWalked(base);
+  const verb = (w: boolean) => (w ? "walk" : "drive");
+  const origin = base.transferOriginLabel ?? base.name;
+  let text: string;
+  if (out !== undefined && back !== undefined) {
+    text =
+      walked.out === walked.back
+        ? `${out} min ${verb(walked.out)} out · ${back} min back`
+        : `${out} min ${verb(walked.out)} out · ${back} min ${verb(walked.back)} back`;
+  } else if (out !== undefined) {
+    text = `${out} min ${verb(walked.out)} out`;
+  } else {
+    text = `${back} min ${verb(walked.back)} back`;
+  }
+  return { text, title: `From ${origin} to the first stop, and from the last stop back` };
+}
+
 /** The two base legs in minutes, each undefined when neither a routed
  *  figure nor coordinates exist for it. `first`/`last` are the day's own
  *  first and last stop coordinates.
