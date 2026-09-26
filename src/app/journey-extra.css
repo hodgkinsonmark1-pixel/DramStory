@@ -2033,12 +2033,23 @@ select.location-inline-input {
    band's top edge off screen on first load. Clamped at both ends so a
    short laptop doesn't get a cramped block and a tall desktop doesn't
    get a screenful of nothing. */
+/* LESS CREAM (26 Sep 2026, Mark). The band was up to 430px tall around
+   three short lines, so the first thing under the hero was mostly empty
+   and it set the pace of the page as sparse before anything had been
+   said.
+
+   WHAT THE HEIGHT WAS FOR, since it was not arbitrary: it pushed the
+   claim band below the fold, so the standfirst had the screen to itself
+   (see 18 Aug 2026's note above). That is given up here deliberately -
+   a glimpse of the claim band is a reason to keep scrolling, where half
+   a screen of cream is a reason to stop. Worth a look on the preview,
+   because it is a real change of intent rather than a tidy-up. */
 .jr-standfirst {
   background: var(--jr-page);
   display: flex;
   align-items: center;
-  min-height: clamp(210px, calc(100svh - 460px), 430px);
-  padding: 44px 32px;
+  min-height: clamp(170px, calc(100svh - 620px), 260px);
+  padding: 38px 32px;
 }
 .jr-standfirst p {
   max-width: 1180px;
@@ -2049,7 +2060,17 @@ select.location-inline-input {
   font-size: 22px;
   line-height: 1.55;
   color: var(--jr-ink);
-  max-width: 34ch;
+  /* TWO LINES, WIDER (26 Sep 2026, Mark). Was 34ch, which broke a
+     76-character sentence into three short lines and made the band feel
+     emptier still.
+
+     46ch is sized against the DATA rather than against this one
+     sentence: the four journeys' standfirsts run 71 to 80 characters,
+     so every one of them lands on two lines at this measure and none
+     tips to three. Checked all four before choosing it - a measure
+     tuned to the Grand Tour alone would have left the Rhinns Trail, the
+     longest at 80, on three lines. */
+  max-width: 46ch;
 }
 
 /* ── CLAIM BAND ───────────────────────────────────────────────────────

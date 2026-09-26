@@ -814,7 +814,37 @@ export function journeyClaimStats(
     const car = journey.days.some((d) => (d.transportClause ?? "").toLowerCase().startsWith("car"))
       ? "you'll need a car"
       : "";
-    const clauses = [bed, car].filter(Boolean).join(", and ");
+
+    /* WHEN THE NIGHTS OUTNUMBER THE DAYS, SAY WHY (26 Sep 2026, Mark).
+     *
+     * The Grand Tour is four days and five nights, and the page stated
+     * both without ever reconciling them: the standfirst opens "Four
+     * days on Islay" and this stat said "5 nights". Both correct - you
+     * land the day before and the itinerary starts the next morning,
+     * which the Arrival note and the first Night Note both say outright
+     * - and a reader deciding between journeys was left doing the
+     * arithmetic and wondering which number to trust.
+     *
+     * CONDITIONAL, and that is the whole point of writing it here rather
+     * than typing it into Airtable. Three of the four journeys have
+     * nights EXACTLY equal to days - Hidden Coast 2/2, Rhinns Trail 3/3,
+     * Kildalton Road 2/2 - and on those this clause would be a lie about
+     * a night that does not exist. Deriving the difference means the
+     * sentence appears only where there is a difference to explain, and
+     * cannot drift the way the two hand-read numbers just did.
+     *
+     * It claims the extra night is the ARRIVAL night, which is true of
+     * the only journey that currently has one and is stated in that
+     * journey's own Arrival field. If a future journey ever prices an
+     * extra night at the END of a trip instead, this wording needs
+     * revisiting rather than extending. */
+    const extraNights = journey.nights - journey.days.length;
+    const arrival =
+      extraNights === 1 && journey.days.length > 0
+        ? `the night you land, then ${spellCount(journey.days.length)} days out`
+        : "";
+
+    const clauses = [arrival, bed, car].filter(Boolean).join(", and ");
     stats.push({
       value: `${journey.nights} ${noun}`,
       label: clauses || `based in ${journey.base}`,
